@@ -9,6 +9,13 @@
   * a camera cut ends every track (`end_all`): nothing is bridged across shots
   * optional kit-colour gate (ADR-034, `kit_gate`): when two players cross, a track may not take over a box whose shirt colour clearly
     differs from its own (Hellinger hue/saturation histogram of the torso); the gate only forbids, it never creates an association
+  * U.2 Deep-EIoU + on-demand DINOv2 gate: the association score uses the IoU of boxes expanded by `eiou_expand` (a player who moved
+    more than his own width between samples still scores), and a match the motion evidence cannot settle — a rival
+    candidate nearly as good, or two tracks whose predictions mutually overlap (a crossing) — is arbitrated by a DINOv2 appearance
+    provider, but only for that pair: the provider is called lazily, never on an unambiguous match, and the gate only forbids
+    (cosine below `dino_gate`); it never creates an association. `dino_gate=None` (the default) disables it entirely: no model
+    call, no behaviour change. No live provider is wired in analyze.py yet — embeddings are computed post-hoc there (appearance.py)
+    — so the gate is off in production until a caller supplies one to `update(appearance_fn=...)`.
 
 A track is an anonymous, temporary reference ("track 7") inside one processing run. It is never a player identity (ADR-016).
 """
@@ -51,6 +58,27 @@ class Track:
     cov: np.ndarray = field(default_factory=lambda: np.eye(8))
 
 
+# U.2 thresholds (Deep-EIoU + on-demand DINOv2 gate).
+EIOU_EXPAND = 0.2        # each side of a box grows by this share of its own width/height before the association IoU is taken
+AMBIGUITY_MARGIN = 0.15  # two candidate costs within this are too close to call on motion alone: consult appearance
+DINO_REJECT_COS = 0.35   # a DINOv2 cosine below this is a different person: forbid the match. Calibration (appearance.py):
+                         # same-person track halves score >= 0.70 at the 5th percentile with 3 crops each; a single crop is
+                         # noisier, so only a clearly-low cosine forbids — the gate never creates a match.
+TRACK_OVERLAP_IOU = 0.15 # two tracks whose predicted boxes overlap at this IoU are crossing (mirrors follow.OVERLAP_IOU, U.1):
+                         # their matches are ambiguous however confident motion looks
+
+
+def _expand_box(b: tuple[float, float, float, float], frac: float) -> tuple[float, float, float, float]:
+    """The box grown by `frac` of its own width/height on every side, same centre (Deep-EIoU expansion)."""
+    x, y, w, h = b
+    return x - w * frac / 2, y - h * frac / 2, w * (1 + frac), h * (1 + frac)
+
+
+def _eiou(a: tuple[float, float, float, float], b: tuple[float, float, float, float], expand: float) -> float:
+    """IoU of the expanded boxes (Deep-EIoU); plain IoU when `expand` is 0."""
+    return _iou(a, b) if expand <= 0 else _iou(_expand_box(a, expand), _expand_box(b, expand))
+
+
 def _xywh_to_z(d: Detection | Observation) -> np.ndarray:
     return np.array([d.x + d.w / 2, d.y + d.h / 2, d.w / max(d.h, 1e-6), d.h])
 
@@ -72,12 +100,17 @@ def _iou(a: tuple[float, float, float, float], b: tuple[float, float, float, flo
 class Tracker:
     def __init__(self, *, high: float = 0.5, low: float = 0.15, min_iou: float = 0.1, max_center_jump: float = 1.5,
                  min_hits: int = 2, max_lost_s: float = 1.0, ball_min_score: float = 0.3, ball_speed: float = 0.8,
-                 distance_weight: float = 0.0, kit_gate: float | None = None, team_gate: bool = False):
+                 distance_weight: float = 0.0, kit_gate: float | None = None, team_gate: bool = False,
+                 eiou_expand: float = EIOU_EXPAND, dino_gate: float | None = None, ambiguity_margin: float = AMBIGUITY_MARGIN):
         self.high, self.low, self.min_iou, self.max_jump = high, low, min_iou, max_center_jump
         self.team_gate = team_gate                   # True: a track that is clearly one team (or the officials) never takes a detection that is clearly another
         self.kit_gate = kit_gate                     # None: no colour check; else minimum torso-colour similarity for an association
         self.distance_weight = distance_weight       # 0: IoU only; > 0: IoU blended with centre distance (sparse sampling, small players)
         self.ball_speed = ball_speed                 # frame widths per second the ball may travel between samples (a hard shot ~0.6)
+        self.eiou_expand = eiou_expand        # 0: plain IoU, as before U.2; > 0: Deep-EIoU association score
+        self.dino_gate = dino_gate              # None: no appearance gate (zero cost); else the cosine below which a match is forbidden
+        self.ambiguity_margin = ambiguity_margin
+        self.dino_stats = {"calls": 0, "forbids": 0, "ambiguous": 0}   # U.2: how often the gate was consulted / forbade (0 calls = it never ran)
         self.min_hits, self.max_lost_us, self.ball_min = min_hits, int(max_lost_s * 1_000_000), ball_min_score
         self.active: list[Track] = []
         self.finished: list[Track] = []
@@ -121,10 +154,12 @@ class Tracker:
 
     # ------------------------------------------------------------------ association
     def _associate(self, tracks: list[Track], preds: list[tuple], dets: list[Detection], label: str = "PERSON",
-                   dt: float = 0.0, feats: list | None = None, teams: list | None = None) -> tuple[list[tuple[int, int, float]], set[int], set[int]]:
+                   dt: float = 0.0, feats: list | None = None, teams: list | None = None,
+                   app_fn=None) -> tuple[list[tuple[int, int, float]], set[int], set[int]]:
         if not tracks or not dets:
             return [], set(range(len(tracks))), set(range(len(dets)))
         cost = np.ones((len(tracks), len(dets)))
+        iou_mat = np.zeros((len(tracks), len(dets)))     # plain IoU, for the U.2 ambiguity check (the cost uses the expanded IoU)
         for i, p in enumerate(preds):
             pc = (p[0] + p[2] / 2, p[1] + p[3] / 2)
             for j, d in enumerate(dets):
@@ -138,16 +173,18 @@ class Tracker:
                     continue
                 jump = dist / max(p[3], d.h, 1e-3)
                 ov = _iou(p, (d.x, d.y, d.w, d.h))
+                iou_mat[i, j] = ov
+                sim = _eiou(p, (d.x, d.y, d.w, d.h), self.eiou_expand)     # Deep-EIoU (U.2): expanded boxes still score
                 if self.distance_weight > 0:
                     # a small player who moved more than his own width between samples has IoU 0 with the prediction although
                     # he is obviously the same box: the centre distance (in body heights) keeps him associated
                     size = min(p[3], d.h) / max(p[3], d.h, 1e-6)
                     if jump <= self.max_jump and size >= 0.5:
-                        score = (1 - self.distance_weight) * ov + self.distance_weight * (1 - jump / self.max_jump)
+                        score = (1 - self.distance_weight) * sim + self.distance_weight * (1 - jump / self.max_jump)
                         if score > 0.05:
                             cost[i, j] = 1 - score
-                elif ov >= self.min_iou and jump <= self.max_jump:
-                    cost[i, j] = 1 - ov
+                elif sim >= self.min_iou and jump <= self.max_jump:
+                    cost[i, j] = 1 - sim
         if self.kit_gate is not None and feats is not None and label == "PERSON":
             for i, t in enumerate(tracks):
                 if t.feat is None:
@@ -165,7 +202,53 @@ class Tracker:
                         cost[i, j] = 1.0                           # another team (or the referee): never this track
         rows, cols = linear_sum_assignment(cost)
         matches = [(int(r), int(c), 1 - float(cost[r, c])) for r, c in zip(rows, cols) if cost[r, c] < 1]
+        if label == "PERSON" and app_fn is not None and self.dino_gate is not None:
+            matches = self._dino_arbitrate(tracks, preds, dets, cost, iou_mat, matches, app_fn)
         return matches, set(range(len(tracks))) - {m[0] for m in matches}, set(range(len(dets))) - {m[1] for m in matches}
+
+    def _ambiguous(self, cost: np.ndarray, iou_mat: np.ndarray, preds: list[tuple], i: int, j: int) -> bool:
+        """Is match (i, j) too close to call on motion alone (U.2)? A rival candidate nearly as good (an eligible cost
+        within the margin — an ineligible rival is no alternative), or this track's prediction mutually overlapping
+        another track's prediction (a crossing: the predictions themselves may have swapped, however confident each
+        single match looks). A low IoU alone is NOT ambiguous: a fast small player normally scores low, and with no
+        rival there is nothing for the gate to choose between — forbidding his only match would only fragment the track."""
+        c = float(cost[i, j])
+        alts = [float(v) for k, v in enumerate(cost[i]) if k != j and v < 1.0] + \
+               [float(v) for k, v in enumerate(cost[:, j]) if k != i and v < 1.0]
+        if alts and min(alts) - c <= self.ambiguity_margin:
+            return True
+        for k, p in enumerate(preds):
+            if k != i and _iou(preds[i], p) >= TRACK_OVERLAP_IOU:
+                return True
+        return False
+
+    def _dino_arbitrate(self, tracks: list[Track], preds: list[tuple], dets: list[Detection], cost: np.ndarray,
+                        iou_mat: np.ndarray, matches: list[tuple[int, int, float]], app_fn) -> list[tuple[int, int, float]]:
+        """One arbitration round (U.2): for each ambiguous match, ask the appearance provider for the cosine between that
+        track and that detection. Below `dino_gate` the pair is forbidden and the Hungarian is re-run; anything else
+        (a high cosine, or None = unknown) leaves the match alone — the gate only forbids, it never creates an association.
+        A provider that raises is treated as unknown: appearance is evidence, and a failing model must not kill tracking."""
+        forbid = []
+        for i, j, _a in matches:
+            if not self._ambiguous(cost, iou_mat, preds, i, j):
+                continue
+            self.dino_stats["ambiguous"] += 1
+            self.dino_stats["calls"] += 1
+            try:
+                cos = app_fn(tracks[i], dets[j])
+            except Exception:                    # noqa: BLE001 - see docstring above
+                cos = None
+            if cos is None:
+                continue
+            if cos < self.dino_gate:
+                forbid.append((i, j))
+                self.dino_stats["forbids"] += 1
+        if not forbid:
+            return matches
+        for i, j in forbid:
+            cost[i, j] = 1.0
+        rows, cols = linear_sum_assignment(cost)
+        return [(int(r), int(c), 1 - float(cost[r, c])) for r, c in zip(rows, cols) if cost[r, c] < 1]
 
     @staticmethod
     def track_team(t: Track, min_votes: int = 3, min_share: float = 0.7) -> int | None:
@@ -202,12 +285,15 @@ class Tracker:
         self.last_pts = None
 
     def update(self, frame_index: int, pts_us: int, detections: list[Detection], camera_shift: tuple[float, float] | None = None,
-               features: list | None = None, teams: dict | None = None, follow: dict | None = None) -> None:
+               features: list | None = None, teams: dict | None = None, follow: dict | None = None,
+               appearance_fn=None) -> None:
         """`camera_shift`: the picture's global translation since the previous sample (normalised dx, dy; from frames.camera_shift),
         added to every prediction so a camera pan is not mistaken for every player running the same way.
         `follow`: {id(track): (cx, cy)} where that track's picture was followed to through the frames since the previous sample
         (vie_worker.follow); it replaces the constant-velocity guess of the centre (camera movement included), so crossing players
-        keep their own tracks."""
+        keep their own tracks.
+        `appearance_fn`: optional (track, detection) -> cosine | None (U.2): the on-demand DINOv2 appearance provider, called
+        only for ambiguous PERSON matches; None disables the gate (the default: no model call, no behaviour change)."""
         dt = 0.0 if self.last_pts is None else (pts_us - self.last_pts) / 1_000_000
         self.last_pts = pts_us
         for label in ("PERSON", "BALL"):
@@ -231,11 +317,12 @@ class Tracker:
             low = [d for d in dets if self.low <= d.score < high_thr]
             fh, fl = [fmap.get(id(d)) for d in high], [fmap.get(id(d)) for d in low]
             th, tl = ([teams.get(id(d)) for d in high], [teams.get(id(d)) for d in low]) if teams is not None else (None, None)
-            m1, free_t, free_d = self._associate(tracks, preds, high, label, dt, fh if fmap else None, th)
+            m1, free_t, free_d = self._associate(tracks, preds, high, label, dt, fh if fmap else None, th, app_fn=appearance_fn)
             for i, j, a in m1:
                 self._update(tracks[i], high[j]); self._record(tracks[i], high[j], frame_index, pts_us, a, th[j] if th else None); self._feat(tracks[i], fh[j] if fmap else None)
             rest = sorted(free_t)
-            m2, free_t2, _ = self._associate([tracks[i] for i in rest], [preds[i] for i in rest], low, label, dt, fl if fmap else None, tl)
+            m2, free_t2, _ = self._associate([tracks[i] for i in rest], [preds[i] for i in rest], low, label, dt, fl if fmap else None, tl,
+                                             app_fn=appearance_fn)
             for i, j, a in m2:
                 t = tracks[rest[i]]
                 self._update(t, low[j]); self._record(t, low[j], frame_index, pts_us, a, tl[j] if tl else None); self._feat(t, fl[j] if fmap else None)

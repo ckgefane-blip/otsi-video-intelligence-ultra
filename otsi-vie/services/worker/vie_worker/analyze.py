@@ -120,8 +120,13 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
                                               progress=lambda p: runner.progress(job, 1 + 3 * p, "Looking for the kickoff to learn the two teams"))
         if seed_us is None:
             team_info = team_auto
-    tracker = Tracker(**{k: v for k, v in (cfg.get("tracker") or {}).items() if k in ("high", "low", "min_hits", "distance_weight", "max_lost_s", "kit_gate")},
+    tracker = Tracker(**{k: v for k, v in (cfg.get("tracker") or {}).items() if k in ("high", "low", "min_hits", "distance_weight", "max_lost_s", "kit_gate",
+                                                                                                  "eiou_expand", "dino_gate", "ambiguity_margin")},
                       team_gate=seed_us is not None)
+    # U.2: eiou_expand / dino_gate / ambiguity_margin are configurable here, but the DINOv2 gate has no live provider in
+    # analyze.py — embeddings are computed post-hoc (appearance.describe), not while tracking — so the gate stays off
+    # (dino_gate=None) until a caller supplies an appearance_fn to tracker.update(); what the gate did is reported in
+    # tracker.dino_stats (see "dino_gate" in the run stats below).
     confirm = {"min_hits": tracker.min_hits, "min_peak": 0.0, **(cfg.get("confirm") or {})}
     touchline = cfg.get("pitch") == "TOUCHLINE"
     surface = cfg.get("pitch") == "SURFACE"
@@ -362,7 +367,8 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
         stats = {"sampled_frames": frames, "detections": len(rows), "detections_on_pitch": sum(1 for r in rows if r[8]), "person_tracks": sum(t.label == "PERSON" for t in tracks),
                  "ball_tracks": sum(t.label == "BALL" for t in tracks), "shots": len(shot_ids), "seconds": round(elapsed, 1),
                  "frames_per_second": round(frames / elapsed, 2) if elapsed > 0 else None, "model": det.entry["key"], "tiles": cfg["tiles"], "threads": threads,
-                 "runtime": det.runtime, "retracked_from": reuse, "team_seed": team_info, "follow": follow_stats, "appearance": appearance_stats, "appearance_runtime": embed_runtime,
+                 "runtime": det.runtime, "retracked_from": reuse, "team_seed": team_info, "follow": follow_stats, "dino_gate": tracker.dino_stats,
+                 "appearance": appearance_stats, "appearance_runtime": embed_runtime,
                  "shirt_numbers": jersey_stats, "profile": cfg.get("profile"), "grids": cfg.get("grids"), "passes_per_frame": det.passes_per_frame() if hasattr(det, "passes_per_frame") else None,
                  "candidate_tracks_rejected": rejected, "double_boxes_dropped": dropped, "confirmation": confirm, "stabilized": stabilize, "pitch_filter": cfg.get("pitch") or "STRICT", "cross_scale": bool(cfg.get("cross_scale", False))}
         now = time.strftime("%Y-%m-%d %H:%M:%S")
