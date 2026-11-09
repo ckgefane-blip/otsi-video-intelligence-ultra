@@ -28,3 +28,33 @@ is what `tools/eval/benchmark_profiles.py` scores against.
 - Naples' annotated far players are tiny and many are `approximate` (25 of 41); its recall measures distant-player detection mostly.
 - No single-camera, full-length grassroots match is included yet; the clips are edited highlights or a phone recording in a stadium.
 - The owner's representative grassroots footage, annotated the same way, is the next required evaluation input.
+
+## Sukhum benchmark (Track G, ADR-125 draft)
+
+**Harness:** `otsi-vie/tools/eval/sukhum_benchmark.py` — scores engine
+predictions against labelled ground truth with the existing
+`vie_worker/evaluation.py:evaluate()` (MOTA, ID switches, IDF1, HOTA,
+detection precision/recall/F1, identity rates). It adds no new metric.
+
+**Template:** `sukhum_template.json` in this directory is a two-frame,
+`complete: false` example showing the required fields: top-level `match`,
+`competition`, `half`, `camera`, and per-frame person (`kind: person`) and
+ball (`kind: ball`) boxes with normalised `x/y/w/h`. Copy it, fill it with
+`tools/eval/annotate.py` following the protocol above, and mark frames
+`complete: true` only when every visible player is boxed. The template
+itself is not data — the harness refuses to score ground truth with no
+complete frame and exits with NOT MEASURED.
+
+**Running it:**
+
+```bash
+python otsi-vie/tools/eval/sukhum_benchmark.py --gt annotations/gt/<clip>.json --pred <predictions.json> --out <result.json>
+python otsi-vie/tools/eval/sukhum_benchmark.py --gt annotations/gt/<clip>.json --pred <predictions.json> --validate-only
+```
+
+**Status — read before quoting a number:** no Sukhum / Abkhazia ground
+truth exists yet. The owner still has to select the Sukhum files from
+`D:\Videos-Full Matches\Abkhazia Premier League`. Until labelled Sukhum
+frames exist, there is no Sukhum benchmark number, and the harness will
+say NOT MEASURED rather than invent one. The three existing clips above
+remain the only labelled data, with the limits listed above.
