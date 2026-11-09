@@ -30,7 +30,7 @@ from .detect.base import load_detector
 from .detect.pitch import classify, classify_surface, grass_mask
 from .detect.stored import StoredDetector
 from .quality import phase_shift
-from .follow import FOLLOW_WIDTH, FrameStream, follow_centre
+from .follow import FOLLOW_WIDTH, FrameStream, follow_centre, overlapping_boxes
 from .frames import CutDetector, sample_frames
 from . import ff
 from .jobs import Job, JobError, JobRunner
@@ -138,7 +138,7 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
     frames, batch = 0, []
     # who-is-who between analysed frames: every video frame, small and grey, read alongside (vie_worker.follow); config "follow": false turns it off
     stream = FrameStream(ff.decode_sampled(store.path(run["object_key"]), None, max_width=FOLLOW_WIDTH, gray=True)) if cfg.get("follow", True) else None
-    follow_stats = {"on": stream is not None, "predictions": 0, "followed": 0}
+    follow_stats = {"on": stream is not None, "predictions": 0, "followed": 0, "frozen": 0}
     prev_pts = [None]                          # the previous analysed frame (the tracks' last observations are there)
     t0 = time.monotonic()
     last_check = 0.0
@@ -178,14 +178,19 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
                 grays = stream.between(f.pts_us)
                 if grays:
                     fol = {}
-                    for t in tracker.active:
-                        if t.label == "PERSON" and t.observations and t.observations[-1].pts_us == prev_pts[0]:
-                            o = t.observations[-1]
-                            follow_stats["predictions"] += 1
-                            c = follow_centre(grays, (o.x, o.y, o.w, o.h))
-                            if c is not None:
-                                fol[id(t)] = c
-                                follow_stats["followed"] += 1
+                    # U.1: players whose boxes mutually overlap in this analysed frame are crossing — freeze their follow (hold the
+                    # last known centre) instead of following a patch contaminated by the other player.
+                    live = [(t, t.observations[-1]) for t in tracker.active
+                            if t.label == "PERSON" and t.observations and t.observations[-1].pts_us == prev_pts[0]]
+                    frozen = overlapping_boxes([(o.x, o.y, o.w, o.h) for _, o in live])
+                    for k, (t, o) in enumerate(live):
+                        follow_stats["predictions"] += 1
+                        c = follow_centre(grays, (o.x, o.y, o.w, o.h), freeze=k in frozen)
+                        if c is not None:
+                            fol[id(t)] = c
+                            follow_stats["followed"] += 1
+                            if k in frozen:
+                                follow_stats["frozen"] += 1
             prev_pts[0] = f.pts_us
             tracker.update(f.frame_index, f.pts_us, kept, camera_shift=shift, features=feats, teams=teams, follow=fol)
             if with_appearance:

@@ -8,6 +8,14 @@ frame. Nothing here is stored or drawn: the boxes are still the detector's; only
 
 Measured on the owner's match (2026-10-31; detector on every frame as reference, three 20 s stretches): jumps of a track between two visible
 players 9 -> 2, 6 -> 2, 1 -> 0; missing boxes and box accuracy unchanged or slightly better.
+
+U.1 (Muse, 2026-11-10, muse/ultra-main): mutual-overlap occlusion protection. When two players' boxes mutually overlap in the
+analysed frame they are crossing, and the patch around either player then contains the other player's picture: phase correlation
+would lock onto the wrong texture and the error would compound frame to frame. Such tracks are FROZEN instead — follow_centre
+(..., freeze=True) returns the last known centre unchanged, the tracker keeps its constant-velocity prediction, and the next
+analysed frame re-acquires the player from the detector. Overlap is judged on the starting boxes (overlapping_boxes, IoU >=
+OVERLAP_IOU); follow_centres() follows several tracks at once and freezes only the overlapping ones. Nothing is invented: a frozen
+track reports where the player last was, it does not guess where he went.
 """
 from __future__ import annotations
 
@@ -17,6 +25,7 @@ import numpy as np
 
 FOLLOW_WIDTH = 960              # px: the grey frames the follower reads (half of 1080p: plenty for a patch match, a quarter of the data)
 MAX_STEP = 0.6                  # a frame-to-frame move larger than this share of the box is a mismatch (another player, motion blur): ignored
+OVERLAP_IOU = 0.15              # two boxes overlapping at this IoU or more are in mutual overlap (a crossing): freeze both (U.1)
 
 
 def patch_shift(a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
@@ -34,14 +43,21 @@ def patch_shift(a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
     return float(px), float(py)
 
 
-def follow_centre(grays: list[np.ndarray], box: tuple[float, float, float, float]) -> tuple[float, float] | None:
+def follow_centre(grays: list[np.ndarray], box: tuple[float, float, float, float], *, freeze: bool = False) -> tuple[float, float] | None:
     """The centre (normalised) of the player whose box (normalised x, y, w, h) was measured in grays[0], after following his picture through
-    grays[1:]. None when the patch leaves the picture."""
+    grays[1:]. None when the patch leaves the picture. With freeze=True (U.1: the box mutually overlaps another player's box, so the
+    patch is contaminated by the other player) the last known centre is returned unchanged — the track is held, not followed."""
     if len(grays) < 2:
         return None
     H, W = grays[0].shape
     cx, cy = (box[0] + box[2] / 2) * W, (box[1] + box[3] / 2) * H
     bw, bh = box[2] * W, box[3] * H
+    if freeze:
+        # U.1: do not read the patch at all. Phase correlation on a patch that contains two players locks onto whichever texture is
+        # stronger and the template is then re-read from the contaminated frame, so one wrong step becomes a swapped track. Holding
+        # the centre is honest (it is where the player last was) and the tracker's own prediction plus the next detector frame
+        # re-acquire him once the players separate.
+        return cx / W, cy / H
     pw, ph = int(max(12, bw * 1.8)) // 2 * 2, int(max(16, bh * 1.4)) // 2 * 2         # the player and a little ground around him
     for a, b in zip(grays, grays[1:]):
         x0, y0 = int(round(cx - pw / 2)), int(round(cy - ph / 2))
@@ -52,6 +68,42 @@ def follow_centre(grays: list[np.ndarray], box: tuple[float, float, float, float
             dx, dy = 0.0, 0.0
         cx, cy = cx + dx, cy + dy
     return cx / W, cy / H
+
+
+def box_iou(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    """IoU of two normalised (x, y, w, h) boxes."""
+    ax1, ay1, ax2, ay2 = a[0], a[1], a[0] + a[2], a[1] + a[3]
+    bx1, by1, bx2, by2 = b[0], b[1], b[0] + b[2], b[1] + b[3]
+    iw = min(ax2, bx2) - max(ax1, bx1)
+    ih = min(ay2, by2) - max(ay1, by1)
+    if iw <= 0 or ih <= 0:
+        return 0.0
+    inter = iw * ih
+    return inter / (a[2] * a[3] + b[2] * b[3] - inter)
+
+
+def overlapping_boxes(boxes: list[tuple[float, float, float, float]]) -> set[int]:
+    """Indices of boxes that mutually overlap another box (IoU >= OVERLAP_IOU).
+
+    Overlap is judged on the boxes as measured in the first (analysed) frame: two players whose boxes overlap that much are crossing,
+    and following either patch would read the other player's picture. A lone player is never frozen by this. (U.1.)"""
+    out: set[int] = set()
+    for i in range(len(boxes)):
+        for j in range(i + 1, len(boxes)):
+            if box_iou(boxes[i], boxes[j]) >= OVERLAP_IOU:
+                out.add(i)
+                out.add(j)
+    return out
+
+
+def follow_centres(grays: list[np.ndarray], boxes: list[tuple[float, float, float, float]]) -> list[tuple[tuple[float, float] | None, bool]]:
+    """Follow several players at once, freezing the ones in mutual overlap (U.1).
+
+    ``boxes`` is one normalised (x, y, w, h) box per live track, in the caller's order, measured in grays[0]. Returns a list of
+    (centre-or-None, frozen) in the same order: a frozen track's centre is its starting centre; a non-overlapping track is followed
+    normally; a track whose patch leaves the picture returns (None, False)."""
+    frozen = overlapping_boxes(boxes)
+    return [(follow_centre(grays, box, freeze=i in frozen), i in frozen) for i, box in enumerate(boxes)]
 
 
 class FrameStream:

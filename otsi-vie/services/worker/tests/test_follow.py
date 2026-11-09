@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from vie_worker.detect.base import Detection
-from vie_worker.follow import FrameStream, follow_centre, patch_shift
+from vie_worker.follow import FrameStream, follow_centre, follow_centres, overlapping_boxes, patch_shift
 from vie_worker.tracker import Tracker
 
 W, H, FPS, EVERY = 480, 270, 30, 5          # a small picture, 30 frames a second, the detector looks at every 5th (6 a second)
@@ -80,3 +80,38 @@ def test_the_frame_stream_hands_over_the_frames_between_two_analysed_frames():
     assert [int(g[0, 0]) for g in got] == [0, 1, 2, 3, 4, 5]      # from the previous analysed frame up to and including this one
     assert [int(g[0, 0]) for g in s.between(10 * 33_333)] == [5, 6, 7, 8, 9, 10]
     assert s.between(20 * 33_333) == []                           # past the end of the video
+
+def test_overlapping_boxes_detects_a_mutual_overlap_and_ignores_separate_players():
+    # U.1: two boxes overlapping at IoU 0.25 are a crossing; a lone player is never frozen.
+    a = (0.20, 0.40, 0.05, 0.10)
+    b = (0.23, 0.40, 0.05, 0.10)          # same height, shifted 0.03: IoU 0.25
+    c = (0.80, 0.40, 0.05, 0.10)          # far away from both
+    assert overlapping_boxes([a, b, c]) == {0, 1}
+    assert overlapping_boxes([a, c]) == set()
+    assert overlapping_boxes([a]) == set()
+    assert overlapping_boxes([]) == set()
+    assert overlapping_boxes([a, a]) == {0, 1}    # identical boxes fully overlap
+
+
+def test_follow_centre_with_freeze_returns_the_start_centre_unchanged():
+    # U.1: when the patch is contaminated by the other player, the track is held, not followed — even though the picture moved.
+    g0 = np.full((100, 200), 90, np.uint8); g0[40:70, 50:60] = 20
+    g1 = np.full((100, 200), 90, np.uint8); g1[40:70, 54:64] = 20             # the bar moved 4 px right (and could be the other man)
+    box = (50 / 200, 40 / 100, 10 / 200, 30 / 100)
+    held = follow_centre([g0, g1], box, freeze=True)
+    assert abs(held[0] * 200 - 55) < 1e-9 and abs(held[1] * 100 - 55) < 1e-9   # the start centre, exactly
+    moved = follow_centre([g0, g1], box)                                       # without the freeze the same frames are followed
+    assert abs(moved[0] * 200 - 59) < 0.6
+
+
+def test_follow_centres_freezes_only_the_overlapping_pair():
+    # U.1: of three players, the two whose boxes overlap are held and the separate one is followed.
+    g0 = np.full((100, 200), 90, np.uint8)
+    g0[40:70, 50:60] = 20; g0[40:70, 54:64] = 20; g0[40:70, 150:160] = 20
+    g1 = np.full((100, 200), 90, np.uint8)
+    g1[40:70, 58:68] = 20; g1[40:70, 62:72] = 20; g1[40:70, 154:164] = 20    # every bar moved, the pair still overlapping
+    boxes = [(50 / 200, 40 / 100, 10 / 200, 30 / 100), (54 / 200, 40 / 100, 10 / 200, 30 / 100), (150 / 200, 40 / 100, 10 / 200, 30 / 100)]
+    got = follow_centres([g0, g1], boxes)
+    assert got[0][1] is True and abs(got[0][0][0] * 200 - 55) < 1e-9 and abs(got[0][0][1] * 100 - 55) < 1e-9
+    assert got[1][1] is True and abs(got[1][0][0] * 200 - 59) < 1e-9 and abs(got[1][0][1] * 100 - 55) < 1e-9
+    assert got[2][1] is False and abs(got[2][0][0] * 200 - 159) < 0.6 and abs(got[2][0][1] * 100 - 55) < 0.6
