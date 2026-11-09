@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>OTSI VIE - 02 Upload &amp; Ingest (visual only)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#s{position:absolute;left:0;top:0;width:2560px;height:1440px;background:#000a16;transform-origin:0 0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:#fff;overflow:hidden}
+.a{position:absolute;box-sizing:border-box}
+.t{transform:translateY(-50%);white-space:nowrap;line-height:1.1}
+.r{transform:translate(-100%,-50%)}.c{transform:translate(-50%,-50%)}
+.b{font-weight:700}.sb{font-weight:600}.m{color:#8ea3bf}.bl{color:#1e90ff}.lb{color:#33a8ff}
+.pn{background:linear-gradient(#081a35,#06122a);border:1.5px solid #12335f;border-radius:14px}
+.in{background:#041022;border:1.5px solid #17406f;border-radius:8px}
+svg{overflow:visible}
+</style></head><body><div id="s"></div>
+<script>
+const S=document.getElementById('s');
+function D(x,y,w,h,c,st,t){const e=document.createElement('div');e.className='a '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;'+(st||'');if(t!==undefined&&t!==null&&t!=="")e.textContent=t;S.appendChild(e);return e}
+function T(x,y,t,sz,c,st){const e=document.createElement('div');e.className='a t '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+sz+'px;'+(st||'');e.textContent=t;S.appendChild(e)}
+// simplified drawn icons (approximations)
+const IC={
+chk:'<path d="M5 12l5 5 9-10"/>',chev:'<path d="M6 9l6 6 6-6"/>',up:'<path d="M6 15l6-6 6 6"/>',arrow:'<path d="M4 12h15M13 5l7 7-7 7"/>',
+stab:'<circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/>',crop:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M2 8h4M18 16h4"/>',
+enh:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',vol:'<path d="M3 9h4l5-4v14l-5-4H3zM16 8a5 5 0 010 8M2 3l20 18"/>',asp:'<rect x="4" y="4" width="16" height="16" rx="2"/>',
+ppl:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c1-5 4-6 6-6s5 1 6 6M15 15c3 0 5 2 6 5"/>',ball:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
+jer:'<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M10 9l2 1v5"/>',pit:'<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/>',mk:'<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="12" r="3"/>',
+cal:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16M8 13h8M8 17h8"/>',meta:'<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/>',hl:'<rect x="4" y="5" width="12" height="14" rx="2"/><path d="M16 9l5-2v10l-5-2"/>',snd:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
+cloud:'<path d="M7 18a4.5 4.5 0 010-9 6 6 0 0111.500 1.500A3.800 3.800 0 0118 18z"/><path d="M12 17v-7M9 13l3-3 3 3"/>',yt:'<rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/>',layers:'<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/>',
+fold:'<path d="M3 6h7l2 2h9v11H3z"/>',link:'<path d="M10 14a4 4 0 005 0l4-4a4 4 0 00-5-5M14 10a4 4 0 00-5 0l-4 4a4 4 0 005 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM4 5h7"/>',
+help:'<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 015 0c0 2-2.500 2-2.500 4M12 17v.5"/>',
+db:'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 2 4 3 8 3s8-1 8-3V6M4 12c0 2 4 3 8 3s8-1 8-3"/>',tgt:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>',
+ckc:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',bars:'<path d="M5 20V12M10 20V6M15 20V10M20 20V4"/>',
+file:'<path d="M5 3h9l5 5v13H5z"/><path d="M10 11l5 3-5 3z"/>',play:'<path d="M7 4l13 8-13 8z"/>',ups:'<path d="M12 19V6M6 12l6-6 6 6"/>',
+clk:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',fs:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8"/>',dots:'<circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/>'};
+function I(x,y,k,sz,col,fill){const e=document.createElement('div');e.className='a';e.style.cssText='left:'+(x-sz/2)+'px;top:'+(y-sz/2)+'px;width:'+sz+'px;height:'+sz+'px';e.innerHTML='<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+(fill||'none')+'" stroke="'+(col||'#fff')+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[k]+'</svg>';S.appendChild(e)}
+function P(x,y,w,h,st){D(x,y,w,h,'pn',st)}
+function TG(x,y,on){D(x,y-14,48,28,'',(on?'background:#0481f9;':'background:#26364d;')+'border-radius:14px');D(x+(on?23:3),y-11,22,22,'','background:#fff;border-radius:50%')}
+function SEL(x,y,w,h,t,mut){D(x,y,w,h,'in');T(x+16,y+h/2,t,20,'',mut?'color:#8ea3bf':'color:#e3eefb');I(x+w-22,y+h/2,'chev',18)}
+function CREST(x,y,d){D(x-d/2,y-d/2,d,d,'','background:radial-gradient(circle,#f2c56b 0,#6cc4ff 50%,#fff 56%);border-radius:50%')}
+function TH(x,y,w,h,a){D(x,y,w,h,'','background:radial-gradient(ellipse at 40% 70%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a '+a+'%,#1d5a28);border-radius:5px')}
+
+// ---- header ----
+D(0,0,2560,100,'','background:#071a33;border-bottom:1.5px solid #1e90ff');
+T(30,38,'OTSI',40,'b');T(130,38,'VIE',40,'b bl');T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b bl');
+D(502,12,169,78,'','background:#073154;border:1.5px solid #1e6fb0;border-radius:12px');D(511,92,150,5,'','background:#1e90ff;border-radius:3px');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(function(n){T(n[1],52,n[0],24,'sb',n[0]=='Upload'?'color:#6cc4ff;font-weight:700':'')});
+D(2117,20,2,62,'','background:#12335f');D(2140,23,100,54,'','background:#071e37;border:1.5px solid #17406f;border-radius:8px');T(2190,50,'QHD',20,'b lb c');
+D(2271,25,54,54,'','background:#1e90ff;border-radius:50%');T(2298,52,'O',22,'b c');T(2340,41,'Owner',24,'b');T(2340,69,'OTSI VIE',19,'m');
+
+// ---- left ----
+P(22,122,383,356);T(42,153,'Match Context',25,'sb');T(214,153,'(Optional)',21,'','color:#9fb3cc');I(376,153,'up',20);
+T(41,196,'Competition',20,'','color:#cfe0f5');SEL(41,211,345,54,'Choose competition',1);
+T(41,292,'Season',20,'','color:#cfe0f5');SEL(41,308,345,54,'Choose season',1);
+T(41,389,'Match',20,'','color:#cfe0f5');SEL(41,404,345,55,'Select match (optional)',1);
+P(22,496,383,922);
+T(41,528,'Filters',22,'sb','color:#33a8ff');T(151,528,'Overlays',22,'','color:#cfe0f5');T(289,528,'AI Tools',22,'','color:#cfe0f5');
+D(24,555,97,3,'','background:#1e90ff');D(24,560,380,1,'','background:#12335f');
+T(42,593,'Visual Processing',22,'sb');
+[['stab','Stabilize Video',637,1],['crop','Auto Crop Pitch',683,1],['enh','Enhance Quality',728,1],['vol','Remove Crowd Noise',775,0],['asp','Correct Aspect Ratio',821,1]].forEach(function(o){I(61,o[2],o[0],28,'#cfe0f5');T(97,o[2],o[1],20,'','color:#d6e4f7');TG(337,o[2],o[3])});
+T(42,891,'AI Overlays',22,'sb');T(163,891,'(Auto-Detect)',22,'','color:#b9cbe2');
+[['ppl','Players & Teams',937,1],['ball','Ball Tracking',982,1],['jer','Jersey Numbers',1027,1],['pit','Pitch Lines',1072,1],['mk','Event Markers',1118,0]].forEach(function(o){I(61,o[2],o[0],28,'#cfe0f5');T(97,o[2],o[1],20,'','color:#d6e4f7');TG(337,o[2],o[3])});
+T(42,1188,'Ingest Options',22,'sb');
+[['cal','Auto Create Match',1236,1],['meta','Extract Metadata',1282,1],['hl','Generate Highlights',1328,0],['snd','Send to Analysis',1373,1]].forEach(function(o){I(61,o[2],o[0],28,'#cfe0f5');T(97,o[2],o[1],20,'','color:#d6e4f7');TG(337,o[2],o[3])});
+
+// ---- centre ----
+D(442,128,50,50,'','border:2px solid #33a8ff;border-radius:10px');I(468,153,'hl',30,'#33a8ff');
+T(513,150,'Upload & Ingest',46,'b');T(513,198,'Bring your football footage into OTSI VIE. We automatically detect, track and analyse your video.',24,'','color:#cfe0f5');
+D(1691,135,200,65,'in');I(1730,168,'help',34,'#cfe0f5');T(1760,168,'Need help?',22,'','color:#e3eefb');
+D(438,238,1453,73,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');D(438,238,485,73,'','background:linear-gradient(#0a2b55,#083a70);border-bottom:4px solid #1e90ff;border-radius:10px 0 0 0');
+I(619,274,'cloud',44,'#33a8ff','#33a8ff');T(658,275,'Upload File',27,'sb','color:#33a8ff');I(1078,275,'yt',40,'#33a8ff');T(1119,275,'YouTube / URL',26,'','color:#e3eefb');D(1409,255,1.5,40,'','background:#12335f');I(1573,275,'layers',40,'#cfe0f5');T(1610,275,'Batch Upload',26,'','color:#e3eefb');
+// dropzone
+D(438,329,1453,538,'','background:radial-gradient(ellipse at 50% 0,#2a6fb8 0,#0d2a55 30%,transparent 55%),linear-gradient(180deg,#0a1a38 0,#06122a 55%,#103a1c 82%,#06122a);border:2.5px dashed #1e90ff;border-radius:6px');
+for(var i=0;i<10;i++){D(600+i*100,380+Math.abs(i-4.5)*18,10,10,'','background:#cfe8ff;border-radius:50%;box-shadow:0 0 12px #fff')}
+D(1090,388,172,132,'','background:transparent;border:12px solid #1e90ff;border-radius:60px;box-shadow:0 0 30px #1e90ff');I(1176,484,'ups',90,'#fff');
+T(1181,561,'Drag and drop your video file here',38,'b c');T(1181,610,'Supports MP4, MOV, AVI, MKV and more  •  Max file size 50 GB',24,'c','color:#e3eefb');
+D(1017,649,330,68,'','background:#0a84ff;border-radius:8px');I(1100,683,'fold',40,'#fff','#fff');T(1141,683,'Browse Files',26,'sb');
+D(815,746,340,1,'','background:#4a5a78');D(1215,746,340,1,'','background:#4a5a78');T(1185,747,'or',20,'c');
+D(631,775,886,64,'','background:rgba(4,16,34,.85);border:1.5px solid #17406f;border-radius:8px');I(672,807,'link',30,'#cfe0f5');T(716,807,'Paste YouTube link or direct video URL...',22,'m');
+D(1534,775,170,64,'','background:#041022;border:2px solid #1e90ff;border-radius:8px');T(1559,807,'Add URL',23,'sb');I(1668,807,'arrow',24);
+// formats
+P(438,886,1455,162);T(459,913,'Supported Formats',24,'sb');T(1869,913,'View all formats',20,'lb r');
+[['MP4','H.264/H.265',463,164],['MOV','Apple ProRes',643,173],['AVI','H.264',832,146],['MKV','H.264/H.265',994,171],['MPEG','MPEG-2',1181,165],['FLV','H.264',1362,158],['TS','MPEG-TS',1536,163],['WEBM','VP9',1715,155]].forEach(function(f){
+ D(f[2],940,f[3],90,'','background:#06142a;border:1.5px solid #12335f;border-radius:8px');I(f[2]+36,972,'file',40,'#1e90ff','#1e90ff');T(f[2]+72,970,f[0],20,'sb');T(f[2]+72,1000,f[1],17,'m')});
+// pipeline
+P(438,1068,1462,358);I(458,1093,'tgt',34,'#33a8ff');T(487,1094,'Processing Pipeline',25,'sb');
+D(438,1122,319,155,'','background:#04264a;border:2px solid #1e90ff;border-radius:10px');D(451,1129,52,52,'','background:#0a84ff;border-radius:50%');I(477,1155,'ups',30);
+T(515,1154,'Uploading',24,'sb','color:#33a8ff');D(464,1204,26,26,'','background:#26364d;border-radius:50%');T(516,1196,'No file uploaded',18,'','color:#cfe0f5');T(516,1223,'Awaiting upload',18,'','color:#cfe0f5');D(457,1246,282,12,'','background:#12335f;border-radius:6px');
+var ST=[[760,290,811,'2','AI Detection',0,'bars',828,['Detecting players, ball','and match context...'],'Waiting...',0,1036,864],[1053,287,1105,'3','Tracking',0,'tgt',1123,['Tracking players, ball,','team shapes, events...'],'Waiting...',0,1308,1158],[1346,275,1393,'4','Indexing',0,'db',1411,['Indexing key moments','and metadata...'],'Waiting...',0,1596,1446],[1627,263,1674,'5','Analysis Ready',0,'ckc',1692,['Ready for analysis','and highlights...'],'Waiting...',0,1878,1727]];
+ST.forEach(function(s){D(s[0],1122,s[1],155,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');
+ D(s[2]-24,1122,48,48,'',s[5]?'background:#0a84ff;border-radius:50%':'background:#0a1d38;border:2px solid #4a8ad8;border-radius:50%');T(s[2],1146,s[3],22,'sb c');
+ T(s[2]+35,1148,s[4],22,'','color:#33a8ff');I(s[7],1194,s[6],34,'#33a8ff');T(s[12],1183,s[8][0],17,'','color:#cfe0f5');T(s[12],1206,s[8][1],17,'','color:#cfe0f5');
+ T(s[2]-24,1241,s[9],s[10]?19:17,'',s[10]?'color:#33a8ff;font-weight:600':'color:#8ea3bf');D(s[2]-24,1253,s[11]-s[2]+24,10,'','background:#12335f;border-radius:5px');if(s[10])D(s[2]-24,1253,s[10]-s[2]+24,10,'','background:#1e90ff;border-radius:5px')});
+[775,1069,1358,1640].forEach(function(x){I(x,1200,'arrow',26,'#1e90ff')});
+D(438,1290,1462,136,'','background:rgba(5,16,34,.7);border:1.5px solid #12335f;border-radius:10px');T(457,1300,'Live Processing Preview',19,'','color:#e3eefb');D(677,1300,14,2,'','background:#8ea3bf');
+[[457,396,'Player detection',0,653,852,653,30],[883,299,'Ball tracking',0,1018,1182,1018,40],[1212,343,'Team identification',0,1364,1555,1364,50],[1585,297,'Metadata',0,1762,1882,1762,60]].forEach(function(l,i){
+ TH(l[0],1316,l[1],74,25+i*12);
+ if(l[3]){D(l[0],1400,16,16,'','background:#17c27a;border-radius:50%');I(l[0]+8,1408,'chk',10,'#04210f')}
+ T(l[0]+(l[3]?21:0),1408,l[2],17,'','color:#d6e4f7');D(l[4],1405,l[5]-l[4],7,'','background:#12335f;border-radius:4px');});
+[868,1197,1570].forEach(function(x){D(x,1305,1,110,'','background:#12335f')});
+
+// ---- right: recent ----
+P(1923,134,612,626);T(1943,165,'Recent Uploads',28,'sb');T(2506,166,'View All',20,'lb r');D(1943,198,574,1,'','background:#12335f');
+[['No uploads yet','Uploaded videos appear here','—','—','',251,226,254,282],['—','—','','—','',360,335,363,391],['—','—','','—','',471,443,473,502],['—','—','','—','',583,557,586,615],['—','—','','—','',697,671,701,729]].forEach(function(r,i){
+ var y=r[5];TH(1943,y-44,153,88,20+i*8);D(2034,y+17,58,24,'','background:rgba(0,10,25,.8);border-radius:4px');T(2063,y+29,r[3],19,'sb c');
+ T(2115,r[6],r[0],20,'sb');T(2115,r[7],r[1],18,'','color:#9fb3cc');T(2115,r[8],r[2],18,'','color:#9fb3cc');
+ I(2510,y,'dots',22,'#cfe0f5');
+ if(i<4)D(1943,y+54,574,1,'','background:#10294a')});
+// selected preview
+P(1923,777,612,641);T(1945,811,'Selected Item Preview',26,'sb');
+D(1948,846,255,174,'','background:radial-gradient(ellipse at 55% 40%,#e0b090 0,#c98c6a 6%,transparent 7%),radial-gradient(ellipse at 50% 100%,#6fb8ee 0,#2a6fb8 40%,transparent 75%),linear-gradient(135deg,#27487a,#0e2040);border-radius:6px');
+D(2040,918,56,56,'','background:rgba(10,20,40,.7);border-radius:50%');D(2058,933,22,26,'','background:#fff;clip-path:polygon(0 0,100% 50%,0 100%)');D(2130,983,66,30,'','background:rgba(0,10,25,.8);border-radius:5px');T(2163,998,'—',20,'sb c');
+T(2222,860,'No video selected',22,'sb');T(2222,890,'Select an upload to preview',20,'','color:#b9cbe2');T(2222,919,'—',20,'','color:#b9cbe2');
+[['clk','File Name','No file uploaded',1056],['fs','File Size','—',1097],['asp','Resolution','—',1139],['asp','Frame Rate','—',1180],['clk','Duration','—',1222],['meta','Detected Content','Not classified',1263]].forEach(function(d){I(1962,d[3],d[0],26,'#cfe0f5');T(1997,d[3],d[1],20,'','color:#d6e4f7');T(2180,d[3],d[2],20,'','color:#cfe0f5')});
+I(1962,1306,'ppl',26,'#cfe0f5');T(1997,1306,'Teams (Detected)',20,'','color:#d6e4f7');CREST(2198,1306,38);T(2229,1306,'—',20,'','color:#fff');CREST(2336,1306,38);T(2366,1306,'—',20,'','color:#fff');
+D(1950,1342,561,54,'','background:#0a84ff;border-radius:8px');I(2162,1370,'edit',26);T(2190,1370,'Edit Metadata',23,'sb');
+
+function fit(){var k=Math.min(innerWidth/2560,innerHeight/1440);S.style.transform='scale('+k+')';S.style.left=((innerWidth-2560*k)/2)+'px';S.style.top=((innerHeight-1440*k)/2)+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

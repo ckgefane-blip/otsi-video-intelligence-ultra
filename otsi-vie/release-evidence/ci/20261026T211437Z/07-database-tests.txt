@@ -1,0 +1,8 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe -m pytest tests/db -q -p no:cacheprovider
+(cwd otsi-vie)
+
+........................................................................ [ 83%]
+..............                                                           [100%]
+86 passed in 12.00s
+
+exit=0

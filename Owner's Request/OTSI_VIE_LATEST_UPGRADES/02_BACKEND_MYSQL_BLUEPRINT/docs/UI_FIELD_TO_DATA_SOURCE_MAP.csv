@@ -1,0 +1,160 @@
+﻿page,ui_field_id (from UI spec DATA_CONTRACT_MATRIX),ui_label_as_rendered,mysql_source (table.column / view),api_endpoint,note,static_or_dynamic,measurement_class
+ALL,HDR-USER-NAME,Owner,users.display_name | memberships.role,GET /me,Owner decision: show role or name,dynamic,confirmed (account record)
+ALL,HDR-USER-ORG,OTSI VIE,organizations.name,GET /me,,dynamic,confirmed (account record)
+ALL,HDR-AVATAR,O,"users.initials, users.avatar_color_hex, users.avatar_asset_id",GET /me,,dynamic,inferred (derived)
+ALL,HDR-QHD,QHD,user_preferences.display_mode,GET /me,,static (as delivered),static copy
+01,H-EYEBROW,TURN FOOTBALL VIDEO INTO INSIGHTS,frontend static copy (i18n bundle) — not stored,-,,static,static copy
+01,H-SPOT-JERSEY,"jersey badge (renders ""—"")",player_club_spells.squad_number (via v_player_header.squad_number),GET /dashboard (spotlight),Shown only for CONFIRMED identity,dynamic,confirmed (roster)
+01,H-SPOT-NAME,Player not selected,players.display_name (v_player_header),GET /dashboard (spotlight),,dynamic,confirmed (identity resolution approved)
+01,H-SPOT-ROLE,Team not assigned,positions.label + clubs.canonical_name (v_player_header),GET /dashboard (spotlight),,dynamic,confirmed
+01,H-SPOT-SPEED,Speed,metric_values[top_speed_kmh] (v_player_current_metrics),GET /dashboard (spotlight),NOT_MEASURED without calibration,dynamic,measured (or explicitly not measured)
+01,H-SPOT-DIST,Distance,metric_values[distance_km],GET /dashboard (spotlight),,dynamic,measured (estimate)
+01,H-SPOT-PASSES,Passes,metric_values[passes],GET /dashboard (spotlight),,dynamic,measured (event detection) + confirmed
+01,H-SPOT-KEYPASS,"Key Passes (renders ""7"")",metric_values[key_passes],GET /dashboard (spotlight),"Replaces the sample ""7""",dynamic,measured + confirmed
+01,H-SPOT-XA,xA (Exp. Ast),metric_values[xa],GET /dashboard (spotlight),Hidden unless an approved xA model exists,dynamic,inferred (model)
+01,H-SPOT-TAGS,"detection box tags ""5"", ""8"", ""—""",none — decorative/illustrative; must not be fed fake data,-,If made live: tracks.ocr_jersey_number from a preview frame,decorative,not data (decorative)
+01,H-REEL-LABEL,FEATURED REEL,frontend static copy (i18n bundle) — not stored,-,,static,static copy
+01,H-REEL-RES,"4K badge (renders ""—"")",render_jobs.resolution (v_reel_cards.output_resolution),GET /dashboard,,dynamic,confirmed (render metadata)
+01,H-REEL-TITLE,Player not selected,library_items.title / players.display_name (v_reel_cards),GET /dashboard,,dynamic,confirmed
+01,H-REEL-SUB,No published reels yet,library_items.subtitle; empty state when no featured reel,GET /dashboard,,dynamic,confirmed
+01,H-REEL-DUR,"duration chip (renders ""—"")",library_items.duration_us,GET /dashboard,,dynamic,measured (file)
+01,H-REEL-TAGS,Progressive Passes / Key Passes / Assists,tags.label via library_item_tags,GET /dashboard,,dynamic (sample copy retained),confirmed
+01,H-REEL-VIEWS,"views (eye) ""—""",SUM(item_engagement_daily.views),GET /dashboard,,dynamic,measured
+01,H-REEL-LIKES,"likes (heart) ""—""",COUNT(item_likes),GET /dashboard,,dynamic,measured
+01,K-MATCHES,Matches Analyzed,kpi_snapshots[MATCHES_ANALYZED] (v_home_kpis),GET /dashboard,,dynamic,measured (count)
+01,K-PLAYERS,Players Tracked,kpi_snapshots[PLAYERS_TRACKED],GET /dashboard,,dynamic,measured
+01,K-REELS,Reels Generated,kpi_snapshots[REELS_GENERATED],GET /dashboard,,dynamic,measured
+01,K-REPORTS,Reports Created,kpi_snapshots[REPORTS_CREATED],GET /dashboard,,dynamic,measured
+01,K-SPARK,"mini bar charts (x4, 5 bars each)",kpi_snapshots.series,GET /dashboard,Replaces fixed decorative bar heights,decorative,not data
+01,PARTNERS,TRUSTED PARTNERS + marks,partner_brands (licensed only),GET /dashboard,Empty without licence rows,static,static copy
+01,RM-ROW,"Recent match row: thumbnail, duration, crest, title, competition•date, score",v_home_recent_matches (video_sources + v_match_labels + v_latest_pipeline_run),GET /dashboard,,dynamic,confirmed (fixture metadata); score confirmed
+01,SR-CARD,"Sample reel card: thumbnail, duration, player, reel type, views, likes",v_reel_cards,GET /dashboard,,dynamic,confirmed
+01,CAPS-COPY,six capability titles + 2-line descriptions,frontend static copy (i18n bundle) — not stored,-,,static,static copy
+01,HOW-COPY,How It Works titles and descriptions,frontend static copy (i18n bundle) — not stored,-,,static,static copy
+02,CTX-VALUES,Competition / Season / Match selections,"competitions, seasons, matches -> video_sources.match_id","GET /competitions, /seasons, /matches; POST /videos",,dynamic,confirmed (user choice)
+02,FMT-LIST,"MP4 H.264/H.265, MOV Apple ProRes, AVI H.264, MKV H.264/H.265, MPEG MPEG-2, FLV H.264, TS MPEG-TS, WEBM VP9",supported_media_formats,GET /ingest/config,,static,static copy
+02,PIPE-S1,"Uploading: file name / ""Awaiting actual upload"" + progress bar","upload_sessions.progress_pct, assets.original_filename, assets.byte_size",GET /videos/:id/pipeline,,dynamic,measured (bytes transferred)
+02,PIPE-S2,"AI Detection: ""Detecting players, ball / anatch context..."" + ""—"" + bar",pipeline_steps[DETECTION] via v_run_stage_progress,GET /videos/:id/pipeline,,dynamic,measured (job progress)
+02,PIPE-S3,Tracking: Waiting...,pipeline_steps[TRACKING],GET /videos/:id/pipeline,,dynamic,measured
+02,PIPE-S4,Indexing: Waiting...,pipeline_steps[INDEXING],GET /videos/:id/pipeline,,dynamic,measured
+02,PIPE-S5,Analysis Ready: Waiting...,pipeline_steps[ANALYSIS_READY] / pipeline_runs.status,GET /videos/:id/pipeline,,dynamic,measured
+02,PIPE-LIVE,Live Processing Preview: Detecting players... / Tracking ball... / Identifying teams... / Generating metadata...,"pipeline_preview_frames (PLAYERS, BALL, TEAMS, METADATA) + pipeline_steps.progress",GET /videos/:id/pipeline,,dynamic,measured
+02,RU-LIST,"Recent Uploads rows: thumb, duration, title, competition, date, status pill",v_upload_recent,GET /videos/recent,status_pill derived in view,dynamic,measured (job state)
+02,PV-HEAD,No video selected / Choose competition / No date recorded,"v_upload_selected_item (match_title, competition_name, kickoff_at)",GET /videos/:id/summary,,dynamic,confirmed
+02,PV-FILENAME,File Name,assets.original_filename,GET /videos/:id/summary,,dynamic,measured (file metadata)
+02,PV-FILESIZE,File Size,assets.byte_size,GET /videos/:id/summary,,dynamic,measured
+02,PV-RES,Resolution,"video_sources.width_px, height_px",GET /videos/:id/summary,,dynamic,measured
+02,PV-FPS,Frame Rate,video_sources.fps (generated),GET /videos/:id/summary,,dynamic,measured
+02,PV-DUR,Duration,video_sources.duration_us,GET /videos/:id/summary,,dynamic,measured
+02,PV-CONTENT,Detected Content,"video_classifications.content_class, confidence_band, evidence_state",GET /videos/:id/summary,,dynamic,inferred (model); user-confirmable
+02,PV-TEAMS,Teams (Detected),video_detected_teams (+clubs),GET /videos/:id/summary,Requires confirmation,dynamic,inferred; must be confirmed
+03,JOB-COMP,UEFA Champions League (rendered as-is),v_match_labels.competition_name,GET /runs/:id,,dynamic,confirmed
+03,JOB-MATCH,Man City vs Real Madrid (rendered as-is),v_match_labels.match_title,GET /runs/:id,,dynamic,confirmed
+03,JOB-META,"Tue, 16 Apr 2024 • 1080p • 95:28","matches.kickoff_at, video_sources.height_px, video_sources.duration_us",GET /runs/:id,,dynamic,measured/confirmed
+03,JOB-PROGRESS,"overall progress bar 71% + ""68%""",pipeline_runs.overall_progress (single source),GET /runs/:id + SSE,Fixes 71% bar vs 68% label,dynamic,measured
+03,ST-1..5,"stage title, description, progress bar, percent, status pill",v_run_stage_progress (pipeline_stage_definitions + pipeline_steps),GET /runs/:id/stages,,dynamic,measured
+03,PV-SCOREBUG,scorebug 62:17 MCI 2 1 RMA; UEFA CHAMPIONS LEAGUE,none — decorative/illustrative; must not be fed fake data,-,Broadcast pixels,decorative (illustration),not data
+03,PV-OVERLAY-TAGS,"overlay tags ""10 MCI"", ""15 RMA"", ""11 MCI"", ""22"", ""22 RMA"", ""20 MCI"", ""17  MCI""","pipeline_preview_frames.overlay (trackId, label, teamSide, confidence)",GET /runs/:id/previews,,dynamic,inferred (model) with confirmation status
+03,PV-TIME,62:17 / 95:28,client player currentTime / video_sources.duration_us,-,,dynamic,measured
+03,TILE-PLAYER,Player Detection / 22 players detected,pipeline_preview_frames[PLAYERS].headline_count,GET /runs/:id/previews,,dynamic,measured (detector) — not identity
+03,TILE-BALL,"Ball Detection / 1 ball detected / ""Ball 0.98""","pipeline_preview_frames[BALL].headline_count, headline_confidence",GET /runs/:id/previews,,dynamic,measured
+03,TILE-TEAM,Team Identification / Man City (Blue) vs Real Madrid (White),"video_detected_teams (kit_color_name, proposed_club_id)",GET /runs/:id/previews,,dynamic,inferred; must be confirmed
+03,TILE-EVENTS,Event Markers (Live) legend Pass/Shot/Tackle/Foul/Offside,event_types.marker_group/color_hex + event_candidates,GET /runs/:id/previews,,static legend + dynamic markers,measured (event model)
+03,LOG-ROWS,"15 log rows (time, check/empty circle, message)",job_log_entries,GET /runs/:id/log + SSE,,dynamic,measured
+03,RES-GPU,72% GPU / NVIDIA A100,"v_system_resources.gpu_util_pct, gpu_model",GET /system/resources,,dynamic,measured
+03,RES-CPU,48% CPU / 32 Cores,"v_system_resources.cpu_util_pct, cpu_cores",GET /system/resources,,dynamic,measured
+03,RES-MEM,1.8/2 TB Memory / Available,v_system_resources.memory_used/total or storage_used/total,GET /system/resources,Owner: memory vs storage label,dynamic,measured
+03,RES-SPARK,mini bars x3,worker_resource_samples (last 14),GET /system/resources,,decorative,not data
+03,TL-LEGEND,Detection / Tracking / Identity Resolution / Event Detection / Indexing,"pipeline_stage_definitions.label, timeline_color_hex",GET /runs/:id/stages,,static,static copy
+03,TL-AXIS,"0:00 … 90:00, 95:28","video_sources.duration_us (ticks computed client-side, evenly spaced)",-,,dynamic (derived from duration),measured
+03,TL-SEGMENTS,"two segment rows + playhead ""62:17""",pipeline_step_segments,GET /runs/:id/timeline,,dynamic,measured
+03,OUT-CARDS,22 Players Tracked / 1 Ball Tracked / 342 Events Detected / 95:28 Processed,v_run_output_summary,GET /runs/:id/summary,,dynamic,measured
+04,M-COMP,UEFA Champions League (as-is),v_match_labels.competition_name,GET /videos/:id/context,,dynamic,confirmed
+04,M-DATE,"Tue, 16 Apr 2024",matches.kickoff_at,GET /videos/:id/context,,dynamic,confirmed
+04,M-TEAMS,Manchester City 2 / Real Madrid 1,"v_match_labels (names, crests, scores, score_state)",GET /videos/:id/context,,dynamic,confirmed
+04,M-STATUS,"Processing complete / AI tracking data, events and AI models / processed successfully.",pipeline_runs.status + quality gates,GET /videos/:id/context,"Never ""complete"" if a step failed or review pending",dynamic,measured
+04,TEAM-COUNTS,22 / 11 / 11,COUNT(match_rosters) per side,GET /videos/:id/context,,dynamic,confirmed
+04,VID-FRAME,"scorebug 62:17 MCI 2 1 RMA, UEFA CHAMPIONS LEAGUE, mastercard, priceless, box numbers",none — decorative/illustrative; must not be fed fake data,-,Video pixels + overlay from track_observations,illustration,not data
+04,PB-TIME,62:17 / 95:28,client currentTime / video_sources.duration_us,-,,dynamic,measured
+04,CHIP-COUNTS,"3, 428, 12, 18, 36, 28, 14, 4",v_event_chip_counts,GET /videos/:id/event-counts,,dynamic,measured + confirmed
+04,TL-AXIS,00:00 15:00 30:00 45:00 60:00 75:00 90:00,video_sources.duration_us / match_periods,-,,dynamic,measured
+04,TL-LANES,"K. De Bruyne, E. Haaland, Bernardo Silva, J. Doku, P. Foden, K. Walker, J. Stones, Team Shape (MC), Team Shape (RMA)",presence_intervals + tracks.current_player_id/players.short_name,GET /videos/:id/presence,,dynamic,measured (tracking) + confirmed identity
+04,TL-TYPES,"Event Types lanes: Goals, Shots, Key Passes, Passes, Duels, Defensive Actions",event_candidates grouped by event_types.lane_group,GET /videos/:id/events,,dynamic,measured
+04,PL-ROWS,# / Player / Team / Conf. / Status (10 rows),v_analysis_player_rows,GET /videos/:id/tracks,,dynamic,inferred (confidence) + confirmed (identity)
+04,DET-HEAD,"17 Kevin De Bruyne / Manchester City | Belgium / Midfielder, Right Foot, Age 32",v_player_header,GET /players/:id/summary,,dynamic,confirmed
+04,DET-KPI,Distance 11.4 km ↑ +8% / Top Speed 34.2 km/h ↑ +6% / Passes 68 ↑ +18% / Key Passes 6 ↑ +200%,"v_player_current_metrics (distance_km, top_speed_kmh, passes, key_passes; delta_pct)",GET /players/:id/summary,,dynamic,measured
+04,DET-HEAT,heat map image,"heatmaps[PLAYER, POSITION]",GET /players/:id/summary,,dynamic,measured
+04,DET-STATS,"Touches 92, Pass Accuracy 89%, Chances Created 4, Shot Assists 3, Progressive Passes 12","v_player_current_metrics (touches, pass_accuracy_pct, chances_created, shot_assists, progressive_passes)",GET /players/:id/summary,,dynamic,measured
+05,M-CARD,"UEFA Champions League / Tue, 16 Apr 2024 / Manchester City 2 / Real Madrid 1 / Processing complete",v_match_labels + pipeline_runs.status,GET /videos/:id/context,,dynamic,confirmed/measured
+05,F-COUNTS,22 / 11 / 11,COUNT(match_rosters) per side,GET /videos/:id/context,,dynamic,confirmed
+05,SH-FORMATION,"Manchester City 4-3-3, player nodes (number + surname x11)",team_shape_snapshots.formation_code + team_shape_nodes,GET /videos/:id/tactics/shape,,dynamic,inferred (model) from measured positions
+05,SH-METRICS,Average Width 32.4 m; Average Length 28.1 m; Defensive Line Height 46.8 m; Compactness (DEF) 7.3 m; Shape Variability Low,"team_shape_snapshots.avg_width_m, avg_length_m, def_line_height_m, compactness_m, shape_variability, variability_series",GET /videos/:id/tactics/shape,,dynamic,measured (requires calibration)
+05,SH-STAB,Formation Stability 92%; Build-up Shape 4-2-3-1 In Possession; Defensive Shape 4-4-2 Out of Possession,team_shape_snapshots.stability_pct + phase snapshots (IN/OUT_OF_POSSESSION formation_code),GET /videos/:id/tactics/shape,,dynamic,inferred
+05,VID-FRAME,scorebug + mastercard/priceless,none — decorative/illustrative; must not be fed fake data,-,,illustration,not data
+05,PN-NETWORK,"pass network nodes (10) + legend Passes 1-3/4-6/7-10/10+, Successful, Unsuccessful","pass_networks, pass_network_nodes, pass_network_edges",GET /videos/:id/tactics/pass-network,,dynamic,measured + confirmed
+05,POSS-HEAT,Manchester City / Real Madrid heat maps; Possession 58% / 42%,heatmaps[TEAM] + metric_values[possession_pct],GET /videos/:id/tactics/heatmaps,,dynamic,measured
+05,PR-MAP,Pressing Map dots + legend Pressing Event/Recovery/Forced Turnover/Pressing Direction; PPDA 8.4; High Press Success 62%; Final Third Regains 17; Avg Press Height 48.2 m,"event_candidates (PRESSURE, BALL_RECOVERY, FORCED_TURNOVER) + metric_values (ppda, high_press_success_pct, final_third_regains, avg_press_height_m)",GET /videos/:id/tactics/pressing,,dynamic,measured/inferred
+05,OB-RUNS,run paths + legend; Total Off-Ball Runs 12; Progressive Runs 6; Runs Into Box 4; Avg Run Distance 18.3 m,"movement_segments + metric_values (off_ball_runs, progressive_runs, runs_into_box, avg_run_distance_m)",GET /videos/:id/tactics/runs,,dynamic,measured
+05,PC-PLAYERS,Kevin De Bruyne / Manchester City | MCI / Midfielder / 17 vs Jude Bellingham / Real Madrid | RMA / Midfielder / 5,v_player_header x2,GET /players/compare,,dynamic,confirmed
+05,PC-METRICS,Passes 42/28; Pass Accuracy 86%/82%; Progressive Passes 7/5; Key Passes 4/2; Off-Ball Runs 12/8; Chances Created 3/1,v_player_current_metrics x2,GET /players/compare,Bars proportional to values,dynamic,measured
+06,W-STEP1,Select Player / No player selected (green check shown),reel_projects.wizard_step + reel_targets,GET /reels/:id,Check only when a CONFIRMED target exists,dynamic,confirmed
+06,W-STEP2,Choose Moments / 12 moments selected (green check),COUNT(moment_suggestions WHERE status=SELECTED),GET /reels/:id/moments,,dynamic,confirmed
+06,ASPECT-OPTS,16:9 / — / 1:1,"reel_projects.aspect_ratio (ENUM 16:9, 9:16, 1:1, 4:5)",PATCH /reels/:id,"UI must render ""9:16"" literally",static,static copy
+06,INFO-TITLE,Title: Player not selected,reel_projects.title,GET/PATCH /reels/:id,,dynamic,confirmed (user input)
+06,INFO-DESC,A cinematic highlight reel featuring / Player not selected / and defining moments.,reel_projects.description,GET/PATCH /reels/:id,,dynamic,user input
+06,P-ID,"No player selected; ""—"" jersey; Team not assigned | Nationality pending; Midfielder | Right Foot | Age —",v_player_header (target via reel_targets),GET /reels/:id,,dynamic,confirmed
+06,P-SCORE,"ball icon, ""—"", MCI 2 1 RMA","v_match_labels (home_code3, away_code3, scores) + event match_clock_ms",GET /reels/:id,,dynamic,confirmed
+06,P-TIME,— (00:42 / 03:18),reel_projects.sequence_duration_us + client currentTime,GET /reels/:id,,dynamic,measured
+06,MOM-HEAD,Suggested Key Moments (0),COUNT(moment_suggestions WHERE status<>DISMISSED),GET /reels/:id/moments,,dynamic,inferred (model)
+06,MOM-CARDS,"Progressive Pass, Key Pass, Shot on Target, Assist, Build-Up Play; ""No match selected""; duration ""—""","moment_suggestions (+event_candidates, v_match_labels)",GET /reels/:id/moments,,dynamic,inferred (model) + confirmed
+06,TL-RULER,— x7,reel_projects.sequence_duration_us (client ticks),-,,dynamic,measured
+06,TL-TRACKS,"Video Clips / Spotlight Effects / Text & Overlays (Player not selected, Competition not selected, Generated with OTSI VIE) / Audio (Choose audio + waveform)",timeline_tracks/timeline_items/reel_clips; audio = music_tracks,GET /reels/:id/timeline,,dynamic,user-authored
+06,SP-VALUES,"— x5 (85%, 60%, 45%, 55%, 72% in source)",reel_style_settings.*_pct,GET /reels/:id; PUT /reels/:id/style,,dynamic,user input
+06,TARGET-LOCK,Lock on confirmed player,reel_targets.player_id + identity_decision_id,PUT /reels/:id/targets,,dynamic,confirmed
+07,BIN-DUR,"clip durations ""—"" x9",media_clips.duration_us (generated),GET /media-bin,,dynamic,measured
+07,PV-PLAYERCARD,"jersey ""—"", Player not selected, Progressive Passes",v_player_header + reel_projects.reel_type_label,GET /reels/:id,,dynamic,confirmed
+07,PV-STATS,"Passes —, Key Passes 8, xA —",timeline_items[STAT].metric_value_id -> metric_values,GET /reels/:id/timeline,,dynamic,measured
+07,PV-RES,"4K badge ""—""",video_sources.width_px/height_px of selected clip source,GET /media-clips/:id,,dynamic,measured
+07,PV-TC,00:24.17 / 01:28.00,client playhead / reel_projects.sequence_duration_us,-,,dynamic,measured
+07,INS-CLIP,"No clip selected / 00:14 • 4K • 60fps • MP4 / Added 16 Apr 2024, 14:32","media_clips.display_name, duration_us, created_at + video_sources (fps, codec, resolution)",GET /media-clips/:id,,dynamic,measured
+07,INS-DETAILS,Player not selected / No match assigned / Event pending / 62:17 (2nd Half) / tags / notes,"media_clips.player_id, match_id, event_type, match_clock_ms, period, notes + media_clip_tags",GET/PATCH /media-clips/:id,,dynamic,confirmed
+07,TRACK-COUNTS,"Video Clips 7, Transitions 6, Graphics & Overlays 5, Lower Thirds 3, Captions 3, Statistics 4, Soundtrack 2, Audio FX 3",COUNT(timeline_items) per timeline_tracks,GET /reels/:id/timeline,,dynamic,derived
+07,TL-LABELS,"No clip selected / No media selected x3 / Fade, Zoom, Spin, Dissolve / Spotlight Circle, Pass Trajectory, Player Highlight, Team Logo / Player ID Lower Third, Stat Card, Key Highlight Text / captions / Pass Distance (7.4 km), Key Pass +1, xA (0.54) / No music selected / Crowd, Commentary, Swoosh, Stadium Atmos, Whistle",timeline_items.label / effect_presets.name / caption_cues.text,GET /reels/:id/timeline,,dynamic,user-authored
+08,HERO-WATERMARK,"large italic number (renders ""—"")",player_club_spells.squad_number,GET /players/:id/report,,dynamic,confirmed
+08,HERO-NAME,No player selected,players.display_name,GET /players/:id/report,,dynamic,confirmed
+08,HERO-POS,Midfielder + MC / AM / RW chips,positions.label + player_positions.position_code,GET /players/:id/report,,dynamic,confirmed
+08,HERO-TEAM,Team not assigned | Nationality unavailable,"clubs (current spell) + countries (nationality, flag)",GET /players/:id/report,,dynamic,confirmed
+08,HERO-BIO,"Age —, Height 181 cm, Weight 70 kg, Preferred Foot Right","v_player_header.age_years (derived), players.height_cm, weight_kg, preferred_foot, bio_evidence_state",GET /players/:id/report,"Replaces retained ""181 cm""/""70 kg""",dynamic,confirmed
+08,CONF,"Tracking Confidence ring ""—"" + ""Unverified"" + ""Excellent tracking quality / across 528+ minutes""",report_identity_confidence,GET /players/:id/report,"Per-task, never one blended %",dynamic,measured (model) — must not be shown as confirmed
+08,ROLE,Role not assessed + 3-line summary + 5 trait chips,player_role_profiles + player_role_traits,GET /players/:id/report,,dynamic,confirmed (analyst)
+08,KPI-TILES,Match Minutes / Distance (Est.) / Top Speed / Sprints / Passes / Key Passes 6 / Shots 4 / xG / xA,report_metric_snapshots[KPI_TILE],GET /players/:id/report,,dynamic,measured / inferred (xG/xA)
+08,HEATMAP,pitch + 11 radial blobs,heatmaps[PLAYER],GET /players/:id/heatmap,,dynamic,measured
+08,EV-ROWS,"10 rows: time ""—"", type icon, type, description, thumb, play","event_candidates (+event_types icon/label, clip_asset_id)",GET /players/:id/events,,dynamic,measured + confirmed
+08,ACTIONMAP,46 dots + 23 lines + legend Pass/Key Pass/Shot/Goal/Carry,"event_candidates with start/end_x_m,y_m (calibrated)",GET /players/:id/action-map,,dynamic,measured
+08,CMP-BARS,"Progressive Passes (p90), Key Passes (p90), xA (p90), Shot Creating Actions (p90), Progressive Carries (p90)","report_metric_snapshots[COMPARISON] (value_per90, cohort_value) + metric_cohorts",GET /players/:id/report,,dynamic,measured + benchmark
+08,INSIGHTS,High Creative Influence / Progressive Ball Carrier / Right Half-Space Specialist / Set Piece Threat (+ body copy),report_insights + report_insight_citations,GET /players/:id/report,Must show AI label + review state,dynamic,inferred (AI)
+08,SCOUT,"Overall Rating ""—"" / 10; 5 strengths; quote; ""Awaiting verified scouting data""",scouting_assessments + scouting_strengths,GET /players/:id/report,Footer until VERIFIED,dynamic,confirmed (scout)
+09,L-MATCH,"Competition not selected / Tue, 16 Apr 2024 / Team not assigned 2 / Team not selected 1 / Processing complete",v_match_labels + pipeline_runs.status,GET /library (context),,dynamic,confirmed
+09,TAB-COUNTS,"tab count chips ""—"" x6, Templates ""8""",v_library_tab_counts,GET /library/counts,,dynamic,measured
+09,ROWS,"Thumbnail / Title, Type, Players Featured, Collaborators, Updated, Status (10 rows)",v_library_rows,GET /library,Status pill text must fit (no overflow),dynamic,confirmed
+09,ROW-SUBTITLES,"Player Development Series, Tactical Analysis, Set Piece Library, Player Highlights, Scouting Dossier, Training Analysis, Media & Interviews, Competition Highlights",library_items.subtitle,GET /library,,dynamic,confirmed
+09,COLLAB-AV,JD / SK / MC / TS avatars and +n,library_item_collaborators + users.initials/avatar_color_hex,GET /library,,dynamic,confirmed
+09,R-TITLE,No asset selected,library_items.title,GET /library/:id,,dynamic,confirmed
+09,R-CHIPS,Reel / Player not selected / Progressive / UCL / +2,library_items.item_type + tags,GET /library/:id,,dynamic,confirmed
+09,R-DESC,All progressive passes and key build-up actions from / Choose a reel to view its description.,library_items.description,GET /library/:id,,dynamic,user-authored
+09,R-META,"Competition, Match, Players Featured, Created By, Curated, Duration, File Size, Resolution, Tags","library_items (competition_id, match_id, created_by, curated_at, duration_us, byte_size, width/height) + library_item_players + tags",GET /library/:id,,dynamic,measured/confirmed
+09,R-COLLAB,"Collaborators ""—""; Not assigned Analyst; Sarah Kim Scout; Mike Chen Video Editor; +2",library_item_collaborators + memberships.job_title,GET /library/:id,,dynamic,confirmed
+10,SUM-CARD,No player selected / Progressive Passes,reel_projects.title / reel_type_label + v_player_header,GET /reels/:id/export-context,,dynamic,confirmed
+10,SUM-ROWS,"Source Match: No match selected; Competition: Competition not selected; Date: Tue, 16 Apr 2024; Duration: 02:17 (12 clips); Tags: Progressive, Passing, UCL",v_match_labels + reel_projects.sequence_duration_us + COUNT(reel_clips) + tags,GET /reels/:id/export-context,,dynamic,confirmed
+10,PV-TITLES,CHAMPIONS LEAGUE. / Player not selected / PROGRESSIVE PASSES / No match selected / 16 APR 2024,"overlay text rendered from v_player_header, reel_type_label, v_match_labels at render time",GET /reels/:id/export-context,,dynamic,confirmed
+10,PV-STATS,12 Key Passes / 8 Progressive Passes / 6 Chance Creation,timeline STAT items -> metric_values,GET /reels/:id/timeline,,dynamic,measured
+10,CHAPTERS,"Highlight Chapters (12) and 6 cards: Intro, Build Up Play, Progressive Passes, Key Passes, Chance Creation, Team Impact",reel_chapters + reel_settings_flags.auto_chapters,GET /reels/:id/chapters,Header count = COUNT(chapters),dynamic,confirmed
+10,SETTINGS,"Highlights Reel (Recommended), 4K (3840 × 2160), —, 16:9, MP4 (H.264), Unmeasured; helper texts","export_presets + render job draft (resolution, frame_rate, aspect_ratio, container, video_codec, quality)",GET /export-presets; POST /render-jobs,,dynamic,user input
+10,BRAND-PREVIEW,OTSI VIE / VIDEO INTELLIGENCE ENGINE preview,brand_kits (logo_asset_id),GET /brand-kits,,static,static copy
+10,QUEUE-ROWS,"No render job selected / No render configured / Awaiting actual status / — / Awaiting render; Team Build Up Sequences, MP4 • 1080p • 16:9 • 03:42, No job recorded; Defensive Transitions, MP4 • 1080p • 16:9 • 02:58, Waiting...",v_export_queue,GET /render-queue,,dynamic,measured
+10,OUTPUT-ROWS,four report options with coloured file tiles,export_bundles flags + report_exports,POST /render-jobs (bundle),,dynamic,user input
+10,LINK-URL,"Link available after export + status ""Not ready""",share_links.public_slug + status,POST/GET /share-links,,dynamic,measured
+10,COLLAB-TEAM,JD SK MC avatars,library_item_collaborators / memberships,GET /library/:id,,dynamic,confirmed
+10,MSG-COUNTER,— (0/300),deliveries.message (VARCHAR 300),POST /deliveries,Counter computed client-side,dynamic (client),measured
+10,PROG-STEPS,Preparing Files / Rendering Video — / Processing Reports Waiting... / Finalizing Waiting...; bar 726/1169px,render_job_stages,GET /render-jobs/:id + SSE,,dynamic,measured
+10,PROG-READY,green check + Delivery not ready + Final video and reports will be available soon.,v_delivery_readiness,GET /render-jobs/:id/readiness,No green check unless ready,dynamic,measured

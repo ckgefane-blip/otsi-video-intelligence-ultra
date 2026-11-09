@@ -1,0 +1,35 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm test
+(cwd otsi-vie\apps\api)
+
+
+> @otsi-vie/api@0.1.0 test D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\api
+> vitest run
+
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/api
+
+[Nest] 60236  - 10/26/2026, 5:29:26 PM    WARN [OutboxDispatcher] event 37 (test.happened) attempt 1 failed; will retry: test.flaky: boom
+[Nest] 60236  - 10/26/2026, 5:29:26 PM    WARN [OutboxDispatcher] event 38 (test.happened) attempt 1 failed; will retry: test.leaky: connect mysql://[REDACTED]@db.internal:3306/x failed; password=[REDACTED]; Bearer [REDACTED]
+[Nest] 60236  - 10/26/2026, 5:29:27 PM    WARN [OutboxDispatcher] event 39 (test.happened) attempt 1 failed; will retry: test.poison: cannot handle this
+[Nest] 60236  - 10/26/2026, 5:29:27 PM    WARN [OutboxDispatcher] event 40 (test.happened) attempt 1 failed; will retry: test.hung: timed out after 150 ms
+[Nest] 60236  - 10/26/2026, 5:29:29 PM    WARN [OutboxDispatcher] event 41 (test.happened) attempt 1 failed; will retry: test.writer: failed after writing
+[Nest] 60236  - 10/26/2026, 5:29:29 PM    WARN [OutboxDispatcher] event 42 (test.happened) attempt 1 failed; will retry: test.sequence: first try fails
+ ✓ test/outbox.dispatcher.test.ts (14 tests) 3715ms
+   ✓ concurrency, crashes and fencing > recovers events claimed by a crashed dispatcher once the lease expires; the crashed one is fenced off 435ms
+   ✓ failures > retries with back-off and keeps a redacted error 395ms
+   ✓ failures > times out a hung handler and retries the event 1590ms
+   ✓ ordering and tenants > keeps events of one aggregate in order, without holding up other aggregates 527ms
+ ✓ test/identity.api.test.ts (11 tests) 740ms
+ ✓ test/auth.api.test.ts (11 tests) 2455ms
+   ✓ login > gives the same answer for an unknown email and a wrong password 327ms
+   ✓ login > locks the credential after 5 failures, even for the right password, until the lock expires 935ms
+ ✓ test/audit.api.test.ts (7 tests) 215ms
+
+ Test Files  4 passed (4)
+      Tests  43 passed (43)
+   Start at  17:29:19
+   Duration  13.70s (transform 300ms, setup 0ms, collect 1.40s, tests 7.12s, environment 0ms, prepare 95ms)
+
+[Nest] 60236  - 10/26/2026, 5:29:27 PM   ERROR [OutboxDispatcher] event 39 (test.happened) dead-lettered after 2 attempts: test.poison: cannot handle this
+
+exit=0

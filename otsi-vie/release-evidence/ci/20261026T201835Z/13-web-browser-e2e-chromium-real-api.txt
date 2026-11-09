@@ -1,0 +1,49 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe tools/dev/e2e.py
+(cwd otsi-vie)
+
+
+> @otsi-vie/web@0.1.0 e2e D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> playwright test
+
+
+Running 25 tests using 1 worker
+
+  ok 1 [chromium] › shell.spec.ts:37:7 › page 01 Home / Overview: every approved section, no sample data, no errors (984ms)
+  ok 2 [chromium] › shell.spec.ts:37:7 › page 02 Upload & Ingest: every approved section, no sample data, no errors (607ms)
+  ok 3 [chromium] › shell.spec.ts:37:7 › page 03 AI Processing Pipeline: every approved section, no sample data, no errors (601ms)
+  ok 4 [chromium] › shell.spec.ts:37:7 › page 04 Analysis Workspace: every approved section, no sample data, no errors (599ms)
+  ok 5 [chromium] › shell.spec.ts:37:7 › page 05 Tactical Intelligence: every approved section, no sample data, no errors (584ms)
+  ok 6 [chromium] › shell.spec.ts:37:7 › page 06 Reel Builder / Spotlight Composer: every approved section, no sample data, no errors (568ms)
+  ok 7 [chromium] › shell.spec.ts:37:7 › page 07 Clip Studio / Timeline Editor: every approved section, no sample data, no errors (658ms)
+  ok 8 [chromium] › shell.spec.ts:37:7 › page 08 Player Report: every approved section, no sample data, no errors (697ms)
+  ok 9 [chromium] › shell.spec.ts:37:7 › page 09 Library / Project Center: every approved section, no sample data, no errors (633ms)
+  ok 10 [chromium] › shell.spec.ts:37:7 › page 10 Export & Delivery: every approved section, no sample data, no errors (578ms)
+  ok 11 [chromium] › shell.spec.ts:65:5 › the root opens Home and the navigation reaches every main area (742ms)
+  ok 12 [chromium] › shell.spec.ts:75:5 › Home CTAs open the upload page in the matching source mode, and the tabs switch it (560ms)
+  ok 13 [chromium] › shell.spec.ts:86:5 › the theme choice survives a reload (526ms)
+  ok 14 [chromium] › shell.spec.ts:96:5 › Ctrl+K opens the page palette and Enter navigates (440ms)
+  ok 15 [chromium] › shell.spec.ts:106:5 › video and player routes accept only valid identifiers (777ms)
+  ok 16 [chromium] › shell.spec.ts:117:5 › security headers are sent (305ms)
+  ok 17 [chromium] › shell.spec.ts:127:5 › small screens stack the sections without horizontal scrolling (586ms)
+  ok 18 [chromium] › shell.spec.ts:136:5 › signed out: app pages send the visitor to sign in and come back afterwards (1.2s)
+  ok 19 [chromium] › shell.spec.ts:149:5 › signed out: the return address cannot leave the app (599ms)
+  ok 20 [chromium] › shell.spec.ts:157:5 › the profile shows the real user and role, and signing out ends the session (708ms)
+  ok 21 [chromium] › shell.spec.ts:169:5 › a reload keeps the session through the HttpOnly refresh cookie, which scripts cannot read (443ms)
+  ok 22 [chromium] › upload.spec.ts:18:5 › journey 1-3: empty workspace, create a project, upload a real video, see it verified with measured facts (4.4s)
+  ok 23 [chromium] › upload.spec.ts:54:5 › a file that is not a video is quarantined with the reason, whatever its name (3.5s)
+  ok 24 [chromium] › upload.spec.ts:64:5 › files of the wrong type are refused before uploading (440ms)
+  ok 25 [chromium] › upload.spec.ts:71:5 › paste-link import refuses provider pages and private addresses with a clear reason (782ms)
+
+  25 passed (32.5s)
+(node:1032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2026-10-26 23:20:44,046 INFO vie_worker started as worker-OTSI-LTD-b0d371, handling INGEST_UPLOAD, INGEST_URL, PROXY, ANALYZE
+[WebServer] (node:55928) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+[WebServer] (Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] 2026-10-26 23:21:02,346 INFO vie_worker job succeeded
+[WebServer] 2026-10-26 23:21:04,313 INFO vie_worker job succeeded
+[WebServer] 2026-10-26 23:21:05,433 INFO vie_worker job succeeded
+
+exit=0

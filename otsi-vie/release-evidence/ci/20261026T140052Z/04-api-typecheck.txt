@@ -1,0 +1,9 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm typecheck
+(cwd otsi-vie\apps\api)
+
+
+> @otsi-vie/api@0.1.0 typecheck D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\api
+> tsc -p tsconfig.json --noEmit
+
+
+exit=0

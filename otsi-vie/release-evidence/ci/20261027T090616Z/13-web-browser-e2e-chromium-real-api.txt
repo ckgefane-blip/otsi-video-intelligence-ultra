@@ -1,0 +1,58 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe tools/dev/e2e.py
+(cwd otsi-vie)
+
+
+> @otsi-vie/web@0.1.0 e2e D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> playwright test
+
+
+Running 26 tests using 1 worker
+
+  ok 1 [chromium] › shell.spec.ts:37:7 › page 01 Home / Overview: every approved section, no sample data, no errors (1.1s)
+  ok 2 [chromium] › shell.spec.ts:37:7 › page 02 Upload & Ingest: every approved section, no sample data, no errors (672ms)
+  ok 3 [chromium] › shell.spec.ts:37:7 › page 03 AI Processing Pipeline: every approved section, no sample data, no errors (644ms)
+  ok 4 [chromium] › shell.spec.ts:37:7 › page 04 Analysis Workspace: every approved section, no sample data, no errors (758ms)
+  ok 5 [chromium] › shell.spec.ts:37:7 › page 05 Tactical Intelligence: every approved section, no sample data, no errors (734ms)
+  ok 6 [chromium] › shell.spec.ts:37:7 › page 06 Reel Builder / Spotlight Composer: every approved section, no sample data, no errors (679ms)
+  ok 7 [chromium] › shell.spec.ts:37:7 › page 07 Clip Studio / Timeline Editor: every approved section, no sample data, no errors (740ms)
+  ok 8 [chromium] › shell.spec.ts:37:7 › page 08 Player Report: every approved section, no sample data, no errors (933ms)
+  ok 9 [chromium] › shell.spec.ts:37:7 › page 09 Library / Project Center: every approved section, no sample data, no errors (771ms)
+  ok 10 [chromium] › shell.spec.ts:37:7 › page 10 Export & Delivery: every approved section, no sample data, no errors (653ms)
+  ok 11 [chromium] › shell.spec.ts:65:5 › the root opens Home and the navigation reaches every main area (833ms)
+  ok 12 [chromium] › shell.spec.ts:75:5 › Home CTAs open the upload page in the matching source mode, and the tabs switch it (578ms)
+  ok 13 [chromium] › shell.spec.ts:86:5 › the theme choice survives a reload (657ms)
+  ok 14 [chromium] › shell.spec.ts:96:5 › Ctrl+K opens the page palette and Enter navigates (469ms)
+  ok 15 [chromium] › shell.spec.ts:106:5 › video and player routes accept only valid identifiers (807ms)
+  ok 16 [chromium] › shell.spec.ts:117:5 › security headers are sent (324ms)
+  ok 17 [chromium] › shell.spec.ts:127:5 › small screens stack the sections without horizontal scrolling (643ms)
+  ok 18 [chromium] › shell.spec.ts:136:5 › signed out: app pages send the visitor to sign in and come back afterwards (1.2s)
+  ok 19 [chromium] › shell.spec.ts:149:5 › signed out: the return address cannot leave the app (630ms)
+  ok 20 [chromium] › shell.spec.ts:157:5 › the profile shows the real user and role, and signing out ends the session (801ms)
+  ok 21 [chromium] › shell.spec.ts:169:5 › a reload keeps the session through the HttpOnly refresh cookie, which scripts cannot read (445ms)
+  ok 22 [chromium] › upload.spec.ts:18:5 › journey 1-3: empty workspace, create a project, upload a real video, see it verified with measured facts (4.3s)
+  ok 23 [chromium] › upload.spec.ts:55:5 › a file that is not a video is quarantined with the reason, whatever its name (3.5s)
+  ok 24 [chromium] › upload.spec.ts:65:5 › files of the wrong type are refused before uploading (485ms)
+  ok 25 [chromium] › upload.spec.ts:72:5 › paste-link import explains each provider before submitting and refuses private addresses (720ms)
+  ok 26 [chromium] › workspace.spec.ts:20:5 › journey 3-8: real footage -> start analysis -> progress -> workspace boxes -> select a player -> identity review (2.8m)
+
+  Slow test file: [chromium] › workspace.spec.ts (2.8m)
+  Slow test file: [chromium] › shell.spec.ts (15.1s)
+  Consider splitting slow test files to speed up parallel execution
+  26 passed (3.4m)
+(node:62052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:62052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2026-10-27 12:12:14,208 INFO vie_worker started as worker-OTSI-LTD-ad48d4, handling INGEST_UPLOAD, INGEST_URL, PROXY, ANALYZE, RENDER, ASSESS
+[WebServer] (node:14576) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+[WebServer] (Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] 2026-10-27 12:12:34,613 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:12:36,760 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:12:37,880 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:12:46,522 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:12:49,723 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:13:08,016 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:13:39,405 INFO vie_worker job succeeded
+[WebServer] 2026-10-27 12:15:27,415 INFO vie_worker job succeeded
+
+exit=0

@@ -1,0 +1,133 @@
+{
+  "_comment": "Video-link providers (ADR-027). ONE policy for the API (instant answer) and the worker (authoritative). status: supported = imported through an official, permitted method; needs_authorization = imported only with the user's own access token for that service; unsupported = refused with the reason and the authorised alternative. Never bypass DRM, access controls or provider terms.",
+  "providers": [
+    {
+      "id": "direct",
+      "name": "Direct link to a video file",
+      "status": "supported",
+      "hosts": [],
+      "method": "HTTP(S) download of the file itself, SSRF-guarded, media types only",
+      "examples": ["https://media.example.com/matches/final.mp4"]
+    },
+    {
+      "id": "hls",
+      "name": "HLS stream playlist (.m3u8)",
+      "status": "supported",
+      "hosts": [],
+      "method": "Finished (VOD) playlists without encryption: every segment fetched through the SSRF guard and joined; live or encrypted streams refused",
+      "examples": ["https://media.example.com/match/master.m3u8"]
+    },
+    {
+      "id": "wikimedia",
+      "name": "Wikimedia Commons",
+      "status": "supported",
+      "hosts": ["commons.wikimedia.org", "commons.m.wikimedia.org", "upload.wikimedia.org"],
+      "method": "Commons API resolves the file page to the original upload; the licence and author are recorded",
+      "examples": ["https://commons.wikimedia.org/wiki/File:Example_match.webm"]
+    },
+    {
+      "id": "archive_org",
+      "name": "Internet Archive",
+      "status": "supported",
+      "hosts": ["archive.org", "www.archive.org"],
+      "method": "Metadata API resolves the item to its original video file; the item's licence is recorded",
+      "examples": ["https://archive.org/details/some-item"]
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox shared link",
+      "status": "supported",
+      "hosts": ["dropbox.com", "www.dropbox.com", "dl.dropboxusercontent.com"],
+      "method": "Shared links are switched to Dropbox's documented direct-download form (dl=1); links the owner has not shared fail as access denied",
+      "examples": ["https://www.dropbox.com/scl/fi/abc123/match.mp4?rlkey=xyz&dl=0"]
+    },
+    {
+      "id": "vimeo",
+      "name": "Vimeo",
+      "status": "needs_authorization",
+      "hosts": ["vimeo.com", "www.vimeo.com", "player.vimeo.com"],
+      "method": "Vimeo API (api.vimeo.com) with the user's personal access token: only videos the API offers for download to that account (own videos, or where the owner enabled downloads)",
+      "examples": ["https://vimeo.com/123456789"]
+    },
+    {
+      "id": "google_drive",
+      "name": "Google Drive",
+      "status": "needs_authorization",
+      "hosts": ["drive.google.com", "docs.google.com"],
+      "method": "Google Drive API (files.get, alt=media) with the user's OAuth access token for an account that can open the file",
+      "examples": ["https://drive.google.com/file/d/FILE_ID/view"]
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "status": "unsupported",
+      "hosts": ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"],
+      "reason": "YouTube's Terms of Service allow downloading only through YouTube's own download features, and the official YouTube API offers no video-file download. OTSI VIE does not extract streams around those restrictions.",
+      "alternative": "If it is your video, download it from YouTube Studio (Content > ... > Download) and upload the file here. Otherwise ask the rights holder for the original file."
+    },
+    {
+      "id": "facebook_instagram",
+      "name": "Facebook / Instagram",
+      "status": "unsupported",
+      "hosts": ["facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch", "instagram.com", "www.instagram.com"],
+      "reason": "Meta provides no API for third-party apps to download video files.",
+      "alternative": "Download your own video with Meta's 'Download your information' or the original file, and upload it."
+    },
+    {
+      "id": "tiktok",
+      "name": "TikTok",
+      "status": "unsupported",
+      "hosts": ["tiktok.com", "www.tiktok.com", "vm.tiktok.com"],
+      "reason": "TikTok's developer APIs do not provide video-file downloads to third-party apps.",
+      "alternative": "Save the original file from the creator's device or account and upload it."
+    },
+    {
+      "id": "x_twitter",
+      "name": "X (Twitter)",
+      "status": "unsupported",
+      "hosts": ["twitter.com", "x.com", "www.x.com", "mobile.twitter.com"],
+      "reason": "The X API does not offer media downloads for import into other applications under its standard terms.",
+      "alternative": "Upload the original file."
+    },
+    {
+      "id": "twitch",
+      "name": "Twitch",
+      "status": "unsupported",
+      "hosts": ["twitch.tv", "www.twitch.tv", "clips.twitch.tv"],
+      "reason": "Twitch's API does not provide video downloads to third-party apps.",
+      "alternative": "Download your VOD from the Twitch creator dashboard and upload it."
+    },
+    {
+      "id": "dailymotion",
+      "name": "Dailymotion",
+      "status": "unsupported",
+      "hosts": ["dailymotion.com", "www.dailymotion.com", "dai.ly"],
+      "reason": "Dailymotion's API does not provide original-file downloads to third-party apps.",
+      "alternative": "Upload the original file."
+    },
+    {
+      "id": "hudl_wyscout_veo",
+      "name": "Hudl / Wyscout / Veo",
+      "status": "unsupported",
+      "hosts": ["hudl.com", "www.hudl.com", "wyscout.com", "platform.wyscout.com", "veo.co", "app.veo.co", "veocdn.com"],
+      "reason": "These are licensed football platforms; importing needs a partner integration agreement, which does not exist yet.",
+      "alternative": "Use the platform's own export/download for footage you hold the rights to, then upload the file."
+    },
+    {
+      "id": "onedrive",
+      "name": "OneDrive / SharePoint",
+      "status": "unsupported",
+      "hosts": ["onedrive.live.com", "1drv.ms", "sharepoint.com"],
+      "reason": "Microsoft requires a registered app and user sign-in (Microsoft Graph) for file downloads; that integration is not built yet.",
+      "alternative": "Download the file from OneDrive and upload it."
+    },
+    {
+      "id": "streamable",
+      "name": "Streamable",
+      "status": "unsupported",
+      "hosts": ["streamable.com"],
+      "reason": "No official download API for third-party apps.",
+      "alternative": "Upload the original file."
+    }
+  ]
+}

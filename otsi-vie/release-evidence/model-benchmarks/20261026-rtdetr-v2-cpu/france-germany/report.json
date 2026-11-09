@@ -1,0 +1,52 @@
+{
+ "machine": {
+  "cpu": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+  "logical_cores": 22,
+  "ram_gb": 32,
+  "gpu": "none (CPU only)",
+  "os": "Windows-11-10.0.26300-SP0",
+  "python": "3.13.15"
+ },
+ "results": [
+  {
+   "video": "france_germany_ccbysa.ogv",
+   "frame_size": "1920x1080",
+   "model": "rtdetr_v2_r18vd",
+   "tiles": 1,
+   "threads": 20,
+   "frames": 12,
+   "load_seconds": 4.7,
+   "ms_per_frame_mean": 297.2,
+   "ms_per_frame_p95": 305.7,
+   "frames_per_second": 3.36,
+   "cpu_utilisation_cores": 5.2,
+   "peak_rss_mb": 666,
+   "on_pitch_persons_per_frame_mean": 10.1,
+   "ball_found_in_frames": "1/12",
+   "accuracy": "not measured: no labelled ground truth for this footage",
+   "full_match_minutes_at_1fps": 27.0,
+   "full_match_minutes_at_2fps": 53.0,
+   "full_match_minutes_at_5fps": 134.0
+  },
+  {
+   "video": "france_germany_ccbysa.ogv",
+   "frame_size": "1920x1080",
+   "model": "rtdetr_v2_r18vd",
+   "tiles": 2,
+   "threads": 20,
+   "frames": 12,
+   "load_seconds": 4.7,
+   "ms_per_frame_mean": 1148.7,
+   "ms_per_frame_p95": 1226.7,
+   "frames_per_second": 0.87,
+   "cpu_utilisation_cores": 8.8,
+   "peak_rss_mb": 1120,
+   "on_pitch_persons_per_frame_mean": 17.8,
+   "ball_found_in_frames": "12/12",
+   "accuracy": "not measured: no labelled ground truth for this footage",
+   "full_match_minutes_at_1fps": 103.0,
+   "full_match_minutes_at_2fps": 207.0,
+   "full_match_minutes_at_5fps": 517.0
+  }
+ ]
+}

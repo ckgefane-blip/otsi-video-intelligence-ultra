@@ -1,0 +1,561 @@
+{
+ "video": "naples_amateur",
+ "labeller": "developer (Claude), single annotator, pool-assisted manual annotation 2026-10-27",
+ "method": "pool-assisted manual annotation (tools/eval/annotate.py)",
+ "frame_width": 1920,
+ "frame_height": 1080,
+ "frames": [
+  {
+   "pts_us": 2002000,
+   "t": 2.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "naples_amateur@2.0#0",
+     "x": 0.010288511713345846,
+     "y": 0.5441761016845703,
+     "w": 0.026641063888867694,
+     "h": 0.10042081762243205,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#1",
+     "x": 0.03688277859157987,
+     "y": 0.5164138929578994,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#2",
+     "x": 0.0729427417119344,
+     "y": 0.5490660066957826,
+     "w": 0.02579673926035564,
+     "h": 0.07749902230721939,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#3",
+     "x": 0.1267141580581665,
+     "y": 0.548422114054362,
+     "w": 0.0322329600652059,
+     "h": 0.08048220033998832,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#4",
+     "x": 0.1365001955385561,
+     "y": 0.5465009776927806,
+     "w": 0.030999608922887757,
+     "h": 0.07749902230721939,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#5",
+     "x": 0.18660491307576496,
+     "y": 0.5500997755262587,
+     "w": 0.01684590975443523,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#6",
+     "x": 0.5115886529286703,
+     "y": 0.5802378054018373,
+     "w": 0.027069934209187796,
+     "h": 0.06950937906901045,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#7",
+     "x": 0.5866127570470174,
+     "y": 0.5490167123300058,
+     "w": 0.025364494323730447,
+     "h": 0.10424071417914493,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#8",
+     "x": 0.6810436407725017,
+     "y": 0.5868706314652055,
+     "w": 0.021054776509602857,
+     "h": 0.07015828733091001,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#9",
+     "x": 0.68688277859158,
+     "y": 0.5404138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#10",
+     "x": 0.7109209060668945,
+     "y": 0.5574305993539316,
+     "w": 0.018387683232625296,
+     "h": 0.0778774473402235,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#11",
+     "x": 0.7979158364755136,
+     "y": 0.547579182377568,
+     "w": 0.04016832704897282,
+     "h": 0.10042081762243205,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#12",
+     "x": 0.7698827785915799,
+     "y": 0.5164138929578994,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#13",
+     "x": 0.79188277859158,
+     "y": 0.5194138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#14",
+     "x": 0.8298827785915799,
+     "y": 0.5174138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#15",
+     "x": 0.8478827785915799,
+     "y": 0.5244138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#16",
+     "x": 0.8648827785915799,
+     "y": 0.5224138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#17",
+     "x": 0.9132577896118164,
+     "y": 0.5667884544089988,
+     "w": 0.013523419698079464,
+     "h": 0.05075203224464697,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#18",
+     "x": 0.9078827785915798,
+     "y": 0.5174138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#19",
+     "x": 0.0,
+     "y": 0.5628808904577185,
+     "w": 0.013248624404271443,
+     "h": 0.07594213132505057,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#20",
+     "x": 0.5081478158632914,
+     "y": 0.6463479077374493,
+     "w": 0.02695960601170866,
+     "h": 0.03455958896213107,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#21",
+     "x": 0.485968342533818,
+     "y": 0.59984171266909,
+     "w": 0.028063314932364004,
+     "h": 0.07015828733091001,
+     "ignore": true,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@2.0#22",
+     "x": 0.9398827785915799,
+     "y": 0.5214138929578993,
+     "w": 0.03023444281684027,
+     "h": 0.07558610704210067,
+     "ignore": true,
+     "approximate": true,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 4004000,
+   "t": 4.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "naples_amateur@4.0#0",
+     "x": 0.20004024138274018,
+     "y": 0.5872012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#1",
+     "x": 0.27904024138274014,
+     "y": 0.5632012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#2",
+     "x": 0.30161590576171876,
+     "y": 0.5570398683901187,
+     "w": 0.020067342122395804,
+     "h": 0.07316467850296582,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#3",
+     "x": 0.3225370724995931,
+     "y": 0.5588581226490162,
+     "w": 0.011440626780192031,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#4",
+     "x": 0.39704024138274013,
+     "y": 0.5812012069137008,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#5",
+     "x": 0.34704024138274014,
+     "y": 0.5212012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#6",
+     "x": 0.35504024138274015,
+     "y": 0.5232012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#7",
+     "x": 0.3870402413827402,
+     "y": 0.5232012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#8",
+     "x": 0.40704024138274014,
+     "y": 0.5312012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#9",
+     "x": 0.41704024138274015,
+     "y": 0.527201206913701,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#10",
+     "x": 0.43404024138274017,
+     "y": 0.5232012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#11",
+     "x": 0.4440402413827402,
+     "y": 0.5232012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#12",
+     "x": 0.48304024138274015,
+     "y": 0.5292012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#13",
+     "x": 0.5700402413827401,
+     "y": 0.6072012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#14",
+     "x": 0.47704024138274015,
+     "y": 0.5472012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#15",
+     "x": 0.5130402413827402,
+     "y": 0.5352012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#16",
+     "x": -0.00795975861725982,
+     "y": 0.5702012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": true,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#17",
+     "x": 0.4756313403447469,
+     "y": 0.5668394018102575,
+     "w": 0.007146596908569336,
+     "h": 0.04317385355631509,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@4.0#18",
+     "x": 0.47004024138274014,
+     "y": 0.5452012069137009,
+     "w": 0.025919517234519643,
+     "h": 0.0647987930862991,
+     "ignore": true,
+     "approximate": true,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 36003000,
+   "t": 36.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "naples_amateur@36.0#0",
+     "x": 0.121149476369222,
+     "y": 0.29776958889431426,
+     "w": 0.0959271272023519,
+     "h": 0.26909250330041956,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#1",
+     "x": 0.1461814993399161,
+     "y": 0.2809074966995805,
+     "w": 0.10763700132016783,
+     "h": 0.26909250330041956,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#2",
+     "x": 0.5203705549240112,
+     "y": 0.3141328317147714,
+     "w": 0.03646697998046877,
+     "h": 0.13932452731662326,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#3",
+     "x": 0.5120304743448894,
+     "y": 0.2865071614583333,
+     "w": 0.14339949289957676,
+     "h": 0.3983172946506076,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#4",
+     "x": 0.6388392130533854,
+     "y": 0.25137151082356773,
+     "w": 0.14646231333414717,
+     "h": 0.3975525184913918,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#5",
+     "x": 0.7679824193318685,
+     "y": 0.28231961285626445,
+     "w": 0.10733807881673174,
+     "h": 0.2777261522081163,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#6",
+     "x": 0.3913896560668945,
+     "y": 0.28611300433123554,
+     "w": 0.0697857220967611,
+     "h": 0.22787896615487557,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@36.0#7",
+     "x": 0.0003315359354019165,
+     "y": 0.2953143932201244,
+     "w": 0.020773908495903014,
+     "h": 0.1876416524251302,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 40007000,
+   "t": 40.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "naples_amateur@40.0#0",
+     "x": 0.2642481009165446,
+     "y": 0.04297635113751447,
+     "w": 0.07813941637674965,
+     "h": 0.394902914541739,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "naples_amateur@40.0#1",
+     "x": 0.514564323425293,
+     "y": 0.06032704953794126,
+     "w": 0.0787680308024088,
+     "h": 0.32776832580566406,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    }
+   ]
+  }
+ ]
+}

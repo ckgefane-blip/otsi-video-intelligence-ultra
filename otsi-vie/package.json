@@ -1,0 +1,13 @@
+{
+  "name": "otsi-vie",
+  "private": true,
+  "description": "OTSI Video Intelligence Engine v2 (greenfield commercial application)",
+  "packageManager": "pnpm@9.15.4",
+  "engines": { "node": ">=22.11 <23" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "vie-render": "python tools/dev/vie_render.py"
+  }
+}

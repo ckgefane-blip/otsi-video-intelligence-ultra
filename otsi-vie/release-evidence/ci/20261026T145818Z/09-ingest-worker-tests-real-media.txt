@@ -1,0 +1,7 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
+(cwd otsi-vie\services\worker)
+
+...........                                                              [100%]
+11 passed in 9.75s
+
+exit=0

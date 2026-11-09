@@ -1,0 +1,62 @@
+{
+ "01": {
+  "contract_vs_our_render_of_unmodified_html_pct": 6.064,
+  "contract_vs_corrected_pct": 6.339,
+  "unmodified_vs_corrected_same_env_pct": 1.39,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "02": {
+  "contract_vs_our_render_of_unmodified_html_pct": 4.934,
+  "contract_vs_corrected_pct": 6.019,
+  "unmodified_vs_corrected_same_env_pct": 2.155,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "03": {
+  "contract_vs_our_render_of_unmodified_html_pct": 5.591,
+  "contract_vs_corrected_pct": 8.335,
+  "unmodified_vs_corrected_same_env_pct": 5.003,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "04": {
+  "contract_vs_our_render_of_unmodified_html_pct": 3.719,
+  "contract_vs_corrected_pct": 10.699,
+  "unmodified_vs_corrected_same_env_pct": 8.728,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "05": {
+  "contract_vs_our_render_of_unmodified_html_pct": 5.0,
+  "contract_vs_corrected_pct": 9.489,
+  "unmodified_vs_corrected_same_env_pct": 6.059,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "06": {
+  "contract_vs_our_render_of_unmodified_html_pct": 3.873,
+  "contract_vs_corrected_pct": 7.51,
+  "unmodified_vs_corrected_same_env_pct": 4.525,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "07": {
+  "contract_vs_our_render_of_unmodified_html_pct": 3.382,
+  "contract_vs_corrected_pct": 24.055,
+  "unmodified_vs_corrected_same_env_pct": 22.455,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "08": {
+  "contract_vs_our_render_of_unmodified_html_pct": 5.2,
+  "contract_vs_corrected_pct": 9.756,
+  "unmodified_vs_corrected_same_env_pct": 6.974,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "09": {
+  "contract_vs_our_render_of_unmodified_html_pct": 5.506,
+  "contract_vs_corrected_pct": 11.791,
+  "unmodified_vs_corrected_same_env_pct": 9.139,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ },
+ "10": {
+  "contract_vs_our_render_of_unmodified_html_pct": 5.351,
+  "contract_vs_corrected_pct": 9.792,
+  "unmodified_vs_corrected_same_env_pct": 6.514,
+  "header_band_unmodified_vs_corrected_pct": 0.0
+ }
+}

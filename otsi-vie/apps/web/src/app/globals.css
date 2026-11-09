@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (approved page specs, "Design tokens (proposed)"). Dark is the approved look; light is the theme-toggle variant
+   required by section 01.1. Values are space-separated RGB so Tailwind can apply opacity. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: 6 17 31;      /* #06111F */
+  --panel: 12 29 48;      /* #0C1D30 */
+  --raised: 16 36 58;     /* #10243A */
+  --line: 27 60 86;       /* #1B3C56 */
+  --primary: 7 155 255;   /* #079BFF */
+  --cyan: 23 209 248;     /* #17D1F8 */
+  --amber: 241 168 36;    /* #F1A824 */
+  --ink: 244 248 255;     /* #F4F8FF */
+  --muted: 156 177 197;   /* #9CB1C5 */
+  --ok: 34 197 94;
+  --danger: 239 68 68;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: 241 245 250;
+  --panel: 255 255 255;
+  --raised: 232 239 247;
+  --line: 203 216 230;
+  --primary: 0 112 204;
+  --cyan: 0 133 168;
+  --amber: 176 108 0;
+  --ink: 9 24 41;
+  --muted: 74 96 120;
+  --ok: 21 128 61;
+  --danger: 185 28 28;
+}
+
+html { background: rgb(var(--canvas)); }
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;   /* tabular numerals for timecodes and metrics */
+  background-image: radial-gradient(1200px 500px at 50% -200px, rgb(var(--primary) / 0.10), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Page composition (src/lib/pages.ts): stacked in specification order on narrow screens, the approved grid from 1100px */
+.page-grid { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 1100px) {
+  .page-grid { display: grid; grid-template-columns: var(--cols); grid-template-areas: var(--areas); gap: 12px; align-items: stretch; }
+}
+
+:focus-visible { outline: 2px solid rgb(var(--cyan)); outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* v3 Phase A.7 (ADR-072): Guided hides the controls marked data-pro; Pro (and no mode) shows them all */
+:root[data-ui-mode="GUIDED"] [data-pro] { display: none !important; }
+/* ADR-079: a player in full screen is a modal <dialog> (components/media/Fullscreen.tsx); behind it, black */
+dialog[data-player-full]::backdrop { background: #000; }

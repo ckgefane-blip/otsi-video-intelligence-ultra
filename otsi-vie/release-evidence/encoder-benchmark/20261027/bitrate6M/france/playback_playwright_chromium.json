@@ -1,0 +1,61 @@
+{
+ "chromium (Playwright build)": {
+  "intel-qsv-av1.mp4": {
+   "ok": true,
+   "error": null,
+   "width": 1920,
+   "height": 1080,
+   "current_time": 1.5,
+   "frames_presented": 50,
+   "dropped": 0
+  },
+  "intel-qsv-h264.mp4": {
+   "ok": false,
+   "error": 4,
+   "width": 0,
+   "height": 0,
+   "current_time": 0,
+   "frames_presented": 0,
+   "dropped": 0
+  },
+  "libvpx-vp9.webm": {
+   "ok": true,
+   "error": null,
+   "width": 1920,
+   "height": 1080,
+   "current_time": 1.51,
+   "frames_presented": 50,
+   "dropped": 0
+  },
+  "mf-h264.mp4": {
+   "ok": false,
+   "error": 4,
+   "width": 0,
+   "height": 0,
+   "current_time": 0,
+   "frames_presented": 0,
+   "dropped": 0
+  },
+  "openh264.mp4": {
+   "ok": false,
+   "error": 4,
+   "width": 0,
+   "height": 0,
+   "current_time": 0,
+   "frames_presented": 0,
+   "dropped": 0
+  },
+  "svt-av1.mp4": {
+   "ok": true,
+   "error": null,
+   "width": 1920,
+   "height": 1080,
+   "current_time": 1.51,
+   "frames_presented": 50,
+   "dropped": 0
+  }
+ },
+ "microsoft edge (system)": {
+  "unavailable": "Error: browserType.launch: Target page, context or browser has been closed"
+ }
+}

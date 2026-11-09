@@ -1,0 +1,76 @@
+"""Apply the MySQL corrections to the ACTIVE blueprint (the extracted handoff) and record every original wording.
+
+Each correction replaces one exact passage, marks it inline as [MySQL correction C-DOC-NN], and is listed with its ORIGINAL text in
+blueprint/CORRECTIONS.md, so the historical (PostgreSQL) wording stays auditable. The delivered ZIP in blueprint/ is never modified.
+Idempotent: a passage already corrected is skipped. Usage: python otsi-vie/tools/blueprint_corrections.py
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+PKG = ROOT / "blueprint" / "OTSI-Owner Developer Handoff"
+B = "01_COMMERCIAL_MASTER_BLUEPRINT/"
+R = "04_REFERENCE_ARCHITECTURE_MYSQL/"
+
+FIXES = [
+ ("C-DOC-01", B + "01_STACK_AND_DECISIONS.md", "Use pgBouncer and prepared statement compatibility policy.",
+  "Use the MySQL driver's connection pool (ProxySQL only if measured load needs it) with server-side prepared statements; pgBouncer does not apply."),
+ ("C-DOC-02", B + "01_STACK_AND_DECISIONS.md", "managed Postgres with PITR",
+  "managed MySQL 8.4 LTS with binary-log point-in-time recovery"),
+ ("C-DOC-03", B + "06_COMMERCIAL_BILLING_AND_ADMIN.md", "deletion workflows across Postgres/S3/caches",
+  "deletion workflows across MySQL/S3/caches"),
+ ("C-DOC-04", B + "08_PRODUCTION_SECURITY_AND_OPERATIONS.md",
+  "Tenant isolation uses DB session-scoped tenant claims `SET LOCAL app.tenant_id` within transaction and FORCE application-enforced tenant isolation policies for ALL tenant-scoped tables, with explicit insert/update WITH CHECK.",
+  "Tenant isolation: MySQL has no row-level security or `SET LOCAL` session claims. Every query is scoped by the authenticated organization in the API's service layer (ADR-002), and the database refuses cross-tenant links itself through composite tenant foreign keys (migration 0003_tenant_integrity)."),
+ ("C-DOC-05", B + "08_PRODUCTION_SECURITY_AND_OPERATIONS.md", "managed Postgres, S3, Redis, Temporal",
+  "managed MySQL 8.4, S3, Redis, Temporal"),
+ ("C-DOC-16", B + "08_PRODUCTION_SECURITY_AND_OPERATIONS.md", "Postgres PITR restore drills", "MySQL point-in-time (binary log) restore drills"),
+ ("C-DOC-06", B + "09_RELEASE_AND_TEST_MATRIX.md", "Postgres integration using real PG container",
+  "MySQL integration tests using a real, disposable MySQL 8.4 container"),
+ ("C-DOC-07", "03_AI_DEVELOPER_EXECUTION/BUILD_SEQUENCE.md", "|01|Postgres migrations, tenant isolation, outbox, audit|",
+  "|01|MySQL 8.4 migrations, tenant isolation, outbox, audit|"),
+ ("C-DOC-08", "03_AI_DEVELOPER_EXECUTION/EXECUTE_FROM_ZERO.md",
+  "Inspect and reconcile base reference SQL (`OTSI_VIE_MASTER_BLUEPRINT/02_database/migrations/001..005`) with v2 new SQL (`01_COMMERCIAL_MASTER_BLUEPRINT/sql/006..007`).",
+  "Inspect the MySQL reference SQL (`01_COMMERCIAL_MASTER_BLUEPRINT/mysql_migrations/001..002`); the older PostgreSQL files 001..007 are not part of this handoff and are not used. Implemented as `otsi-vie/database/migrations/0001..`."),
+ ("C-DOC-09", R + "DEPLOYMENT_OPERATIONS.md", "frontend dev server, API, Postgres, Redis/queue", "frontend dev server, API, MySQL 8.4, Redis/queue"),
+ ("C-DOC-10", R + "DEPLOYMENT_OPERATIONS.md", "`delivery-worker`, `postgres`, `broker`", "`delivery-worker`, `mysql`, `broker`"),
+ ("C-DOC-11", R + "SCHEMA_AND_MIGRATION_GUIDE.md",
+  "`001_core.sql`, `002_intelligence.sql`, `003_production.sql`, `004_controls.sql`, `005_operational_extensions.sql`. Migrator must use a unique migration checksum lock, transaction per file,",
+  "`otsi-vie/database/migrations/0001..N` (from the MySQL reference `mysql_migrations/001..002`; the PostgreSQL files 001..005 are not used). MySQL commits DDL implicitly, so a file is not one transaction: the migrator records a checksum per version, holds a named lock, stops on the first error and never auto-repairs (ADR-014). Migrator must use a unique migration checksum lock,"),
+ ("C-DOC-12", R + "SCHEMA_AND_MIGRATION_GUIDE.md", "Metadata lives in Postgres.", "Metadata lives in MySQL 8.4."),
+ ("C-DOC-13", R + "SCHEMA_AND_MIGRATION_GUIDE.md",
+  "`004_controls.sql` enables server-enforced tenant isolation for top-level tables only. Production MUST implement and test child-table server-enforced tenant isolation policies for matches/rosters, model outputs, identities, timelines and all other indirect tenant data, or deny direct query access and expose security-definer audited query functions with explicit tenant validation. Every API transaction sets `SET LOCAL app.organization_id = '<authenticated organization UUID>'` using a dedicated DB role that cannot bypass server-enforced tenant isolation. Poolers must not leak session context.",
+  "MySQL has no row-level security, `SET LOCAL` or security-definer functions. Tenant isolation is enforced in the API service layer on every query, including child tables reached through a parent (matches/rosters, model outputs, identities, timelines), with negative cross-tenant tests; the database adds composite tenant foreign keys so a row can never link to another tenant's parent (migration 0003), and the runtime account has least-privilege grants (ADR-015)."),
+ ("C-DOC-14", R + "SCHEMA_AND_MIGRATION_GUIDE.md", "Search indices (Postgres full text + OpenSearch when scale requires)",
+  "Search indices (MySQL FULLTEXT, OpenSearch/Meilisearch when measured scale requires)"),
+ ("C-DOC-15", R + "REPOSITORY_AND_BLOCK_BY_BLOCK.md", "`pg_dump --schema-only` and migration journal",
+  "(not applicable to the greenfield build: no existing database is inspected or used, owner decision 2026-10-26) migration journal"),
+]
+
+
+def main() -> None:
+    log = ["# Blueprint corrections register (MySQL)\n",
+           "Every passage of the ACTIVE blueprint changed for the MySQL 8.4 architecture, with its ORIGINAL wording kept for audit.",
+           "The delivered ZIP (`blueprint/OTSI-Owner20Handoff.zip`) is unchanged. Applied by `otsi-vie/tools/blueprint_corrections.py`.",
+           "Statements that only WARN against PostgreSQL (MYSQL_ADAPTATION.md, 00_START_HERE.md, AGENT_INSTRUCTIONS.md, the header of",
+           "002_guard_triggers_mysql84.sql) are correct as written and were left alone. 'revision conflict' wording is not SQL.\n",
+           "| ID | File | Original | Corrected to |", "|---|---|---|---|"]
+    for cid, rel, old, new in FIXES:
+        p = PKG / rel
+        s = p.read_text(encoding="utf-8")
+        marked = f"{new} [MySQL correction {cid}]"
+        if marked in s:
+            status = "already applied"
+        else:
+            if s.count(old) != 1:
+                raise SystemExit(f"{cid}: the original passage was found {s.count(old)} times in {rel}")
+            p.write_text(s.replace(old, marked), encoding="utf-8")
+            status = "applied"
+        log.append(f"| {cid} | `{rel}` | {old.replace('|', '/')} | {new.replace('|', '/')} |")
+        print(cid, status)
+    (ROOT / "blueprint" / "CORRECTIONS.md").write_text("\n".join(log) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()

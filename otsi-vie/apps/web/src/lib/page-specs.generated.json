@@ -1,0 +1,687 @@
+{
+ "source": "blueprint/OTSI-Owner Developer Handoff/02_APPROVED_UI_IMPLEMENTATION",
+ "pages": [
+  {
+   "page": 1,
+   "file": "01_HOME_OVERVIEW.md",
+   "title": "Home / Overview",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Global app header and navigation",
+     "summary": "OTSI wordmark, Home/Matches/Analysis/Reels/Reports/Library navigation, global search, keyboard hint, theme toggle, analyst profile.",
+     "contract": "GET /me; GET /workspaces/:id; GET /search/suggest?q=; PATCH /me/preferences"
+    },
+    {
+     "n": 2,
+     "title": "Hero: football video intelligence",
+     "summary": "Stadium broadcast visual with target player ID, bounding boxes, visual spotlight and illustrative stat HUD; big product headline and two primary CTAs.",
+     "contract": "GET /marketing/home; route /upload?mode=file|url"
+    },
+    {
+     "n": 3,
+     "title": "Featured reel",
+     "summary": "Large right hero video card with preview, play, duration, descriptive tags, engagement-looking counters and share controls.",
+     "contract": "GET /reels?featured=true; POST /reels/:id/share"
+    },
+    {
+     "n": 4,
+     "title": "Headline KPI strip",
+     "summary": "Cards for matches analyzed, players tracked, reels generated, reports created, trends and sparklines.",
+     "contract": "GET /analytics/home?period=30d&workspace="
+    },
+    {
+     "n": 5,
+     "title": "Trust and credibility strip",
+     "summary": "Association/league-style logos and statement of professional trust.",
+     "contract": "GET /marketing/endorsements"
+    },
+    {
+     "n": 6,
+     "title": "Recent matches",
+     "summary": "Four rows with thumbnails, competition, match title, date, duration and score; View All.",
+     "contract": "GET /matches?sort=recent&limit=4"
+    },
+    {
+     "n": 7,
+     "title": "Sample reels gallery",
+     "summary": "Three side-by-side reel thumbnails with play, duration, title, subtitle, and optional engagement icons.",
+     "contract": "GET /reels?sample=true&limit=3; POST /bookmarks"
+    },
+    {
+     "n": 8,
+     "title": "Platform capabilities grid",
+     "summary": "Six descriptive capabilities: detection, tactical intelligence, custom reels, reports, statistics, collaboration.",
+     "contract": "GET /capabilities"
+    },
+    {
+     "n": 9,
+     "title": "How It Works journey",
+     "summary": "Five-stage illustrated walkthrough: ingest, AI analysis, player selection, reel generation, reports/share.",
+     "contract": "GET /onboarding/progress; POST /onboarding/action"
+    }
+   ]
+  },
+  {
+   "page": 2,
+   "file": "02_UPLOAD_INGEST.md",
+   "title": "Upload & Ingest",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Upload page header and source-mode tabs",
+     "summary": "Title, help action, Upload File, YouTube/URL, Batch Upload switcher.",
+     "contract": "POST /ingest/drafts; PATCH /ingest/drafts/:id"
+    },
+    {
+     "n": 2,
+     "title": "Match context metadata sidebar",
+     "summary": "Optional competition, season, match dropdowns; selection links the new asset to a known record.",
+     "contract": "GET /competitions; GET /matches?season=; POST /matches"
+    },
+    {
+     "n": 3,
+     "title": "Visual processing configuration",
+     "summary": "Stabilize, auto-crop, enhancement, crowd-noise removal, aspect correction.",
+     "contract": "PATCH /ingest/drafts/:id/settings; POST /transcodes"
+    },
+    {
+     "n": 4,
+     "title": "Detection and ingest options",
+     "summary": "Player/team detection, ball detection, jersey OCR, pitch line analysis, event markers, auto-create, metadata, highlights, send-to-analysis.",
+     "contract": "GET /pipeline/capabilities; PATCH /ingest/drafts/:id/config"
+    },
+    {
+     "n": 5,
+     "title": "Primary drag-drop file panel",
+     "summary": "Large stadium-backed dropzone, accepted types, max-size guidance, Browse Files, paste-link fallback.",
+     "contract": "POST /uploads/init; PUT signed parts; POST /uploads/complete; DELETE /uploads/:id"
+    },
+    {
+     "n": 6,
+     "title": "URL input and external-source ingestion",
+     "summary": "URL textbox and Add URL action, YouTube/direct-link style support.",
+     "contract": "POST /ingest/resolve-url; POST /ingest/from-url"
+    },
+    {
+     "n": 7,
+     "title": "Supported formats strip",
+     "summary": "Tiles for MP4, MOV, AVI, MKV, MPEG, FLV, TS, WEBM with codec hints.",
+     "contract": "GET /system/media-capabilities"
+    },
+    {
+     "n": 8,
+     "title": "Recent uploads panel",
+     "summary": "Recent files with thumbnail, duration, date, progress/queued/completed/failed chips and overflow menu.",
+     "contract": "GET /ingest/jobs?limit=5; POST /ingest/jobs/:id/retry"
+    },
+    {
+     "n": 9,
+     "title": "Selected upload preview / metadata editor",
+     "summary": "Right detail preview, file name, size, dimensions, FPS, duration, matched competition/teams and Edit Metadata.",
+     "contract": "GET /media/:id/metadata; PATCH /media/:id/metadata"
+    },
+    {
+     "n": 10,
+     "title": "Processing pipeline preview strip",
+     "summary": "Horizontal upload, detection, tracking, indexing, analysis-ready cards with progress bars and video thumbnails.",
+     "contract": "GET /analysis-runs/:id; GET /jobs/:id/events"
+    }
+   ]
+  },
+  {
+   "page": 3,
+   "file": "03_AI_PROCESSING.md",
+   "title": "AI Processing Pipeline",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Run headline and selected media summary",
+     "summary": "Large title, current match competition/teams/date, source quality/duration, overall progress.",
+     "contract": "GET /analysis-runs/:id"
+    },
+    {
+     "n": 2,
+     "title": "Five-step pipeline lifecycle",
+     "summary": "Detection, tracking, identity resolution, event detection, indexing cards with status, progress and short descriptions.",
+     "contract": "GET /analysis-runs/:id/stages; POST /analysis-runs/:id/retry-stage"
+    },
+    {
+     "n": 3,
+     "title": "Main frame-level detection preview",
+     "summary": "Large sync-able broadcast video with bounding boxes, labels, one highlighted candidate and per-frame timestamp.",
+     "contract": "GET /runs/:id/frames?from_ms=&to_ms=; GET /media/:id/playback"
+    },
+    {
+     "n": 4,
+     "title": "Player detection inset",
+     "summary": "Crop preview of detected player and box/id indication.",
+     "contract": "GET /runs/:id/detections?kind=person"
+    },
+    {
+     "n": 5,
+     "title": "Ball detection inset",
+     "summary": "Ball close-up with box and model confidence.",
+     "contract": "GET /runs/:id/detections?kind=ball"
+    },
+    {
+     "n": 6,
+     "title": "Team identification inset",
+     "summary": "Side-by-side team kit classification candidates.",
+     "contract": "GET /runs/:id/team-assignments; POST /review/team-assignments/:id"
+    },
+    {
+     "n": 7,
+     "title": "Event marker inset",
+     "summary": "Mini-pitch with typed event markers; legend for passes/shots/tackles/fouls/offside.",
+     "contract": "GET /runs/:id/events?types="
+    },
+    {
+     "n": 8,
+     "title": "Processing log",
+     "summary": "Timestamped streaming diagnostic list, Live dot, auto-scroll.",
+     "contract": "GET /jobs/:id/events; GET /jobs/:id/logs"
+    },
+    {
+     "n": 9,
+     "title": "System resources",
+     "summary": "GPU, CPU and memory usage displays and trend sparklines.",
+     "contract": "GET /system/processing-capacity"
+    },
+    {
+     "n": 10,
+     "title": "Frame-level processing timeline",
+     "summary": "Time-ranged colored stage bands, seek cursor and coverage/holes.",
+     "contract": "GET /analysis-runs/:id/timeline?start_ms=&end_ms="
+    },
+    {
+     "n": 11,
+     "title": "Live output summary",
+     "summary": "Players tracked, ball track count, detected events, processed duration summary cards.",
+     "contract": "GET /analysis-runs/:id/summary"
+    }
+   ]
+  },
+  {
+   "page": 4,
+   "file": "04_ANALYSIS_WORKSPACE.md",
+   "title": "Analysis Workspace",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Match selector and left match rail",
+     "summary": "Competition, teams/score, date, processing status, match context actions.",
+     "contract": "GET /matches/:id; GET /analysis-runs?match_id="
+    },
+    {
+     "n": 2,
+     "title": "Analysis mode tabs",
+     "summary": "Video Analysis, Tactical View, Heatmap, Pass Network, Player Comparison.",
+     "contract": "GET /capabilities; PATCH /workspace-state"
+    },
+    {
+     "n": 3,
+     "title": "Video player and score HUD",
+     "summary": "Large match footage with playback, timecode, match score, broadcast view, 4K badge and optional pitch minimap.",
+     "contract": "GET /media/:id/playback; GET /matches/:id/clock-map"
+    },
+    {
+     "n": 4,
+     "title": "All-player bounding boxes and IDs",
+     "summary": "Cyan and amber boxes around all visible players, track numbers, selected player glow, direction/trajectory arrow.",
+     "contract": "GET /runs/:id/tracks?start_ms=&end_ms=; POST /tracks/:id/review"
+    },
+    {
+     "n": 5,
+     "title": "Overlay toggles and filter rail",
+     "summary": "Player boxes, IDs, tracks, team shapes, ball, pass arrows, heatmaps, offside; team and time filters.",
+     "contract": "PATCH /me/preferences; GET /runs/:id/layers"
+    },
+    {
+     "n": 6,
+     "title": "Player selection and 22-person roster panel",
+     "summary": "Filterable right list with thumbnails, jersey number, confidence/quality, team and selectable checkboxes.",
+     "contract": "GET /runs/:id/participants?q=&team_id="
+    },
+    {
+     "n": 7,
+     "title": "Selected player detail card",
+     "summary": "Portrait, role, nationality, distance, speed, passes, key passes, mini pitch heatmap and summary.",
+     "contract": "GET /runs/:id/players/:id/summary; GET /measurements?subject_id="
+    },
+    {
+     "n": 8,
+     "title": "Playback transport",
+     "summary": "Play/pause, seek/scrub, duration, playback speed, sound, settings, fullscreen, 4K selection.",
+     "contract": "GET /media/:id/playback"
+    },
+    {
+     "n": 9,
+     "title": "Events filter ribbon",
+     "summary": "Goals, passes, key passes, shots, tackles, interceptions, fouls, cards chips with counts.",
+     "contract": "GET /runs/:id/events/counts?filters="
+    },
+    {
+     "n": 10,
+     "title": "Multi-lane presence and event timeline",
+     "summary": "Player presence spans, team lanes, event glyphs, playhead, ticks and create-analysis-clip action.",
+     "contract": "GET /runs/:id/presence?window=; POST /clips"
+    },
+    {
+     "n": 11,
+     "title": "Clip-from-analysis entry",
+     "summary": "Create Analysis Clip button and clip markers.",
+     "contract": "POST /clips; GET /clips?run_id="
+    }
+   ]
+  },
+  {
+   "page": 5,
+   "file": "05_TACTICAL_INTELLIGENCE.md",
+   "title": "Tactical Intelligence",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Tactical header and filter context",
+     "summary": "Title, synced live match dropdown, selected team, game phase, tactical subtabs.",
+     "contract": "GET /tactics/filters; GET /runs/:id/tactical-slices"
+    },
+    {
+     "n": 2,
+     "title": "Team shape and formation pitch",
+     "summary": "4-3-3 formation player nodes, names/numbers, connecting lines, selected playmaker.",
+     "contract": "GET /runs/:id/tactics/formation?at_ms="
+    },
+    {
+     "n": 3,
+     "title": "Team shape metrics",
+     "summary": "Team width, length, defensive line height, compactness, variability, formation stability, possession/defensive shapes.",
+     "contract": "GET /runs/:id/tactics/team-shape?window="
+    },
+    {
+     "n": 4,
+     "title": "Synced tactical video preview",
+     "summary": "Smaller broadcast player, tactical spotlight, directional pass arrows, seek and alternate camera angle.",
+     "contract": "GET /matches/:id/cameras; GET /media/:id/playback"
+    },
+    {
+     "n": 5,
+     "title": "Pass network",
+     "summary": "Nodes with player IDs, weighted directed edges, legend for pass volume and unsuccessful passes.",
+     "contract": "GET /runs/:id/tactics/pass-network?from_ms=&to_ms="
+    },
+    {
+     "n": 6,
+     "title": "Possession and heat zones",
+     "summary": "Two club pitch heatmaps with possession split, territory/final-third tabs.",
+     "contract": "GET /runs/:id/tactics/possession-zones"
+    },
+    {
+     "n": 7,
+     "title": "Pressing map",
+     "summary": "High-pressure event dots, recoveries, forced turnovers, direction arrows, PPDA and success metrics.",
+     "contract": "GET /runs/:id/tactics/pressing?phase="
+    },
+    {
+     "n": 8,
+     "title": "Off-ball run analysis",
+     "summary": "Tactical pitch trajectories with dashed/solid run types, start/end legend, run count and length.",
+     "contract": "GET /runs/:id/tactics/off-ball?player_id="
+    },
+    {
+     "n": 9,
+     "title": "Player comparison",
+     "summary": "Two headshots/players side by side, six metric rows and comparison bars.",
+     "contract": "GET /compare/players?ids=&window="
+    }
+   ]
+  },
+  {
+   "page": 6,
+   "file": "06_REEL_BUILDER.md",
+   "title": "Reel Builder / Spotlight Composer",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Four-step reel workflow",
+     "summary": "Select Player, Choose Moments, Edit & Style, Export with check and active markers.",
+     "contract": "GET /reels/:id; PATCH /reels/:id/workflow"
+    },
+    {
+     "n": 2,
+     "title": "Aspect ratio presets",
+     "summary": "16:9, 9:16, 1:1 presets with platform examples.",
+     "contract": "GET /reel-presets; PATCH /reels/:id/variants"
+    },
+    {
+     "n": 3,
+     "title": "Reel metadata and music",
+     "summary": "Title, description, automatic duration selector, licensed cinematic music preset.",
+     "contract": "PATCH /reels/:id; GET /audio-library"
+    },
+    {
+     "n": 4,
+     "title": "Cinematic preview video",
+     "summary": "Dominant selected-player footage with light rays, spotlight glow, source score/time, identity header and playback bar.",
+     "contract": "GET /reels/:id/preview-manifest; GET /tracks/:id/points"
+    },
+    {
+     "n": 5,
+     "title": "Targeting and lock controls",
+     "summary": "Auto Track Player, Lock on #17, Re-detect Player.",
+     "contract": "POST /reels/:id/resolve-target; POST /tracks/:id/reanalyse"
+    },
+    {
+     "n": 6,
+     "title": "Spotlight settings sliders",
+     "summary": "Intensity, ray width, vignette, glow, target-lock sensitivity and Reset All.",
+     "contract": "PATCH /reels/:id/effects; POST /reels/:id/undo"
+    },
+    {
+     "n": 7,
+     "title": "Overlays and branding toggles",
+     "summary": "Player card, match score/time, competition logo, animated lower third, watermark, custom logo, end screen.",
+     "contract": "GET /branding/assets; PATCH /reels/:id/overlays"
+    },
+    {
+     "n": 8,
+     "title": "Suggested key moments carousel",
+     "summary": "Five visible clip candidates with thumbnails, tags, timestamps, duration and selection checkboxes; twelve suggested total.",
+     "contract": "GET /runs/:id/clip-suggestions?player_id=; POST /reels/:id/segments"
+    },
+    {
+     "n": 9,
+     "title": "Multitrack quick timeline",
+     "summary": "Video clip strip, spotlight effect lane, purple text overlays, audio waveform, playhead.",
+     "contract": "PATCH /reels/:id/timeline; POST /reels/:id/versions"
+    },
+    {
+     "n": 10,
+     "title": "Generate Reel, Preview Render and Save",
+     "summary": "Right-column primary Generate button, preview render, save project.",
+     "contract": "POST /reels/:id/preflight; POST /reels/:id/render"
+    }
+   ]
+  },
+  {
+   "page": 7,
+   "file": "07_CLIP_STUDIO.md",
+   "title": "Clip Studio / Timeline Editor",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Editor header and action toolbar",
+     "summary": "Back, Save Project, Undo, Redo, AI Edit, Export.",
+     "contract": "GET /reels/:id; PATCH /reels/:id; POST /reels/:id/undo"
+    },
+    {
+     "n": 2,
+     "title": "Media bin / asset browser",
+     "summary": "Tabs Media Bin/Graphics/Audio/Templates, search, breadcrumb folders and thumbnail grid with durations.",
+     "contract": "GET /library/assets?folder=&q=; GET /media/:id/proxy"
+    },
+    {
+     "n": 3,
+     "title": "Video preview compositor",
+     "summary": "Large center scene with player focus ring, trajectory, lower third and stat cards, 4K badge and playback.",
+     "contract": "GET /reels/:id/preview-manifest; GET /reels/:id/timeline"
+    },
+    {
+     "n": 4,
+     "title": "Clip inspector",
+     "summary": "Right panel file thumbnail, filename, technical metadata, player, match, event type, timestamp, tags, notes.",
+     "contract": "GET /clips/:id; PATCH /clips/:id; POST /clips/:id/notes"
+    },
+    {
+     "n": 5,
+     "title": "Editing tools ribbon",
+     "summary": "Split, Cut, Ripple Delete, Marker, Voiceover, Captions, Graphic, AI Highlights, Speed, Color, Audio, Transform, Zoom.",
+     "contract": "POST /reels/:id/operations"
+    },
+    {
+     "n": 6,
+     "title": "Timeline ruler and playhead",
+     "summary": "Timecode, frame-level scrub ruler, selected playhead and filmstrip thumbnails.",
+     "contract": "GET /reels/:id/timeline"
+    },
+    {
+     "n": 7,
+     "title": "Video Clips lane",
+     "summary": "Multiple ordered selected source clips with duration handles and FX indicators.",
+     "contract": "PATCH /reels/:id/segments/batch"
+    },
+    {
+     "n": 8,
+     "title": "Transitions lane",
+     "summary": "Fade, Zoom, Spin, Dissolve transitions between clip blocks.",
+     "contract": "PATCH /reels/:id/transitions"
+    },
+    {
+     "n": 9,
+     "title": "Graphics & spotlight lane",
+     "summary": "Spotlight Circle, Pass Trajectory, Player Highlight, Team Logo timed overlay blocks.",
+     "contract": "PATCH /reels/:id/overlays"
+    },
+    {
+     "n": 10,
+     "title": "Lower-third, captions and statistics lanes",
+     "summary": "Named overlays, clip subtitles, event-derived stats with colorful time blocks.",
+     "contract": "GET /reels/:id/captions; PATCH /reels/:id/captions"
+    },
+    {
+     "n": 11,
+     "title": "Soundtrack and audio FX lanes",
+     "summary": "Music waveform, ambient crowd, commentary, swoosh, whistle with audio envelopes.",
+     "contract": "PATCH /reels/:id/audio"
+    }
+   ]
+  },
+  {
+   "page": 8,
+   "file": "08_PLAYER_REPORT.md",
+   "title": "Player Report",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Report navigation sidebar",
+     "summary": "Overview, Performance, Attacking, Passing, Defensive, Heatmaps, Timeline, Comparisons, Scouting, Clips, Notes.",
+     "contract": "GET /reports/:id/sections"
+    },
+    {
+     "n": 2,
+     "title": "Player identity hero",
+     "summary": "Portrait, #17, name, position, role chips, club, nationality, age/height/weight/foot.",
+     "contract": "GET /players/:id/profile; GET /runs/:id/identity/:player_id"
+    },
+    {
+     "n": 3,
+     "title": "Tracking confidence gauge",
+     "summary": "Donut confidence score and label, footage coverage description.",
+     "contract": "GET /runs/:id/players/:id/tracking-quality"
+    },
+    {
+     "n": 4,
+     "title": "Role summary and traits",
+     "summary": "Advanced midfielder description, tag chips and edit affordance.",
+     "contract": "GET /reports/:id/insights; PATCH /reports/:id/notes"
+    },
+    {
+     "n": 5,
+     "title": "Report actions",
+     "summary": "Add to Scouting Dossier, Export PDF, Share Link and overflow menu.",
+     "contract": "POST /reports/:id/export; POST /reports/:id/share; POST /dossiers/:id/items"
+    },
+    {
+     "n": 6,
+     "title": "Metric KPI row",
+     "summary": "Match minutes, estimated distance, top speed, sprints, passes, key passes, shots, xG, xA.",
+     "contract": "GET /reports/:id/metrics"
+    },
+    {
+     "n": 7,
+     "title": "Pitch heatmap",
+     "summary": "Pitch-based heat intensity with Heatmap/Touches/Territory selector and full-match filter.",
+     "contract": "GET /reports/:id/heatmap?mode="
+    },
+    {
+     "n": 8,
+     "title": "Event timeline",
+     "summary": "Chronological action rows with icons, source thumbnails, time and play actions.",
+     "contract": "GET /reports/:id/events?cursor=; GET /events/:id/evidence"
+    },
+    {
+     "n": 9,
+     "title": "Pitch action map",
+     "summary": "Pass/carry/shot/key-pass spatial points and lines over pitch, categorical legend.",
+     "contract": "GET /reports/:id/action-map?types="
+    },
+    {
+     "n": 10,
+     "title": "Peer comparison bars",
+     "summary": "Per-90 progressive passes, key passes, xA, chance creation, carries versus cohort average.",
+     "contract": "GET /reports/:id/comparison?cohort="
+    },
+    {
+     "n": 11,
+     "title": "Generated insights",
+     "summary": "List of creative influence, ball-carrying, half-space tendencies, set-piece observations.",
+     "contract": "GET /reports/:id/insights; POST /insights/:id/review"
+    },
+    {
+     "n": 12,
+     "title": "Scouting rating and narrative",
+     "summary": "Overall 9.2/10-style visual, checklist strengths and narrative excerpt.",
+     "contract": "GET /reports/:id/scouting; POST /assessments/:id/approve"
+    }
+   ]
+  },
+  {
+   "page": 9,
+   "file": "09_LIBRARY_PROJECT_CENTER.md",
+   "title": "Library / Project Center",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Library header and create-project",
+     "summary": "Page title, asset counts, New Project dropdown.",
+     "contract": "GET /library/summary; POST /projects"
+    },
+    {
+     "n": 2,
+     "title": "Asset-type tabs",
+     "summary": "All Assets, Reels, Reports, Matches, Folders, Exports, Shared With Me, Templates counters.",
+     "contract": "GET /library/assets?type="
+    },
+    {
+     "n": 3,
+     "title": "Search and advanced filters",
+     "summary": "Search textbox, Type/Competition/Team/Created By/Date range, Clear Filters.",
+     "contract": "GET /library/assets?q=&filters=&sort=&cursor="
+    },
+    {
+     "n": 4,
+     "title": "Saved searches",
+     "summary": "Chips for De Bruyne Analysis, UCL reels, tactical clips, set pieces; Save Current Search.",
+     "contract": "GET /saved-searches; POST /saved-searches; DELETE /saved-searches/:id"
+    },
+    {
+     "n": 5,
+     "title": "Main asset table",
+     "summary": "Rows with checkbox, thumbnail/title, type badge, player thumbnails, collaborator avatars, updated time, status.",
+     "contract": "GET /library/assets?cursor=; POST /library/bulk-actions"
+    },
+    {
+     "n": 6,
+     "title": "Status and collaboration indicators",
+     "summary": "Published/Draft/Shared/Exported chips; small initials avatars and +N.",
+     "contract": "GET /library/assets/:id/access; POST /library/assets/:id/publish"
+    },
+    {
+     "n": 7,
+     "title": "Selected-item video preview",
+     "summary": "Right-side reel thumbnail, play button, title, edit, descriptive tags.",
+     "contract": "GET /library/assets/:id; GET /media/:id/playback"
+    },
+    {
+     "n": 8,
+     "title": "Selected-item metadata",
+     "summary": "Competition, match, players featured, author/date, duration, size, resolution and tags.",
+     "contract": "GET /library/assets/:id/details; PATCH /library/assets/:id"
+    },
+    {
+     "n": 9,
+     "title": "Selected-item quick actions",
+     "summary": "Download, Share, Duplicate, Send to Client, Open in Analysis.",
+     "contract": "POST /library/assets/:id/share; POST /library/assets/:id/duplicate; POST /delivery/send"
+    },
+    {
+     "n": 10,
+     "title": "Collaborator access control",
+     "summary": "Reviewer/analyst/editor avatars, Manage Access.",
+     "contract": "GET /assets/:id/collaborators; PATCH /assets/:id/access"
+    }
+   ]
+  },
+  {
+   "page": 10,
+   "file": "10_EXPORT_DELIVERY.md",
+   "title": "Export & Delivery",
+   "sections": [
+    {
+     "n": 1,
+     "title": "Export workflow rail",
+     "summary": "Four stages Edit & Finalize, Export Settings, Render & Process, Deliver & Share and project summary card.",
+     "contract": "GET /reels/:id/export-status"
+    },
+    {
+     "n": 2,
+     "title": "Final video preview and chapters",
+     "summary": "Large cover frame, play, 4K label, title/score, chapter thumbnails and Edit Chapters.",
+     "contract": "GET /reels/:id/chapters; GET /renders/:id/preview"
+    },
+    {
+     "n": 3,
+     "title": "Export preset and codec form",
+     "summary": "Output preset, resolution, FPS, aspect ratios, format/codec, quality.",
+     "contract": "GET /export/capabilities; PATCH /reels/:id/export-profile"
+    },
+    {
+     "n": 4,
+     "title": "Branded overlay settings",
+     "summary": "Logo overlay, player name & stats, match info banner, custom intro/outro, image preview.",
+     "contract": "GET /branding/assets; PATCH /reels/:id/branding"
+    },
+    {
+     "n": 5,
+     "title": "Export queue",
+     "summary": "Three job rows with thumbnail, name, profile, progress, pause/cancel/retry, waiting states.",
+     "contract": "GET /render-jobs?workspace=; POST /renders/:id/cancel; POST /renders/:id/retry"
+    },
+    {
+     "n": 6,
+     "title": "Output bundles and reports",
+     "summary": "Checkboxes for performance PDF, player analysis PDF, event CSV, heatmap image, previews.",
+     "contract": "POST /exports/:id/bundle; GET /exports/:id/artifacts"
+    },
+    {
+     "n": 7,
+     "title": "Shareable link settings",
+     "summary": "Copy link, password protection, expiry, Allow Download, Allow Comments.",
+     "contract": "POST /deliveries/links; PATCH /deliveries/links/:id; DELETE /deliveries/links/:id"
+    },
+    {
+     "n": 8,
+     "title": "Team collaboration and client message",
+     "summary": "Collaborator avatars, notify team/client toggles and editable delivery message.",
+     "contract": "POST /deliveries/:id/send; GET /deliveries/:id/receipts"
+    },
+    {
+     "n": 9,
+     "title": "Bottom render progress and final actions",
+     "summary": "Preparing files → rendering video → processing reports → finalizing, Ready for Delivery, Download All and Deliver to Client.",
+     "contract": "GET /renders/:id; GET /exports/:id/download; POST /deliveries/:id/send"
+    }
+   ]
+  }
+ ]
+}

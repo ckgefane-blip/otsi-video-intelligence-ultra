@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTSI VIE — Analysis Workspace (visual)</title>
+<style>
+:root{--bg:#050d1c;--line:#12335f;--mut:#8ea3bf}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#000;overflow:hidden}
+#s{position:absolute;width:2560px;height:1440px;transform-origin:0 0;background:var(--bg);color:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;overflow:hidden}
+#s div{position:absolute}
+.t{white-space:nowrap;line-height:1}
+.box{border:1.5px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#081a35,#06122a)}
+.m{color:var(--mut)}.b{font-weight:700}.c{transform:translateX(-50%)}
+.tr{width:54px;height:26px;border-radius:13px;background:#1580ff}.tr i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.tr.off{background:#34445c}.tr.off i{right:auto;left:3px;background:#c9d3e0}
+.ic{width:24px;height:24px;border:2px solid #7fa4d4;border-radius:6px}
+.ph{background:linear-gradient(135deg,#1b4d8f,#0b2a52 55%,#2a6a3a)}
+.bx{border:2.5px solid #19d3ff}.bx.a{border-color:#f5b82e}
+.nb{background:#fff;color:#000;font-weight:700;font-size:19px;text-align:center;line-height:24px;height:24px;width:100%;left:0;top:-26px}
+.chip{border:1.5px solid #1f4a7a;border-radius:6px;background:#0a1d38;height:42px;display:flex;align-items:center;font-size:19px;color:#cfdcf0;padding-left:44px}
+.chip u{text-decoration:none;position:absolute;right:6px;background:#12294a;border-radius:4px;padding:3px 6px;font-size:17px}
+.cb{width:20px;height:20px;border:2px solid #4a6a96;border-radius:4px}.cb.on{background:#1a8cff;border-color:#1a8cff;color:#fff;font-size:14px;text-align:center;line-height:16px}
+.n{top:40px;font-size:24px;font-weight:600;line-height:1;position:absolute}
+.mci{background:#1580ff;border-radius:5px;font-weight:700;font-size:17px;text-align:center;line-height:28px;height:28px}
+</style></head><body><div id="s"></div>
+<script>
+const o=[];
+const D=(x,y,w,h,c,st='',tx='')=>o.push(`<div class="${c}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${st}">${tx}</div>`);
+const T=(x,yc,s,sz,c='',st='')=>o.push(`<div class="t ${c}" style="left:${x}px;top:${yc-sz*.5}px;font-size:${sz}px;${st}">${s}</div>`);
+
+/* header */
+D(0,0,2560,100,'','background:#040b18;border-bottom:1.5px solid #123a6e');
+T(30,38,'OTSI <span style="color:#1e90ff">VIE</span>',40,'b','letter-spacing:2px');
+T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b','letter-spacing:.8px;color:#2d9bff');
+D(850,12,169,78,'','border-radius:10px;border:2px solid #2a6fb5;background:#0b2a4d');
+D(858,92,153,5,'','border-radius:3px;background:#1e90ff');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(([l,x])=>o.push(`<div class="n" style="left:${x}px;${l=='Analysis'?'color:#4db3ff;font-weight:700':''}">${l}</div>`));
+D(2118,20,2,60,'','background:#1a3556');
+D(2140,23,100,54,'','border:1.5px solid #1f5a9c;border-radius:8px;background:#0a2140;color:#3aa0ff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center','QHD');
+D(2271,25,54,54,'b','border-radius:50%;background:#1790ff;font-size:24px;display:flex;align-items:center;justify-content:center','O');
+T(2340,41,'Owner',23,'b');T(2340,69,'OTSI VIE',20,'m');
+
+/* LEFT */
+D(22,118,370,382,'box');T(47,153,'Match',28,'b');T(318,155,'···',22,'m');T(358,155,'⌄',24);
+T(47,197,'No match selected',22,'b');T(47,227,'—',20,'','color:#cfdcf0');
+D(47,262,48,46,'','border-radius:50%;background:#7ab6ff');T(112,285,'Home team',23,'b');T(350,283,'—',32,'b');
+D(47,324,48,54,'','border-radius:50%;background:#e8d9a0');T(112,351,'Away team',23,'b');T(350,350,'—',32,'b');
+D(37,396,343,98,'','border:1.5px solid #1f8a5a;border-radius:8px;background:#0a2a2a');D(55,412,36,38,'','background:#2a4a78;border-radius:8px');
+T(107,423,'No analysis available',21,'b','color:#cfe0f5');T(107,447,'Tracking data, events and models',17,'m');T(107,468,'appear after processing completes.',17,'m');
+D(22,510,370,52,'','border-bottom:1px solid #17355f');
+T(42,535,'View',22,'b','color:#33a8ff');T(121,535,'Events',21);T(212,535,'Filters',21);T(301,535,'AI Tools',21);D(24,558,73,3,'','background:#1e90ff');
+T(48,599,'Visual Overlays',22,'b');
+[['Player Boxes',643,1],['Player IDs',681,1],['Player Tracks',718,1],['Team Shapes',756,1],['Ball Tracking',794,1],['Pass Arrows',832,1],['Heatmaps (Live)',870,0],['Offside Line',907,0]].forEach(([n,y,on])=>{D(48,y-12,24,24,'ic');T(96,y,n,21,'','color:#cfdcf0');D(313,y-13,54,26,'tr'+(on?'':' off'),'','<i></i>')});
+T(48,957,'Team Filter',22,'b');
+[['All Players',1000,'—',1],['Home team',1044,'—',0],['Away team',1084,'—',0]].forEach(([n,y,c,sel])=>{if(sel)D(38,980,338,40,'','border:1.5px solid #1e90ff;border-radius:6px;background:#0d3a78');D(50,y-11,22,22,'','border-radius:50%;'+(sel?'background:#1e90ff':'border:2px solid #7fa4d4'));T(96,y,n,21,'');D(326,y-14,42,28,'','border:1.5px solid #4a6a96;border-radius:5px;font-size:17px;display:flex;align-items:center;justify-content:center',c)});
+T(48,1134,'Time Range',22,'b');D(38,1157,338,36,'','border:1.5px solid #1e90ff;border-radius:6px;background:#0d3a78');
+[['Full Match',1176,1],['1st Half',1213,0],['2nd Half',1249,0],['Custom Range',1284,0]].forEach(([n,y,s])=>{D(51,y-11,22,22,'','border-radius:50%;'+(s?'border:6px solid #1e90ff;background:#fff':'border:2px solid #7fa4d4'));T(97,y,n,21,'')});
+D(22,1329,370,69,'','border:1.5px solid #1f5a9c;border-radius:8px;background:#0a2a55');T(146,1363,'Create Analysis Clip',22,'b','color:#33a8ff');T(98,1363,'✂',26,'','color:#8fc4ff');
+
+/* CENTRE tabs */
+T(439,142,'Video Analysis',27,'b','color:#33a8ff');D(414,171,207,3,'','background:#1e90ff');
+T(661,144,'Tactical View',23);T(853,144,'Heatmap',23);T(1006,144,'Pass Network',23);T(1202,144,'Player Comparison',23);
+/* video */
+D(414,175,1580,675,'','background:linear-gradient(180deg,#0a2a55 0,#143a70 20%,#1d5a2e 38%,#256b34 100%);border-radius:8px 8px 0 0');
+D(414,175,1580,170,'','background:repeating-linear-gradient(90deg,#183a70,#10264a 14px,#1d4380 28px);opacity:.75');
+D(1160,175,70,200,'','background:linear-gradient(180deg,rgba(80,170,255,.6),transparent)');
+D(439,200,441,40,'','background:#0a1a38;border-radius:4px');D(439,200,50,40,'','background:#fff;border-radius:3px');T(509,220,'—',26,'b');D(603,200,92,40,'b','background:#1580ff;font-size:24px;display:flex;align-items:center;justify-content:center','—');T(710,222,'—',24,'b');D(789,200,91,40,'b','background:#1580ff;font-size:24px;display:flex;align-items:center;justify-content:center;border-radius:0 20px 20px 0','—');
+T(1204,512,'No video loaded — select an analysed match to review tracking',26,'c','color:#dbe8f8');
+D(1592,190,203,45,'','border:1.5px solid #2a4f80;border-radius:6px;background:rgba(8,20,40,.85);font-size:20px;display:flex;align-items:center;padding-left:22px','Broadcast View &nbsp;⌄');
+D(1808,190,45,45,'','border:1.5px solid #2a4f80;border-radius:6px;background:rgba(8,20,40,.85)');D(1867,190,46,45,'','border:1.5px solid #2a4f80;border-radius:6px;background:rgba(8,20,40,.85)');
+D(1927,192,50,38,'b','border:2px solid #f5a623;border-radius:5px;background:rgba(40,25,0,.8);color:#f5b82e;font-size:21px;display:flex;align-items:center;justify-content:center','—');
+[].forEach(([x,y,w,h,n,a])=>{
+ o.push(`<div class="bx${a?' a':''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${n=='17'?'box-shadow:0 0 22px #19d3ff;':''}"><div class="nb" style="background:#fff;${n=='17'?'width:60px;left:3px':''}">${n}</div></div>`)});
+
+
+D(1717,680,265,158,'','border:2px solid #19a0ff;border-radius:6px;background:#1d6a30;box-shadow:0 0 12px #19a0ff');D(1848,682,2,154,'','background:#d7efe0');
+D(414,850,1580,68,'','background:#07142a;border-radius:0 0 8px 8px');
+T(448,885,'▶',30);T(512,885,'❚❚',28);T(582,885,'⏭',24);T(652,885,'— / —',22);
+D(812,882,766,7,'','border-radius:4px;background:#17304f');D(802,874,20,20,'','border-radius:50%;background:#fff');
+D(1610,866,107,40,'','border:1.5px solid #17355f;border-radius:6px;background:#0a1d38;font-size:20px;display:flex;align-items:center;padding-left:20px','1x &nbsp;&nbsp;&nbsp;&nbsp;⌄');T(1748,885,'🔊',24);T(1812,885,'⚙',26);T(1876,885,'◎',26);T(1940,885,'⛶',26);
+
+/* event chips + timeline */
+D(414,935,1580,483,'box');
+[['All Events','',432,149,1],['Goals','—',610,135],['Passes','—',762,168],['Key Passes','—',945,177],['Shots','—',1137,143],['Tackles','—',1298,152],['Interceptions','—',1467,204],['Fouls','—',1685,138],['Cards','—',1837,137]].forEach(([n,c,x,w,a])=>{
+ o.push(`<div class="chip" style="left:${x}px;top:947px;width:${w}px;${a?'background:#0d3a78;border-color:#1e90ff;color:#33a8ff;padding-left:44px':''}">${n}${c?'<u>'+c+'</u>':''}</div>`);D(x+14,957,22,22,'','border-radius:50%;background:'+(a?'#33a8ff':'#2a4f80'))});
+D(424,1022,207,41,'','border:1.5px solid #1f4a7a;border-radius:6px;background:#0a1d38');T(440,1043,'Tracks &amp; Presence',20,'b');
+[['00:00',650],['15:00',860],['30:00',1070],['45:00',1280],['60:00',1490],['75:00',1700],['90:00',1910]].forEach(([l,x])=>T(x,1018,l,17,'','color:#cfdcf0'));
+T(1200,1180,'No tracks yet — run AI processing to populate presence lanes',18,'c','color:#8ea3bf');
+const rows=[['—','Player track',0],['—','Player track',0],['—','Player track',0],['—','Player track',0],['—','Player track',0],['—','Player track',0],['—','Player track',0],['','Team Shape (Home)',1],['','Team Shape (Away)',1]];
+rows.forEach(([n,nm,a],i)=>{const y=1082+i*24.3;D(425,y-10,20,20,'cb',i>=7?'border-color:#f5b82e':'','');T(458,y,n,17,'','color:#cfdcf0');T(495,y,nm,18,'','color:#dbe8f8');
+});
+
+T(433,1309,'Event Types',17,'b');
+[['Goals',1308],['Shots',1327],['Key Passes',1346],['Passes',1364],['Duels',1382],['Defensive Actions',1401]].forEach(([l,y],i)=>{D(540,y-5,10,10,'',`background:${['#a066ff','#19d3ff','#19e6c0','#7ae85a','#ffb21a','#ff4a4a'][i]};border-radius:2px`);T(560,y,l,14,'m');
+});
+
+/* RIGHT players */
+D(2015,117,522,763,'box');
+T(2062,145,'Players (—)',25,'b','color:#33a8ff');T(2262,145,'Events',24);T(2431,145,'Clips',24);D(2035,171,171,3,'','background:#1e90ff');
+D(2033,188,487,40,'','border:1.5px solid #17355f;border-radius:6px;background:#0a1d38');T(2052,208,'🔍',18);T(2083,208,'Search players...',18,'m');
+[['All','—',2034,98,1],['Home','—',2148,163],['Away','—',2328,191]].forEach(([n,c,x,w,a])=>{D(x,243,w,42,'',`border:1.5px solid ${a?'#1e90ff':'#17355f'};border-radius:6px;background:${a?'#0d3a78':'#0a1d38'}`);T(x+(a?18:46),264,n,19,a?'b':'','color:'+(a?'#33a8ff':'#cfdcf0'));D(x+w-48,254,36,22,'','background:#12294a;border-radius:4px;font-size:16px;text-align:center;line-height:22px',c);if(!a)D(x+12,254,22,22,'','border-radius:50%;background:'+(n=='Home'?'#7ab6ff':'#e8d9a0'))});
+[['#',2047],['Player',2127],['Team',2312],['Conf.',2390],['Status',2464]].forEach(([l,x])=>T(x,321,l,17,'m'));
+T(2276,600,'No players detected yet',20,'c','color:#8ea3bf');[].forEach(([n,nm,c],i)=>{const y=370+i*52.7;
+ if(!i)D(2028,343,496,54,'','border:2px solid #1e90ff;border-radius:6px;background:#0d3066');
+ D(2045,y-10,20,20,'cb'+(i<2?' on':''),'',i<2?'✓':'');T(2084,y,n,18,'');D(2122,y-22,40,44,'','border-radius:50%;background:#5a6f8c');T(2180,y,nm,19,i?'':'b');
+ D(2320,y-14,42,28,'mci','','MCI');T(2392,y,c,18,'');for(let k=0;k<4;k++)D(2474+k*8,y+10-(k+1)*5,5,(k+1)*5+2,'','background:#1a8cff');});
+/* detail */
+D(2015,898,522,505,'box');D(2029,912,110,128,'','border-radius:6px;background:linear-gradient(135deg,#5a6f8c,#2a4a78)');
+D(2157,917,39,32,'b','background:#1580ff;border-radius:4px;font-size:22px;text-align:center;line-height:32px','—');T(2214,931,'No player selected',26,'b');T(2493,931,'✕',24,'m');
+D(2162,960,32,32,'','border-radius:50%;background:#7ab6ff');T(2214,973,'Team — &nbsp;|',20,'','color:#cfdcf0');D(2378,962,22,22,'','background:#3a5a88');T(2406,973,'Nationality —',20,'','color:#cfdcf0');
+[['Position —',2158,105],['Foot —',2279,104],['Age —',2399,81]].forEach(([l,x,w])=>D(x,1002,w,36,'','border:1.5px solid #1f4a7a;border-radius:5px;background:#0a1d38;font-size:18px;display:flex;align-items:center;justify-content:center',l));
+[['Distance','—','',2029,115],['Top Speed','—','',2155,116],['Passes','—','',2282,115],['Key Passes','—','',2407,115]].forEach(([l,v,d,x,w])=>{D(x,1055,w,103,'','border:1.5px solid #17355f;border-radius:6px;background:#071a33');T(x+10,1075,l,16,'m','color:#b3c4dc');D(x+10,1098,26,26,'','border:2px solid #19a0ff;border-radius:50%');T(x+44,1109,v,20,'b');T(x+14,1139,d,15,'','color:#2ee59d')});
+D(2031,1178,241,188,'','background:#1a4a2a;border:2px solid #cfe3d8');T(2151,1272,'No heatmap',18,'c','color:#cfe3d8');
+D(2288,1177,232,34,'','border:1.5px solid #17355f;border-radius:5px;background:#0a1d38');D(2404,1177,116,34,'','background:#0d4aa0;border-radius:0 5px 5px 0');T(2325,1194,'Season',16,'m');T(2440,1194,'Match',17,'b');
+[['Touches','—',1231],['Pass Accuracy','—',1261],['Chances Created','—',1291],['Shot Assists','—',1323],['Progressive Passes','—',1353]].forEach(([l,v,y])=>{T(2292,y,l,18,'','color:#cfdcf0');T(2482,y,v,18,'')});
+document.getElementById('s').innerHTML=o.join('');
+function fit(){const k=Math.min(innerWidth/2560,innerHeight/1440),s=document.getElementById('s');s.style.transform='scale('+k+')';s.style.left=(innerWidth-2560*k)/2+'px';s.style.top=(innerHeight-1440*k)/2+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

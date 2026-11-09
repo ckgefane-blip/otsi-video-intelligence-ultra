@@ -1,0 +1,35 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm e2e
+(cwd otsi-vie\apps\web)
+
+
+> @otsi-vie/web@0.1.0 e2e D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> playwright test
+
+
+Running 17 tests using 1 worker
+
+  ok 1 [chromium] › shell.spec.ts:31:7 › page 01 Home / Overview: every approved section, no sample data, no errors (781ms)
+  ok 2 [chromium] › shell.spec.ts:31:7 › page 02 Upload & Ingest: every approved section, no sample data, no errors (525ms)
+  ok 3 [chromium] › shell.spec.ts:31:7 › page 03 AI Processing Pipeline: every approved section, no sample data, no errors (530ms)
+  ok 4 [chromium] › shell.spec.ts:31:7 › page 04 Analysis Workspace: every approved section, no sample data, no errors (452ms)
+  ok 5 [chromium] › shell.spec.ts:31:7 › page 05 Tactical Intelligence: every approved section, no sample data, no errors (431ms)
+  ok 6 [chromium] › shell.spec.ts:31:7 › page 06 Reel Builder / Spotlight Composer: every approved section, no sample data, no errors (423ms)
+  ok 7 [chromium] › shell.spec.ts:31:7 › page 07 Clip Studio / Timeline Editor: every approved section, no sample data, no errors (465ms)
+  ok 8 [chromium] › shell.spec.ts:31:7 › page 08 Player Report: every approved section, no sample data, no errors (442ms)
+  ok 9 [chromium] › shell.spec.ts:31:7 › page 09 Library / Project Center: every approved section, no sample data, no errors (510ms)
+  ok 10 [chromium] › shell.spec.ts:31:7 › page 10 Export & Delivery: every approved section, no sample data, no errors (374ms)
+  ok 11 [chromium] › shell.spec.ts:59:5 › the root opens Home and the navigation reaches every main area (640ms)
+  ok 12 [chromium] › shell.spec.ts:69:5 › Home CTAs open the upload page in the matching source mode, and the tabs switch it (444ms)
+  ok 13 [chromium] › shell.spec.ts:80:5 › the theme choice survives a reload (474ms)
+  ok 14 [chromium] › shell.spec.ts:90:5 › Ctrl+K opens the page palette and Enter navigates (285ms)
+  ok 15 [chromium] › shell.spec.ts:100:5 › video and player routes accept only valid identifiers (646ms)
+  ok 16 [chromium] › shell.spec.ts:111:5 › security headers are sent (197ms)
+  ok 17 [chromium] › shell.spec.ts:121:5 › small screens stack the sections without horizontal scrolling (559ms)
+
+  17 passed (12.1s)
+(node:49856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+exit=0

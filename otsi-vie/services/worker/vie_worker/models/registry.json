@@ -1,0 +1,264 @@
+{
+  "_comment": "Detection model registry (ADR-024). Every model the workers may load: exact source, pinned revision, SHA-256 of every weight file, licence of code and weights, training data and obligations. A model not listed here, or a file whose hash differs, is never loaded. Fetch with tools/models/fetch_models.py; evaluate with tools/models/benchmark_detector.py.",
+  "models": [
+    {
+      "key": "rtdetr_v2_r18vd",
+      "task": "DETECT",
+      "family": "RT-DETRv2",
+      "adapter": "hf_rtdetr",
+      "source": "https://huggingface.co/PekingU/rtdetr_v2_r18vd",
+      "repo_id": "PekingU/rtdetr_v2_r18vd",
+      "revision": "5650961749fa93567c0d46fc7f43ea4f9e914107",
+      "files": {
+        "model.safetensors": "d18309d0d7ea57048138885c4c6ecfcb1e24506fc6153b94ad484f8ab62c7115",
+        "config.json": null,
+        "preprocessor_config.json": null
+      },
+      "weights_license": "Apache-2.0 (model card declared by the publishers, the RT-DETR authors' PekingU organisation)",
+      "code_license": "Apache-2.0 (Hugging Face transformers 4.49.0 RTDetrV2ForObjectDetection; reference implementation lyuwenyu/RT-DETR Apache-2.0)",
+      "training_data": "COCO 2017 (annotations CC BY 4.0; images are Flickr photos under their owners' licences per the COCO terms of use)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE, state changes. COCO: attribution for the annotations. Commercial use of weights trained on COCO images: open legal question for counsel (LICENSE_REGISTER section 4).",
+      "classes_used": {
+        "person": "PERSON",
+        "sports ball": "BALL"
+      },
+      "status": "CANDIDATE \u2014 evaluation for football not yet passed"
+    },
+    {
+      "key": "rtdetr_v2_r50vd",
+      "task": "DETECT",
+      "family": "RT-DETRv2",
+      "adapter": "hf_rtdetr",
+      "source": "https://huggingface.co/PekingU/rtdetr_v2_r50vd",
+      "repo_id": "PekingU/rtdetr_v2_r50vd",
+      "revision": "282494075698cab9faa1096ae26856890030c817",
+      "files": {
+        "model.safetensors": "3331d977dbc0c7a6cdae9ec0b0b6ad156eb6720d65b7cf0fa710dcc541d88d71",
+        "config.json": null,
+        "preprocessor_config.json": null
+      },
+      "weights_license": "Apache-2.0 (model card declared by the publishers, the RT-DETR authors' PekingU organisation)",
+      "code_license": "Apache-2.0 (Hugging Face transformers 4.49.0; lyuwenyu/RT-DETR Apache-2.0)",
+      "training_data": "COCO 2017 (annotations CC BY 4.0; images under their Flickr owners' licences)",
+      "obligations": "As rtdetr_v2_r18vd.",
+      "classes_used": {
+        "person": "PERSON",
+        "sports ball": "BALL"
+      },
+      "status": "CANDIDATE \u2014 evaluation for football not yet passed"
+    },
+    {
+      "key": "dinov2_small",
+      "task": "EMBED",
+      "family": "DINOv2",
+      "adapter": "hf_image_embed",
+      "source": "https://huggingface.co/facebook/dinov2-small",
+      "repo_id": "facebook/dinov2-small",
+      "revision": "ed25f3a31f01632728cabb09d1542f84ab7b0056",
+      "files": {
+        "config.json": null,
+        "model.safetensors": "ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1",
+        "preprocessor_config.json": null
+      },
+      "weights_license": "Apache-2.0 (model card)",
+      "code_license": "Apache-2.0 (Hugging Face transformers 4.49.0)",
+      "training_data": "Self-supervised ViT-S/14 image features (LVD-142M curated images, Meta)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE, state changes.",
+      "status": "EVALUATION \u2014 appearance re-identification study (ADR-031)"
+    },
+    {
+      "key": "dinov2_base",
+      "task": "EMBED",
+      "family": "DINOv2",
+      "adapter": "hf_image_embed",
+      "source": "https://huggingface.co/facebook/dinov2-base",
+      "repo_id": "facebook/dinov2-base",
+      "revision": "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
+      "files": {
+        "config.json": null,
+        "model.safetensors": "d73036b56966966d07975d696bde331762f37297e2f095de8cea0040c3aa0841",
+        "preprocessor_config.json": null
+      },
+      "weights_license": "Apache-2.0 (model card)",
+      "code_license": "Apache-2.0 (Hugging Face transformers 4.49.0)",
+      "training_data": "Self-supervised ViT-B/14 image features (LVD-142M curated images, Meta)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE, state changes.",
+      "status": "EVALUATION \u2014 appearance re-identification study (ADR-031)"
+    },
+    {
+      "key": "siglip_base_224",
+      "task": "EMBED",
+      "family": "SigLIP",
+      "adapter": "hf_image_embed",
+      "source": "https://huggingface.co/google/siglip-base-patch16-224",
+      "repo_id": "google/siglip-base-patch16-224",
+      "revision": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+      "files": {
+        "config.json": null,
+        "model.safetensors": "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8",
+        "preprocessor_config.json": null
+      },
+      "weights_license": "Apache-2.0 (model card)",
+      "code_license": "Apache-2.0 (Hugging Face transformers 4.49.0)",
+      "training_data": "Image-text contrastive ViT-B/16 (WebLI, Google); vision tower only",
+      "obligations": "Apache-2.0: keep the licence and NOTICE, state changes.",
+      "status": "EVALUATION \u2014 appearance re-identification study (ADR-031)"
+    },
+    {
+      "key": "omz_text_recognition_0014",
+      "task": "OCR",
+      "family": "OpenVINO Open Model Zoo text-recognition-0014",
+      "adapter": "ov_ctc_text",
+      "source": "https://github.com/openvinotoolkit/open_model_zoo (models/intel/text-recognition-0014)",
+      "files": {},
+      "url_files": {
+        "text-recognition-0014.xml": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/text-recognition-0014/FP32/text-recognition-0014.xml",
+          "sha256": "d02b1143f22c9614ecd027a3e63a06821ee34625ef8aa78926e2ff87b1126e72"
+        },
+        "text-recognition-0014.bin": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/text-recognition-0014/FP32/text-recognition-0014.bin",
+          "sha256": "68a141422cfbbff2a428b92fafa97ebd85dc4c7a67c015c2b389b06c4594f706"
+        }
+      },
+      "weights_license": "Apache-2.0 (Open Model Zoo, Intel)",
+      "code_license": "none needed (OpenVINO IR, run by OpenVINO)",
+      "training_data": "Intel: synthetic text images (see the model's documentation)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE.",
+      "status": "REJECTED \u2014 class order does not decode digits correctly and weaker than PP-OCRv4 on jersey crops (ADR-033)"
+    },
+    {
+      "key": "ppocr_v4_en_rec",
+      "task": "OCR",
+      "family": "PaddleOCR PP-OCRv4 English recognition",
+      "adapter": "ov_ctc_text",
+      "source": "https://github.com/PaddlePaddle/PaddleOCR (PP-OCRv4 en_PP-OCRv4_rec)",
+      "files": {},
+      "url_files": {
+        "en_PP-OCRv4_rec_infer.tar": {
+          "url": "https://paddleocr.bj.bcebos.com/PP-OCRv4/english/en_PP-OCRv4_rec_infer.tar",
+          "sha256": "d5ae153a6fbdacd5776543d3194c4258154ed6f83467d55de1cc345f7dd20322"
+        },
+        "en_dict.txt": {
+          "url": "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/release/2.7/ppocr/utils/en_dict.txt",
+          "sha256": "5662df9d2d03f0e8ca0d3b0649d6acbab904b6a14b3d3521463c71c37c668ce3"
+        }
+      },
+      "weights_license": "Apache-2.0 (PaddleOCR)",
+      "code_license": "none needed (Paddle inference graph read by OpenVINO's Paddle frontend)",
+      "training_data": "Baidu PaddleOCR training sets (see PaddleOCR documentation)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE.",
+      "status": "EVALUATION \u2014 jersey-number reading (ADR-033)"
+    },
+    {
+      "key": "ppocr_v4_det",
+      "task": "TEXT_DETECT",
+      "family": "PaddleOCR PP-OCRv4 text detection (DB)",
+      "adapter": "ov_db_text",
+      "source": "https://github.com/PaddlePaddle/PaddleOCR (PP-OCRv4 ch_PP-OCRv4_det)",
+      "files": {},
+      "url_files": {
+        "ch_PP-OCRv4_det_infer.tar": {
+          "url": "https://paddleocr.bj.bcebos.com/PP-OCRv4/chinese/ch_PP-OCRv4_det_infer.tar",
+          "sha256": "5f7217e0a89612e2f80d62f3c99a8bf5f7ae9cdc1ffd706be7dde07765627edf"
+        }
+      },
+      "weights_license": "Apache-2.0 (PaddleOCR)",
+      "code_license": "none needed (Paddle inference graph read by OpenVINO)",
+      "training_data": "Baidu PaddleOCR training sets (see PaddleOCR documentation)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE.",
+      "status": "EVALUATION \u2014 finds the shirt-number region before recognition (ADR-033)"
+    },
+    {
+      "key": "pnlcalib_sv_kp",
+      "task": "PITCH_KEYPOINTS",
+      "family": "PnLCalib single-view keypoint network (HRNetV2-W48)",
+      "adapter": "ov_pitch_keypoints",
+      "source": "https://github.com/mguti97/PnLCalib (release v1.0.0, SV_kp)",
+      "files": {},
+      "url_files": {
+        "SV_kp": {
+          "url": "https://github.com/mguti97/PnLCalib/releases/download/v1.0.0/SV_kp",
+          "sha256": "7ea78fa76aaf94976a8eca428d6e3c59697a93430cba1a4603e20284b61f5113"
+        }
+      },
+      "weights_license": "CC BY 4.0 (README, section License: use, redistribution and bundling for any purpose including commercial use, with attribution; preferred attribution: Gutierrez-Perez, M. and Agudo, A., PnLCalib: Sports Field Registration Via Points and Lines Optimization, SSRN 4998149)",
+      "code_license": "Not used at run time. The weights are converted once to an OpenVINO model with the HRNet architecture (tools/models/third_party/hrnet_cls.py, Copyright (c) Microsoft, MIT). PnLCalib's own code (GPL-2.0-or-later) is neither copied nor shipped; keypoint decoding and camera fitting are our own (vie_worker/pitch_auto.py).",
+      "training_data": "SoccerNet-Calibration (broadcast football), per the authors under a research agreement that has since expired; the authors state the weights contain no footage and carry no further restrictions.",
+      "obligations": "CC BY 4.0: attribution (the citation above) in the app's About/licences and in the docs; indicate if the weights were modified (converted to OpenVINO IR, not retrained). Counsel: confirm the authors' statement on the expired SoccerNet research agreement before commercial release (LICENSE_REGISTER).",
+      "status": "EVALUATION \u2014 automatic pitch calibration (ADR-036): on the owner's match 12 of 13 calibrated main-camera frames correct by eye, no studio/graphics/close-up frame calibrated"
+    },
+    {
+      "key": "ball_net",
+      "task": "BALL_DETECT",
+      "family": "OTSI BallNet: own small U-Net over three consecutive frames, heat map of the ball's centre (tools/models/ball_train.py, ADR-038)",
+      "source": "trained locally (tools/models/ball_dataset.py + ball_train.py); not downloadable: retrain to reproduce",
+      "sha256": "55f11bf9e55f72370f6aaf90ef00b8e4b60c4fa917447a7e76dc5e645ac57153",
+      "weights_license": "Own work: no third-party weights, code or data; trained only on the owner's own match footage (video 01a18837), labels from the engine's sure detections",
+      "training_data": "30,799 crops (9,369 + 1,210 with the ball) from one owner match; last 15 % of the match held out",
+      "validation": {
+        "precision": 0.983,
+        "recall": 0.8154,
+        "on": "128 px crops of the held-out last 15 % of the match"
+      },
+      "status": "EVALUATION \u2014 ball detection (ADR-038); full-frame accuracy and the owner's marks pending"
+    },
+    {
+      "key": "ppocr_v5_cyrillic_rec",
+      "task": "OCR",
+      "family": "PaddleOCR PP-OCRv5 cyrillic mobile recognition",
+      "adapter": "paddle_inference_ctc_text",
+      "source": "https://huggingface.co/PaddlePaddle/cyrillic_PP-OCRv5_mobile_rec (revision 712d2d65556ccc1ea7b5d2bb232b018838b6a3ab)",
+      "files": {},
+      "url_files": {
+        "inference.json": {
+          "url": "https://huggingface.co/PaddlePaddle/cyrillic_PP-OCRv5_mobile_rec/resolve/712d2d65556ccc1ea7b5d2bb232b018838b6a3ab/inference.json",
+          "sha256": "5d90f1bfca52d80c01de176c5238fae2459995a99ff1dbfe5319ab4ed1735df2"
+        },
+        "inference.pdiparams": {
+          "url": "https://huggingface.co/PaddlePaddle/cyrillic_PP-OCRv5_mobile_rec/resolve/712d2d65556ccc1ea7b5d2bb232b018838b6a3ab/inference.pdiparams",
+          "sha256": "434dc9fa2a99fa3653e08f8cf793ae56be7dd41c35c4980e6255147cc02bbc80"
+        },
+        "inference.yml": {
+          "url": "https://huggingface.co/PaddlePaddle/cyrillic_PP-OCRv5_mobile_rec/resolve/712d2d65556ccc1ea7b5d2bb232b018838b6a3ab/inference.yml",
+          "sha256": "5c76cc91fa98410178a09f498db10050d0ec1634a660053d3005ab7be581f501"
+        }
+      },
+      "weights_license": "Apache-2.0 (Hugging Face model card; PaddleOCR)",
+      "code_license": "runtime: paddlepaddle 3.3.1 (Apache-2.0), Paddle Inference on the CPU (OpenVINO cannot read the PIR format)",
+      "training_data": "Baidu PaddleOCR PP-OCRv5 multilingual training sets (see PaddleOCR documentation)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE.",
+      "status": "EVALUATION \u2014 reading broadcast lineup cards (ADR-039): 51 of 52 lines exact on two Cyrillic cards (one match)"
+    },
+    {
+      "key": "ppocr_v5_latin_rec",
+      "task": "OCR",
+      "family": "PaddleOCR PP-OCRv5 latin mobile recognition",
+      "adapter": "paddle_inference_ctc_text",
+      "source": "https://huggingface.co/PaddlePaddle/latin_PP-OCRv5_mobile_rec (revision ab2cd5cc5fa6309be2e5acdfe66eca2c2c127d57)",
+      "files": {},
+      "url_files": {
+        "inference.json": {
+          "url": "https://huggingface.co/PaddlePaddle/latin_PP-OCRv5_mobile_rec/resolve/ab2cd5cc5fa6309be2e5acdfe66eca2c2c127d57/inference.json",
+          "sha256": "820b2ee8e5072de5156c3d55124c2b03c82ef278d59f453f857c0789bacb4da1"
+        },
+        "inference.pdiparams": {
+          "url": "https://huggingface.co/PaddlePaddle/latin_PP-OCRv5_mobile_rec/resolve/ab2cd5cc5fa6309be2e5acdfe66eca2c2c127d57/inference.pdiparams",
+          "sha256": "53cdc8b481a7394bb108f96d0fb3432b0a8f392e22c7d18f06dbb2d42b8b25f9"
+        },
+        "inference.yml": {
+          "url": "https://huggingface.co/PaddlePaddle/latin_PP-OCRv5_mobile_rec/resolve/ab2cd5cc5fa6309be2e5acdfe66eca2c2c127d57/inference.yml",
+          "sha256": "0bbe984570f597af3638e50bdf2e8276f3ab26a61966096538b3b0d1849f5c84"
+        }
+      },
+      "weights_license": "Apache-2.0 (Hugging Face model card; PaddleOCR)",
+      "code_license": "runtime: paddlepaddle 3.3.1 (Apache-2.0), Paddle Inference on the CPU (OpenVINO cannot read the PIR format)",
+      "training_data": "Baidu PaddleOCR PP-OCRv5 multilingual training sets (see PaddleOCR documentation)",
+      "obligations": "Apache-2.0: keep the licence and NOTICE.",
+      "status": "EVALUATION \u2014 reading broadcast lineup cards (ADR-039): 51 of 52 lines exact on two Cyrillic cards (one match)"
+    }
+  ],
+  "default": "rtdetr_v2_r18vd",
+  "default_device": "GPU",
+  "_device_comment": "Measured 2026-10-27 (release-evidence/model-benchmarks/20261027-devices): OpenVINO 2025.3 on the Intel Arc iGPU at FP32 gives the same detections as PyTorch (100% at IoU 0.9, ball 42/42) at 2.3x the speed; FP16 drops ~1% of people (rejected); the NPU does not compile RT-DETRv2 (driver error). A machine without a usable GPU falls back to the CPU automatically."
+}

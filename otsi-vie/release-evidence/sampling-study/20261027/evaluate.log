@@ -1,0 +1,74 @@
+
+france_germany_ccbysa.ogv (508 frames @ 30.1 fps): reference {'person_tracks': 54, 'ball_tracks': 26, 'cuts_s': []}
+     1 fps      iou: tracks   66 switches  49/ 1p ball 16/16 frag 4.04 cov 0.5324 ball 1.0 cuts 0/0 interp 0.735 90min 35.7
+     1 fps  iou+cmc: tracks   57 switches  52/ 1p ball 16/16 frag 3.65 cov 0.5 ball 1.0 cuts 0/0 interp 0.735 90min 35.7
+     1 fps distance: tracks   32 switches  92/17p ball 16/16 frag 2.91 cov 0.9 ball 1.0 cuts 0/0 interp 0.735 90min 35.7
+     2 fps      iou: tracks   71 switches  75/ 3p ball 19/26 frag 3.97 cov 0.7341 ball 0.7391 cuts 0/0 interp 0.801 90min 71.4
+     2 fps  iou+cmc: tracks   79 switches  86/ 5p ball 19/26 frag 4.51 cov 0.6937 ball 0.7391 cuts 0/0 interp 0.801 90min 71.4
+     2 fps distance: tracks   36 switches  81/16p ball 19/26 frag 2.38 cov 0.9231 ball 0.7391 cuts 0/0 interp 0.801 90min 71.4
+     3 fps      iou: tracks   60 switches  54/ 7p ball 32/42 frag 2.77 cov 0.88 ball 0.7632 cuts 0/0 interp 0.825 90min 107.2
+     3 fps  iou+cmc: tracks   62 switches  56/ 3p ball 32/42 frag 2.94 cov 0.8532 ball 0.7632 cuts 0/0 interp 0.825 90min 107.2
+     3 fps distance: tracks   36 switches  69/21p ball 32/42 frag 2.22 cov 0.9382 ball 0.7632 cuts 0/0 interp 0.825 90min 107.2
+     5 fps      iou: tracks   50 switches  45/ 3p ball 48/66 frag 1.81 cov 0.9398 ball 0.7458 cuts 0/0 interp 0.866 90min 178.6
+     5 fps  iou+cmc: tracks   44 switches  43/12p ball 47/66 frag 1.73 cov 0.9371 ball 0.7458 cuts 0/0 interp 0.866 90min 178.6
+     5 fps distance: tracks   37 switches  80/19p ball 48/66 frag 2.08 cov 0.9436 ball 0.7458 cuts 0/0 interp 0.866 90min 178.6
+    10 fps      iou: tracks   45 switches  40/10p ball 117/130 frag 1.59 cov 0.9669 ball 0.9322 cuts 0/0 interp 0.91 90min 357.2
+    10 fps  iou+cmc: tracks   44 switches  40/10p ball 117/130 frag 1.57 cov 0.9677 ball 0.9322 cuts 0/0 interp 0.91 90min 357.2
+    10 fps distance: tracks   38 switches 109/26p ball 117/130 frag 2.29 cov 0.9588 ball 0.9322 cuts 0/0 interp 0.91 90min 357.2
+    15 fps      iou: tracks   49 switches  48/ 6p ball 178/191 frag 1.60 cov 0.9818 ball 0.9663 cuts 0/0 interp 0.925 90min 535.8
+    15 fps  iou+cmc: tracks   50 switches  50/ 8p ball 178/191 frag 1.68 cov 0.9814 ball 0.9663 cuts 0/0 interp 0.925 90min 535.8
+    15 fps distance: tracks   41 switches 115/23p ball 178/191 frag 2.50 cov 0.9805 ball 0.9663 cuts 0/0 interp 0.925 90min 535.8
+  adaptive 2->5 thr 12.0: eff 5.74 fps, switches 48/7p frag 2.00 cov 0.9365 ball 0.7969
+  adaptive 2->5 thr 8.0: eff 5.98 fps, switches 49/11p frag 1.94 cov 0.9467 ball 0.7794
+  adaptive 2->10 thr 12.0: eff 9.53 fps, switches 35/9p frag 1.59 cov 0.9599 ball 0.9279
+  adaptive 3->6 thr 10.0: eff 5.80 fps, switches 39/9p frag 1.67 cov 0.951 ball 0.8116
+
+naples_amateur_pd.webm (1199 frames @ 30.0 fps): reference {'person_tracks': 79, 'ball_tracks': 19, 'cuts_s': [0.5, 5.0, 20.02, 25.02, 29.36, 34.37]}
+     1 fps      iou: tracks   27 switches  12/ 0p ball 22/23 frag 1.18 cov 0.8062 ball 0.9565 cuts 7/6 interp 0.829 90min 42.8
+     1 fps  iou+cmc: tracks   31 switches  12/ 0p ball 22/23 frag 1.20 cov 0.845 ball 0.9565 cuts 7/6 interp 0.829 90min 42.8
+     1 fps distance: tracks   35 switches  23/ 0p ball 22/23 frag 1.34 cov 0.9225 ball 0.9565 cuts 7/6 interp 0.829 90min 42.8
+     2 fps      iou: tracks   40 switches  35/ 2p ball 41/45 frag 1.61 cov 0.85 ball 0.9111 cuts 6/6 interp 0.895 90min 85.6
+     2 fps  iou+cmc: tracks   44 switches  37/ 1p ball 42/45 frag 1.69 cov 0.8769 ball 0.9333 cuts 6/6 interp 0.895 90min 85.6
+     2 fps distance: tracks   45 switches  44/ 3p ball 41/45 frag 1.58 cov 0.9308 ball 0.9111 cuts 6/6 interp 0.895 90min 85.6
+     3 fps      iou: tracks   50 switches  42/ 0p ball 56/65 frag 1.74 cov 0.9284 ball 0.8615 cuts 6/6 interp 0.91 90min 128.4
+     3 fps  iou+cmc: tracks   52 switches  44/ 0p ball 56/65 frag 1.86 cov 0.9437 ball 0.8615 cuts 6/6 interp 0.91 90min 128.4
+     3 fps distance: tracks   51 switches  55/ 4p ball 56/65 frag 1.78 cov 0.9412 ball 0.8615 cuts 6/6 interp 0.91 90min 128.4
+     5 fps      iou: tracks   59 switches  43/ 2p ball 106/111 frag 1.74 cov 0.9335 ball 0.9545 cuts 6/6 interp 0.929 90min 213.9
+     5 fps  iou+cmc: tracks   64 switches  47/ 2p ball 106/111 frag 1.86 cov 0.9713 ball 0.9545 cuts 6/6 interp 0.929 90min 213.9
+     5 fps distance: tracks   51 switches  57/ 2p ball 106/111 frag 1.62 cov 0.9698 ball 0.9545 cuts 6/6 interp 0.929 90min 213.9
+    10 fps      iou: tracks   70 switches  45/ 1p ball 205/220 frag 1.46 cov 0.9697 ball 0.9358 cuts 6/6 interp 0.955 90min 427.9
+    10 fps  iou+cmc: tracks   66 switches  36/ 1p ball 206/220 frag 1.51 cov 0.9879 ball 0.9358 cuts 6/6 interp 0.955 90min 427.9
+    10 fps distance: tracks   56 switches  56/ 4p ball 205/220 frag 1.65 cov 0.9856 ball 0.9358 cuts 6/6 interp 0.955 90min 427.9
+    15 fps      iou: tracks   89 switches  41/ 1p ball 309/327 frag 1.70 cov 0.9843 ball 0.9596 cuts 7/6 interp 0.963 90min 641.8
+    15 fps  iou+cmc: tracks   69 switches  36/ 2p ball 309/327 frag 1.46 cov 0.9939 ball 0.9596 cuts 7/6 interp 0.963 90min 641.8
+    15 fps distance: tracks   60 switches  64/ 3p ball 309/327 frag 1.89 cov 0.9777 ball 0.9596 cuts 7/6 interp 0.963 90min 641.8
+  adaptive 2->5 thr 12.0: eff 3.65 fps, switches 35/2p frag 1.47 cov 0.8737 ball 0.962
+  adaptive 2->5 thr 8.0: eff 4.55 fps, switches 40/3p frag 1.58 cov 0.8864 ball 0.9785
+  adaptive 2->10 thr 12.0: eff 5.30 fps, switches 57/2p frag 1.65 cov 0.9143 ball 0.931
+  adaptive 3->6 thr 10.0: eff 4.15 fps, switches 35/2p frag 1.58 cov 0.9041 ball 0.8977
+
+ocsc_vs_oakland_ccby.webm (1200 frames @ 30.0 fps): reference {'person_tracks': 309, 'ball_tracks': 45, 'cuts_s': []}
+     1 fps      iou: tracks   63 switches  81/ 0p ball 35/36 frag 2.07 cov 0.7113 ball 0.9714 cuts 5/0 interp 0.479 90min 43.9
+     1 fps  iou+cmc: tracks   56 switches  68/ 2p ball 35/36 frag 1.76 cov 0.6546 ball 0.9714 cuts 5/0 interp 0.479 90min 43.9
+     1 fps distance: tracks   63 switches 104/ 4p ball 35/36 frag 2.05 cov 0.8866 ball 0.9714 cuts 5/0 interp 0.479 90min 43.9
+     2 fps      iou: tracks   89 switches 141/ 2p ball 70/72 frag 2.66 cov 0.7379 ball 0.9706 cuts 2/0 interp 0.646 90min 87.7
+     2 fps  iou+cmc: tracks   99 switches 148/ 0p ball 67/72 frag 2.93 cov 0.7303 ball 0.9412 cuts 2/0 interp 0.646 90min 87.7
+     2 fps distance: tracks   77 switches 219/ 6p ball 70/72 frag 2.84 cov 0.9059 ball 0.9706 cuts 2/0 interp 0.646 90min 87.7
+     3 fps      iou: tracks  127 switches 213/ 4p ball 98/107 frag 3.43 cov 0.8291 ball 0.9223 cuts 2/0 interp 0.707 90min 131.6
+     3 fps  iou+cmc: tracks  139 switches 255/ 0p ball 98/107 frag 4.00 cov 0.824 ball 0.9223 cuts 2/0 interp 0.707 90min 131.6
+     3 fps distance: tracks   85 switches 311/ 6p ball 98/107 frag 3.03 cov 0.9222 ball 0.9223 cuts 2/0 interp 0.707 90min 131.6
+     5 fps      iou: tracks  168 switches 331/ 3p ball 161/181 frag 4.26 cov 0.8847 ball 0.9048 cuts 1/0 interp 0.778 90min 219.3
+     5 fps  iou+cmc: tracks  173 switches 331/ 2p ball 161/181 frag 4.20 cov 0.8726 ball 0.9107 cuts 1/0 interp 0.778 90min 219.3
+     5 fps distance: tracks  102 switches 448/ 4p ball 161/181 frag 3.73 cov 0.9383 ball 0.9048 cuts 1/0 interp 0.778 90min 219.3
+    10 fps      iou: tracks  216 switches 396/ 5p ball 331/367 frag 3.57 cov 0.9306 ball 0.9384 cuts 1/0 interp 0.845 90min 438.7
+    10 fps  iou+cmc: tracks  200 switches 427/ 4p ball 320/367 frag 3.93 cov 0.9341 ball 0.9179 cuts 1/0 interp 0.845 90min 438.7
+    10 fps distance: tracks  115 switches 703/ 2p ball 331/367 frag 4.34 cov 0.9491 ball 0.9384 cuts 1/0 interp 0.845 90min 438.7
+    15 fps      iou: tracks  246 switches 486/ 9p ball 498/538 frag 3.88 cov 0.9427 ball 0.9602 cuts 0/0 interp 0.866 90min 658.0
+    15 fps  iou+cmc: tracks  213 switches 539/11p ball 497/538 frag 4.56 cov 0.9473 ball 0.9622 cuts 0/0 interp 0.866 90min 658.0
+    15 fps distance: tracks  111 switches 884/ 5p ball 498/538 frag 4.88 cov 0.9596 ball 0.9602 cuts 0/0 interp 0.866 90min 658.0
+  adaptive 2->5 thr 12.0: eff 5.95 fps, switches 326/3p frag 3.90 cov 0.8919 ball 0.9268
+  adaptive 2->5 thr 8.0: eff 6.00 fps, switches 327/2p frag 3.94 cov 0.8971 ball 0.9223
+  adaptive 2->10 thr 12.0: eff 9.91 fps, switches 391/3p frag 3.52 cov 0.9273 ball 0.9408
+  adaptive 3->6 thr 10.0: eff 5.98 fps, switches 327/6p frag 3.97 cov 0.8903 ball 0.9353
+
+written release-evidence\sampling-study\20261027\report.json

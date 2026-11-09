@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTSI VIE — AI Processing (visual)</title>
+<style>
+:root{--bg:#050d1c;--line:#12335f;--mut:#8ea3bf}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#000;overflow:hidden}
+#s{position:absolute;width:2560px;height:1440px;transform-origin:0 0;background:var(--bg);color:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;overflow:hidden}
+#s div,#s svg{position:absolute}
+.t{white-space:nowrap;line-height:1}
+.box{border:1.5px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#081a35,#06122a)}
+.m{color:var(--mut)}.b{font-weight:700}.c{transform:translateX(-50%)}
+.sel{border:1.5px solid #17355f;border-radius:6px;background:#0a1d38;height:36px;color:#dbe8f8;font-size:18px;padding:0 12px;display:flex;align-items:center}
+.pill{border-radius:18px;height:36px;font-size:19px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.pb{height:8px;border-radius:4px;background:#17304f}.pb i{display:block;height:100%;border-radius:4px;background:#1a8cff}
+.ph{border-radius:4px;background:linear-gradient(135deg,#1b4d8f,#0b2a52 55%,#2a6a3a)}
+.bx{border:2.5px solid #19d3ff}.bx.a{border-color:#f5b82e}
+.tag{font-weight:700;font-size:17px;padding:3px 8px;line-height:1.1;color:#fff}
+.n{top:40px;font-size:24px;font-weight:600;line-height:1;position:absolute}
+.tg{width:55px;height:30px;border-radius:15px;background:#1580ff}.tg i{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#fff}
+</style></head><body><div id="s"></div>
+<script>
+const o=[];
+const D=(x,y,w,h,c,st='',tx='')=>o.push(`<div class="${c}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${st}">${tx}</div>`);
+const T=(x,yc,s,sz,c='',st='')=>o.push(`<div class="t ${c}" style="left:${x}px;top:${yc-sz*.5}px;font-size:${sz}px;${st}">${s}</div>`);
+const BAR=(x,y,h)=>D(x,y,7,h,'','background:#1e90ff;border-radius:3px');
+
+/* header */
+D(0,0,2560,100,'','background:#040b18;border-bottom:1.5px solid #123a6e');
+T(30,38,'OTSI <span style="color:#1e90ff">VIE</span>',40,'b','letter-spacing:2px');
+T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b','letter-spacing:.8px;color:#2d9bff');
+D(676,12,169,78,'','border-radius:10px;border:2px solid #2a6fb5;background:#0b2a4d');
+D(684,92,153,5,'','border-radius:3px;background:#1e90ff');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(([l,x])=>o.push(`<div class="n" style="left:${x}px;${l=='Processing'?'color:#4db3ff;font-weight:700':''}">${l}</div>`));
+D(2118,20,2,60,'','background:#1a3556');
+D(2140,23,100,54,'','border:1.5px solid #1f5a9c;border-radius:8px;background:#0a2140;color:#3aa0ff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center','QHD');
+D(2271,25,54,54,'b','border-radius:50%;background:#1790ff;font-size:24px;display:flex;align-items:center;justify-content:center','O');
+T(2340,41,'Owner',23,'b');T(2340,69,'OTSI VIE',20,'m');
+
+/* title + match card */
+T(44,138,'FROM RAW VIDEO TO ACTIONABLE INSIGHTS',18,'','letter-spacing:4.5px;color:#2d9bff;font-weight:600');
+T(44,192,'AI Processing Pipeline',72,'b','letter-spacing:-.5px');
+T(44,249,'Our AI automatically detects, tracks, and analyzes every moment of the match, turning video into structured data and insights.',25,'','color:#cdd9ec');
+D(1500,123,1030,144,'box');
+D(1520,150,88,90,'','border-radius:50%;background:#10243f');
+T(1635,154,'No processing job',19,'','color:#b9cbe3');T(1635,190,'No video selected',25,'b');
+T(1635,231,'Upload a video to begin',20,'','color:#4db3ff');
+D(1990,133,1,124,'','background:#17355f');
+D(2017,145,156,44,'pill','border-radius:6px;background:#1580ff;font-size:20px;height:44px','Idle');
+D(2017,215,401,9,'pb','','<i style="width:0%"></i>');T(2446,217,'—',26,'b');
+
+/* pipeline stages */
+D(43,293,1938,230,'box');
+const st=[[109,'1. Detection',['Detect players, ball, referees','and key objects in each frame.'],77,283,0,'Waiting',242,121,169],
+[500,'2. Tracking',['Track objects over time','with consistent IDs.'],468,285,0,'Waiting',632,122,562],
+[862,'3. Identity Resolution',['Assign player identities,','team, and jersey numbers.'],826,287,0,'Waiting',988,127,925],
+[1268,'4. Event Detection',['Detect passes, shots,','tackles, and key events.'],1233,274,0,'Waiting',1397,110,1332],
+[1643,'5. Indexing',['Create searchable metadata,','clips and analytics.'],1606,295,0,'Waiting',1776,125,1707]];
+st.forEach(([cx,t,d,bx,bw,p,lbl,px,pw,tx],i)=>{
+ const done=false,act=false;
+ D(cx-37,320,74,74,'','border-radius:50%;'+(done?'border:5px solid #19e6c0;background:#0a3a3f;box-shadow:0 0 14px #19e6c0;color:#19e6c0;font-size:34px;display:flex;align-items:center;justify-content:center':act?'background:conic-gradient(#1a8cff 78%,#1a2a44 0);':'border:5px solid #1c2a40;background:#0a1630'),done?'✓':'');
+ if(act)D(cx-27,330,54,54,'','border-radius:50%;background:#071a33');
+ T(tx,i<2?342:343,t,23,'b');
+ d.forEach((l,k)=>T(tx,375+k*30,l,19,'','color:#b3c4dc'));
+ D(bx,445,bw,9,'pb','',`<i style="width:${p}%;${done?'background:#1a8cff':''}"></i>`);
+ T(bx+1,480,'—',24,'');
+ const sty=done?'background:#0f5a46;color:#3ee6a8':act?'background:#1580ff;color:#fff':'background:#1a2a44;color:#9fb2cc';
+ D(px,466,pw,36,'pill',sty,lbl);
+ if(i<4)D([416,781,1184,1558][i],355,30,30,'','color:#1e90ff;font-size:32px;line-height:30px','→');
+});
+
+/* preview panel */
+D(43,545,1137,663,'box');BAR(58,565,50);
+T(75,576,'Processing Preview',25,'b');T(75,607,'Live AI Analysis Output',20,'','color:#4db3ff');
+[['View',512,195,'AI Detections'],['Teams',744,187,'All Teams'],['Overlays',958,195,'Boxes + IDs']].forEach(([l,x,w,v])=>{T(x,573,l,17,'m');D(x,587,w,36,'sel','',v+'<span style="margin-left:auto">⌄</span>')});
+D(45,636,1134,509,'','background:linear-gradient(180deg,#0a2a55 0,#10305c 22%,#1d5a2e 30%,#256b34 100%)');
+D(45,636,1134,130,'','background:repeating-linear-gradient(90deg,#183a70,#10264a 12px,#1d4380 24px);opacity:.8');
+D(75,653,415,40,'','background:#0a1a38;border-radius:4px');D(75,653,49,40,'','background:#fff;border-radius:3px');
+T(145,675,'—',26,'b');D(233,653,100,40,'b','background:#1580ff;font-size:24px;display:flex;align-items:center;justify-content:center','—');T(335,675,'—',24,'b');D(400,653,90,40,'b','background:#1580ff;font-size:24px;display:flex;align-items:center;justify-content:center;border-radius:0 20px 20px 0','—');
+T(612,890,'No video loaded — detections appear here during processing',24,'c','color:#cfdcf0');
+D(45,1145,1134,63,'','background:#07142a');
+T(78,1177,'⏮',24);T(133,1177,'▶',28);T(189,1177,'⏭',22,'m');T(228,1177,'— / —',19);
+D(358,1173,472,7,'pb','','<i style="width:0%"></i>');D(358,1167,18,18,'','border-radius:50%;background:#fff');
+D(855,1158,102,38,'sel','','1x<span style="margin-left:auto">⌄</span>');T(990,1177,'🔊',24);T(1056,1177,'⚙',26);T(1124,1177,'⛶',26);
+
+/* four tiles */
+const tile=(x,y,w,h,t,s,ix,iy,iw,ih,body)=>{D(x,y,w,h,'box','border-color:#142f55');T(x+18,y+27,t,24,'b');T(x+18,y+58,s,19,'m','color:#b3c4dc');
+ D(x+w-52,y+22,34,34,'','border:1.5px solid #2a4f80;border-radius:6px;background:#0a1d38;color:#cfe3ff;display:flex;align-items:center;justify-content:center;font-size:16px','⤢');body(ix,iy,iw,ih)};
+tile(1199,553,391,297,'Player Detection','Not started',1204,635,379,206,(x,y,w,h)=>{D(x,y,w,h,'ph');T(x+w/2,y+h/2,'No detections yet',19,'c','color:#cfdcf0')});
+tile(1608,553,373,297,'Ball Detection','Not started',1613,635,359,206,(x,y,w,h)=>{D(x,y,w,h,'ph','background:linear-gradient(135deg,#2a6a3a,#1d4a2a)');T(x+w/2,y+h/2,'No detections yet',19,'c','color:#cfdcf0')});
+tile(1199,860,391,348,'Team Identification','Not started',1206,947,376,243,(x,y,w,h)=>{D(x,y,w,h,'ph');T(x+w/2,y+h/2,'No teams identified yet',19,'c','color:#cfdcf0')});
+tile(1608,860,373,348,'Event Markers (Live)','Key events detected in timeline',1620,947,352,196,(x,y,w,h)=>{D(x,y,w,h,'','background:#1f7a36;border:3px solid #d7efe0');D(x+175,y,2,h,'','background:#d7efe0');D(x+130,y+68,60,60,'','border:2px solid #d7efe0;border-radius:50%');
+ [['#1e90ff','Pass'],['#ff2a2a','Shot'],['#ffc41a','Tackle'],['#ff8a1a','Foul'],['#d63aff','Offside']].forEach(([c,l],i)=>{const lx=[1625,1693,1761,1838,1902][i];D(lx,1169,14,14,'',`background:${c};border-radius:50%`);T(lx+20,1176,l,17,'','color:#cfe3ff')})});
+
+/* processing log */
+D(2006,293,524,628,'box');T(2027,331,'Processing Log',25,'b');D(2214,326,10,10,'','border-radius:50%;background:#8ea3bf');T(2232,331,'Idle',19,'','color:#8ea3bf');T(2345,331,'Auto-scroll',19,'','color:#cfdcf0');D(2454,315,55,30,'tg','','<i></i>');
+T(2030,378,'No processing activity yet.',19.5,'','color:#cfdcf0');
+
+/* system resources */
+D(2006,943,524,314,'box');T(2027,979,'System Resources',25,'b');T(2383,980,'View Details &nbsp;→',19,'','color:#2d9bff;font-weight:600');
+[[2100,0,'#1a8cff','—','GPU','Not connected'],[2268,0,'#1a8cff','—','CPU','Not connected'],[2438,0,'#19e6c0','—','Memory','Not connected']].forEach(([cx,p,c,big,sm,lb],i)=>{
+ D(cx-62,1015,124,124,'',`border-radius:50%;background:conic-gradient(${c} ${p}%,#14233c 0)`);D(cx-52,1025,104,104,'','border-radius:50%;background:#071a33');
+ T(cx,1071,big,26,'b c');T(cx,1103,sm,19,'c m');T(cx,1163,lb,19,'c','color:#cfdcf0');
+});
+
+/* timeline */
+D(43,1228,1623,182,'box');BAR(58,1248,52);T(75,1260,'Processing Timeline',25,'b');T(75,1291,'Frame-level pipeline progress',19,'','color:#b3c4dc');
+[['#19e6c0','Detection',596],['#1a8cff','Tracking',728],['#8a5cff','Identity Resolution',853],['#ffb21a','Event Detection',1059],['#6b7a92','Indexing',1235]].forEach(([c,l,x])=>{D(x,1253,19,19,'',`border-radius:50%;background:${c}`);T(x+28,1262,l,19,'','color:#cfdcf0')});
+[['0:00',108],['—',1591]].forEach(([l,x])=>T(x,1333,l,17,'','color:#cfdcf0'));
+const seg=(y,h,a)=>a.forEach(([x1,x2,c])=>D(x1,y,x2-x1,h,'',`background:${c}`));
+seg(1358,10,[[108,1632,'#2a3a52']]);
+seg(1373,13,[[108,1608,'#2a3a52']]);
+
+/* output summary */
+D(1691,1228,839,182,'box');T(1714,1273,'Output Summary <span class="m" style="font-weight:400">(Live)</span>',25,'b');
+[[1707,188,'—','Players Tracked'],[1906,184,'—','Ball Tracked'],[2103,223,'—','Events Detected'],[2341,189,'—','Processed']].forEach(([x,w,v,l])=>{D(x,1297,w,113,'box','border-color:#142f55');D(x+14,1335,46,46,'','border:2.5px solid #19a0ff;border-radius:50%');T(x+68,1337,v,26,'b');T(x+68,1369,l,18,'','color:#b3c4dc')});
+document.getElementById('s').innerHTML=o.join('');
+function fit(){const k=Math.min(innerWidth/2560,innerHeight/1440),s=document.getElementById('s');s.style.transform='scale('+k+')';s.style.left=(innerWidth-2560*k)/2+'px';s.style.top=(innerHeight-1440*k)/2+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

@@ -1,0 +1,20 @@
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/api
+
+ ✓ test/identity.api.test.ts > authentication and tenant context > refuses a missing, foreign, mis-addressed or expired token
+ ✓ test/identity.api.test.ts > authentication and tenant context > never trusts the organization header alone
+ ✓ test/identity.api.test.ts > authentication and tenant context > enforces roles from the membership, not the token
+ ✓ test/identity.api.test.ts > player registry and the permanent OTSI Player ID > creates provisional players without inventing an ID, idempotently (test 5)
+ ✓ test/identity.api.test.ts > player registry and the permanent OTSI Player ID > issues exactly one permanent ID, visible identically to every organization and endpoint (tests 15, 20)
+ ✓ test/identity.api.test.ts > player registry and the permanent OTSI Player ID > allocates distinct, contiguous IDs under concurrent API requests (test 4)
+ ✓ test/identity.api.test.ts > player registry and the permanent OTSI Player ID > merges a tenant duplicate into the registered player, keeping both records (test 14)
+ ✓ test/identity.api.test.ts > tracks resolve to the permanent identity > shows an unknown track as Unidentified Player and never as a candidate (test 12)
+ ✓ test/identity.api.test.ts > tracks resolve to the permanent identity > confirms, corrects with history and reason, and refuses a stale correction (test 13)
+ ✓ test/identity.api.test.ts > tracks resolve to the permanent identity > keeps the same ID across tracking restarts and camera cuts, issuing nothing new (tests 10, 11, 20)
+ ✓ test/identity.api.test.ts > tracks resolve to the permanent identity > keeps tracks inside their organization and refuses merged identities (test 15)
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  16:03:29
+   Duration  8.67s (transform 175ms, setup 0ms, collect 1.34s, tests 984ms, environment 0ms, prepare 132ms)
+

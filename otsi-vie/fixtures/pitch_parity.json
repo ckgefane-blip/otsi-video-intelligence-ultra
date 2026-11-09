@@ -1,0 +1,769 @@
+{
+ "landmarks": {
+  "105x68": {
+   "centre spot": [
+    0.0,
+    0.0
+   ],
+   "halfway line, top touchline": [
+    0.0,
+    -34.0
+   ],
+   "halfway line, bottom touchline": [
+    0.0,
+    34.0
+   ],
+   "centre circle, top": [
+    0.0,
+    -9.15
+   ],
+   "centre circle, bottom": [
+    0.0,
+    9.15
+   ],
+   "left goal line, top corner": [
+    -52.5,
+    -34.0
+   ],
+   "left goal line, bottom corner": [
+    -52.5,
+    34.0
+   ],
+   "left penalty area, top corner on the goal line": [
+    -52.5,
+    -20.16
+   ],
+   "left penalty area, bottom corner on the goal line": [
+    -52.5,
+    20.16
+   ],
+   "left penalty area, top front corner": [
+    -36.0,
+    -20.16
+   ],
+   "left penalty area, bottom front corner": [
+    -36.0,
+    20.16
+   ],
+   "left six-yard box, top corner on the goal line": [
+    -52.5,
+    -9.16
+   ],
+   "left six-yard box, bottom corner on the goal line": [
+    -52.5,
+    9.16
+   ],
+   "left six-yard box, top front corner": [
+    -47.0,
+    -9.16
+   ],
+   "left six-yard box, bottom front corner": [
+    -47.0,
+    9.16
+   ],
+   "left penalty spot": [
+    -41.5,
+    0.0
+   ],
+   "right goal line, top corner": [
+    52.5,
+    -34.0
+   ],
+   "right goal line, bottom corner": [
+    52.5,
+    34.0
+   ],
+   "right penalty area, top corner on the goal line": [
+    52.5,
+    -20.16
+   ],
+   "right penalty area, bottom corner on the goal line": [
+    52.5,
+    20.16
+   ],
+   "right penalty area, top front corner": [
+    36.0,
+    -20.16
+   ],
+   "right penalty area, bottom front corner": [
+    36.0,
+    20.16
+   ],
+   "right six-yard box, top corner on the goal line": [
+    52.5,
+    -9.16
+   ],
+   "right six-yard box, bottom corner on the goal line": [
+    52.5,
+    9.16
+   ],
+   "right six-yard box, top front corner": [
+    47.0,
+    -9.16
+   ],
+   "right six-yard box, bottom front corner": [
+    47.0,
+    9.16
+   ],
+   "right penalty spot": [
+    41.5,
+    0.0
+   ]
+  },
+  "100x64": {
+   "centre spot": [
+    0.0,
+    0.0
+   ],
+   "halfway line, top touchline": [
+    0.0,
+    -32.0
+   ],
+   "halfway line, bottom touchline": [
+    0.0,
+    32.0
+   ],
+   "centre circle, top": [
+    0.0,
+    -9.15
+   ],
+   "centre circle, bottom": [
+    0.0,
+    9.15
+   ],
+   "left goal line, top corner": [
+    -50.0,
+    -32.0
+   ],
+   "left goal line, bottom corner": [
+    -50.0,
+    32.0
+   ],
+   "left penalty area, top corner on the goal line": [
+    -50.0,
+    -20.16
+   ],
+   "left penalty area, bottom corner on the goal line": [
+    -50.0,
+    20.16
+   ],
+   "left penalty area, top front corner": [
+    -33.5,
+    -20.16
+   ],
+   "left penalty area, bottom front corner": [
+    -33.5,
+    20.16
+   ],
+   "left six-yard box, top corner on the goal line": [
+    -50.0,
+    -9.16
+   ],
+   "left six-yard box, bottom corner on the goal line": [
+    -50.0,
+    9.16
+   ],
+   "left six-yard box, top front corner": [
+    -44.5,
+    -9.16
+   ],
+   "left six-yard box, bottom front corner": [
+    -44.5,
+    9.16
+   ],
+   "left penalty spot": [
+    -39.0,
+    0.0
+   ],
+   "right goal line, top corner": [
+    50.0,
+    -32.0
+   ],
+   "right goal line, bottom corner": [
+    50.0,
+    32.0
+   ],
+   "right penalty area, top corner on the goal line": [
+    50.0,
+    -20.16
+   ],
+   "right penalty area, bottom corner on the goal line": [
+    50.0,
+    20.16
+   ],
+   "right penalty area, top front corner": [
+    33.5,
+    -20.16
+   ],
+   "right penalty area, bottom front corner": [
+    33.5,
+    20.16
+   ],
+   "right six-yard box, top corner on the goal line": [
+    50.0,
+    -9.16
+   ],
+   "right six-yard box, bottom corner on the goal line": [
+    50.0,
+    9.16
+   ],
+   "right six-yard box, top front corner": [
+    44.5,
+    -9.16
+   ],
+   "right six-yard box, bottom front corner": [
+    44.5,
+    9.16
+   ],
+   "right penalty spot": [
+    39.0,
+    0.0
+   ]
+  }
+ },
+ "lines": {
+  "105x68": {
+   "touchline top": {
+    "n": 106,
+    "first": [
+     -52.5,
+     -34.0
+    ],
+    "last": [
+     52.5,
+     -34.0
+    ]
+   },
+   "touchline bottom": {
+    "n": 106,
+    "first": [
+     -52.5,
+     34.0
+    ],
+    "last": [
+     52.5,
+     34.0
+    ]
+   },
+   "left goal line": {
+    "n": 69,
+    "first": [
+     -52.5,
+     -34.0
+    ],
+    "last": [
+     -52.5,
+     34.0
+    ]
+   },
+   "right goal line": {
+    "n": 69,
+    "first": [
+     52.5,
+     -34.0
+    ],
+    "last": [
+     52.5,
+     34.0
+    ]
+   },
+   "halfway line": {
+    "n": 69,
+    "first": [
+     0.0,
+     -34.0
+    ],
+    "last": [
+     0.0,
+     34.0
+    ]
+   },
+   "centre circle": {
+    "n": 58,
+    "first": [
+     9.15,
+     0.0
+    ],
+    "last": [
+     9.15,
+     -0.0
+    ]
+   },
+   "left penalty area front": {
+    "n": 42,
+    "first": [
+     -36.0,
+     -20.16
+    ],
+    "last": [
+     -36.0,
+     20.16
+    ]
+   },
+   "left penalty area top": {
+    "n": 18,
+    "first": [
+     -52.5,
+     -20.16
+    ],
+    "last": [
+     -36.0,
+     -20.16
+    ]
+   },
+   "left penalty area bottom": {
+    "n": 18,
+    "first": [
+     -52.5,
+     20.16
+    ],
+    "last": [
+     -36.0,
+     20.16
+    ]
+   },
+   "left six-yard front": {
+    "n": 20,
+    "first": [
+     -47.0,
+     -9.16
+    ],
+    "last": [
+     -47.0,
+     9.16
+    ]
+   },
+   "left six-yard top": {
+    "n": 7,
+    "first": [
+     -52.5,
+     -9.16
+    ],
+    "last": [
+     -47.0,
+     -9.16
+    ]
+   },
+   "left six-yard bottom": {
+    "n": 7,
+    "first": [
+     -52.5,
+     9.16
+    ],
+    "last": [
+     -47.0,
+     9.16
+    ]
+   },
+   "left penalty arc": {
+    "n": 17,
+    "first": [
+     -36.0,
+     -7.312489
+    ],
+    "last": [
+     -36.0,
+     7.312489
+    ]
+   },
+   "right penalty area front": {
+    "n": 42,
+    "first": [
+     36.0,
+     -20.16
+    ],
+    "last": [
+     36.0,
+     20.16
+    ]
+   },
+   "right penalty area top": {
+    "n": 18,
+    "first": [
+     52.5,
+     -20.16
+    ],
+    "last": [
+     36.0,
+     -20.16
+    ]
+   },
+   "right penalty area bottom": {
+    "n": 18,
+    "first": [
+     52.5,
+     20.16
+    ],
+    "last": [
+     36.0,
+     20.16
+    ]
+   },
+   "right six-yard front": {
+    "n": 20,
+    "first": [
+     47.0,
+     -9.16
+    ],
+    "last": [
+     47.0,
+     9.16
+    ]
+   },
+   "right six-yard top": {
+    "n": 7,
+    "first": [
+     52.5,
+     -9.16
+    ],
+    "last": [
+     47.0,
+     -9.16
+    ]
+   },
+   "right six-yard bottom": {
+    "n": 7,
+    "first": [
+     52.5,
+     9.16
+    ],
+    "last": [
+     47.0,
+     9.16
+    ]
+   },
+   "right penalty arc": {
+    "n": 17,
+    "first": [
+     36.0,
+     7.312489
+    ],
+    "last": [
+     36.0,
+     -7.312489
+    ]
+   }
+  },
+  "100x64": {
+   "touchline top": {
+    "n": 101,
+    "first": [
+     -50.0,
+     -32.0
+    ],
+    "last": [
+     50.0,
+     -32.0
+    ]
+   },
+   "touchline bottom": {
+    "n": 101,
+    "first": [
+     -50.0,
+     32.0
+    ],
+    "last": [
+     50.0,
+     32.0
+    ]
+   },
+   "left goal line": {
+    "n": 65,
+    "first": [
+     -50.0,
+     -32.0
+    ],
+    "last": [
+     -50.0,
+     32.0
+    ]
+   },
+   "right goal line": {
+    "n": 65,
+    "first": [
+     50.0,
+     -32.0
+    ],
+    "last": [
+     50.0,
+     32.0
+    ]
+   },
+   "halfway line": {
+    "n": 65,
+    "first": [
+     0.0,
+     -32.0
+    ],
+    "last": [
+     0.0,
+     32.0
+    ]
+   },
+   "centre circle": {
+    "n": 58,
+    "first": [
+     9.15,
+     0.0
+    ],
+    "last": [
+     9.15,
+     -0.0
+    ]
+   },
+   "left penalty area front": {
+    "n": 42,
+    "first": [
+     -33.5,
+     -20.16
+    ],
+    "last": [
+     -33.5,
+     20.16
+    ]
+   },
+   "left penalty area top": {
+    "n": 18,
+    "first": [
+     -50.0,
+     -20.16
+    ],
+    "last": [
+     -33.5,
+     -20.16
+    ]
+   },
+   "left penalty area bottom": {
+    "n": 18,
+    "first": [
+     -50.0,
+     20.16
+    ],
+    "last": [
+     -33.5,
+     20.16
+    ]
+   },
+   "left six-yard front": {
+    "n": 20,
+    "first": [
+     -44.5,
+     -9.16
+    ],
+    "last": [
+     -44.5,
+     9.16
+    ]
+   },
+   "left six-yard top": {
+    "n": 7,
+    "first": [
+     -50.0,
+     -9.16
+    ],
+    "last": [
+     -44.5,
+     -9.16
+    ]
+   },
+   "left six-yard bottom": {
+    "n": 7,
+    "first": [
+     -50.0,
+     9.16
+    ],
+    "last": [
+     -44.5,
+     9.16
+    ]
+   },
+   "left penalty arc": {
+    "n": 17,
+    "first": [
+     -33.5,
+     -7.312489
+    ],
+    "last": [
+     -33.5,
+     7.312489
+    ]
+   },
+   "right penalty area front": {
+    "n": 42,
+    "first": [
+     33.5,
+     -20.16
+    ],
+    "last": [
+     33.5,
+     20.16
+    ]
+   },
+   "right penalty area top": {
+    "n": 18,
+    "first": [
+     50.0,
+     -20.16
+    ],
+    "last": [
+     33.5,
+     -20.16
+    ]
+   },
+   "right penalty area bottom": {
+    "n": 18,
+    "first": [
+     50.0,
+     20.16
+    ],
+    "last": [
+     33.5,
+     20.16
+    ]
+   },
+   "right six-yard front": {
+    "n": 20,
+    "first": [
+     44.5,
+     -9.16
+    ],
+    "last": [
+     44.5,
+     9.16
+    ]
+   },
+   "right six-yard top": {
+    "n": 7,
+    "first": [
+     50.0,
+     -9.16
+    ],
+    "last": [
+     44.5,
+     -9.16
+    ]
+   },
+   "right six-yard bottom": {
+    "n": 7,
+    "first": [
+     50.0,
+     9.16
+    ],
+    "last": [
+     44.5,
+     9.16
+    ]
+   },
+   "right penalty arc": {
+    "n": 17,
+    "first": [
+     33.5,
+     7.312489
+    ],
+    "last": [
+     33.5,
+     -7.312489
+    ]
+   }
+  }
+ },
+ "fit": {
+  "names": [
+   "centre spot",
+   "left penalty area, top front corner",
+   "left penalty area, bottom front corner",
+   "right penalty area, top front corner",
+   "right penalty area, bottom front corner",
+   "halfway line, bottom touchline"
+  ],
+  "image": [
+   [
+    0.502,
+    0.449
+   ],
+   [
+    -0.225231546,
+    0.218958743
+   ],
+   [
+    -0.583530373,
+    0.796868035
+   ],
+   [
+    1.225231546,
+    0.218958743
+   ],
+   [
+    1.583530373,
+    0.795868035
+   ],
+   [
+    0.5,
+    1.15
+   ]
+  ],
+  "H": [
+   [
+    0.024149709,
+    -0.004916853,
+    0.500944877
+   ],
+   [
+    7.859e-06,
+    0.009317875,
+    0.450038416
+   ],
+   [
+    2.6451e-05,
+    -0.009820498,
+    1.0
+   ]
+  ],
+  "rms_px": 1.068699,
+  "rms_m": 0.051922,
+  "mirrored": false,
+  "collinear": false,
+  "probe": [
+   [
+    10.0,
+    5.0
+   ],
+   [
+    -30.0,
+    -12.0
+   ],
+   [
+    45.0,
+    30.0
+   ]
+  ],
+  "probe_image": [
+   [
+    0.754716534,
+    0.522210059
+   ],
+   [
+    -0.147302089,
+    0.302571436
+   ],
+   [
+    2.03824856,
+    1.033050877
+   ]
+  ],
+  "back": [
+   [
+    10.0,
+    5.0
+   ],
+   [
+    -30.0,
+    -12.0
+   ],
+   [
+    45.0,
+    30.0
+   ]
+  ]
+ }
+}

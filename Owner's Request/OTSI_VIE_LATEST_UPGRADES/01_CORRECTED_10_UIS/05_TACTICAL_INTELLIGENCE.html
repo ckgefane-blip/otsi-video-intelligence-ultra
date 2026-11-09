@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTSI VIE — Tactical Intelligence (visual)</title>
+<style>
+:root{--bg:#050d1c;--line:#12335f;--mut:#8ea3bf}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#000;overflow:hidden}
+#s{position:absolute;width:2560px;height:1440px;transform-origin:0 0;background:var(--bg);color:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;overflow:hidden}
+#s div,#s svg{position:absolute}
+.t{white-space:nowrap;line-height:1}
+.box{border:1.5px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#081a35,#06122a)}
+.m{color:var(--mut)}.b{font-weight:700}.c{transform:translateX(-50%)}
+.tr{width:46px;height:26px;border-radius:13px;background:#1580ff}.tr i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.ic{width:24px;height:24px;border:2px solid #7fa4d4;border-radius:6px}
+.sel{border:1.5px solid #17355f;border-radius:6px;background:#0a1d38;color:#dbe8f8;display:flex;align-items:center;padding:0 14px;font-size:19px}
+.sel::after{content:"⌄";margin-left:auto;font-size:20px}
+.pb{height:9px;border-radius:4px;background:#17304f}.pb i{display:block;height:100%;border-radius:4px;background:#1a8cff}
+.pitch{background:linear-gradient(90deg,#1c6a30,#26793a 50%,#1c6a30);border:2px solid #cfe8d6}
+.pl{border-radius:50%;background:#1a8cff;border:2px solid #7fd0ff;color:#fff;font-weight:700;font-size:21px;display:flex;align-items:center;justify-content:center}
+.n{top:40px;font-size:24px;font-weight:600;line-height:1;position:absolute}
+.bar{width:6px;border-radius:3px;background:#1e90ff}
+</style></head><body><div id="s"></div>
+<script>
+const o=[];
+const D=(x,y,w,h,c,st='',tx='')=>o.push(`<div class="${c}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${st}">${tx}</div>`);
+const T=(x,yc,s,sz,c='',st='')=>o.push(`<div class="t ${c}" style="left:${x}px;top:${yc-sz*.5}px;font-size:${sz}px;${st}">${s}</div>`);
+const H=(x,y,s,i)=>{D(x+8,y-14,6,28,'bar');T(x+24,y,s+(i?' <span class="m" style="font-size:18px;border:1.5px solid #6a84aa;border-radius:50%;padding:0 6px">i</span>':''),25,'b')};
+const PITCH=(x,y,w,h)=>{D(x,y,w,h,'pitch');D(x+w/2,y,2,h,'','background:#cfe8d6aa');D(x+w/2-40,y+h/2-40,80,80,'','border:2px solid #cfe8d6aa;border-radius:50%');D(x,y+h/2-50,w*.1,100,'','border:2px solid #cfe8d6aa');D(x+w*.9,y+h/2-50,w*.1,100,'','border:2px solid #cfe8d6aa')};
+const SEL=(x,y,w,h,v,st='')=>D(x,y,w,h,'sel',st,v);
+const PL=(cx,cy,n,nm,hl,r=19)=>{D(cx-r,cy-r,r*2,r*2,'pl',hl?'background:#2b9bff;box-shadow:0 0 14px #5cc8ff;border-color:#fff':'',n);if(nm)T(cx,cy+r+23,nm,17,'b c')};
+const HEAT=(x,y,w,h,p)=>D(x,y,w,h,'',`background:radial-gradient(circle at ${p[0]}% ${p[1]}%,#ff2a1a,#ffc41a 25%,#19c85a 50%,#0b3a8a 80%);border:2px solid #cfe3d8`);
+
+/* header */
+D(0,0,2560,100,'','background:#040b18;border-bottom:1.5px solid #123a6e');
+T(30,38,'OTSI <span style="color:#1e90ff">VIE</span>',40,'b','letter-spacing:2px');
+T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b','letter-spacing:.8px;color:#2d9bff');
+D(1024,12,169,78,'','border-radius:10px;border:2px solid #2a6fb5;background:#0b2a4d');D(1032,92,153,5,'','border-radius:3px;background:#1e90ff');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(([l,x])=>o.push(`<div class="n" style="left:${x}px;${l=='Tactical'?'color:#4db3ff;font-weight:700':''}">${l}</div>`));
+D(2118,20,2,60,'','background:#1a3556');
+D(2140,23,100,54,'','border:1.5px solid #1f5a9c;border-radius:8px;background:#0a2140;color:#3aa0ff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center','QHD');
+D(2271,25,54,54,'b','border-radius:50%;background:#1790ff;font-size:24px;display:flex;align-items:center;justify-content:center','O');
+T(2340,41,'Owner',23,'b');T(2340,69,'OTSI VIE',20,'m');
+
+/* sidebar */
+D(22,115,382,420,'box');T(40,151,'Match',26,'b');T(332,153,'··',20,'m');T(362,153,'⌄',22);
+T(40,195,'No match selected',22,'b');T(40,230,'—',20,'','color:#cfdcf0');
+D(44,268,50,50,'','border-radius:50%;background:#7ab6ff');T(110,294,'Home team',24,'b','font-weight:500');T(357,292,'—',32,'b');
+D(44,334,50,58,'','border-radius:50%;background:#e8d9a0');T(110,364,'Away team',24,'','font-weight:500');T(357,362,'—',32,'b');
+D(34,418,356,103,'','border:1.5px solid #1f8a5a;border-radius:8px;background:#0a2a2a');D(52,436,36,40,'','background:#2a4a78;border-radius:8px');
+T(108,445,'No analysis available',21,'b','color:#cfe0f5');T(108,473,'Tracking data, events and models',17,'m');T(108,496,'appear after processing completes.',17,'m');
+D(22,541,382,880,'box','border-top:none');
+D(22,545,382,55,'','border-bottom:1px solid #17355f');T(35,568,'View',21,'b','color:#33a8ff');T(110,568,'Filters',20);T(199,568,'Events',20);T(292,568,'All Tools',20);D(22,596,66,3,'','background:#1e90ff');
+T(39,639,'Visual Overlays',22,'b');
+[['Player Boxes',681],['Player IDs',723],['Player Tracks',765],['Team Shapes',807],['Heatmaps',851],['Ball Tracking',895],['Pass Arrows',938]].forEach(([n,y])=>{D(41,y-12,24,24,'ic');T(88,y,n,21,'','color:#cfdcf0');D(340,y-13,46,26,'tr','','<i></i>')});
+T(39,1000,'Team Filter',21,'','color:#cfdcf0');
+D(34,1026,356,46,'','border:1.5px solid #1e90ff;border-radius:6px;background:#0d3a78');D(44,1039,24,24,'','border-radius:50%;background:#1e90ff');
+[['All Players',1050,'—'],['Home team',1100,'—'],['Away team',1148,'—']].forEach(([n,y,c])=>{if(n!='All Players')D(44,y-11,22,22,'','border:2px solid #7fa4d4;border-radius:50%');T(88,y,n,21);D(339,y-15,44,30,'','border:1.5px solid #4a6a96;border-radius:5px;font-size:18px;display:flex;align-items:center;justify-content:center',c)});
+T(39,1207,'Time Range',21,'','color:#cfdcf0');D(34,1233,356,46,'','border:1.5px solid #1e90ff;border-radius:6px;background:#0d3a78');D(46,1245,24,24,'','border-radius:50%;background:#1e90ff');
+[['Full Match',1257],['1st Half',1303],['2nd Half',1344],['Custom Range',1388]].forEach(([n,y],i)=>{if(i)D(47,y-11,22,22,'','border:2px solid #7fa4d4;border-radius:50%');T(88,y,n,21)});
+
+/* title */
+D(440,128,76,48,'','border:3px solid #19a0ff;border-radius:6px');
+T(543,145,'Tactical Intelligence',40,'b');T(543,187,'Go beyond the video. Uncover tactical patterns, team behaviours and player insights with AI-powered analysis.',22,'','color:#c9d6ea');
+SEL(1656,138,364,59,'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Live Match View');T(2053,134,'Team',18,'m','color:#b3c4dc');SEL(2051,145,236,53,'&nbsp;&nbsp;&nbsp;&nbsp;Select team','border-color:#1e90ff;background:#0d3a78');T(2317,134,'Phase',18,'m','color:#b3c4dc');SEL(2316,145,211,53,'All Phases');
+D(438,222,266,62,'','background:linear-gradient(180deg,#0d2d57,#0a2347);border-radius:8px 8px 0 0');D(438,281,266,4,'','background:#1e90ff');
+[['Team Overview',527,1],['Pass Network',791],['Heat Zones',1026],['Pressing &amp; Defense',1238],['Off-Ball Runs',1522],['Player Comparison',1757]].forEach(([n,x,a])=>{D(x-45,242,32,28,'ic',a?'border-color:#33a8ff':'');T(x,253,n,22,a?'b':'',a?'color:#33a8ff':'')});
+
+/* Team shape */
+D(432,300,1228,497,'box');H(432,323,'Team Shape &amp; Formation',1);
+D(447,350,735,433,'box','border-color:#142f55');D(455,360,37,37,'','border-radius:50%;background:#7ab6ff');T(505,378,'No team selected',23,'b');T(849,378,'—',21,'b c');SEL(1049,360,118,37,'—');
+PITCH(447,404,735,379);
+T(814,470,'Not measured — requires calibrated tracking data',22,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+
+D(1206,350,444,260,'box','border-color:#142f55');T(1226,374,'Team Metrics <span class="m" style="font-weight:400">(Current Phase)</span>',20,'b');
+[['Average Width','—',411,0],['Average Length','—',451,0],['Def. Line Height','—',492,0],['Compactness (DEF)','—',532,0]].forEach(([l,v,y,p])=>{T(1226,y,l,21,'','color:#cfdcf0');D(1410,y-4,150,9,'pb','','<i style="width:'+p*100+'%"></i>');T(1583,y,v,19,'b')});
+T(1226,574,'Shape Variability',21,'','color:#cfdcf0');D(1410,570,150,9,'pb','','<i style="width:0%"></i>');T(1583,574,'—',19,'b');
+D(1206,620,444,160,'box','border-color:#142f55');T(1226,645,'Formation Stability',22,'','color:#dbe8f8');T(1584,645,'—',24,'b','color:#33a8ff');
+for(let k=0;k<20;k++)D(1226+k*20.1,666,18,9,'','background:#17304f');
+T(1226,710,'Build-up Shape',20,'','color:#cfdcf0');T(1385,710,'—',21,'b');D(1450,703,14,14,'','background:#19e6a0;transform:rotate(45deg)');T(1480,710,'In Possession',19,'','color:#cfdcf0');
+T(1226,756,'Defensive Shape',20,'','color:#cfdcf0');T(1385,756,'—',21,'b');D(1450,749,14,14,'','background:#19e6a0;transform:rotate(45deg)');T(1480,756,'Out of Possession',19,'','color:#cfdcf0');
+
+/* Video preview */
+D(1676,292,856,505,'box');H(1676,323,'Video Preview (Synced)',1);SEL(2275,305,182,38,'Tactical Angle');D(2486,310,28,28,'','border:2px solid #cfe3ff;border-radius:5px');
+D(1684,351,844,369,'','background:linear-gradient(180deg,#0a2a55 0,#143a70 22%,#1d5a2e 36%,#256b34 100%)');D(1684,351,844,90,'','background:repeating-linear-gradient(90deg,#183a70,#10264a 14px,#1d4380 28px);opacity:.75');
+D(1695,360,350,37,'','background:#0a1a38;border-radius:4px');D(1695,360,40,37,'','background:#fff;border-radius:3px');T(1752,378,'—',24,'b');D(1826,360,76,37,'b','background:#1580ff;font-size:22px;display:flex;align-items:center;justify-content:center','—');T(1912,378,'—',22,'b');D(1970,360,75,37,'b','background:#1580ff;font-size:22px;display:flex;align-items:center;justify-content:center','—');
+T(2106,535,'No video loaded',24,'c','color:#dbe8f8');
+
+T(1702,760,'▶',24);T(1750,760,'▶',44);T(1807,760,'— / —',20);D(1945,757,321,7,'pb','','<i style="width:0%"></i>');D(1945,751,18,18,'','border-radius:50%;background:#fff');SEL(2292,741,73,38,'1x');T(2388,760,'🔊',22);T(2436,760,'⚙',24);T(2486,760,'⛶',24);
+
+/* Pass network */
+D(432,810,650,340,'box');H(432,842,'Pass Network',1);SEL(667,824,191,38,'Select team');SEL(881,824,185,38,'Time range');
+PITCH(445,879,447,256);
+T(668,915,'Not measured',22,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+
+T(919,917,'Passes',19,'m','color:#cfdcf0');
+[['1-3',950,2],['4-6',979,4],['7-10',1008,6],['10+',1037,9]].forEach(([l,y,w])=>{D(919,y-w/2,40,w,'','background:#1a8cff;border-radius:3px'+(l=='10+'?';background:#dbe8ff':''));T(974,y,l,18,'','color:#cfdcf0')});
+D(919,1075,40,3,'','background:#1a8cff');T(974,1076,'Successful',18,'','color:#cfdcf0');D(919,1103,40,0,'','border-top:3px dashed #ff3a3a');T(974,1104,'Unsuccessful',18,'','color:#cfdcf0');
+
+/* Possession */
+D(1103,810,705,340,'box');H(1103,842,'Possession &amp; Heat Zones');
+D(1440,822,122,43,'','background:#0d5ac0;border-radius:6px;font-size:19px;font-weight:600;display:flex;align-items:center;justify-content:center','Heatmap');D(1562,822,240,43,'','border:1.5px solid #17355f;border-radius:0 6px 6px 0;background:#0a1d38');T(1592,844,'Territory',18,'m');T(1709,844,'Final Thirds',18,'m');
+D(1126,878,28,28,'','border-radius:50%;background:#7ab6ff');T(1166,891,'Home team',19,'b');D(1480,878,28,28,'','border-radius:50%;background:#e8d9a0');T(1521,891,'Away team',19,'b');
+D(1125,912,310,160,'','background:#1d5a2e;border:2px solid #cfe3d8');T(1280,992,'No data',20,'c','color:#cfe3d8');D(1480,912,307,160,'','background:#1d5a2e;border:2px solid #cfe3d8');T(1633,992,'No data',20,'c','color:#cfe3d8');
+T(1122,1096,'Possession',19,'','color:#cfdcf0');T(1122,1121,'—',25,'b','color:#33a8ff');D(1213,1115,220,9,'pb','','<i style="width:0%"></i>');
+T(1477,1096,'Possession',19,'','color:#cfdcf0');T(1477,1121,'—',25,'b');D(1568,1115,220,9,'pb','','<i style="width:0%;background:#fff"></i>');
+
+/* Pressing */
+D(1830,810,702,340,'box');H(1830,844,'Pressing Map',1);SEL(2107,824,190,38,'Select team');SEL(2322,824,192,38,'All Phases');
+PITCH(1846,879,441,256);
+T(2066,915,'Not measured',22,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+[['Pressing Event',888,'#2b7bff','●'],['Recovery',916,'#19e6a0','◆'],['Forced Turnover',945,'#ff3a3a','▲']].forEach(([l,y,c,g])=>{T(2325,y,g,18,'',`color:${c}`);T(2359,y,l,19,'','color:#cfdcf0')});
+T(2315,980,'- - →',18,'');T(2359,980,'Pressing Direction',19,'','color:#cfdcf0');
+[['PPDA','—',1025],['High Press Success','—',1056],['Final Third Regains','—',1088],['Avg Press Height','—',1119]].forEach(([l,v,y])=>{T(2315,y,l,18,'','color:#cfdcf0');T(2514-v.length*10,y,v,18,'b')});
+
+/* Off-ball */
+D(432,1162,1008,258,'box');H(432,1193,'Off-Ball Runs',1);SEL(658,1176,234,36,'Select player');SEL(917,1176,187,36,'Time range');
+PITCH(447,1230,460,177);
+T(677,1262,'Not measured',20,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+
+[['Off-ball run',1265,'#19d3ff','- - -'],['Leading run',1294,'#ffb21a','- - →'],['Supporting run',1324,'#dbe8ff','- - -']].forEach(([l,y,c,g])=>{T(946,y,g,18,'',`color:${c}`);T(994,y,l,19,'','color:#cfdcf0')});
+D(956,1350,16,16,'','border:3px solid #fff;border-radius:50%');T(994,1357,'Run start',19,'','color:#cfdcf0');D(956,1380,16,16,'','background:#fff;border-radius:50%');T(994,1388,'Run end',19,'','color:#cfdcf0');
+D(1145,1230,278,177,'box','border-color:#142f55');
+[['Total Off-Ball Runs','—',1256],['Progressive Runs','—',1296],['Runs Into Box','—',1337],['Avg Run Distance','—',1377]].forEach(([l,v,y])=>{T(1163,y,l,19,'','color:#cfdcf0');T(1398-(v.length>2?30:0),y,v,19,'b')});
+
+/* Player comparison */
+D(1462,1162,1070,258,'box');H(1462,1193,'Player Comparison');SEL(2074,1176,216,38,'Attacking Midfielder');SEL(2317,1176,197,38,'Last 30 Minutes');
+D(1489,1230,133,160,'','border-radius:6px;background:linear-gradient(135deg,#5a6f8c,#2a4a78)');T(1638,1244,'Player A',20,'b');T(1660,1277,'No player selected',17,'','color:#cfdcf0');T(1638,1311,'Position —',19,'','color:#cfdcf0');D(1638,1350,46,36,'b','background:#1580ff;border-radius:4px;font-size:22px;text-align:center;line-height:36px','—');
+D(2215,1230,127,160,'','border-radius:6px;background:linear-gradient(135deg,#6a5f5a,#3a2a28)');T(2357,1244,'Player B',20,'b');T(2378,1277,'No player selected',17,'','color:#cfdcf0');T(2357,1311,'Position —',19,'','color:#cfdcf0');D(2358,1350,44,36,'b','background:#fff;color:#07152b;border-radius:4px;font-size:22px;text-align:center;line-height:36px','—');
+[['Passes','—','—',1238],['Pass Accuracy','—','—',1270],['Progressive Passes','—','—',1302],['Key Passes','—','—',1334],['Off-Ball Runs','—','—',1366],['Chances Created','—','—',1397]].forEach(([l,a,b,y])=>{T(1846,y,a,18,'b');T(1996,y,l,17,'c','color:#cfdcf0');T(2178,y,b,18,'b');D(2105,y-5,42,10,'','background:#17304f;border-radius:3px')});
+document.getElementById('s').innerHTML=o.join('');
+function fit(){const k=Math.min(innerWidth/2560,innerHeight/1440),s=document.getElementById('s');s.style.transform='scale('+k+')';s.style.left=(innerWidth-2560*k)/2+'px';s.style.top=(innerHeight-1440*k)/2+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

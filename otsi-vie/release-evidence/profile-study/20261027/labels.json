@@ -1,0 +1,11 @@
+{
+ "_how": "Developer visual inspection of the numbered contact sheets (random sample of up to 48 extra boxes per clip and profile: boxes of confirmed person tracks that the Standard profile does not have on the shared 2-fps frames). Categories: footballer = a player or goalkeeper in kit on the pitch; other_person = a real person who is not a footballer on the pitch (spectator, coach, staff, photographer, interviewee); fragment = a box on part of a player that another box already covers; not_person = object, board, text, ball, blur; uncertain = cannot be decided at this resolution. NOT manually labelled ground truth (no complete frames were labelled); recall is not measured.",
+ "naples_amateur/HIGH_ACCURACY": {"n": 40, "footballer": 35, "other_person": 5, "fragment": 0, "not_person": 0, "uncertain": 0},
+ "naples_amateur/ULTRA_SENSITIVE": {"n": 48, "footballer": 30, "other_person": 12, "fragment": 0, "not_person": 5, "uncertain": 1},
+ "ocsc_wide/HIGH_ACCURACY": {"n": 48, "footballer": 19, "other_person": 22, "fragment": 4, "not_person": 2, "uncertain": 1},
+ "ocsc_wide/ULTRA_SENSITIVE": {"n": 48, "footballer": 21, "other_person": 17, "fragment": 5, "not_person": 2, "uncertain": 3},
+ "france_germany/HIGH_ACCURACY": {"n": 48, "footballer": 44, "other_person": 3, "fragment": 0, "not_person": 0, "uncertain": 1},
+ "france_germany/ULTRA_SENSITIVE": {"n": 48, "footballer": 19, "other_person": 5, "fragment": 0, "not_person": 17, "uncertain": 7},
+ "france_germany_degraded_360p/HIGH_ACCURACY": {"n": 48, "footballer": 37, "other_person": 7, "fragment": 0, "not_person": 1, "uncertain": 3},
+ "france_germany_degraded_360p/ULTRA_SENSITIVE": {"n": 48, "footballer": 17, "other_person": 7, "fragment": 0, "not_person": 7, "uncertain": 17}
+}

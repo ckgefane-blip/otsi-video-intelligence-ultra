@@ -1,0 +1,816 @@
+{
+ "pages": {
+  "01_HOME_OVERVIEW.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 487,
+   "origElementCount": 487,
+   "structural": {
+    "orig": 91,
+    "work": 91,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "Professional Football",
+     "Video Intelligence",
+     7930
+    ],
+    [
+     "text exceeds its box",
+     "Competition not selected",
+     "1735,602,787,135",
+     5
+    ],
+    [
+     "text-icon overlap",
+     "View All",
+     "780,776,20,20",
+     360
+    ],
+    [
+     "text-icon overlap",
+     "View All",
+     "1757,776,20,20",
+     380
+    ],
+    [
+     "text-icon overlap",
+     "View All",
+     "2479,776,20,20",
+     380
+    ]
+   ],
+   "denylistHits": [
+    "UEFA",
+    "FIFA",
+    "LALIGA",
+    "MCI"
+   ],
+   "numericTexts": [
+    "MP4, MOV, up to 2GB",
+    "(MP4, MOV, up to 2GB)."
+   ]
+  },
+  "02_UPLOAD_INGEST.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 533,
+   "origElementCount": 533,
+   "structural": {
+    "orig": 65,
+    "work": 65,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "Team not assigned",
+     "Team not assigned",
+     605
+    ],
+    [
+     "text exceeds its box",
+     "team shapes and events...",
+     "1053,1122,287,155",
+     9
+    ],
+    [
+     "text exceeds its box",
+     "Video ready for analysis",
+     "1627,1122,263,155",
+     15
+    ],
+    [
+     "text exceeds its box",
+     "Awaiting actual status",
+     "2355,231,127,40",
+     62
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "2499,240,22,22",
+     296
+    ],
+    [
+     "text exceeds its box",
+     "Awaiting actual status",
+     "2349,340,143,40",
+     46
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "2499,349,22,22",
+     338
+    ],
+    [
+     "text exceeds its box",
+     "Awaiting actual status",
+     "2355,451,127,40",
+     62
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "2499,460,22,22",
+     296
+    ],
+    [
+     "text exceeds its box",
+     "No job recorded",
+     "2360,563,122,40",
+     19
+    ],
+    [
+     "text exceeds its box",
+     "No job recorded",
+     "2360,677,122,40",
+     19
+    ]
+   ],
+   "denylistHits": [
+    "TS",
+    "MPEG-TS"
+   ],
+   "numericTexts": [
+    "Supports MP4, MOV, AVI, MKV and more  •  Max file size 50 GB"
+   ]
+  },
+  "03_AI_PROCESSING.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 345,
+   "origElementCount": 345,
+   "structural": {
+    "orig": 72,
+    "work": 72,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "Track objects across frames",
+     "→",
+     160
+    ],
+    [
+     "text exceeds its box",
+     "Players Tracked",
+     "1707,1297,188,113",
+     11
+    ]
+   ],
+   "denylistHits": [
+    "UEFA Champions League",
+    "Man City vs Real Madrid",
+    "MCI",
+    "RMA",
+    "UEFA CHAMPIONS LEAGUE",
+    "10 MCI",
+    "15 RMA",
+    "11 MCI",
+    "22 RMA",
+    "20 MCI",
+    "17  MCI",
+    "Man City (Blue) vs Real Madrid (White)",
+    "Identified: Kevin De Bruyne (ID: 17, MCI)",
+    "NVIDIA A100"
+   ],
+   "numericTexts": [
+    "Tue, 16 Apr 2024  •  1080p  •  95:28",
+    "68%",
+    "100%",
+    "78%",
+    "32%",
+    "0%",
+    "62:17",
+    "10 MCI",
+    "15 RMA",
+    "11 MCI",
+    "22",
+    "22 RMA",
+    "20 MCI",
+    "17  MCI",
+    "62:17 / 95:28",
+    "22 players detected",
+    "Ball  0.98",
+    "14:32:18",
+    "14:32:21",
+    "Video decoded (95:28, 1080p, 50 fps)",
+    "14:32:24",
+    "14:32:27",
+    "14:32:32",
+    "Tracking objects across 171,840 frames...",
+    "14:32:38",
+    "Player tracklets generated (22)",
+    "14:32:45",
+    "14:33:02",
+    "Matched 21/22 players to database",
+    "14:33:18",
+    "Identified: Kevin De Bruyne (ID: 17, MCI)",
+    "14:33:21",
+    "14:33:25",
+    "342 events detected so far",
+    "14:33:28",
+    "14:33:30",
+    "14:33:31",
+    "72%",
+    "48%",
+    "32 Cores",
+    "1.8",
+    "/2 TB",
+    "0:00",
+    "10:00",
+    "20:00",
+    "30:00",
+    "40:00",
+    "50:00",
+    "60:00",
+    "70:00",
+    "80:00",
+    "90:00",
+    "95:28",
+    "342"
+   ]
+  },
+  "04_ANALYSIS_WORKSPACE.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 631,
+   "origElementCount": 631,
+   "structural": {
+    "orig": 121,
+    "work": 121,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "Man City",
+     "11",
+     108
+    ],
+    [
+     "text-text overlap",
+     "Kevin De Bruyne",
+     "MCI",
+     146
+    ],
+    [
+     "text exceeds its box",
+     "AI tracking data, events and AI models",
+     "37,396,343,98",
+     15
+    ],
+    [
+     "text exceeds its box",
+     "11.4 km",
+     "2029,1055,115,103",
+     4
+    ],
+    [
+     "text exceeds its box",
+     "34.2 km/h",
+     "2155,1055,116,103",
+     24
+    ]
+   ],
+   "denylistHits": [
+    "UEFA Champions League",
+    "Manchester City",
+    "Real Madrid",
+    "Man City",
+    "MCI",
+    "RMA",
+    "mastercard",
+    "priceless",
+    "UEFA CHAMPIONS LEAGUE",
+    "K. De Bruyne",
+    "E. Haaland",
+    "Bernardo Silva",
+    "J. Doku",
+    "P. Foden",
+    "K. Walker",
+    "J. Stones",
+    "Team Shape (RMA)",
+    "Kevin De Bruyne",
+    "Erling Haaland",
+    "Jérémy Doku",
+    "Phil Foden",
+    "Kyle Walker",
+    "John Stones",
+    "Gvardiol",
+    "Mateo Kovačić",
+    "Jack Grealish",
+    "Manchester City  |",
+    "Belgium"
+   ],
+   "numericTexts": [
+    "Tue, 16 Apr 2024",
+    "22",
+    "11",
+    "62:17",
+    "15",
+    "47",
+    "40",
+    "17",
+    "10",
+    "12",
+    "20",
+    "62:17 / 95:28",
+    "428",
+    "18",
+    "36",
+    "28",
+    "14",
+    "00:00",
+    "15:00",
+    "30:00",
+    "45:00",
+    "60:00",
+    "75:00",
+    "90:00",
+    "Players (22)",
+    "98%",
+    "97%",
+    "96%",
+    "95%",
+    "94%",
+    "24",
+    "92%",
+    "91%",
+    "Age 32",
+    "11.4 km",
+    "↑ +8%",
+    "34.2 km/h",
+    "↑ +6%",
+    "68",
+    "↑ +18%",
+    "↑ +200%",
+    "92",
+    "89%"
+   ]
+  },
+  "05_TACTICAL_INTELLIGENCE.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 435,
+   "origElementCount": 435,
+   "structural": {
+    "orig": 52,
+    "work": 52,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text exceeds its box",
+     "All tracking data, events and AI models",
+     "34,418,356,103",
+     9
+    ],
+    [
+     "text exceeds its box",
+     "DE BRUYNE",
+     "775,554,80,80",
+     17
+    ],
+    [
+     "text exceeds its box",
+     "Out of Possession",
+     "1206,620,444,160",
+     9
+    ],
+    [
+     "text exceeds its box",
+     "12",
+     "1145,1230,278,177",
+     5
+    ],
+    [
+     "text exceeds its box",
+     "18.3 m",
+     "1145,1230,278,177",
+     14
+    ]
+   ],
+   "denylistHits": [
+    "UEFA Champions League",
+    "Manchester City",
+    "Real Madrid",
+    "Man City",
+    "AKE",
+    "MCI",
+    "RMA",
+    "mastercard",
+    "priceless",
+    "Kevin De Bruyne (17)",
+    "Kevin De Bruyne",
+    "Manchester City  |  MCI",
+    "Jude Bellingham",
+    "Real Madrid  |  RMA"
+   ],
+   "numericTexts": [
+    "Tue, 16 Apr 2024",
+    "22",
+    "11",
+    "62:17",
+    "24",
+    "10",
+    "16",
+    "17",
+    "20",
+    "31",
+    "32.4 m",
+    "28.1 m",
+    "46.8 m",
+    "7.3 m",
+    "92%",
+    "62:17 / 95:28",
+    "62:17 - 75:00",
+    "7-10",
+    "10+",
+    "58%",
+    "42%",
+    "8.4",
+    "62%",
+    "48.2 m",
+    "Kevin De Bruyne (17)",
+    "60:00 - 75:00",
+    "12",
+    "18.3 m",
+    "Last 30 Minutes",
+    "42",
+    "28",
+    "86%",
+    "82%"
+   ]
+  },
+  "06_REEL_BUILDER.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 585,
+   "origElementCount": 585,
+   "structural": {
+    "orig": 93,
+    "work": 93,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "No player selected",
+     "—",
+     572
+    ],
+    [
+     "text-text overlap",
+     "Team not assigned",
+     "|",
+     127
+    ],
+    [
+     "text occluded",
+     "Title",
+     "38,1066,363,53",
+     "64%"
+    ]
+   ],
+   "denylistHits": [
+    "MCI",
+    "RMA"
+   ],
+   "numericTexts": [
+    "12 moments selected"
+   ]
+  },
+  "07_CLIP_STUDIO.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 1150,
+   "origElementCount": 1150,
+   "structural": {
+    "orig": 90,
+    "work": 90,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "Clip Studio",
+     "/",
+     348
+    ],
+    [
+     "text-text overlap",
+     "Team not assigned",
+     "Player not selected",
+     1309
+    ],
+    [
+     "text-text overlap",
+     "Player not selected",
+     "Competition not selected",
+     1091
+    ],
+    [
+     "text-text overlap",
+     "Graphics & Overlays",
+     "5",
+     143
+    ],
+    [
+     "text-icon overlap",
+     "Team not assigned",
+     "280,364,14,14",
+     196
+    ],
+    [
+     "text-icon overlap",
+     "Player not selected",
+     "397,364,14,14",
+     196
+    ],
+    [
+     "text-icon overlap",
+     "undefined",
+     "529,1255,26,26",
+     676
+    ],
+    [
+     "text-icon overlap",
+     "undefined",
+     "1183,1255,26,26",
+     676
+    ],
+    [
+     "text-icon overlap",
+     "undefined",
+     "1843,1255,26,26",
+     676
+    ]
+   ],
+   "denylistHits": [],
+   "numericTexts": [
+    "00:24.17",
+    "01:28.00",
+    "00:14  •  4K  •  60fps  •  MP4",
+    "Added 16 Apr 2024, 14:32",
+    "62:17  (2nd Half)",
+    "Pass Distance (7.4 km)",
+    "xA (0.54)"
+   ]
+  },
+  "08_PLAYER_REPORT.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 657,
+   "origElementCount": 657,
+   "structural": {
+    "orig": 116,
+    "work": 116,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text exceeds its box",
+     "Unverified",
+     "1767,280,80,35",
+     35
+    ],
+    [
+     "text exceeds its box",
+     "Leadership and experience",
+     "2051,1167,473,118",
+     4
+    ]
+   ],
+   "denylistHits": [
+    "vs. Midfielders (UCL 23/24)"
+   ],
+   "numericTexts": [
+    "181 cm",
+    "70 kg",
+    "across 528+ minutes",
+    "92% of match",
+    "↑ +8%",
+    "↑ +6%",
+    "↑ +23%",
+    "↑ +50%",
+    "↑ +100%",
+    "↑ +0.18",
+    "↑ +0.31",
+    "Progressive carry (28 m)",
+    "vs. Midfielders (UCL 23/24)",
+    "8.1 progressive carries per 90, positioning him in the top 5%.",
+    "62% of attacking actions originate from the right half-space.",
+    "/ 10"
+   ]
+  },
+  "09_LIBRARY_PROJECT_CENTER.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 761,
+   "origElementCount": 761,
+   "structural": {
+    "orig": 139,
+    "work": 139,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-icon overlap",
+     "Shared With Me",
+     "1803,254,28,28",
+     303
+    ],
+    [
+     "text-icon overlap",
+     "All Competitions",
+     "1206,348,18,18",
+     126
+    ],
+    [
+     "text exceeds its box",
+     "Competition not selected",
+     "816,417,200,42",
+     67
+    ],
+    [
+     "text-icon overlap",
+     "Competition not selected",
+     "1046,426,24,24",
+     501
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,574,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,754,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,844,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,933,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,1112,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,1198,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,1285,26,26",
+     543
+    ],
+    [
+     "text-icon overlap",
+     "Awaiting actual status",
+     "1933,1372,26,26",
+     543
+    ],
+    [
+     "text exceeds its box",
+     "Player not selected",
+     "2104,538,104,35",
+     46
+    ],
+    [
+     "outside stage",
+     "Team not selected",
+     "",
+     "2415,726,160,22"
+    ],
+    [
+     "text exceeds its box",
+     "Player not selected",
+     "2221,1013,85,36",
+     32
+    ]
+   ],
+   "denylistHits": [
+    "JD",
+    "SK",
+    "TS",
+    "UCL Quarter-Final Scouting Pack",
+    "UCL",
+    "Sarah Kim",
+    "Mike Chen"
+   ],
+   "numericTexts": [
+    "Tue, 16 Apr 2024",
+    "11"
+   ]
+  },
+  "10_EXPORT_DELIVERY.html": {
+   "errors": [],
+   "navOk": true,
+   "elementCount": 552,
+   "origElementCount": 552,
+   "structural": {
+    "orig": 105,
+    "work": 105,
+    "removed": [],
+    "added": []
+   },
+   "findings": [
+    [
+     "text-text overlap",
+     "OTSI VIE",
+     "VIDEO INTELLIGENCE ENGINE",
+     207
+    ],
+    [
+     "text-text overlap",
+     "Include Performance Report (PDF)",
+     "Preview",
+     463
+    ],
+    [
+     "text-icon overlap",
+     "Choose format, branding and output",
+     "384,393,16,16",
+     78
+    ],
+    [
+     "text exceeds its box",
+     "Progressive Passes",
+     "1498,472,258,62",
+     10
+    ],
+    [
+     "text exceeds its box",
+     "Unmeasured",
+     "2384,555,131,43",
+     32
+    ],
+    [
+     "text-icon overlap",
+     "Unmeasured",
+     "2481,569,18,18",
+     324
+    ],
+    [
+     "text occluded",
+     "MP4 • 1080p • 16:9 • 03:42",
+     "464,1216,708,66",
+     "27%"
+    ],
+    [
+     "text exceeds its box",
+     "Not ready",
+     "1989,993,84,34",
+     32
+    ]
+   ],
+   "denylistHits": [
+    "UCL",
+    "CHAMPIONS",
+    "JD",
+    "SK"
+   ],
+   "numericTexts": [
+    "Tue, 16 Apr 2024",
+    "02:17 (12 clips)",
+    "16 APR 2024",
+    "12",
+    "Highlight Chapters (12)",
+    "MP4 • 1080p • 16:9 • 03:42",
+    "MP4 • 1080p • 16:9 • 02:58"
+   ]
+  }
+ },
+ "chrome": "155.0.8059.84"
+}

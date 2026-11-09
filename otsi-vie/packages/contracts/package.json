@@ -1,0 +1,18 @@
+{
+  "name": "@otsi-vie/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Versioned API contracts (zod) shared by the API and the web app",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}

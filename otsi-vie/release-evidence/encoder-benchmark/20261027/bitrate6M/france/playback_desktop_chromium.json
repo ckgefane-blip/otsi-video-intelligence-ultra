@@ -1,0 +1,13 @@
+{
+ "browser": "Chromium 152.0.7977.167 desktop build with platform media decoders (Claude desktop app browser pane, Windows 11); Microsoft Edge could not be automated (exits at once when launched by Playwright alongside the running Edge)",
+ "method": "files served over local HTTP; <video> muted autoplay for 1.5 s; ok = no error, size known, clock advanced, frames presented",
+ "canPlayType": {"h264_high avc1.640028": "probably", "h264_constrained_baseline avc1.42E028": "probably", "av1": "probably", "vp9": "probably"},
+ "results": {
+  "intel-qsv-h264.mp4": {"ok": true, "w": 1920, "h": 1080, "t": 1.52, "frames": 42, "dropped": 0},
+  "mf-h264.mp4": {"ok": true, "w": 1920, "h": 1080, "t": 1.52, "frames": 42, "dropped": 0},
+  "openh264.mp4": {"ok": true, "w": 1920, "h": 1080, "t": 1.51, "frames": 43, "dropped": 0},
+  "intel-qsv-av1.mp4": {"ok": true, "w": 1920, "h": 1080, "t": 1.51, "frames": 43, "dropped": 0},
+  "svt-av1.mp4": {"ok": true, "w": 1920, "h": 1080, "t": 1.51, "frames": 43, "dropped": 0},
+  "libvpx-vp9.webm": {"ok": true, "w": 1920, "h": 1080, "t": 1.51, "frames": 43, "dropped": 0}
+ }
+}

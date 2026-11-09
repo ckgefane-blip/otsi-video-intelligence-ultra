@@ -1,0 +1,52 @@
+# Python dependencies of OTSI VIE v2 (workers, CV, database tooling, tests): exact versions of everything installed, transitive included.
+# Install into D:\OTSI-Workspace\VIE-Engine-v2\.venv with caches on D: (workspace rule):
+#   .venv\Scripts\python.exe -m pip install --cache-dir D:/OTSI-Workspace/_tmp/pip-cache --extra-index-url https://download.pytorch.org/whl/cpu -r otsi-vie\requirements.txt
+equirements.txt
+# torch is the CPU build. Licences: docs/legal/DEPENDENCY_LICENSES.md (generated) and LICENSE_REGISTER.md.
+anyio==4.16.0
+av==13.1.0   # DEVELOPER TOOLS ONLY (tools/models/sampling_study.py): bundles a GPL FFmpeg; the product uses the LGPL build (ADR-029, test_media_licensing.py)
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+colorama==0.4.6
+cryptography==43.0.3
+filelock==4.2.4
+fsspec==2026.9.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==0.36.2
+idna==3.20
+iniconfig==2.3.1
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.6.1
+numpy==2.1.3
+opt-einsum==3.3.0
+packaging==26.3
+paddlepaddle==3.3.1   # Paddle Inference (CPU) for the PP-OCRv5 lineup readers (ADR-039); Apache-2.0
+pillow==11.1.0
+pluggy==1.7.0
+protobuf==7.36.2
+psutil==6.1.1
+pyarrow==18.1.0
+pycountry==24.6.1
+pycparser==3.12
+PyMySQL==1.1.1
+pytest==8.3.3
+PyYAML==6.0.3
+regex==2026.9.29
+requests==2.34.2
+safetensors==0.8.0   # 0.8 needed by paddlepaddle; the embedder's GPU parity check passes with it
+scipy==1.14.1
+setuptools==78.1.0
+sympy==1.13.1
+tokenizers==0.21.4
+torch==2.6.0+cpu   # CPU build from https://download.pytorch.org/whl/cpu
+tqdm==4.70.1
+transformers==4.49.0
+typing_extensions==4.16.0
+urllib3==2.8.0
+openvino==2025.3.0
+openvino-telemetry==2025.2.0

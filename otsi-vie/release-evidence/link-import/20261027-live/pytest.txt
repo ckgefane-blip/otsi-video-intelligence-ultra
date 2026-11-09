@@ -1,0 +1,16 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.15, pytest-8.3.3, pluggy-1.7.0 -- D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\services\worker
+collecting ... collected 3 items
+
+tests/test_providers_live.py::test_live_wikimedia_commons_file_page PASSED [ 33%]
+tests/test_providers_live.py::test_live_internet_archive_item PASSED     [ 66%]
+tests/test_providers_live.py::test_live_youtube_is_refused_without_contacting_it PASSED [100%]
+
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED tests/test_providers_live.py::test_live_wikimedia_commons_file_page
+PASSED tests/test_providers_live.py::test_live_internet_archive_item
+PASSED tests/test_providers_live.py::test_live_youtube_is_refused_without_contacting_it
+============================== 3 passed in 8.99s ==============================

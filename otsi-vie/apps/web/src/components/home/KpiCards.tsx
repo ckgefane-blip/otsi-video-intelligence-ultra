@@ -1,0 +1,63 @@
+"use client";
+/**
+ * Page 01 Section 04 — the four KPI cards (approved reference 01_HOME_OVERVIEW, "stats").
+ *
+ * Real totals of the organization from GET /v1/overview/stats (recorded rows only). "—" while loading or when the totals could not be
+ * read: unknown, never a guessed number. The change figure is how many were added in the last 7 days ("+N"), and the five bars are the
+ * last five weeks, oldest first, scaled to the busiest week (the reference's 4 px is an empty week). Both "—" / flat until loaded. A card opens the page that lists what it counts (players have no list page yet, so that card is not a link).
+ */
+import type { OverviewStats } from "@otsi-vie/contracts";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { Evidence } from "@/components/evidence/Evidence";
+import { B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+
+/** icon, stat, label, link, panel x, panel w, icon box x0, x1, text x, change x (right edge), first trend bar x */
+type Stat = Exclude<keyof OverviewStats, "weekly">;
+const CARDS: [string, Stat, string, string | null, number, number, number, number, number, number, number][] = [
+  ["cam", "matches_analyzed", "Matches Analyzed", "/matches", 39, 413, 60, 145, 172, 428, 365],
+  ["ppl", "players_tracked", "Players Tracked", null, 470, 408, 499, 584, 609, 855, 782],
+  ["reel", "reels_generated", "Reels Generated", "/reels", 896, 399, 917, 1000, 1027, 1270, 1195],
+  ["doc", "reports_created", "Reports Created", "/reports", 1314, 401, 1339, 1422, 1444, 1689, 1615],
+];
+
+const Y = 602;
+
+export function KpiCards() {
+  const [stats, setStats] = useState<OverviewStats | null>(null);
+  useEffect(() => { void api<OverviewStats>("/v1/overview/stats").then(setStats, () => setStats(null)); }, []);
+
+  return (
+    <section aria-label="Headline KPI strip" data-section="p01-s04" data-loaded={stats ? "yes" : "no"}>
+      {CARDS.map(([icon, key, label, href, px, pw, i0, i1, tx, cx, bx]) => {
+        const value = stats ? stats[key].toLocaleString("en-GB") : "—";
+        const weeks = stats?.weekly[key] ?? null, peak = weeks ? Math.max(...weeks) : 0;
+        const o: [number, number] = [px, Y];
+        const body = (
+          <>
+            <B o={o} x={i0} y={623} w={i1 - i0} h={86} style={{ background: "#0a2b55", borderRadius: u(12) }} />
+            <Ic o={o} x={(i0 + i1) / 2} y={666} k={icon} size={44} color="#33a8ff" />
+            <T o={o} x={tx} y={649} size={36} weight={700} as="span">{value}</T>
+            <T o={o} x={tx} y={687} size={22} color="#cfe0f5" as="span">{label}</T>
+            {key === "players_tracked" && <B o={o} x={tx + 172} y={677} w={20} h={20}><Evidence level="CONFIRMED" compact size={12} why="a person confirmed each of them on a track" /></B>}
+            <T o={o} x={cx} y={646} size={19} weight={600} color={weeks && weeks[4]! > 0 ? "#3ee6a8" : "#8ea3bf"} align="right" as="span">
+              {weeks ? `+${weeks[4]}` : "—"}
+            </T>
+            {[0, 1, 2, 3, 4].map((j) => {
+              const h = weeks && peak ? 4 + Math.round((20 * weeks[j]!) / peak) : 4;
+              return <B key={j} o={o} x={bx + j * 15} y={712 - h} w={9} h={h} style={{ background: weeks && weeks[j]! > 0 ? "#1e90ff" : "#1e3a66", borderRadius: u(2) }} />;
+            })}
+          </>
+        );
+        const box = { left: u(px), top: u(Y - 101), width: u(pw), height: u(135) };
+        return href ? (
+          <Link key={key} href={href} className={`${s.cta} ${s.pnFill} ${s.framed}`} style={box}
+            aria-label={`${label}: ${stats ? `${stats[key]}, ${weeks![4]} in the last 7 days` : "unknown"}`}>{body}</Link>
+        ) : (
+          <div key={key} className={`${s.a} ${s.pnFill} ${s.framed}`} style={box} role="group" aria-label={`${label}: ${stats ? `${stats[key]}, ${weeks![4]} in the last 7 days` : "unknown"}`}>{body}</div>
+        );
+      })}
+    </section>
+  );
+}

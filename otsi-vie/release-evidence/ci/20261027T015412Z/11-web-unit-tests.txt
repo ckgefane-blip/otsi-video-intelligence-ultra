@@ -1,0 +1,22 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm test
+(cwd otsi-vie\apps\web)
+
+
+> @otsi-vie/web@0.1.0 test D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> vitest run
+
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/web
+
+ ✓ test/safe-next.test.ts (2 tests) 3ms
+ ✓ test/pages.test.ts (20 tests) 14ms
+ ✓ test/identity.test.ts (3 tests) 4ms
+ ✓ test/shell.test.tsx (3 tests) 139ms
+
+ Test Files  4 passed (4)
+      Tests  28 passed (28)
+   Start at  04:56:09
+   Duration  2.56s (transform 288ms, setup 1.89s, collect 592ms, tests 160ms, environment 4.12s, prepare 830ms)
+
+
+exit=0

@@ -1,0 +1,40 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm test
+(cwd otsi-vie\apps\api)
+
+
+> @otsi-vie/api@0.1.0 test D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\api
+> vitest run
+
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/api
+
+ ✓ test/media.api.test.ts (13 tests) 1400ms
+[Nest] 26688  - 10/27/2026, 12:15:12 AM    WARN [OutboxDispatcher] event 51 (test.happened) attempt 1 failed; will retry: test.flaky: boom
+[Nest] 26688  - 10/27/2026, 12:15:12 AM    WARN [OutboxDispatcher] event 52 (test.happened) attempt 1 failed; will retry: test.leaky: connect mysql://[REDACTED]@db.internal:3306/x failed; password=[REDACTED]; Bearer [REDACTED]
+[Nest] 26688  - 10/27/2026, 12:15:12 AM    WARN [OutboxDispatcher] event 53 (test.happened) attempt 1 failed; will retry: test.poison: cannot handle this
+[Nest] 26688  - 10/27/2026, 12:15:13 AM    WARN [OutboxDispatcher] event 54 (test.happened) attempt 1 failed; will retry: test.hung: timed out after 150 ms
+[Nest] 26688  - 10/27/2026, 12:15:14 AM    WARN [OutboxDispatcher] event 55 (test.happened) attempt 1 failed; will retry: test.writer: failed after writing
+[Nest] 26688  - 10/27/2026, 12:15:14 AM    WARN [OutboxDispatcher] event 56 (test.happened) attempt 1 failed; will retry: test.sequence: first try fails
+ ✓ test/outbox.dispatcher.test.ts (14 tests) 3931ms
+   ✓ concurrency, crashes and fencing > recovers events claimed by a crashed dispatcher once the lease expires; the crashed one is fenced off 442ms
+   ✓ failures > retries with back-off and keeps a redacted error 409ms
+   ✓ failures > times out a hung handler and retries the event 1605ms
+   ✓ ordering and tenants > keeps events of one aggregate in order, without holding up other aggregates 537ms
+ ✓ test/identity.api.test.ts (12 tests) 957ms
+ ✓ test/auth.api.test.ts (11 tests) 4475ms
+   ✓ first-owner bootstrap > refuses a second organization unless asked, a reused email, and a short password 411ms
+   ✓ login > gives the same answer for an unknown email and a wrong password 602ms
+   ✓ login > locks the credential after 5 failures, even for the right password, until the lock expires 1651ms
+   ✓ accounts without an organization > can sign in but act for no organization 437ms
+ ✓ test/analysis.api.test.ts (6 tests) 555ms
+   ✓ analysis runs > start a run for a verified video, queue exactly one analysis job, refuse a second open run and unverified videos 335ms
+ ✓ test/audit.api.test.ts (7 tests) 276ms
+
+ Test Files  6 passed (6)
+      Tests  63 passed (63)
+   Start at  00:14:58
+   Duration  23.54s (transform 577ms, setup 0ms, collect 3.24s, tests 11.59s, environment 0ms, prepare 200ms)
+
+[Nest] 26688  - 10/27/2026, 12:15:12 AM   ERROR [OutboxDispatcher] event 53 (test.happened) dead-lettered after 2 attempts: test.poison: cannot handle this
+
+exit=0

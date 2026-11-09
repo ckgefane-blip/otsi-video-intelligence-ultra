@@ -1,0 +1,2 @@
+command: python -m pytest tests/db -q -p no:cacheprovider
+84 passed in 7.37s

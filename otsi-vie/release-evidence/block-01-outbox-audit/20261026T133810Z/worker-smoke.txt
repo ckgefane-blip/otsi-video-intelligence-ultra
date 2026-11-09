@@ -1,0 +1,6 @@
+command: python tools/smoke/outbox_worker_smoke.py (compiled dist/workers/outbox-dispatcher.js)
+worker alive while polling: True
+event 1 delivered_at: 2026-10-26 13:38:57.991792
+worker output:
+[Nest] 51752  - 10/26/2026, 4:38:57 PM     LOG [outbox-dispatcher] started as dispatcher-98c3c21a, polling every 100 ms
+exit=0

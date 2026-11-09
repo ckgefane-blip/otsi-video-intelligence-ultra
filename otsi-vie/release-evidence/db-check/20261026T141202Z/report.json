@@ -1,0 +1,51 @@
+{
+ "utc": "20261026T141202Z",
+ "server": "8.4.13 | MySQL Community Server - GPL | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION",
+ "migrations": [
+  "0001_baseline_schema.sql",
+  "0002_guard_triggers.sql",
+  "0003_tenant_integrity.sql",
+  "0004_canonical_outbox.sql",
+  "0005_append_only_history.sql",
+  "0006_countries.sql",
+  "0007_canonical_player_registry.sql",
+  "0008_track_identity_integrity.sql",
+  "0009_outbox_dispatch_and_audit_actor.sql",
+  "0010_local_sign_in.sql"
+ ],
+ "checks": {
+  "tables": {
+   "expected": 93,
+   "actual": 93,
+   "ok": true
+  },
+  "triggers": {
+   "expected": 21,
+   "actual": 21,
+   "ok": true
+  },
+  "views": {
+   "expected": 2,
+   "actual": 2,
+   "ok": true
+  },
+  "routines": {
+   "expected": 2,
+   "actual": 2,
+   "ok": true
+  },
+  "foreign_keys": {
+   "actual": 240,
+   "ok": true
+  },
+  "check_constraints": {
+   "actual": 153
+  },
+  "reproducible": {
+   "fingerprint_a": "069b1e5a6ab9af7e8a9065eea991c57fb7ac9be39babada552d4580c483be4e0",
+   "fingerprint_b": "069b1e5a6ab9af7e8a9065eea991c57fb7ac9be39babada552d4580c483be4e0",
+   "ok": true
+  }
+ },
+ "ok": true
+}

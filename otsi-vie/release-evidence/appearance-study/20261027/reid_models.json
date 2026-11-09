@@ -1,0 +1,204 @@
+{
+ "generated": "2026-10-27T04:19:06",
+ "protocol": "Appearance re-identification study on real football footage (ADR-031): which FREE model can tell whether two track pieces show the\nsame person \u2014 the basis for proposing links across occlusions and camera cuts (always reviewed by a person).\n\nData: the dense caches of the sampling study (tools/models/sampling_study.py dense ...): every frame's detections + kit-colour histogram.\nReference tracks = the production tracker on every frame (not ground truth, ADR-028). Protocol per clip:\n  * each reference PERSON track lasting >= 3 s is cut into a QUERY (first 40 % of its time), a dropped gap (20 %) and a GALLERY piece\n    (last 40 %);\n  * a query is ranked against the gallery pieces of every reference track that was visible AT THE SAME TIME as the query's track \u2014\n    people on screen together are certainly different persons (teammates in the same kit included: the hard case);\n  * rank-1 accuracy, mean reciprocal rank, and the same/different score separation (AUC) are reported per method.",
+ "clips": [
+  {
+   "video": "france_germany_ccbysa.ogv",
+   "reference_person_tracks": 54,
+   "pieces": 34,
+   "crop_height_px": {
+    "median": 49,
+    "p10": 38
+   },
+   "methods": {
+    "kit_colour": {
+     "queries": 34,
+     "rank1": 0.441,
+     "mrr": 0.613,
+     "auc_same_vs_different": 0.908,
+     "mean_gallery_size": 30.5
+    },
+    "dinov2_small": {
+     "queries": 34,
+     "rank1": 0.471,
+     "mrr": 0.598,
+     "auc_same_vs_different": 0.87,
+     "mean_gallery_size": 30.5,
+     "seconds_cpu": 17.7,
+     "crops": 544
+    },
+    "dinov2_small+kit": {
+     "queries": 34,
+     "rank1": 0.5,
+     "mrr": 0.644,
+     "auc_same_vs_different": 0.903,
+     "mean_gallery_size": 30.5
+    },
+    "dinov2_base": {
+     "queries": 34,
+     "rank1": 0.382,
+     "mrr": 0.523,
+     "auc_same_vs_different": 0.857,
+     "mean_gallery_size": 30.5,
+     "seconds_cpu": 56.6,
+     "crops": 544
+    },
+    "dinov2_base+kit": {
+     "queries": 34,
+     "rank1": 0.441,
+     "mrr": 0.6,
+     "auc_same_vs_different": 0.901,
+     "mean_gallery_size": 30.5
+    },
+    "siglip_base_224": {
+     "queries": 34,
+     "rank1": 0.559,
+     "mrr": 0.657,
+     "auc_same_vs_different": 0.892,
+     "mean_gallery_size": 30.5,
+     "seconds_cpu": 46.5,
+     "crops": 544
+    },
+    "siglip_base_224+kit": {
+     "queries": 34,
+     "rank1": 0.529,
+     "mrr": 0.669,
+     "auc_same_vs_different": 0.929,
+     "mean_gallery_size": 30.5
+    }
+   }
+  },
+  {
+   "video": "naples_amateur_pd.webm",
+   "reference_person_tracks": 79,
+   "pieces": 24,
+   "crop_height_px": {
+    "median": 337,
+    "p10": 296
+   },
+   "methods": {
+    "kit_colour": {
+     "queries": 22,
+     "rank1": 0.909,
+     "mrr": 0.926,
+     "auc_same_vs_different": 0.972,
+     "mean_gallery_size": 18.4
+    },
+    "dinov2_small": {
+     "queries": 22,
+     "rank1": 0.773,
+     "mrr": 0.853,
+     "auc_same_vs_different": 0.97,
+     "mean_gallery_size": 18.4,
+     "seconds_cpu": 13.4,
+     "crops": 384
+    },
+    "dinov2_small+kit": {
+     "queries": 22,
+     "rank1": 0.818,
+     "mrr": 0.894,
+     "auc_same_vs_different": 0.984,
+     "mean_gallery_size": 18.4
+    },
+    "dinov2_base": {
+     "queries": 22,
+     "rank1": 0.818,
+     "mrr": 0.85,
+     "auc_same_vs_different": 0.934,
+     "mean_gallery_size": 18.4,
+     "seconds_cpu": 40.6,
+     "crops": 384
+    },
+    "dinov2_base+kit": {
+     "queries": 22,
+     "rank1": 0.864,
+     "mrr": 0.909,
+     "auc_same_vs_different": 0.966,
+     "mean_gallery_size": 18.4
+    },
+    "siglip_base_224": {
+     "queries": 22,
+     "rank1": 0.864,
+     "mrr": 0.917,
+     "auc_same_vs_different": 0.988,
+     "mean_gallery_size": 18.4,
+     "seconds_cpu": 32.7,
+     "crops": 384
+    },
+    "siglip_base_224+kit": {
+     "queries": 22,
+     "rank1": 0.909,
+     "mrr": 0.955,
+     "auc_same_vs_different": 0.991,
+     "mean_gallery_size": 18.4
+    }
+   }
+  },
+  {
+   "video": "ocsc_vs_oakland_ccby.webm",
+   "reference_person_tracks": 309,
+   "pieces": 44,
+   "crop_height_px": {
+    "median": 273,
+    "p10": 145
+   },
+   "methods": {
+    "kit_colour": {
+     "queries": 44,
+     "rank1": 0.273,
+     "mrr": 0.462,
+     "auc_same_vs_different": 0.7,
+     "mean_gallery_size": 10.0
+    },
+    "dinov2_small": {
+     "queries": 44,
+     "rank1": 0.318,
+     "mrr": 0.487,
+     "auc_same_vs_different": 0.671,
+     "mean_gallery_size": 10.0,
+     "seconds_cpu": 24.1,
+     "crops": 704
+    },
+    "dinov2_small+kit": {
+     "queries": 44,
+     "rank1": 0.318,
+     "mrr": 0.475,
+     "auc_same_vs_different": 0.701,
+     "mean_gallery_size": 10.0
+    },
+    "dinov2_base": {
+     "queries": 44,
+     "rank1": 0.295,
+     "mrr": 0.479,
+     "auc_same_vs_different": 0.654,
+     "mean_gallery_size": 10.0,
+     "seconds_cpu": 74.1,
+     "crops": 704
+    },
+    "dinov2_base+kit": {
+     "queries": 44,
+     "rank1": 0.295,
+     "mrr": 0.476,
+     "auc_same_vs_different": 0.681,
+     "mean_gallery_size": 10.0
+    },
+    "siglip_base_224": {
+     "queries": 44,
+     "rank1": 0.386,
+     "mrr": 0.525,
+     "auc_same_vs_different": 0.699,
+     "mean_gallery_size": 10.0,
+     "seconds_cpu": 60.4,
+     "crops": 704
+    },
+    "siglip_base_224+kit": {
+     "queries": 44,
+     "rank1": 0.318,
+     "mrr": 0.477,
+     "auc_same_vs_different": 0.723,
+     "mean_gallery_size": 10.0
+    }
+   }
+  }
+ ]
+}

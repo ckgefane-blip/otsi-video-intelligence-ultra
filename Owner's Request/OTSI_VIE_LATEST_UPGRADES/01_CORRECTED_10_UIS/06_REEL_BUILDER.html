@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>OTSI VIE - 06 Reel Builder (visual only)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#s{position:absolute;left:0;top:0;width:2560px;height:1440px;background:#000913;transform-origin:0 0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:#fff;overflow:hidden}
+.a{position:absolute;box-sizing:border-box}
+.t{transform:translateY(-50%);white-space:nowrap;line-height:1.1}
+.r{transform:translate(-100%,-50%)}.c{transform:translate(-50%,-50%)}
+.b{font-weight:700}.sb{font-weight:600}.m{color:#8ea3bf}.bl{color:#1e90ff}.lb{color:#33a8ff}
+.pn{background:linear-gradient(#081a35,#06122a);border:1.5px solid #12335f;border-radius:14px}
+.in{background:#041022;border:1.5px solid #17406f;border-radius:8px}
+.tr{background:#0b2a4d;border-radius:5px;height:10px}.fl{background:#1e90ff;border-radius:5px;height:10px}
+.kn{background:#cfe8ff;border:3px solid #33a8ff;border-radius:50%;width:22px;height:22px}
+svg{overflow:visible}
+</style></head><body><div id="s"></div>
+<script>
+const S=document.getElementById('s');
+function D(x,y,w,h,c,st,t){const e=document.createElement('div');e.className='a '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;'+(st||'');if(t!==undefined&&t!==null&&t!=="")e.textContent=t;S.appendChild(e);return e}
+function T(x,y,t,sz,c,st){const e=document.createElement('div');e.className='a t '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+sz+'px;'+(st||'');e.textContent=t;S.appendChild(e)}
+// simplified drawn icons (approximations, 24x24 viewBox)
+const IC={
+sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+tri:'<path d="M12 4l7 15H5z M9 13h6"/>',ring:'<circle cx="12" cy="12" r="9"/>',
+spark:'<path d="M12 2l2.5 9.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-.5z"/>',
+tgt:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>',
+back:'<path d="M20 12H5M11 5l-7 7 7 7"/>',chk:'<path d="M5 12l5 5 9-10"/>',
+fwd:'<path d="M4 12h15M13 5l7 7-7 7"/>',
+chev:'<path d="M6 9l6 6 6-6"/>',
+star:'<path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 17l-5.6 3 1.3-6.2L3 9.5l6.3-.7z"/>',
+note:'<path d="M9 18V6l10-2v12M9 18a3 3 0 11-6 0 3 3 0 016 0zM19 16a3 3 0 11-6 0 3 3 0 016 0z"/>',
+eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+fold:'<path d="M3 6h7l2 2h9v11H3z"/>',
+dl:'<path d="M12 3v12M6 10l6 6 6-6M4 20h16"/>',
+ref:'<path d="M20 6v5h-5M4 18v-5h5M18 9a7 7 0 00-12-2M6 15a7 7 0 0012 2"/>',
+vol:'<path d="M3 9h4l5-4v14l-5-4H3zM16 8a5 5 0 010 8M19 5a9 9 0 010 14"/>',
+gear:'<circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 2.4"/>',
+full:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
+film:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18M8 4v16M16 4v16"/>',
+sq:'<rect x="3" y="3" width="18" height="18" rx="2"/>',
+ph:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+cam:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>',
+pl:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 3-6 3z"/>',
+plus:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 7v10M7 12h10"/>',
+scr:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/>',
+ball:'<circle cx="12" cy="12" r="9"/><path d="M12 8l3 2-1 4h-4l-1-4z"/>'};
+function I(x,y,k,sz,col,fill){const e=document.createElement('div');e.className='a';e.style.cssText='left:'+(x-sz/2)+'px;top:'+(y-sz/2)+'px;width:'+sz+'px;height:'+sz+'px';e.innerHTML='<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+(fill||'none')+'" stroke="'+(col||'#fff')+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[k]+'</svg>';S.appendChild(e)}
+function P(x,y,w,h,st){D(x,y,w,h,'pn',st)}
+function TG(x,y,on){D(x,y-14,56,28,'',(on?'background:#0481f9;':'background:#26364d;')+'border-radius:14px');D(x+(on?30:4),y-10,22,22,'','background:#fff;border-radius:50%')}
+function THUMB(x,y,w,h,a){D(x,y,w,h,'','background:radial-gradient(ellipse at 55% 60%,#4aa8e8 0,#1b4f8f 18%,transparent 19%),linear-gradient(115deg,#0c1d3c,#2a5a98 '+a+'%,#0a1630);overflow:hidden')}
+
+// ---- header ----
+D(0,0,2560,100,'','background:#071a33;border-bottom:1.5px solid #1e90ff');
+T(30,38,'OTSI','40','b');T(130,38,'VIE',40,'b bl');
+T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b bl');
+D(1198,12,169,78,'','background:#073154;border:1.5px solid #1e6fb0;border-radius:12px');
+D(1207,92,150,5,'','background:#1e90ff;border-radius:3px');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(function(n){T(n[1],52,n[0],24,'sb',n[0]=='Reel Builder'?'color:#6cc4ff;font-weight:700':'')});
+D(2117,20,2,62,'','background:#12335f');
+D(2140,23,100,54,'','background:#071e37;border:1.5px solid #17406f;border-radius:8px');T(2190,50,'QHD',20,'b lb','transform:translate(-50%,-50%)');
+D(2271,25,54,54,'','background:#1e90ff;border-radius:50%');T(2298,52,'O',22,'b','transform:translate(-50%,-50%)');
+T(2340,41,'Owner',24,'b');T(2340,69,'OTSI VIE',19,'m');
+
+// ---- left column ----
+P(20,122,398,654);
+I(58,154,'back',26,'#33a8ff');T(87,154,'Back to Reels',22,'lb');
+T(45,209,'Reel Builder',46,'b');T(45,253,'Spotlight Composer',36,'b','color:#1e90ff');
+['Create cinematic, data-driven','highlight reels with AI-powered','spotlight effects.'].forEach(function(s,i){T(45,298+i*30.5,s,23,'','color:#cfe0f5')});
+D(45,391,356,1,'','background:#12335f');
+D(21,392,397,94,'','background:linear-gradient(90deg,#0b2b57,#08213f);border-radius:8px');
+[[1,436,'Select Player','No player selected',0],[2,529,'Choose Moments','No moments selected',0],[3,621,'Edit & Style','Spotlight, overlays, music',0],[4,714,'Export','Render and share',0]].forEach(function(s){
+ D(44,s[1]-33,66,66,'',s[0]==1?'background:#0a84ff;border-radius:50%':'background:#122339;border:1.5px solid #1b3350;border-radius:50%');
+ T(77,s[1],s[0],28,'sb','transform:translate(-50%,-50%)');
+ T(134,s[1]-14,s[2],22,'sb');T(134,s[1]+20,s[3],20,'m','color:#9fb3cc');
+ if(s[4]){D(366,s[1]-11,26,26,'','background:#17c27a;border-radius:50%');I(379,s[1]+2,'chk',16,'#04210f')}});
+
+P(20,787,398,193);T(40,817,'Aspect Ratio',22,'sb');
+[[36,125,'cam','16:9','YouTube, Web',1],[174,107,'ph','9:16','Reels, Shorts',0],[296,106,'sq','1:1','Instagram',0]].forEach(function(a){
+ D(a[0],846,a[1],118,'',a[5]?'background:#0a2b55;border:3px solid #1e90ff;border-radius:10px':'background:#0a1d38;border:1.5px solid #17406f;border-radius:10px');
+ I(a[0]+a[1]/2,878,a[2],34,a[5]?'#33a8ff':'#cfe0f5');T(a[0]+a[1]/2,915,a[3],20,'sb','transform:translate(-50%,-50%)');T(a[0]+a[1]/2,941,a[4],16,'m','transform:translate(-50%,-50%)')});
+
+P(20,992,398,423);T(40,1027,'Reel Info',24,'sb');
+T(40,1052,'Title',19,'m');D(38,1066,363,53,'in');T(51,1092,'Enter a reel title',20,'','color:#8ea3bf');
+T(40,1147,'Description (optional)',19,'m');D(38,1160,363,105,'in');
+['Describe this reel (optional)'].forEach(function(s,i){T(51,1187+i*27.5,s,20,'','color:#8ea3bf')});
+T(40,1305,'Duration',19,'m');D(128,1279,273,52,'in');T(146,1305,'Auto (Best Moments)',20);I(381,1305,'chev',20);
+T(40,1371,'Music',19,'m');D(128,1347,273,52,'in');I(153,1373,'note',28);T(181,1373,'Choose music',20,'','color:#8ea3bf');I(381,1373,'chev',20);
+
+// ---- player ----
+P(445,125,1593,732);
+D(447,127,1589,653,'','background:radial-gradient(ellipse at 60% 0%,#5fb8ff 0,#1d5aa0 22%,transparent 50%),linear-gradient(180deg,#0a1a38,#04101f 60%,#0a2a30);border-radius:12px 12px 0 0');
+D(1120,300,400,480,'','background:radial-gradient(ellipse at 50% 45%,#4a9ee0 0,#2a6fb8 35%,transparent 70%)');
+D(1395,690,90,90,'','background:radial-gradient(circle,#dde7f5 0,#335 70%);border-radius:50%');
+D(464,147,129,127,'','background:linear-gradient(160deg,#9fd0f5,#3a6fa8);border:1.5px solid #8ec4ef;border-radius:8px');
+T(618,170,'No player selected',36,'b');D(966,147,56,42,'','background:#1e90ff;border-radius:6px');T(994,168,'—',26,'b','transform:translate(-50%,-50%)');
+D(620,201,26,26,'','background:#6cc4ff;border-radius:50%');T(659,214,'Team —',22);T(827,214,'|',22,'m');
+D(856,203,22,22,'','background:#3a5a88');T(891,214,'Nationality —',22);
+T(618,256,'Role —',22,'','color:#9fb3cc');T(727,256,'|',22,'m');T(745,256,'Foot —',22,'','color:#9fb3cc');T(849,256,'|',22,'m');T(875,256,'Age —',22,'','color:#9fb3cc');
+D(1630,153,382,45,'','background:rgba(5,16,36,.8);border-radius:6px');I(1657,176,'ball',40);T(1705,176,'—',26,'sb');
+D(1795,153,83,45,'','background:#0a2bd0');T(1836,176,'—',27,'b','transform:translate(-50%,-50%)');
+T(1890,176,'—',26,'sb');D(1940,153,72,45,'','background:#1e5bff');T(1976,176,'—',27,'b','transform:translate(-50%,-50%)');
+I(493,820,'back',1,'#fff');D(483,806,4,28,'','background:#fff');D(490,806,22,28,'','background:#fff;clip-path:polygon(100% 0,0 50%,100% 100%)');
+D(554,803,28,34,'','background:#fff;clip-path:polygon(0 0,100% 50%,0 100%);transform:scale(1.5)');
+D(628,806,22,28,'','background:#fff;clip-path:polygon(0 0,100% 50%,0 100%)');D(642,806,4,28,'','background:#fff');
+T(687,820,'— / —',21);
+D(836,815,777,10,'','background:#0b2a4d;border-radius:5px');D(824,809,24,24,'','background:#cfe8ff;border:3px solid #33a8ff;border-radius:50%');
+I(1690,820,'vol',34);D(1738,797,124,46,'in');T(1758,820,'1x',20);I(1840,820,'chev',20);I(1917,820,'gear',36);I(1992,820,'full',34);
+
+// ---- key moments ----
+P(445,872,1593,258);I(477,905,'star',30,'#33a8ff');T(505,905,'Suggested Key Moments (0)',25,'sb');
+T(1846,910,'View All Moments',19,'lb');I(2012,910,'fwd',18,'#33a8ff');
+[[455,300,'No suggestions yet','Run AI processing first','—',0,1],[776,294,'—','—','—',0,2],[1095,295,'—','—','—',0,3],[1413,299,'—','—','—',0,4],[1733,297,'—','—','—',0,5]].forEach(function(c,i){
+ var x=c[0];
+ D(x,939,c[1],185,'','background:#06182f;border:1.5px solid #12335f;border-radius:10px');
+ THUMB(x+(i==0?4:2),i==0?941:941,c[1]-(i==0?8:4),116,30+i*8);
+ D(x+14,950,36,34,'','background:#1e90ff;border-radius:6px');T(x+32,967,c[6],20,'b','transform:translate(-50%,-50%)');
+ if(c[5]){D(x+c[1]-50,950,32,32,'','background:#1e90ff;border-radius:6px');I(x+c[1]-34,966,'chk',20)}
+ D(x+c[1]-78,1027,62,26,'','background:rgba(0,10,25,.8);border-radius:6px');T(x+c[1]-47,1040,c[4],17,'sb','transform:translate(-50%,-50%)');
+ T(x+15,1078,c[2],20,'sb');T(x+15,1105,c[3],19,'','color:#b9cbe2')});
+
+// ---- timeline ----
+P(445,1150,1593,265);D(675,1152,1,261,'','background:#12335f');
+[['film','Video Clips',1225],['sun','Spotlight Effects',1272],['T','Text & Overlays',1319],['note','Audio',1370]].forEach(function(r){
+ if(r[0]=='T'){T(475,r[2],'T',30,'','font-family:Georgia,serif;transform:translate(-50%,-50%)')}else I(475,r[2],r[0],26);T(508,r[2],r[1],20,'','color:#d6e4f7')});
+[['00:00',715],['—',900],['—',1083],['—',1280],['—',1478],['—',1677],['—',1878]].forEach(function(k){T(k[1],1176,k[0],20,'','color:#cfe0f5;transform:translate(-50%,-50%)')});
+D(690,1203,1340,52,'','background:#07162c;border:1.5px solid #12335f;border-radius:6px');
+T(1360,1229,'Add moments to build the reel',19,'c','color:#8ea3bf');
+D(690,1262,1340,28,'','background:#0a2a52;border-radius:6px');
+T(1360,1276,'No spotlight effects',17,'c','color:#8ea3bf');
+T(1360,1319,'No text or overlays',19,'c','color:#8ea3bf');[].forEach(function(t){
+ D(t[0],1298,t[1],42,'','background:#4a12b0;border:1.5px solid #7a3ff0;border-radius:6px');
+ if(t[4]=='T')T(t[0]+31,1319,'T',28,'','font-family:Georgia,serif;transform:translate(-50%,-50%)');else I(t[0]+36,1319,'ball',26);
+ T(t[3],1319,t[2],20)});
+D(690,1350,1340,56,'','background:#05503a;border:1.5px solid #12805a;border-radius:6px');
+I(720,1378,'note',28);T(748,1378,'No audio selected',20,'','color:#cfe0f5');
+
+
+// ---- right panel ----
+D(2065,122,475,64,'','background:#071a33;border-radius:10px');D(2068,183,157,3,'','background:#1e90ff');
+T(2146,153,'Spotlight',23,'sb','color:#6cc4ff;transform:translate(-50%,-50%)');T(2302,153,'Overlays',23,'','color:#cfe0f5;transform:translate(-50%,-50%)');T(2459,153,'Branding',23,'','color:#cfe0f5;transform:translate(-50%,-50%)');
+P(2065,195,475,411);T(2086,227,'Spotlight Controls',23,'sb');T(2519,227,'Reset All',20,'lb','transform:translate(-100%,-50%)');
+[['sun','Spotlight Intensity','85%',277,305,2412],['tri','Ray Width','60%',345,373,2338],['ring','Vignette Strength','45%',413,441,2303],['spark','Glow Amount','55%',482,511,2338],['tgt','Target Lock Sensitivity','72%',551,578,2405]].forEach(function(s){
+ I(2107,s[3]+10,s[0],36);T(2157,s[3],s[1],22,'','color:#e3eefb');T(2512,s[3]+2,s[2],21,'r','color:#cfe0f5');
+ D(2157,s[4]-5,355,10,'tr');D(2157,s[4]-5,s[5]-2157,10,'fl');D(s[5]-11,s[4]-11,22,22,'kn')});
+P(2065,618,475,204);T(2086,647,'Player Targeting',23,'sb');
+I(2105,693,'tgt',30,'#cfe0f5');T(2149,693,'Auto Track Player',20);TG(2461,693,1);
+I(2105,738,'tgt',30,'#33a8ff');T(2149,738,'Lock on confirmed player',20);
+D(2086,765,434,43,'in');I(2230,788,'ref',22);T(2255,788,'Re-detect Player',20);
+P(2065,834,475,242);T(2086,864,'Overlays',23,'sb');
+[['ball','Player Info Card',912],['ball','Match Score & Time',957],['ball','Competition Logo',1000],['pl','Animated Lower Third',1042]].forEach(function(o){I(2107,o[2],o[0],32,'#cfe0f5');T(2154,o[2],o[1],20,'','color:#e3eefb');TG(2461,o[2],1)});
+P(2065,1080,475,182);T(2086,1108,'Branding',23,'sb');
+[['ball','Use OTSI VIE Watermark',1153,1],['plus','Custom Logo',1196,0],['scr','End Screen',1237,1]].forEach(function(o){I(2107,o[2],o[0],32,'#cfe0f5');T(2154,o[2],o[1],20,'','color:#e3eefb');TG(2461,o[2],o[3])});
+D(2083,1268,441,70,'','background:#0a84ff;border-radius:8px');D(2468,1278,1.5,50,'','background:#4fa8ff');
+I(2228,1304,'dl',26);T(2257,1304,'Generate Reel',22,'sb');I(2496,1304,'chev',20);
+D(2083,1351,214,57,'in');I(2119,1380,'eye',26);T(2147,1380,'Preview Render',20,'sb');
+D(2311,1351,213,57,'in');I(2357,1380,'fold',26);T(2386,1380,'Save Project',20,'sb');
+
+function fit(){var k=Math.min(innerWidth/2560,innerHeight/1440);S.style.transform='scale('+k+')';S.style.left=((innerWidth-2560*k)/2)+'px';S.style.top=((innerHeight-1440*k)/2)+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

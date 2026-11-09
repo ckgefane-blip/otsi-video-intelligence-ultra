@@ -1,0 +1,124 @@
+"use client";
+/**
+ * Page 06 Branding → "Intro, outro, tags" (ADR-050, owner 2026-11-02): the event tags written on each clip, the opening match card, and an
+ * intro / outro video the organization uploads with its rights declaration (like the logos and the music: none without the right to use
+ * it). The choice is part of the reel's look: Save Project / Generate Reel send it, and the render plays the intro first, then the match
+ * card, the clips (each with its tag), the end screen and the outro.
+ */
+import { VIDEO_MAX_BYTES, VIDEO_MAX_S, VIDEO_TYPES, type BrandAsset, type BrandRightsBasis, type SpotlightSettings } from "@otsi-vie/contracts";
+import { useEffect, useState } from "react";
+import { api, apiBlob } from "@/lib/api";
+
+const BASIS: [BrandRightsBasis, string][] = [["OWN_BRAND", "It is our own video"], ["LICENSED", "We have a licence for it"],
+  ["FREE_LICENCE", "A free licence allows it (e.g. Creative Commons BY)"], ["PERMISSION", "The owner gave us written permission"]];
+const BY_EXT: Record<string, string> = { mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm" };
+
+function typeOf(f: File): string | null {
+  if ((VIDEO_TYPES as readonly string[]).includes(f.type)) return f.type;
+  return BY_EXT[f.name.split(".").pop()?.toLowerCase() ?? ""] ?? null;
+}
+const b64url = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+/** the organization's intro / outro videos, loaded once per change */
+export function useReelVideos(): [BrandAsset[] | null, () => void] {
+  const [list, setList] = useState<BrandAsset[] | null>(null);
+  const [n, setN] = useState(0);
+  useEffect(() => { void api<BrandAsset[]>("/v1/brand-assets?kind=REEL_VIDEO").then(setList, () => setList([])); }, [n]);
+  return [list, () => setN((x) => x + 1)];
+}
+
+/** watch one uploaded video (fetched with the user's session) */
+function Watch({ id }: { id: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => () => { if (src) URL.revokeObjectURL(src); }, [src]);
+  if (src) return <video src={src} controls autoPlay className="max-h-40 w-full rounded-ctl bg-black" aria-label="Watch the video" />;
+  return <button type="button" disabled={busy} onClick={() => { setBusy(true); void apiBlob(`/v1/brand-assets/${id}/file`).then((b) => setSrc(URL.createObjectURL(b)), () => setBusy(false)); }}
+    className="rounded-ctl border border-[#1e90ff]/60 px-2 py-1 text-xs">{busy ? "Loading…" : "▶ Watch"}</button>;
+}
+
+function Switch({ on, label, note, onFlip }: { on: boolean; label: string; note: string; onFlip(): void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={onFlip} className="flex items-start gap-3 rounded-ctl border border-[#12335f] p-3 text-left">
+      <span className={`mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 ${on ? "bg-[#1e90ff]" : "bg-[#17406f]"}`}>
+        <span className={`h-4 w-4 rounded-full bg-white transition-transform ${on ? "translate-x-4" : ""}`} /></span>
+      <span><span className="block text-sm font-semibold">{label}</span><span className="block text-xs text-[#8ea3bf]">{note}</span></span>
+    </button>
+  );
+}
+
+export function ReelExtras({ settings, onChange, onClose }: { settings: SpotlightSettings; onChange(s: SpotlightSettings): void; onClose(): void }) {
+  const [list, reload] = useReelVideos();
+  const [file, setFile] = useState<File | null>(null);
+  const [name, setName] = useState("");
+  const [holder, setHolder] = useState("");
+  const [basis, setBasis] = useState<BrandRightsBasis | "">("");
+  const [ok, setOk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
+  const type = file ? typeOf(file) : null;
+  const fileErr = file && file.size > VIDEO_MAX_BYTES ? "The video is larger than 80 MB." : file && !type ? "Choose an MP4, MOV or WebM video." : null;
+  const ready = !!file && !fileErr && name.trim().length > 0 && holder.trim().length >= 2 && !!basis && ok && !busy;
+  const upload = async () => {
+    if (!file || !basis || !type) return;
+    setBusy(true); setErr(null);
+    try {
+      const meta = b64url(JSON.stringify({ name: name.trim(), rights_holder: holder.trim(), rights_basis: basis, confirm_rights: true }));
+      await api<BrandAsset>("/v1/brand-assets/video", { method: "POST", body: file, headers: { "content-type": type, "x-asset-meta": meta } });
+      reload();
+      setFile(null); setName(""); setHolder(""); setBasis(""); setOk(false);
+    } catch (e) { setErr(e instanceof Error ? e.message : "The upload failed."); } finally { setBusy(false); }
+  };
+  const field = "w-full rounded-ctl border border-[#17406f] bg-[#041022] px-2 py-1.5 text-sm";
+  const nameOf = (id: string | null) => (id ? (list?.find((v) => v.id === id)?.name ?? "chosen") : "none");
+  const pick = (side: "intro_id" | "outro_id", id: string | null) => onChange({ ...settings, [side]: id });
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Intro, outro and tags" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="flex max-h-[90vh] w-[min(600px,94vw)] flex-col gap-3 overflow-y-auto rounded-xl border border-[#1e90ff] bg-[#071a33] p-4 text-[#e3eefb]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between"><h2 className="text-base font-semibold">Intro, outro and tags</h2>
+          <button type="button" aria-label="Close" onClick={onClose} className="px-2 text-lg">✕</button></div>
+        <Switch on={settings.event_tags} label="Event tags" onFlip={() => onChange({ ...settings, event_tags: !settings.event_tags })}
+          note="Each clip's moment written on screen as it starts, e.g. FREE-KICK GOAL, KEY PASS, TACKLE (POSSIBLE). It is the clip's label, as you added it." />
+        <Switch on={settings.match_card} label="Match card" onFlip={() => onChange({ ...settings, match_card: !settings.match_card })}
+          note="Opens the reel for 3 s: the two clubs, the competition, the date and the venue, from the match record (Matches page). Needs both clubs." />
+        <div className="flex flex-col gap-1 rounded-ctl border border-[#12335f] p-3 text-sm">
+          <p><span className="font-semibold">Intro:</span> {nameOf(settings.intro_id)} {settings.intro_id && <button type="button" onClick={() => pick("intro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">No intro</button>}</p>
+          <p><span className="font-semibold">Outro:</span> {nameOf(settings.outro_id)} {settings.outro_id && <button type="button" onClick={() => pick("outro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">No outro</button>}</p>
+        </div>
+        {list === null ? <p className="text-sm text-[#8ea3bf]">Loading…</p> : list.length > 0 && (
+          <ul className="flex flex-col gap-2">{list.map((v) => (
+            <li key={v.id} className={`flex flex-col gap-1 rounded-ctl border px-3 py-2 ${v.id === settings.intro_id || v.id === settings.outro_id ? "border-ok bg-ok/10" : "border-[#1e90ff]/60 bg-[#0b2a52]"}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{v.name}</span>
+                  <span className="block truncate text-xs text-[#8ea3bf]">{v.rights_ok ? `Rights: ${v.rights_holder}` : "Rights not in force"}</span></span>
+                <button type="button" data-use-intro={v.id} disabled={!v.rights_ok || v.id === settings.intro_id} onClick={() => pick("intro_id", v.id)}
+                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 text-sm font-semibold disabled:opacity-50">{v.id === settings.intro_id ? "Intro ✓" : "Use as intro"}</button>
+                <button type="button" data-use-outro={v.id} disabled={!v.rights_ok || v.id === settings.outro_id} onClick={() => pick("outro_id", v.id)}
+                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 text-sm font-semibold disabled:opacity-50">{v.id === settings.outro_id ? "Outro ✓" : "Use as outro"}</button>
+              </div>
+              <Watch id={v.id} />
+            </li>))}
+          </ul>)}
+        <div className="flex flex-col gap-2 rounded-ctl border border-[#12335f] p-3">
+          <p className="text-sm font-semibold">Upload an intro or outro video</p>
+          <input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm" aria-label="Video file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+          {fileErr && <p className="text-xs text-[#ff8a8a]">{fileErr}</p>}
+          <input className={field} placeholder="Name, e.g. Club intro" aria-label="Video name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
+          <input className={field} placeholder="Who owns this video?" aria-label="Video rights holder" value={holder} onChange={(e) => setHolder(e.target.value)} autoComplete="off" />
+          <select className={field} aria-label="Why you may use the video" value={basis} onChange={(e) => setBasis(e.target.value as BrandRightsBasis)}>
+            <option value="">Why may you use it?</option>{BASIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} className="mt-1" />
+            <span>I confirm we have the right to use this video (and its sound) in our reels.</span></label>
+          {err && <p className="text-xs text-[#ff8a8a]">{err}</p>}
+          <button type="button" data-upload-video="" disabled={!ready} onClick={() => void upload()}
+            className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 text-sm font-semibold hover:bg-ok/25 disabled:opacity-50">{busy ? "Uploading…" : "Upload"}</button>
+          <p className="text-xs text-[#8ea3bf]">MP4, MOV or WebM, up to 80 MB; the first {VIDEO_MAX_S} s are played, with their sound. Then choose it as intro or outro above.</p>
+        </div>
+        <button type="button" onClick={onClose} className="self-end rounded-ctl border border-[#1e90ff] px-4 py-1.5 text-sm font-semibold">Done</button>
+        <p className="text-xs text-[#8ea3bf]">Then press Save Project (or Generate Reel) to keep the choice.</p>
+      </div>
+    </div>
+  );
+}

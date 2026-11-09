@@ -1,0 +1,33 @@
+{
+ "utc": "20261026T121309Z",
+ "server": "8.4.13 | MySQL Community Server - GPL | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION",
+ "migrations": [
+  "0001_baseline_schema.sql",
+  "0002_guard_triggers.sql"
+ ],
+ "checks": {
+  "tables": {
+   "expected": 80,
+   "actual": 80,
+   "ok": true
+  },
+  "triggers": {
+   "expected": 3,
+   "actual": 3,
+   "ok": true
+  },
+  "foreign_keys": {
+   "actual": 181,
+   "ok": true
+  },
+  "check_constraints": {
+   "actual": 117
+  },
+  "reproducible": {
+   "fingerprint_a": "56d6fa54edcd45f36e46abfe8d4a81b640dad38f6cbe8a297a7b4d0a6d98047c",
+   "fingerprint_b": "56d6fa54edcd45f36e46abfe8d4a81b640dad38f6cbe8a297a7b4d0a6d98047c",
+   "ok": true
+  }
+ },
+ "ok": true
+}

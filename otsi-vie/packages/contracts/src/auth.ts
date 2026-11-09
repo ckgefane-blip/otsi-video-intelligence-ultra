@@ -1,0 +1,37 @@
+/** Sign-in and account contracts (ADR-021). */
+import { z } from "zod";
+
+export const MembershipRole = z.enum(["OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT", "VIEWER"]);
+
+export const LoginRequest = z.object({
+  email: z.string().trim().email().max(255),
+  password: z.string().min(1).max(256),
+});
+export type LoginRequest = z.infer<typeof LoginRequest>;
+
+export const Me = z.object({
+  user: z.object({ id: z.string().uuid(), email: z.string(), display_name: z.string(),
+    /** when the profile photo was last set (GET /v1/me/avatar returns it); null = no photo */
+    avatar_updated_at: z.string().nullable().default(null),
+    /** when this person finished the first-run welcome (name and tour); null = not yet */
+    onboarded_at: z.string().nullable().default(null) }),
+  /** ACTIVE memberships only: the organizations this user can act for */
+  memberships: z.array(z.object({ organization_id: z.string().uuid(), organization_name: z.string(), role: MembershipRole })),
+});
+export type Me = z.infer<typeof Me>;
+
+/** The person's own welcome step: the name they want shown, and that the tour is done. */
+export const UpdateMeRequest = z.object({
+  display_name: z.string().trim().min(2, "Enter at least 2 characters.").max(80, "Use at most 80 characters.").optional(),
+  onboarding_done: z.literal(true).optional(),
+}).refine((b) => b.display_name !== undefined || b.onboarding_done === true, { message: "Nothing to change." });
+export type UpdateMeRequest = z.infer<typeof UpdateMeRequest>;
+
+/** The access token is returned in the body (kept in memory by the web app); the refresh token only ever travels in an HttpOnly cookie. */
+export const SessionResponse = z.object({
+  access_token: z.string(),
+  token_type: z.literal("Bearer"),
+  expires_in: z.number().int().positive(),
+  me: Me,
+});
+export type SessionResponse = z.infer<typeof SessionResponse>;

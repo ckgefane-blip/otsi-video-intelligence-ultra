@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>OTSI VIE - 01 Home Overview (visual only)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#s{position:absolute;left:0;top:0;width:2560px;height:1440px;background:#000d18;transform-origin:0 0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:#fff;overflow:hidden}
+.a{position:absolute;box-sizing:border-box}
+.t{transform:translateY(-50%);white-space:nowrap;line-height:1.1}
+.r{transform:translate(-100%,-50%)}.c{transform:translate(-50%,-50%)}
+.b{font-weight:700}.sb{font-weight:600}.m{color:#8ea3bf}.bl{color:#1e90ff}.lb{color:#33a8ff}
+.pn{background:linear-gradient(#081a35,#06122a);border:1.5px solid #12335f;border-radius:14px}
+.ch{background:#0a2447;border:1.5px solid #1d4f8a;border-radius:6px}
+svg{overflow:visible}
+</style></head><body><div id="s"></div>
+<script>
+const S=document.getElementById('s');
+function D(x,y,w,h,c,st,t){const e=document.createElement('div');e.className='a '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;'+(st||'');if(t)e.textContent=t;S.appendChild(e);return e}
+function T(x,y,t,sz,c,st){const e=document.createElement('div');e.className='a t '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+sz+'px;'+(st||'');e.textContent=t;S.appendChild(e)}
+// simplified drawn icons (approximations)
+const IC={
+up:'<path d="M12 16V4M6 10l6-6 6 6M4 20h16"/>',link:'<path d="M10 14a4 4 0 005 0l4-4a4 4 0 00-5-5M14 10a4 4 0 00-5 0l-4 4a4 4 0 005 5"/>',
+eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',heart:'<path d="M12 21s-8-5-8-11a4.500 4.500 0 018-3 4.500 4.500 0 018 3c0 6-8 11-8 11z"/>',
+share:'<path d="M12 15V3M7 8l5-5 5 5M4 14v7h16v-7"/>',dots:'<circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/>',
+bm:'<path d="M6 3h12v18l-6-4-6 4z"/>',cam:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>',ppl:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3 20c1-5 4-6 6-6s5 1 6 6M15 15c3 0 5 2 6 5"/>',
+reel:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="7" r="1.500"/><circle cx="12" cy="17" r="1.500"/><circle cx="7" cy="12" r="1.500"/><circle cx="17" cy="12" r="1.500"/>',doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M9 12h6M9 16h6"/>',
+gt:'<path d="M9 5l7 7-7 7"/>',arr:'<path d="M4 12h15M13 5l7 7-7 7"/>',ball:'<circle cx="12" cy="12" r="9"/><path d="M12 8l3 2-1 4h-4l-1-4z"/>',
+spd:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',pass:'<path d="M4 20L20 4M12 4h8v8"/>',key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/>',xa:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>',
+scan:'<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><circle cx="12" cy="12" r="3.500"/>',tac:'<circle cx="6" cy="6" r="2.500"/><circle cx="18" cy="14" r="3"/><circle cx="8" cy="18" r="2.500"/><path d="M9 7l6 5"/>',
+clap:'<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l3-5h4l-3 5M10 9l3-5h4l-3 5M10 14l5 3-5 3z"/>',bars:'<path d="M5 20V12M10 20V6M15 20V10M20 20V4"/>',cloud:'<path d="M7 18a4.500 4.500 0 010-9 6 6 0 0111.500 1.500A3.800 3.800 0 0118 18z"/><path d="M12 17v-7M9 13l3-3 3 3"/>',
+play:'<path d="M7 4l13 8-13 8z"/>',tgt:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'};
+function I(x,y,k,sz,col,fill,sw){const e=document.createElement('div');e.className='a';e.style.cssText='left:'+(x-sz/2)+'px;top:'+(y-sz/2)+'px;width:'+sz+'px;height:'+sz+'px';e.innerHTML='<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+(fill||'none')+'" stroke="'+(col||'#fff')+'" stroke-width="'+(sw||1.8)+'" stroke-linecap="round" stroke-linejoin="round">'+IC[k]+'</svg>';S.appendChild(e)}
+function P(x,y,w,h,st){D(x,y,w,h,'pn',st)}
+function ACC(x,y,h){D(x,y,5,h,'','background:#1e90ff;border-radius:2px')}
+function PLAY(x,y,r){D(x-r,y-r,2*r,2*r,'','background:rgba(10,20,40,.65);border:2px solid rgba(255,255,255,.35);border-radius:50%');D(x-r*.22,y-r*.4,r*.7,r*.8,'','background:#fff;clip-path:polygon(0 0,100% 50%,0 100%)')}
+function PH(x,y,w,h,a,b){D(x,y,w,h,'','background:radial-gradient(ellipse at 45% 40%,#e0b090 0,#c98c6a 7%,transparent 8%),radial-gradient(ellipse at 50% 100%,#6fb8ee 0,#2a6fb8 35%,transparent 70%),linear-gradient(135deg,'+(a||'#27487a')+','+(b||'#0e2040')+');border-radius:6px')}
+function TH(x,y,w,h,a){D(x,y,w,h,'','background:radial-gradient(ellipse at 40% 65%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a '+a+'%,#1d5a28);border-radius:4px')}
+function CREST(x,y,d){D(x-d/2,y-d/2,d,d,'','background:#e8eef8;border-radius:50%;opacity:.9')}
+
+// ---- header ----
+D(0,0,2560,100,'','background:#071a33;border-bottom:1.5px solid #1e90ff');
+T(30,38,'OTSI',40,'b');T(130,38,'VIE',40,'b bl');T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b bl');
+D(328,12,169,78,'','background:#073154;border:1.5px solid #1e6fb0;border-radius:12px');D(337,92,150,5,'','background:#1e90ff;border-radius:3px');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(function(n){T(n[1],52,n[0],24,'sb',n[0]=='Home'?'color:#6cc4ff;font-weight:700':'')});
+D(2117,20,2,62,'','background:#12335f');D(2140,23,100,54,'','background:#071e37;border:1.5px solid #17406f;border-radius:8px');T(2190,50,'QHD',20,'b lb c');
+D(2271,25,54,54,'','background:#1e90ff;border-radius:50%');T(2298,52,'O',22,'b c');T(2340,41,'Owner',24,'b');T(2340,69,'OTSI VIE',19,'m');
+
+// ---- hero ----
+D(0,101,2560,500,'','background:radial-gradient(ellipse at 55% 0,#3a8ae0 0,#12376e 25%,transparent 55%),linear-gradient(180deg,#071a38 0,#06122a 60%,#0d3a1c 92%,#06122a)');
+for(var i=0;i<9;i++)D(180+i*130,130+Math.abs(i-4)*16,12,12,'','background:#cfe8ff;border-radius:50%;box-shadow:0 0 14px #fff');
+T(60,154,'TURN FOOTBALL VIDEO INTO INSIGHTS',22,'','letter-spacing:5px;color:#b9cbe2');
+T(60,216,'Professional Football',80,'b','letter-spacing:-1px');T(60,292,'Video Intelligence',80,'b','color:#0a9bff;letter-spacing:-1px');
+T(60,358,'Upload matches, analyze every player, create reels and share',29,'','color:#e3eefb');T(60,396,'insights \u2014 built for analysts, scouts and agencies.',29,'','color:#e3eefb');
+D(59,442,384,96,'','background:linear-gradient(90deg,#0a84ff,#08a0ff);border-radius:10px;box-shadow:0 0 24px #0a84ff');I(131,490,'up',56,'#fff');T(185,474,'Upload Video',29,'sb');T(185,508,'MP4, MOV, up to 2GB',22,'','color:#dbeaff');
+D(466,442,414,96,'','background:rgba(5,16,36,.8);border:1.5px solid #17406f;border-radius:10px');I(522,490,'link',50,'#cfe0f5');T(577,474,'Paste Link',29,'sb');T(577,508,'YouTube, Hudl, Wyscout...',22,'','color:#b9cbe2');
+// hero player
+D(1180,200,380,420,'','background:radial-gradient(ellipse at 50% 40%,#5aa8ec 0,#2a6fb8 35%,transparent 70%)');
+D(1123,130,304,75,'','background:rgba(6,30,66,.8);border:2px solid #1e90ff;border-radius:6px');D(1135,140,47,48,'','background:#1e90ff;border-radius:4px');T(1158,164,'17',28,'b c');T(1195,159,'Kevin De Bruyne',24,'b');T(1195,185,'Midfielder \u2022 Manchester City',17,'','color:#33a8ff');
+D(1470,170,298,228,'','background:rgba(6,30,66,.75);border:2px solid #1e90ff;border-radius:6px');
+[['spd','Speed','32.4 km/h',196],['ball','Distance','11.2 km',239],['pass','Passes','82',283],['key','Key Passes','7',326],['xa','xA (Exp. Ast)','0.42',370]].forEach(function(r,i){I(1497,r[3],r[0],26,'#33a8ff');T(1524,r[3],r[1],19,'','color:#b9cbe2');T(1654,r[3],r[2],22,'','color:#fff');if(i)D(1480,r[3]-22,278,1,'','background:#17406f')});
+[[967,376,109,198,'5',992,345,46],[1118,417,78,145,'8',1137,388,35],[1782,398,84,166,'22',1797,367,48]].forEach(function(b){D(b[0],b[1],b[2],b[3],'','border:3px solid #f5b82e;background:rgba(245,184,46,.06)');D(b[5],b[6],b[7],31,'','background:#0a0a05;border:2px solid #f5b82e');T(b[5]+b[7]/2,b[6]+16,b[4],22,'b c','color:#fff')});
+D(1170,568,250,26,'','border:3px solid #33a8ff;border-radius:50%;box-shadow:0 0 18px #1e90ff');
+// featured reel
+D(1990,130,532,444,'','background:rgba(5,16,36,.82);border:1.5px solid #12335f;border-radius:14px');
+D(2010,150,495,295,'','background:radial-gradient(ellipse at 66% 40%,#e0b090 0,#c98c6a 5%,transparent 6%),radial-gradient(ellipse at 66% 95%,#6fb8ee 0,#2a6fb8 35%,transparent 70%),linear-gradient(135deg,#27487a,#0e2040);border-radius:8px');
+T(2025,163,'FEATURED REEL',22,'sb','letter-spacing:3px;color:#33a8ff');D(2454,148,45,34,'','background:#0a0a05;border:2px solid #f5b82e;border-radius:4px');T(2476,165,'4K',20,'b c','color:#f5b82e');
+PLAY(2255,292,46);T(2025,381,'Kevin De Bruyne',32,'b');T(2025,414,'Creative Passing Highlights',25,'','color:#e3eefb');
+D(2417,395,74,34,'','background:rgba(0,10,25,.85);border-radius:6px');T(2454,412,'02:17',22,'sb c');
+[['Progressive Passes',2024,177],['Key Passes',2216,117],['Assists',2349,88]].forEach(function(c){D(c[1],447,c[2],43,'ch');T(c[1]+c[2]/2,469,c[0],19,'c','color:#cfe0f5')});
+I(2033,542,'eye',34);T(2060,543,'125K',23);I(2177,542,'heart',34);T(2204,543,'2.4K',23);I(2341,542,'share',32);T(2370,543,'Share',23);I(2486,542,'dots',30);
+
+// ---- stats ----
+[['cam','1,248','Matches Analyzed','+12%',39,413,60,145,172,428,365],['ppl','4,326','Players Tracked','+18%',470,408,499,584,609,855,782],['reel','12,680','Reels Generated','+25%',896,399,917,1000,1027,1270,1195],['doc','892','Reports Created','+14%',1314,401,1339,1422,1444,1689,1615]].forEach(function(s){
+ P(s[4],602,s[5],135);D(s[6],623,s[7]-s[6],86,'','background:#0a2b55;border-radius:12px');I((s[6]+s[7])/2,666,s[0],44,'#33a8ff');
+ T(s[8],649,s[1],36,'b');T(s[8],687,s[2],22,'','color:#cfe0f5');T(s[9],646,'\u2191+'+s[3].slice(1),19,'sb r','color:#3ee6a8');
+ for(var j=0;j<5;j++){var h=[16,24,34,46,56][j];D(s[10]+j*15,712-h,9,h,'','background:#1e90ff;border-radius:2px')}});
+P(1735,602,787,135);T(1767,628,'TRUSTED BY PROFESSIONAL CLUBS, AGENCIES & ANALYSTS',17,'','letter-spacing:5px;color:#b9cbe2');
+// logo placeholders (marks not reproduced)
+[['UEFA',1777,101,'i'],['FIFA',1930,82,'b'],['',2070,50,'o'],['LALIGA',2180,94,'b'],['',2320,60,'sq'],['SERIE A',2430,52,'tri']].forEach(function(l){
+ if(l[3]=='b')T(l[1],690,l[0],34,'b','font-style:italic');else if(l[3]=='i')T(l[1],690,l[0],34,'b','font-style:italic;letter-spacing:6px');
+ else if(l[3]=='o')D(l[1]+2,662,48,56,'','border:3px solid #fff;border-radius:40% 40% 50% 50%');
+ else if(l[3]=='sq')D(l[1],664,60,48,'','background:#fff;border-radius:4px');else{D(l[1],660,52,44,'','border:3px solid #fff;clip-path:polygon(50% 0,100% 100%,0 100%)');T(l[1]+26,716,l[0],12,'b c')}});
+
+// ---- recent matches ----
+P(39,757,791,405);ACC(55,771,26);T(76,783,'Recent Matches',27,'sb');T(798,786,'View All',21,'lb r');I(790,786,'arr',20,'#33a8ff');
+[['Man City vs Real Madrid','UEFA Champions League  \u2022  Tue, 16 Apr 2024','95:28','2 - 1',855],['Arsenal vs Liverpool','Premier League  \u2022  Sun, 14 Apr 2024','96:14','3 - 2',939],['Barcelona vs Atl\u00E9tico Madrid','La Liga  \u2022  Sat, 13 Apr 2024','94:32','1 - 0',1024],['Bayern Munich vs Dortmund','Bundesliga  \u2022  Sat, 13 Apr 2024','94:35','2 - 2',1110]].forEach(function(r,i){var y=r[4];
+ D(55,y-39,758,80,'','background:#06142a;border:1.5px solid #10294a;border-radius:6px');TH(68,y-35,157,70,25+i*8);D(168,y+11,54,22,'','background:rgba(0,10,25,.85);border-radius:4px');T(195,y+22,r[2],19,'sb c');
+ CREST(270,y,40);T(319,y-14,r[0],21,'sb');T(319,y+16,r[1],18,'','color:#b9cbe2');T(737,y,r[3],26,'b c');I(791,y,'gt',20,'#cfe0f5')});
+
+// ---- sample reels ----
+P(850,757,968,405);ACC(866,771,26);T(891,783,'Sample Reels',27,'sb');T(1776,786,'View All',21,'lb r');I(1767,786,'arr',20,'#33a8ff');
+[['Kevin De Bruyne','Progressive Passes','02:17','125K','2.4K',867,'#27487a'],['Vin\u00EDcius J\u00FAnior','Dribbling & 1v1s','01:54','98K','1.7K',1185,'#4a2a30'],['Bukayo Saka','Attacking Runs','02:05','76K','1.3K',1502,'#4a1a28']].forEach(function(r){var x=r[5];
+ D(x-1,816,300,335,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');PH(x,817,298,189,r[6],'#0e2040');PLAY(x+148,911,31);
+ D(x+216,970,70,28,'','background:rgba(0,10,25,.85);border-radius:5px');T(x+251,984,r[2],19,'sb c');T(x+8,1030,r[0],23,'sb');T(x+8,1058,r[1],20,'','color:#9fb3cc');
+ I(x+22,1112,'eye',30);T(x+52,1112,r[3],21);I(x+140,1112,'heart',30);T(x+168,1112,r[4],21);I(x+250,1112,'bm',24);I(x+281,1112,'dots',22)});
+
+// ---- capabilities ----
+P(1841,757,681,405);ACC(1857,771,26);T(1880,784,'Platform Capabilities',27,'sb');T(2498,786,'View All',21,'lb r');I(2489,786,'arr',20,'#33a8ff');
+[['scan','AI Player Detection',['Automatically identify','and track all players'],1855,815,'#33a8ff'],['tac','Tactical Analysis',['Team shape, transitions','and tactical patterns'],2180,815,'#f5b82e'],['clap','Custom Reels',['Create player highlights','in minutes'],1855,930,'#8a6cff'],['doc','Detailed Reports',['Export shareable','PDF reports'],2180,930,'#3ee6a8'],['bars','Team & Player Stats',['Distances, speeds,','actions and more'],1855,1045,'#33a8ff'],['ppl','Collaborate & Share',['Work with your team','and clients'],2180,1045,'#e84aa8']].forEach(function(c){
+ D(c[3],c[4],c[3]<2000?311:331,104,'','background:#06142a;border:1.5px solid #12335f;border-radius:8px');D(c[3]+15,c[4]+12,78,78,'','background:#0a2447;border-radius:10px');I(c[3]+54,c[4]+51,c[0],44,c[5]);
+ T(c[3]+116,c[4]+29,c[1],22,'sb');T(c[3]+116,c[4]+57,c[2][0],18,'','color:#9fb3cc');T(c[3]+116,c[4]+80,c[2][1],18,'','color:#9fb3cc')});
+
+// ---- how it works ----
+P(39,1180,2483,247);ACC(63,1213,49);T(87,1238,'How It Works',34,'b');T(86,1291,'From video to valuable insights',24,'','color:#cfe0f5');T(86,1327,'in minutes.',24,'','color:#cfe0f5');
+D(422,1200,313,112,'','border:2px dashed #1e90ff;background:rgba(5,16,36,.5)');I(573,1258,'cloud',72,'#33a8ff',null,1.5);
+TH(838,1196,329,119,40);[870,920,975,1030,1080].forEach(function(x,i){D(x,1230+(i%2)*26,16,34,'','border:2px solid #33a8ff')});
+D(1282,1196,308,120,'','background:#06142a;border:1.5px solid #17406f;border-radius:6px');
+['Kevin De Bruyne','Erling Haaland','Bernardo Silva'].forEach(function(n,i){var y=1217+i*38;D(1348,y-14,28,28,'','background:#b98466;border-radius:50%');D(1294,y-9,18,18,'','border:1.5px solid #33a8ff;border-radius:50%');T(1398,y,n,16,'');D(1526,y-12,40,24,'','background:#0a2447;border:1.5px solid #1d4f8a;border-radius:4px');T(1546,y,'MCI',15,'sb c','color:#33a8ff')});
+D(1704,1196,315,122,'','background:#06142a;border:1.5px solid #17406f;border-radius:6px');[1216,1236,1256,1277,1297].forEach(function(y,i){D(1716,y,290,10,'','background:'+(i==2?'#0a84ff':i==4?'#f5a623':'#1e5aa0')+';border-radius:3px')});
+D(2137,1200,364,116,'','background:#06142a;border:1.5px solid #17406f;border-radius:6px');D(2150,1210,34,40,'','background:#b98466;border-radius:4px');T(2221,1222,'Kevin De Bruyne',15,'sb');T(2221,1243,'Midfielder \u2022 MCI',12,'','color:#8ea3bf');
+[['42','Actions',2184],['7.4 km','Distance',2271],['68','Touches',2342]].forEach(function(k){T(k[2],1279,k[0],18,'sb c');T(k[2],1299,k[1],12,'c','color:#8ea3bf')});
+D(2378,1214,120,96,'','background:radial-gradient(ellipse at 55% 50%,#ff3a1a 0,#ffd21a 25%,#2fe3a0 50%,#1d6a2a 85%);border-radius:4px');
+[[410,'1'],[822,'2'],[1253,'3'],[1669,'4'],[2108,'5']].forEach(function(n){D(n[0]-22,1184,44,44,'','background:#0a84ff;border:2px solid #6cc4ff;border-radius:50%');T(n[0],1206,n[1],24,'sb c')});
+[777,1217,1632,2068].forEach(function(x){I(x,1270,'arr',44,'#1e90ff',null,1.5)});
+[['Upload Video',422,['Upload a match or training video','(MP4, MOV, up to 2GB).']],['Analyze with AI',837,['Our AI automatically detects players,','tracks the ball and extracts key events.']],['Select a Player',1281,['Choose any player and filter by','actions, phase, or game context.']],['Generate Reel',1705,['Create a professional highlight reel','with custom filters and branding.']],['Export & Share',2139,['Download a detailed PDF report','or share reels with your team.']]].forEach(function(s){T(s[1],1339,s[0],26,'sb');T(s[1],1371,s[2][0],21,'','color:#b9cbe2');T(s[1],1399,s[2][1],21,'','color:#b9cbe2')});
+
+function fit(){var k=Math.min(innerWidth/2560,innerHeight/1440);S.style.transform='scale('+k+')';S.style.left=((innerWidth-2560*k)/2)+'px';S.style.top=((innerHeight-1440*k)/2)+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

@@ -1,0 +1,57 @@
+/*
+ * A page composition from the approved references (2560 x 1440). The header is the first 101 design pixels; the stage below holds
+ * y 101..1440. 1 design pixel = --u, which is exactly 1 px at a 2560-px-wide window. Shared by all ten pages.
+ */
+.wrap {
+  container-type: inline-size;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #000d18;
+}
+.stage {
+  --u: max(0.5px, calc(100cqw / 2560));
+  position: relative;
+  width: calc(2560 * var(--u));
+  height: calc(1339 * var(--u));
+  overflow: hidden;
+  background: #000d18;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: normal;   /* the references use proportional numerals; the app's global tabular setting does not apply here */
+  color: #fff;
+}
+.a { position: absolute; box-sizing: border-box; }
+/* text: left edge at x, vertical centre at y (the reference's T() convention) */
+.t { position: absolute; transform: translateY(-50%); white-space: nowrap; line-height: 1.1; }
+.tc { transform: translate(-50%, -50%); }
+.tr { transform: translate(-100%, -50%); }
+.icon { position: absolute; display: block; overflow: visible; }
+
+/* interactive pieces of the composition */
+.cta {
+  position: absolute;
+  box-sizing: border-box;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: filter 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+.cta:focus-visible { outline: calc(3 * var(--u)) solid #17d1f8; outline-offset: calc(3 * var(--u)); }
+.ctaPrimary:hover { filter: brightness(1.12); }
+.ctaSecondary:hover { border-color: #1e90ff !important; background: rgba(8, 26, 56, 0.9) !important; }
+
+/* the reference's panel (.pn) */
+.pn { background: linear-gradient(#081a35, #06122a); border: calc(1.5 * var(--u)) solid #12335f; border-radius: calc(14 * var(--u)); }
+
+/*
+ * A box whose children are placed in design coordinates from its OUTER corner: the border is drawn on an overlay instead of the box
+ * itself, so it does not shift the content (a 1.5 px border renders as a whole device pixel, which an origin offset cannot match).
+ * --bc: border colour, --bw: border width in design px (default 1.5); links get the hover border of the composition.
+ */
+.framed { --bc: #12335f; }
+.framed::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  border: calc(var(--bw, 1.5) * var(--u)) solid var(--bc); transition: border-color 120ms ease;
+}
+a.framed:hover { --bc: #1e90ff; }
+.pnFill { background: linear-gradient(#081a35, #06122a); border-radius: calc(14 * var(--u)); }

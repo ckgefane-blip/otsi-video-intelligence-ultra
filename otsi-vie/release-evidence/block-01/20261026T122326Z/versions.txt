@@ -1,0 +1,6 @@
+python: Python 3.13.15
+pytest: 8.3.3
+PyMySQL: 1.1.1
+mysql server: 8.4.13 MySQL Community Server - GPL (image mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69)
+docker: Docker version 29.8.0, build 88096ef
+command: .venv/Scripts/python.exe -m pytest tests/db -q -rA

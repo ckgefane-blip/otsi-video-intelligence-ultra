@@ -1,0 +1,170 @@
+{
+ "generated": "2026-10-27T03:54:30",
+ "machine": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+ "video": "naples_amateur_pd.webm",
+ "window_s": [
+  2.0,
+  12.0
+ ],
+ "frames": 300,
+ "size": [
+  1920,
+  1080
+ ],
+ "fps": "30000/1001",
+ "quality_setting": 70,
+ "ffmpeg_build": "ffmpeg-7.1.1-lgpl-202610270133",
+ "results": [
+  {
+   "backend": "intel-qsv-h264",
+   "family": "h264",
+   "encoder": "h264_qsv",
+   "hardware": "Intel Quick Sync (oneVPL)",
+   "licence_note": "LGPL FFmpeg + MIT oneVPL; encoder in the Intel graphics driver (driver licence); H.264 patents: counsel (E3)",
+   "available": true,
+   "cpu_seconds": 4.44,
+   "cpu_percent_of_machine": 9.5,
+   "cpu_cores_busy": 2.09,
+   "frames": 300,
+   "encode_fps": 141.1,
+   "mbit_s": 1.55,
+   "psnr_y_db": 41.507354,
+   "ssim_all": 0.982423,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "High",
+    "level": 40,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": true
+   }
+  },
+  {
+   "backend": "mf-h264",
+   "family": "h264",
+   "encoder": "h264_mf",
+   "hardware": "Windows Media Foundation (Intel MFT when present)",
+   "licence_note": "LGPL FFmpeg; encoder from Windows / Intel driver (their terms); H.264 patents: counsel (E3)",
+   "available": true,
+   "cpu_seconds": 4.62,
+   "cpu_percent_of_machine": 10.6,
+   "cpu_cores_busy": 2.33,
+   "frames": 300,
+   "encode_fps": 150.8,
+   "mbit_s": 3.62,
+   "psnr_y_db": 44.486394,
+   "ssim_all": 0.988219,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "High",
+    "level": 40,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": true
+   }
+  },
+  {
+   "backend": "openh264",
+   "family": "h264",
+   "encoder": "libopenh264",
+   "hardware": null,
+   "licence_note": "LGPL FFmpeg (separate minimal tree) + Cisco's OpenH264 binary, whose H.264 royalties Cisco covers; a self-built OpenH264 is not covered",
+   "available": true,
+   "cpu_seconds": 4.73,
+   "cpu_percent_of_machine": 11.3,
+   "cpu_cores_busy": 2.48,
+   "frames": 300,
+   "encode_fps": 157.3,
+   "mbit_s": 1.94,
+   "psnr_y_db": 38.15932,
+   "ssim_all": 0.967517,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "Constrained Baseline",
+    "level": 40,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": true
+   }
+  },
+  {
+   "backend": "intel-qsv-av1",
+   "family": "av1",
+   "encoder": "av1_qsv",
+   "hardware": "Intel Quick Sync (oneVPL)",
+   "licence_note": "LGPL FFmpeg + MIT oneVPL; AV1 royalty-free (AOMedia licence); third-party pool claims: counsel (E3)",
+   "available": true,
+   "cpu_seconds": 4.72,
+   "cpu_percent_of_machine": 9.1,
+   "cpu_cores_busy": 2.01,
+   "frames": 300,
+   "encode_fps": 127.7,
+   "mbit_s": 1.56,
+   "psnr_y_db": 42.871625,
+   "ssim_all": 0.986366,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "Main",
+    "level": 8,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": true
+   }
+  },
+  {
+   "backend": "svt-av1",
+   "family": "av1",
+   "encoder": "libsvtav1",
+   "hardware": null,
+   "licence_note": "LGPL FFmpeg + SVT-AV1 (BSD-3-Clause-Clear + AOMedia patent licence)",
+   "available": true,
+   "cpu_seconds": 41.53,
+   "cpu_percent_of_machine": 49.1,
+   "cpu_cores_busy": 10.79,
+   "frames": 300,
+   "encode_fps": 78.0,
+   "mbit_s": 2.23,
+   "psnr_y_db": 45.775245,
+   "ssim_all": 0.992554,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "Main",
+    "level": 8,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": true
+   }
+  },
+  {
+   "backend": "libvpx-vp9",
+   "family": "vp9",
+   "encoder": "libvpx-vp9",
+   "hardware": null,
+   "licence_note": "LGPL FFmpeg + libvpx (BSD-3 + WebM patent grant)",
+   "available": true,
+   "cpu_seconds": 86.7,
+   "cpu_percent_of_machine": 42.3,
+   "cpu_cores_busy": 9.31,
+   "frames": 300,
+   "encode_fps": 32.2,
+   "mbit_s": 2.38,
+   "psnr_y_db": 44.222602,
+   "ssim_all": 0.988985,
+   "validation": {
+    "ok": true,
+    "failures": [],
+    "profile": "Profile 0",
+    "level": -99,
+    "pix_fmt": "yuv420p",
+    "frames": 300,
+    "faststart": null
+   }
+  }
+ ],
+ "status_note": "tested = benchmarked + validated here. Not legally reviewed, not commercially approved (E3 pending)."
+}

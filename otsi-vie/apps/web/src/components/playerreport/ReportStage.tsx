@@ -1,0 +1,126 @@
+"use client";
+/**
+ * Page 08 Player Report on the approved composition (corrected reference 08_PLAYER_REPORT). A report is addressed by the permanent OTSI
+ * Player ID (or the internal id of a provisional player). The identity comes from the player registry; measurements from his confirmed
+ * tracks; notes, dossiers, PDFs, share links and the assessment through their dialogs (ADR-056). Without a player it shows the reference's
+ * empty state and a player picker.
+ */
+import * as Dialog from "@radix-ui/react-dialog";
+import type { PlayerAssessment, PlayerIdentity, PlayerListEntry, PlayerMeasures, PlayerProfile } from "@otsi-vie/contracts";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { DesignStage } from "@/components/stage/DesignStage";
+import { api, ApiProblem } from "@/lib/api";
+import { parsePlayerRef, type PlayerRef } from "@/lib/identity";
+import { Lower } from "./Bottom";
+import { AssessmentDialog, DossierDialog, NotesDialog, ReportDialog, type DialogName } from "./Dialogs";
+import { Hero, Kpis, Rail, RAIL, type Report } from "./Top";
+
+function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState<Pick<PlayerIdentity, "player_id" | "display_name" | "canonical_otsi_id" | "canonical_state">[] | null | undefined>(undefined);
+  useEffect(() => {
+    if (!open) return;
+    // B.24 (ADR-099): the search needs two characters; before that the picker lists the organization's players (the Players list)
+    const t = q.trim();
+    const h = setTimeout(() => void (t.length >= 2 ? api<PlayerIdentity[]>(`/v1/players?q=${encodeURIComponent(t)}`)
+      : api<PlayerListEntry[]>("/v1/player-list").then((l) => l.filter((x) => !t || x.display_name.toLowerCase().startsWith(t.toLowerCase())).slice(0, 50)
+        .map((x) => ({ player_id: x.player_id, display_name: x.display_name, canonical_otsi_id: x.canonical_otsi_id, canonical_state: x.canonical_otsi_id ? "REGISTERED" as const : "PROVISIONAL" as const }))))
+      .then(setHits, () => setHits(null)), 200);
+    return () => clearTimeout(h);
+  }, [open, q]);
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-player">
+          <Dialog.Title className="text-base font-semibold">Choose a player</Dialog.Title>
+          <Dialog.Description className="mb-3 text-xs text-muted">Players in your organization's registry. A report is addressed by the permanent OTSI Player ID.
+            {" "}<Link href="/players" className="text-primary hover:underline">Players list: enter their profiles ›</Link></Dialog.Description>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder="Search by name…" className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+          {hits === undefined && <p className="text-muted">Loading…</p>}
+          {hits === null && <p role="alert" className="text-danger">The players could not be loaded.</p>}
+          {hits?.length === 0 && <p className="text-muted">No player found.</p>}
+          <ul aria-label="Players" className="space-y-1">
+            {hits?.map((p) => (
+              <li key={p.player_id}>
+                <button type="button" data-player={p.player_id} onClick={() => { onOpenChange(false); router.push(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`); }}
+                  className="flex w-full items-center justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
+                  <span className="min-w-0 truncate font-medium">{p.display_name}</span>
+                  <span className="shrink-0 text-xs text-muted" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? "provisional, no ID yet"}{p.canonical_state === "RETIRED" ? " · retired" : ""}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+export function ReportStage({ playerRef }: { playerRef?: string }) {
+  const ref: PlayerRef | null = playerRef ? parsePlayerRef(playerRef) : null;
+  const [player, setPlayer] = useState<PlayerIdentity | null>(null);
+  const [missing, setMissing] = useState<string | null>(null);
+  const [picking, setPicking] = useState(!playerRef);              // B.24 (ADR-099): the landing without a player opens the picker
+  const [selected, setSelected] = useState(0);
+  const [measures, setMeasures] = useState<PlayerMeasures | null>(null);
+  useEffect(() => {                                  // what the footage measured: tracks a person confirmed as this player only
+    setMeasures(null);
+    if (player) void api<PlayerMeasures>(`/v1/players/${player.player_id}/measures`).then(setMeasures, () => setMeasures(null));
+  }, [player]);
+  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  useEffect(() => {
+    setProfile(null);
+    if (player) void api<PlayerProfile>(`/v1/players/${player.player_id}/profile`).then(setProfile, () => setProfile(null));
+  }, [player]);
+  const [assessment, setAssessment] = useState<PlayerAssessment | null>(null);
+  useEffect(() => {
+    setAssessment(null);
+    if (player) void api<PlayerAssessment>(`/v1/players/${player.player_id}/assessment`).then(setAssessment, () => setAssessment(null));
+  }, [player]);
+  const [dialog, setDialog] = useState<DialogName>(null);
+  const role = useAuth().organization?.role ?? "VIEWER";
+  const can = { write: ["OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT"].includes(role), assess: ["OWNER", "ADMIN", "ANALYST", "SCOUT"].includes(role), share: ["OWNER", "ADMIN", "ANALYST", "EDITOR"].includes(role) };
+  const [focus, setFocus] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const router = useRouter();
+  const key = ref ? `${ref.kind}:${ref.id}` : "";
+  useEffect(() => {
+    setPlayer(null); setMissing(null);
+    if (!ref) return;
+    const path = ref.kind === "canonical" ? `/v1/players/by-otsi-id/${ref.id}` : `/v1/players/${ref.id}`;
+    void api<PlayerIdentity>(path).then(setPlayer, (x) => setMissing(x instanceof ApiProblem && x.status === 404 ? "No such player in your registry." : "The player could not be loaded."));
+  }, [key]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const go = useCallback((i: number) => {
+    setSelected(i);
+    const [label, , , target] = RAIL[i]!;
+    if (!target) { if (label === "Video Clips") router.push("/reels"); return; }
+    setFocus(target);
+    document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setFocus((f) => (f === target ? null : f)), 1600);
+  }, [router]);
+  const r: Report = { player, missing, focus, selected, go, pick: () => setPicking(true), measures, profile, assessment, open: setDialog, can };
+  const close = () => setDialog(null);
+  return (
+    <DesignStage page="reports" background="#010812">
+      <Rail r={r} />
+      <Hero r={r} />
+      <Kpis r={r} />
+      <Lower r={r} />
+      <PlayerPicker open={picking} onOpenChange={setPicking} />
+      {player && (
+        <>
+          <NotesDialog player={player} open={dialog === "notes"} onClose={close} />
+          <DossierDialog player={player} open={dialog === "dossier"} onClose={close} canWrite={can.write} />
+          <ReportDialog player={player} open={dialog === "pdf" || dialog === "share"} share={dialog === "share"} onClose={close} canMake={can.write} canShare={can.share} />
+          <AssessmentDialog player={player} open={dialog === "assess" || dialog === "read"} edit={dialog === "assess"} onClose={close} onSaved={setAssessment} confirmed={!!measures?.tracks} />
+        </>
+      )}
+    </DesignStage>
+  );
+}

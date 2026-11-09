@@ -1,0 +1,17 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider -rs
+(cwd otsi-vie\services\worker)
+
+......................................ssss.............................. [ 74%]
+.........................                                                [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_providers_live.py:19: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+SKIPPED [1] tests\test_providers_live.py:26: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+SKIPPED [1] tests\test_providers_live.py:33: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+SKIPPED [1] tests\test_render.py:29: intel-qsv-h264 not available here: r: Invalid data found when processing input
+
+[vost#0:0/h264_qsv @ 000001988f5e4f80] Task finished with error code: -1094995529 (Invalid data found when processing input)
+
+[vost#0:0/h264_qsv @ 000001988f5e4f80] Terminating thread with return code -1094995529 (Invalid data found when processing input)
+93 passed, 4 skipped in 72.62s (0:01:12)
+
+exit=0

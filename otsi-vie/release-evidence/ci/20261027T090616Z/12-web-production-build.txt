@@ -1,0 +1,53 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm build
+(cwd otsi-vie\apps\web)
+
+
+> @otsi-vie/web@0.1.0 build D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> next build
+
+   ▲ Next.js 15.1.3
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/15) ...
+   Generating static pages (3/15) 
+   Generating static pages (7/15) 
+   Generating static pages (11/15) 
+ ✓ Generating static pages (15/15)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /_not-found                          164 B           106 kB
+├ ○ /analysis                            164 B           106 kB
+├ ○ /dashboard                           174 B           109 kB
+├ ○ /exports                             164 B           106 kB
+├ ○ /library                             164 B           106 kB
+├ ○ /login                               3.27 kB         109 kB
+├ ○ /matches                             164 B           106 kB
+├ ○ /processing                          164 B           106 kB
+├ ○ /reels                               172 B           118 kB
+├ ƒ /reels/[reelId]                      172 B           118 kB
+├ ○ /reports                             164 B           106 kB
+├ ƒ /reports/players/[playerRef]         164 B           106 kB
+├ ○ /studio                              164 B           106 kB
+├ ○ /tactics                             164 B           106 kB
+├ ○ /upload                              8.19 kB         149 kB
+├ ƒ /videos/[videoId]/analyze            11.9 kB         152 kB
+├ ƒ /videos/[videoId]/processing         5.24 kB         139 kB
+└ ƒ /videos/[videoId]/tactics            164 B           106 kB
++ First Load JS shared by all            105 kB
+  ├ chunks/969-1b16dc8a228818b9.js       50.5 kB
+  ├ chunks/dd866eb1-93011ad9395e529d.js  52.9 kB
+  └ other shared chunks (total)          1.98 kB
+
+
+ƒ Middleware                             32.1 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+exit=0

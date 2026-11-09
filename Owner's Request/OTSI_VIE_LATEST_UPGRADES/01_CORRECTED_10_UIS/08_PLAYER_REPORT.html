@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>OTSI VIE - 08 Player Report (visual only)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#s{position:absolute;left:0;top:0;width:2560px;height:1440px;background:#010812;transform-origin:0 0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:#fff;overflow:hidden}
+.a{position:absolute;box-sizing:border-box}
+.t{transform:translateY(-50%);white-space:nowrap;line-height:1.1}
+.r{transform:translate(-100%,-50%)}.c{transform:translate(-50%,-50%)}
+.b{font-weight:700}.sb{font-weight:600}.m{color:#8ea3bf}.bl{color:#1e90ff}.lb{color:#33a8ff}
+.pn{background:linear-gradient(#081a35,#06122a);border:1.5px solid #12335f;border-radius:14px}
+.in{background:#041022;border:1.5px solid #17406f;border-radius:8px}
+.ch{background:#0a2447;border:1.5px solid #1d4f8a;border-radius:6px}
+svg{overflow:visible}
+</style></head><body><div id="s"></div>
+<script>
+const S=document.getElementById('s');
+function D(x,y,w,h,c,st,t){const e=document.createElement('div');e.className='a '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;'+(st||'');if(t!==undefined&&t!==null&&t!=="")e.textContent=t;S.appendChild(e);return e}
+function T(x,y,t,sz,c,st){const e=document.createElement('div');e.className='a t '+(c||'');e.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+sz+'px;'+(st||'');e.textContent=t;S.appendChild(e)}
+// simplified drawn icons (approximations)
+const IC={
+chk:'<path d="M5 12l5 5 9-10"/>',chev:'<path d="M6 9l6 6 6-6"/>',fwd:'<path d="M4 12h15M13 5l7 7-7 7"/>',
+doc:'<path d="M6 3h8l4 4v14H6z"/>',ring:'<circle cx="12" cy="12" r="9"/>',
+ball:'<circle cx="12" cy="12" r="9"/><path d="M12 8l3 2-1 4h-4l-1-4z"/>',
+person:'<circle cx="8" cy="7" r="3"/><circle cx="16" cy="15" r="3"/><path d="M4 18h5M12 8h8"/>',
+shield:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M8 12l3 3 5-6"/>',
+arrows:'<path d="M3 9h12M11 5l4 4-4 4M3 17h18M17 13l4 4-4 4"/>',
+grid:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8l8 8M8 16l3-3"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+user:'<circle cx="10" cy="9" r="4"/><path d="M3 21c1-5 5-6 8-6M15 15l5 5"/>',
+bag:'<rect x="4" y="7" width="16" height="14" rx="2"/><path d="M9 7V4h6v3"/>',
+cam:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>',
+note:'<path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/>',
+run:'<circle cx="14" cy="4" r="2"/><path d="M5 20l4-6 3 2 2-6-4-2-3 3M12 16l3 5M14 10l5 2"/>',
+dbl:'<path d="M4 5l7 7-7 7M12 5l7 7-7 7"/>',tgt:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>',share:'<circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 11l6-4M9 13l6 4"/>',
+bars:'<path d="M5 20V12M12 20V5M19 20V9"/>',link:'<path d="M10 14a4 4 0 005 0l4-4a4 4 0 00-5-5M14 10a4 4 0 00-5 0l-4 4a4 4 0 005 5"/>',
+edit:'<path d="M4 20h4L19 9l-4-4L4 16zM4 5h7"/>',pdf:'<path d="M6 3h8l4 4v14H6z"/><path d="M9 15h6M9 18h4"/>',
+q:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 2-2.5 2-2.5 4M12 17v.5"/>',
+trend:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',pick:'<path d="M4 20L14 10M10 4l10 0 0 10"/>',shld:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/>',
+star:'<path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 17l-5.6 3 1.3-6.2L3 9.5l6.3-.7z"/>',
+tri:'<path d="M12 4l8 15H4z"/>',burst:'<path d="M12 2l2 6 6-2-3 6 5 3-6 1 1 6-5-4-5 4 1-6-6-1 5-3-3-6 6 2z"/>',
+dots:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+sq:'<rect x="4" y="3" width="16" height="18" rx="2"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'};
+function I(x,y,k,sz,col,fill){const e=document.createElement('div');e.className='a';e.style.cssText='left:'+(x-sz/2)+'px;top:'+(y-sz/2)+'px;width:'+sz+'px;height:'+sz+'px';e.innerHTML='<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+(fill||'none')+'" stroke="'+(col||'#fff')+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[k]+'</svg>';S.appendChild(e)}
+function P(x,y,w,h,st){D(x,y,w,h,'pn',st)}
+function SEL(x,y,w,h,t,sz){D(x,y,w,h,'in');T(x+16,y+h/2,t,sz||17);I(x+w-20,y+h/2,'chev',18)}
+function RING(cx,cy,r,w,pct,txt,sz){var e=document.createElement('div');e.className='a';e.style.cssText='left:'+(cx-r)+'px;top:'+(cy-r)+'px;width:'+2*r+'px;height:'+2*r+'px';var c=2*Math.PI*(r-w/2);e.innerHTML='<svg width="'+2*r+'" height="'+2*r+'"><circle cx="'+r+'" cy="'+r+'" r="'+(r-w/2)+'" fill="none" stroke="#0a2a52" stroke-width="'+w+'"/>'+(pct>0?'<circle cx="'+r+'" cy="'+r+'" r="'+(r-w/2)+'" fill="none" stroke="#0a84ff" stroke-width="'+w+'" stroke-linecap="round" stroke-dasharray="'+c*pct+' '+c+'" transform="rotate(-90 '+r+' '+r+')"/>':'')+'</svg>';S.appendChild(e)}
+function PITCH(x,y,w,h){D(x,y,w,h,'','background:repeating-linear-gradient(90deg,#1d5c25 0 8%,#236b2b 8% 16%)');var L='border:2px solid rgba(255,255,255,.85);';
+ D(x+w*.03,y+h*.05,w*.94,h*.9,'',L);D(x+w*.5-1,y+h*.05,2,h*.9,'','background:rgba(255,255,255,.85)');D(x+w*.5-h*.14,y+h*.5-h*.14,h*.28,h*.28,'',L+'border-radius:50%');
+ D(x+w*.03,y+h*.25,w*.14,h*.5,'',L);D(x+w*.83,y+h*.25,w*.14,h*.5,'',L);D(x+w*.03,y+h*.38,w*.05,h*.24,'',L);D(x+w*.92,y+h*.38,w*.05,h*.24,'',L)}
+
+// ---- header ----
+D(0,0,2560,100,'','background:#071a33;border-bottom:1.5px solid #1e90ff');
+T(30,38,'OTSI',40,'b');T(130,38,'VIE',40,'b bl');T(31,73,'VIDEO INTELLIGENCE ENGINE',13,'b bl');
+D(1546,12,169,78,'','background:#073154;border:1.5px solid #1e6fb0;border-radius:12px');D(1555,92,150,5,'','background:#1e90ff;border-radius:3px');
+[['Home',381],['Upload',548],['Processing',700],['Analysis',889],['Tactical',1067],['Reel Builder',1215],['Clip Studio',1396],['Player Report',1555],['Library',1766],['Export',1942]].forEach(function(n){T(n[1],52,n[0],24,'sb',n[0]=='Player Report'?'color:#6cc4ff;font-weight:700':'')});
+D(2117,20,2,62,'','background:#12335f');D(2140,23,100,54,'','background:#071e37;border:1.5px solid #17406f;border-radius:8px');T(2190,50,'QHD',20,'b lb c');
+D(2271,25,54,54,'','background:#1e90ff;border-radius:50%');T(2298,52,'O',22,'b c');T(2340,41,'Owner',24,'b');T(2340,69,'OTSI VIE',19,'m');
+
+// ---- sidebar ----
+P(22,115,348,978);T(44,158,'Player Report',28,'b');
+D(28,199,334,61,'','background:#0a2b55;border:2px solid #1e90ff;border-radius:8px');
+[['chk2','Overview',231],['person','Performance',296],['ball','Attacking Analysis',362],['arrows','Passing Analysis',428],['shield','Defensive Actions',494],['grid','Heatmaps',561],['ring','Event Timeline',627],['user','Comparisons',692],['bag','Scouting Report',762],['cam','Video Clips',828],['note','Notes & Tags',895]].forEach(function(n,i){
+ if(i==0){D(50,219,24,24,'','border:2px solid #cfe8ff;border-radius:5px');I(62,231,'chk',16,'#cfe8ff')}else I(62,n[2],n[0],28,'#cfe0f5');
+ T(109,n[2],n[1],24,'',i==0?'font-weight:600':'color:#d6e4f7')});
+
+// ---- hero ----
+P(387,115,2151,372,'background:linear-gradient(90deg,#0a2a5a,#071a38 55%,#06122a);overflow:hidden');
+
+D(420,115,485,372,'','background:radial-gradient(ellipse at 55% 35%,#e8b898 0,#c98c6a 8%,transparent 9%),radial-gradient(ellipse at 55% 110%,#6fb8ee 0,#3a86c8 30%,transparent 55%),linear-gradient(#10244a,#0a1a38)');
+D(929,197,78,61,'','background:#1e90ff;border-radius:6px');T(968,228,'—',44,'b c');T(1035,224,'No player selected',58,'b');
+T(1035,276,'Position —',22,'lb');[['—',1166,56],['—',1228,55],['—',1290,57]].forEach(function(c){D(c[1],265,c[2],28,'ch');T(c[1]+c[2]/2,279,c[0],17,'c','color:#9fc8f5')});
+D(935,308,60,58,'','background:radial-gradient(circle,#f2c56b 0,#6cc4ff 45%,#fff 50%);border-radius:50%');T(1015,338,'Team —',24);D(1213,320,2,36,'','background:#2a4a75');
+D(1241,318,58,39,'','background:#3a5a88;border-radius:4px');T(1314,338,'Nationality —',24);
+[['Age','—',963],['Height','—',1082],['Weight','—',1242],['Preferred Foot','—',1410]].forEach(function(s){T(s[2],399,s[0],18,'c','color:#b9cbe2');T(s[2],431,s[1],26,'sb c')});
+[1017,1168,1320].forEach(function(x){D(x,390,2,56,'','background:#2a4a75')});
+D(1725,130,297,50,'','background:#0a84ff;border-radius:8px');I(1751,155,'doc',28,'#fff','#fff');T(1778,155,'Add to Scouting Dossier',21,'sb');
+D(2040,130,198,50,'in');I(2078,155,'pdf',28);T(2110,155,'Export PDF',21,'sb');
+D(2256,130,196,50,'in');I(2292,155,'link',28);T(2330,155,'Share Link',21,'sb');
+D(2469,130,54,50,'in');I(2496,155,'dots',28);
+D(1581,196,365,280,'','background:rgba(4,16,34,.7);border:1.5px solid #12335f;border-radius:12px');
+T(1616,224,'Tracking Confidence',22);I(1825,224,'q',26,'#8ea3bf');RING(1677,335,78,16,0);T(1677,335,'—',36,'b c');
+D(1767,280,122,35,'','background:#1a2840;border:1.5px solid #4a5a78;border-radius:6px');D(1779,293,11,11,'','background:#8ea3bf;border-radius:50%');T(1798,298,'Unverified',18,'sb','color:#dfe8f5');
+T(1749,395,'No tracking data',17,'m');T(1749,421,'for this player yet',17,'m');
+D(1964,196,574,280,'','background:rgba(4,16,34,.7);border:1.5px solid #12335f;border-radius:12px');
+T(1987,223,'Player Role & Summary',22,'sb');D(2419,208,92,37,'in');I(2445,227,'edit',20);T(2467,227,'Edit',18);
+T(1987,268,'Role not assessed',24,'sb');
+['An analyst-approved role summary appears here.'].forEach(function(s,i){T(1990,303+i*28,s,20,'','color:#b9cbe2')});
+T(1988,401,'No traits recorded',17,'','color:#8ea3bf');[].forEach(function(c){D(c[1],c[3],c[2],34,'ch');T(c[1]+c[2]/2,c[3]+17,c[0],17,'c','color:#cfe0f5')});
+
+// ---- KPIs ----
+[['Match Minutes',388,247,'—','—','clock',0],['Distance (Est.)',647,247,'—','—','run',0],['Top Speed',907,238,'—','—','dbl',0],['Sprints',1157,205,'—','—','dbl',0],['Passes',1374,234,'—','—','ball',0],['Key Passes',1621,222,'—','—','key',0],['Shots',1856,220,'—','—','tgt',0],['xG',2089,217,'—','—','bars',0],['xA',2319,219,'—','—','share',0]].forEach(function(k,i){
+ P(k[1],505,k[2],132,i==0?'border-left:4px solid #1e90ff':'');
+ T(k[1]+40,531,k[0],21,'','color:#d6e4f7');I(k[1]+60,586,k[5],44,'#1e90ff');
+ T(k[1]+104,575,k[3],30,'b');
+ if(k[6]){T(k[1]+104,609,'↑ '+k[4],19,'sb','color:#3ee6a8')}else T(k[1]+104,609,k[4],19,'','color:#b9cbe2');
+ for(var j=0;j<4;j++){var h=4;D(k[1]+k[2]-62+j*14,630-h,8,h,'','background:#1e3a66;border-radius:2px')}});
+
+// ---- heatmap ----
+P(387,657,694,436);D(401,672,3,32,'','background:#1e90ff');T(421,687,'Heatmap',25,'b');
+D(543,672,334,34,'in');D(543,672,117,34,'','background:#0a84ff;border-radius:6px');T(601,689,'Heatmap',17,'sb c');T(714,689,'Touches',17,'c','color:#b9cbe2');T(822,689,'Territory',17,'c','color:#b9cbe2');
+SEL(889,670,179,38,'Full Match');
+PITCH(410,720,652,344);
+T(736,760,'No heatmap data',20,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+
+// ---- event timeline ----
+P(1096,657,685,436);D(1111,670,3,34,'','background:#1e90ff');T(1128,685,'Event Timeline (All Actions)',22,'sb');SEL(1546,669,216,37,'All Events',16);
+T(1438,880,'No events recorded for this player',19,'c','color:#8ea3bf');[].forEach(function(e,i){
+ var y=729+i*38.5;D(1113,y-17,3,34,'','background:'+(e[4]?'#1fc27a':'#1e90ff'));
+ T(1128,y,e[0],18,'','color:#cfe0f5');
+ var ic={b:['person','#33a8ff'],k:['key','#f5b82e'],c:['tri','#33a8ff'],s:['burst','#ff7a2a'],a:['star','#f5b82e']}[e[3]];I(1232,y,ic[0],26,ic[1],ic[1]);
+ T(1272,y,e[1],19,'','color:#cfe0f5');T(1394,y,e[2],19,'','color:#cfe0f5');
+ D(1626,y-17,84,34,'','background:linear-gradient(115deg,#1b4f8f,#4a8fcf 50%,#0c1d3c);border-radius:3px');
+ D(1714,y-17,42,34,'','background:#0a2447;border:1.5px solid #1d4f8a;border-radius:6px');D(1727,y-9,16,18,'','background:#fff;clip-path:polygon(0 0,100% 50%,0 100%)')});
+
+// ---- action map ----
+P(1797,657,741,436);D(1813,670,3,34,'','background:#1e90ff');T(1835,687,'Action Map',25,'b');SEL(2239,669,283,39,'All Actions',17);
+PITCH(1815,716,706,329);
+T(2168,760,'Not measured',20,'c','color:#e6f3ea;background:rgba(7,20,42,.78);padding:4px 12px;border-radius:6px');
+
+[['Pass',1837,1865,'#1e90ff'],['Key Pass',1945,1971,'#f5b82e'],['Shot',2078,2105,'#ff4a3a']].forEach(function(l){D(l[1]-10,1060,20,20,'','background:'+l[3]+';border-radius:50%');T(l[2],1070,l[0],18,'','color:#cfe0f5')});
+I(2194,1070,'star',26,'#3ee6a8','#3ee6a8');T(2228,1070,'Goal',18,'','color:#cfe0f5');D(2295,1070,70,2,'','background:#fff');T(2387,1070,'Carry',18,'','color:#cfe0f5');
+
+// ---- comparison ----
+P(24,1108,829,299);T(45,1137,'Comparison',26,'b');SEL(463,1118,373,39,'Select comparison group',17);D(38,1166,800,1,'','background:#12335f');
+[['Progressive Passes (p90)',0,'—',0,'—',1195],['Key Passes (p90)',0,'—',0,'—',1229],['xA (p90)',0,'—',0,'—',1263],['Shot Creating Actions (p90)',0,'—',0,'—',1298],['Progressive Carries (p90)',0,'—',0,'—',1332]].forEach(function(c){var y=c[5];
+ T(50,y,c[0],18,'','color:#d6e4f7');D(276,y-8,313,16,'','background:#122b4d;border-radius:3px');T(606,y,c[2],21,'sb lb');
+ D(684,y-8,89,16,'','background:#122b4d;border-radius:3px');T(793,y,c[4],19,'','color:#cfe0f5')});
+D(46,1363,24,24,'','background:#0a84ff;border-radius:50%');T(88,1377,'Selected player',16,'','color:#cfe0f5');D(257,1365,24,24,'','background:#4d6482;border-radius:50%');T(300,1377,'Midfielders Avg.',16,'','color:#cfe0f5');
+
+// ---- insights ----
+P(867,1108,913,299);D(879,1124,3,30,'','background:#1e90ff');T(897,1136,'Generated Insights',24,'b');
+D(1108,1124,117,30,'ch');D(1121,1134,11,11,'','background:#33a8ff;border-radius:50%');T(1141,1139,'AI Analysis',15,'lb');
+[['trend','No insights yet',1163,61,['AI insights are generated after analysis','and require analyst review before display.'],'#3ee6a8'],['pick','—',1230,48,[],'#33a8ff'],['tgt','—',1285,52,[],'#8a6cff'],['shld','—',1344,53,[],'#f5b82e']].forEach(function(r){
+ var cy=r[2]+r[3]/2;D(881,r[2],883,r[3],'','background:#071a33;border:1.5px solid #12335f;border-radius:8px');I(924,cy,r[0],38,r[5]);
+ T(983,cy,r[1],21,'sb');r[4].forEach(function(s,j){T(1264,cy+(j-(r[4].length-1)/2)*18.5,s,16,'','color:#b9cbe2')})});
+
+// ---- scouting ----
+P(1797,1108,741,299);I(1834,1140,'doc',34,'#3ee6a8','#3ee6a8');T(1865,1140,'Scouting Report',24,'sb');
+D(2343,1120,181,39,'','background:#0a84ff;border-radius:6px');T(2362,1140,'View Full Report',17,'sb');I(2503,1140,'fwd',16);
+D(1814,1167,226,230,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');T(1847,1189,'Overall Rating',18);RING(1920,1275,72,13,0);T(1920,1268,'—',42,'b c');T(1920,1305,'/ 10',16,'m c');
+D(2051,1167,473,118,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');
+T(2287,1226,'No scouting assessment yet',17,'c','color:#8ea3bf');[].forEach(function(s){D(s[1]-11,s[2]-11,22,22,'','background:#17c27a;border-radius:50%');I(s[1],s[2],'chk',14,'#04210f');T(s[1]+25,s[2],s[0],16,'','color:#d6e4f7')});
+D(2051,1293,473,104,'','background:#06142a;border:1.5px solid #12335f;border-radius:10px');
+['No scout notes recorded.'].forEach(function(s,i){T(2102,1307+i*23,s,16,'','color:#b9cbe2')});
+T(2500,1373,'Awaiting verified scouting data',16,'r m','font-style:italic');
+
+function fit(){var k=Math.min(innerWidth/2560,innerHeight/1440);S.style.transform='scale('+k+')';S.style.left=((innerWidth-2560*k)/2)+'px';S.style.top=((innerHeight-1440*k)/2)+'px'}
+addEventListener('resize',fit);fit();
+</script></body></html>

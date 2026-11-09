@@ -1,0 +1,49 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm build
+(cwd otsi-vie\apps\web)
+
+
+> @otsi-vie/web@0.1.0 build D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\web
+> next build
+
+   ▲ Next.js 15.1.3
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/14) ...
+   Generating static pages (3/14) 
+   Generating static pages (6/14) 
+   Generating static pages (10/14) 
+ ✓ Generating static pages (14/14)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /_not-found                          167 B           106 kB
+├ ○ /analysis                            167 B           106 kB
+├ ○ /dashboard                           174 B           109 kB
+├ ○ /exports                             167 B           106 kB
+├ ○ /library                             167 B           106 kB
+├ ○ /matches                             167 B           106 kB
+├ ○ /processing                          167 B           106 kB
+├ ○ /reels                               167 B           106 kB
+├ ○ /reports                             167 B           106 kB
+├ ƒ /reports/players/[playerRef]         167 B           106 kB
+├ ○ /studio                              167 B           106 kB
+├ ○ /tactics                             167 B           106 kB
+├ ○ /upload                              1.77 kB         111 kB
+├ ƒ /videos/[videoId]/analyze            167 B           106 kB
+├ ƒ /videos/[videoId]/processing         167 B           106 kB
+└ ƒ /videos/[videoId]/tactics            167 B           106 kB
++ First Load JS shared by all            105 kB
+  ├ chunks/969-4f96a31d2a5f3ee2.js       50.5 kB
+  ├ chunks/dd866eb1-dac23a03d3135578.js  52.9 kB
+  └ other shared chunks (total)          1.98 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+exit=0

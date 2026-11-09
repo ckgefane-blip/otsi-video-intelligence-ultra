@@ -1,0 +1,22 @@
+{
+  "logical_tables": 80,
+  "source_files": [
+    "001_core.sql",
+    "002_intelligence.sql",
+    "003_production.sql",
+    "004_controls.sql",
+    "005_operational_extensions.sql",
+    "006_greenfield_commercial.sql",
+    "007_processing_detail.sql"
+  ],
+  "converted_sql": "001_full_schema_mysql84.sql",
+  "conversion_issues": [
+    "duplicate table outbox_events from 006_greenfield_commercial.sql",
+    "players manual constraint review: CONSTRAINT canonical_state_guard CHECK (canonical_state <> 'VERIFIED' OR canonic",
+    "video_sources manual constraint review: CONSTRAINT asset_after_ingest CHECK(state <> 'INGESTED' OR source_asset_id IS NO",
+    "partial index translated to ordinary index: idx_outbox_pending",
+    "partial index translated to ordinary index: idx_outbox_pending"
+  ],
+  "status": "REFERENCE_UNEXECUTED",
+  "mysql_version_target": "8.4 LTS"
+}

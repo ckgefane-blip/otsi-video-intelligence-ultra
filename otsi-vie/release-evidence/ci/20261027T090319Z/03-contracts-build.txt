@@ -1,0 +1,9 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm build
+(cwd otsi-vie\packages\contracts)
+
+
+> @otsi-vie/contracts@0.1.0 build D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\packages\contracts
+> tsc -p tsconfig.json
+
+
+exit=0

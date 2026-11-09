@@ -1,0 +1,77 @@
+# Local runtime, state, and credentials (never commit secrets or local credentials)
+.local/
+**/.env
+**/.env.*
+!**/.env.example
+*.env
+local_credentials*
+secrets*
+
+# Node / Package managers
+node_modules/
+**/node_modules/
+.pnpm-store/
+.npm/
+
+# Python / Virtual environments
+.venv/
+.venv*/
+venv/
+**/venv/
+**/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+
+# Build artifacts & caches
+dist/
+**/dist/
+build/
+**/build/
+.next/
+**/.next/
+coverage/
+**/coverage/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Logs & OS artifacts
+*.log
+**/*.log
+.DS_Store
+Thumbs.db
+
+# Developer / test scratch & tool homes
+.playwright-mcp/
+_package/
+_rules_package/
+
+# Large binaries, video files, archives, and datasets
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.ts
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.bin
+*.pt
+*.onnx
+*.engine
+
+# Owner delivered archives
+blueprint/*.zip
+blueprint/_rules_package/
+Owner's Request/*.zip
+Owner's Request/*.7z
+Owner's Request/*.png
+
+# Local verification artifacts and scratch runs
+otsi-vie/release-evidence/db-check/
+otsi-vie/release-evidence/integration-audit/
+otsi-vie/release-evidence/*.png

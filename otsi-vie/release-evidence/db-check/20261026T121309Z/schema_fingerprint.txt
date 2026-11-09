@@ -1,0 +1,1308 @@
+## columns
+admin_actions	id	char(36)	NO	<null>	
+admin_actions	actor_id	char(36)	NO	<null>	
+admin_actions	organization_id	char(36)	YES	<null>	
+admin_actions	action	varchar(255)	NO	<null>	
+admin_actions	justification	text	NO	<null>	
+admin_actions	approved_by	char(36)	YES	<null>	
+admin_actions	resulting_audit_event_id	bigint unsigned	YES	<null>	
+admin_actions	occurred_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+artifact_checks	id	char(36)	NO	<null>	
+artifact_checks	artifact_id	char(36)	NO	<null>	
+artifact_checks	check_kind	varchar(255)	NO	<null>	
+artifact_checks	passed	tinyint(1)	NO	<null>	
+artifact_checks	measurements	json	NO	json_object()	DEFAULT_GENERATED
+artifact_checks	checked_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+artifact_dependencies	artifact_asset_id	char(36)	NO	<null>	
+artifact_dependencies	depends_on_asset_id	char(36)	NO	<null>	
+artifact_dependencies	dependency_type	varchar(255)	NO	<null>	
+assets	id	char(36)	NO	<null>	
+assets	organization_id	char(36)	NO	<null>	
+assets	project_id	char(36)	YES	<null>	
+assets	kind	enum('SOURCE','PROXY','THUMBNAIL','TRACKS','EVENTS','REEL','REPORT','HEATMAP','MANIFEST','CAPTIONS')	NO	<null>	
+assets	object_key	varchar(255)	NO	<null>	
+assets	storage_bucket	varchar(255)	NO	<null>	
+assets	byte_size	bigint	YES	<null>	
+assets	sha256	char(64)	YES	<null>	
+assets	mime_type	varchar(255)	YES	<null>	
+assets	source_asset_id	char(36)	YES	<null>	
+assets	created_by	char(36)	YES	<null>	
+assets	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+assets	retention_until	datetime(6)	YES	<null>	
+assets	metadata	json	NO	json_object()	DEFAULT_GENERATED
+audit_events	id	bigint unsigned	NO	<null>	auto_increment
+audit_events	organization_id	char(36)	NO	<null>	
+audit_events	actor_id	char(36)	YES	<null>	
+audit_events	action	varchar(255)	NO	<null>	
+audit_events	entity_type	varchar(255)	NO	<null>	
+audit_events	entity_id	char(36)	YES	<null>	
+audit_events	request_id	varchar(255)	YES	<null>	
+audit_events	before_state	json	YES	<null>	
+audit_events	after_state	json	YES	<null>	
+audit_events	occurred_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+billing_customers	id	char(36)	NO	<null>	
+billing_customers	organization_id	char(36)	NO	<null>	
+billing_customers	provider	varchar(255)	NO	<null>	
+billing_customers	provider_customer_id	varchar(255)	NO	<null>	
+billing_customers	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+billing_webhook_inbox	id	bigint unsigned	NO	<null>	auto_increment
+billing_webhook_inbox	provider	varchar(255)	NO	<null>	
+billing_webhook_inbox	external_event_id	varchar(255)	NO	<null>	
+billing_webhook_inbox	signature_verified	tinyint(1)	NO	0	
+billing_webhook_inbox	event_kind	varchar(255)	NO	<null>	
+billing_webhook_inbox	payload_sha256	char(64)	NO	<null>	
+billing_webhook_inbox	received_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+billing_webhook_inbox	processed_at	datetime(6)	YES	<null>	
+billing_webhook_inbox	error_code	varchar(255)	YES	<null>	
+camera_transforms	id	char(36)	NO	<null>	
+camera_transforms	video_id	char(36)	NO	<null>	
+camera_transforms	shot_id	char(36)	NO	<null>	
+camera_transforms	from_pts_us	bigint	NO	<null>	
+camera_transforms	to_pts_us	bigint	NO	<null>	
+camera_transforms	transform	json	NO	<null>	
+camera_transforms	reprojection_error_px	decimal(12,4)	YES	<null>	
+clip_reviews	id	char(36)	NO	<null>	
+clip_reviews	reel_clip_id	char(36)	NO	<null>	
+clip_reviews	reviewer_id	char(36)	NO	<null>	
+clip_reviews	decision	varchar(255)	NO	<null>	
+clip_reviews	evidence_id	char(36)	YES	<null>	
+clip_reviews	reason	text	YES	<null>	
+clip_reviews	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+clubs	id	char(36)	NO	<null>	
+clubs	canonical_name	varchar(255)	NO	<null>	
+clubs	country_code	char(2)	YES	<null>	
+clubs	external_ids	json	NO	json_object()	DEFAULT_GENERATED
+comments	id	char(36)	NO	<null>	
+comments	organization_id	char(36)	NO	<null>	
+comments	project_id	char(36)	YES	<null>	
+comments	reel_id	char(36)	YES	<null>	
+comments	author_id	char(36)	NO	<null>	
+comments	body	varchar(255)	NO	<null>	
+comments	at_pts_us	bigint	YES	<null>	
+comments	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+deliveries	id	char(36)	NO	<null>	
+deliveries	organization_id	char(36)	NO	<null>	
+deliveries	asset_id	char(36)	NO	<null>	
+deliveries	requested_by	char(36)	NO	<null>	
+deliveries	destination_type	varchar(255)	NO	<null>	
+deliveries	destination_ref	varchar(255)	YES	<null>	
+deliveries	state	enum('QUEUED','RUNNING','SUCCEEDED','FAILED','CANCELLED','BLOCKED','REVIEW_REQUIRED')	NO	QUEUED	
+deliveries	rights_checked_at	datetime(6)	YES	<null>	
+deliveries	delivered_at	datetime(6)	YES	<null>	
+deliveries	failure_code	varchar(255)	YES	<null>	
+detection_batches	id	char(36)	NO	<null>	
+detection_batches	run_id	char(36)	NO	<null>	
+detection_batches	model_version_id	char(36)	NO	<null>	
+detection_batches	start_frame	bigint	NO	<null>	
+detection_batches	end_frame	bigint	NO	<null>	
+detection_batches	payload_asset_id	char(36)	NO	<null>	
+detection_batches	checksum	char(64)	NO	<null>	
+detection_batches	detection_count	bigint	NO	<null>	
+effect_keyframes	id	char(36)	NO	<null>	
+effect_keyframes	timeline_item_id	char(36)	NO	<null>	
+effect_keyframes	time_offset_us	bigint	NO	<null>	
+effect_keyframes	property_name	varchar(255)	NO	<null>	
+effect_keyframes	value	json	NO	<null>	
+effect_keyframes	interpolation	varchar(255)	NO	LINEAR	
+effect_presets	id	char(36)	NO	<null>	
+effect_presets	organization_id	char(36)	YES	<null>	
+effect_presets	name	varchar(255)	NO	<null>	
+effect_presets	version	varchar(255)	NO	<null>	
+effect_presets	schema_version	varchar(255)	NO	<null>	
+effect_presets	config	json	NO	<null>	
+effect_presets	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+entitlement_grants	id	char(36)	NO	<null>	
+entitlement_grants	organization_id	char(36)	NO	<null>	
+entitlement_grants	source_subscription_id	char(36)	YES	<null>	
+entitlement_grants	feature_key	varchar(255)	NO	<null>	
+entitlement_grants	limit_value	bigint	YES	<null>	
+entitlement_grants	valid_from	datetime(6)	NO	<null>	
+entitlement_grants	valid_until	datetime(6)	YES	<null>	
+event_candidates	id	char(36)	NO	<null>	
+event_candidates	run_id	char(36)	NO	<null>	
+event_candidates	video_id	char(36)	NO	<null>	
+event_candidates	event_type	varchar(255)	NO	<null>	
+event_candidates	start_pts_us	bigint	NO	<null>	
+event_candidates	end_pts_us	bigint	NO	<null>	
+event_candidates	primary_track_id	char(36)	YES	<null>	
+event_candidates	secondary_track_id	char(36)	YES	<null>	
+event_candidates	confidence	float	YES	<null>	
+event_candidates	evidence_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	DETECTED	
+event_candidates	model_version_id	char(36)	YES	<null>	
+event_candidates	evidence_id	char(36)	YES	<null>	
+event_candidates	features	json	NO	json_object()	DEFAULT_GENERATED
+event_decisions	id	char(36)	NO	<null>	
+event_decisions	event_id	char(36)	NO	<null>	
+event_decisions	decision	varchar(255)	NO	<null>	
+event_decisions	reviewer_id	char(36)	NO	<null>	
+event_decisions	revised_start_pts_us	bigint	YES	<null>	
+event_decisions	revised_end_pts_us	bigint	YES	<null>	
+event_decisions	revised_type	varchar(255)	YES	<null>	
+event_decisions	reason	text	YES	<null>	
+event_decisions	decided_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+evidence_records	id	char(36)	NO	<null>	
+evidence_records	video_id	char(36)	YES	<null>	
+evidence_records	pipeline_run_id	char(36)	YES	<null>	
+evidence_records	model_version_id	char(36)	YES	<null>	
+evidence_records	state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	<null>	
+evidence_records	source_type	varchar(255)	NO	<null>	
+evidence_records	source_ref	varchar(255)	NO	<null>	
+evidence_records	confidence	float	YES	<null>	
+evidence_records	reviewer_id	char(36)	YES	<null>	
+evidence_records	reviewed_at	datetime(6)	YES	<null>	
+evidence_records	notes	text	YES	<null>	
+evidence_records	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+identity_review_history	id	char(36)	NO	<null>	
+identity_review_history	organization_id	char(36)	NO	<null>	
+identity_review_history	video_id	char(36)	NO	<null>	
+identity_review_history	track_id	char(36)	NO	<null>	
+identity_review_history	previous_decision_id	char(36)	YES	<null>	
+identity_review_history	new_decision_id	char(36)	YES	<null>	
+identity_review_history	reviewer_id	char(36)	NO	<null>	
+identity_review_history	decision	varchar(255)	NO	<null>	
+identity_review_history	notes	text	YES	<null>	
+identity_review_history	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+invoices	id	char(36)	NO	<null>	
+invoices	organization_id	char(36)	NO	<null>	
+invoices	provider_invoice_id	varchar(255)	YES	<null>	
+invoices	subscription_id	char(36)	YES	<null>	
+invoices	amount_due_minor	bigint	NO	<null>	
+invoices	currency	char(3)	NO	<null>	
+invoices	invoice_state	varchar(255)	NO	<null>	
+invoices	occurred_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+job_events	id	bigint unsigned	NO	<null>	auto_increment
+job_events	run_id	char(36)	NO	<null>	
+job_events	step_id	char(36)	YES	<null>	
+job_events	event_type	varchar(255)	NO	<null>	
+job_events	payload	json	NO	json_object()	DEFAULT_GENERATED
+job_events	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+match_rosters	match_id	char(36)	NO	<null>	
+match_rosters	player_id	char(36)	NO	<null>	
+match_rosters	club_id	char(36)	NO	<null>	
+match_rosters	jersey_number	int	YES	<null>	
+match_rosters	roster_verified	tinyint(1)	NO	0	
+match_rosters	source_uri	text	YES	<null>	
+matches	id	char(36)	NO	<null>	
+matches	organization_id	char(36)	NO	<null>	
+matches	competition	varchar(255)	YES	<null>	
+matches	season	varchar(255)	YES	<null>	
+matches	kickoff_at	datetime(6)	YES	<null>	
+matches	venue	varchar(255)	YES	<null>	
+matches	home_club_id	char(36)	YES	<null>	
+matches	away_club_id	char(36)	YES	<null>	
+matches	home_score	int	YES	<null>	
+matches	away_score	int	YES	<null>	
+matches	metadata_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	INFERRED	
+matches	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+memberships	organization_id	char(36)	NO	<null>	
+memberships	user_id	char(36)	NO	<null>	
+memberships	role	varchar(255)	NO	<null>	
+memberships	status	varchar(255)	NO	ACTIVE	
+metric_cohorts	id	char(36)	NO	<null>	
+metric_cohorts	organization_id	char(36)	YES	<null>	
+metric_cohorts	name	varchar(255)	NO	<null>	
+metric_cohorts	version	varchar(255)	NO	<null>	
+metric_cohorts	definition	json	NO	<null>	
+metric_cohorts	sample_count	int	YES	<null>	
+metric_cohorts	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+metric_definitions	key	varchar(255)	NO	<null>	
+metric_definitions	unit	varchar(255)	NO	<null>	
+metric_definitions	formula_version	varchar(255)	NO	<null>	
+metric_definitions	minimum_quality	float	NO	0	
+metric_definitions	measurement_class	varchar(255)	NO	<null>	
+metric_values	id	char(36)	NO	<null>	
+metric_values	video_id	char(36)	NO	<null>	
+metric_values	player_id	char(36)	YES	<null>	
+metric_values	track_id	char(36)	YES	<null>	
+metric_values	metric_key	varchar(255)	NO	<null>	
+metric_values	value_numeric	double	YES	<null>	
+metric_values	evidence_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	<null>	
+metric_values	evidence_id	char(36)	YES	<null>	
+metric_values	quality_score	float	YES	<null>	
+metric_values	start_pts_us	bigint	NO	<null>	
+metric_values	end_pts_us	bigint	NO	<null>	
+metric_values	computed_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+metric_values	model_version_id	char(36)	YES	<null>	
+model_evaluation_runs	id	char(36)	NO	<null>	
+model_evaluation_runs	model_version_id	char(36)	NO	<null>	
+model_evaluation_runs	evaluation_set_id	char(36)	NO	<null>	
+model_evaluation_runs	summary_metrics	json	NO	<null>	
+model_evaluation_runs	acceptance_state	varchar(255)	NO	<null>	
+model_evaluation_runs	reviewed_by	char(36)	YES	<null>	
+model_evaluation_runs	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+model_evaluation_sets	id	char(36)	NO	<null>	
+model_evaluation_sets	name	varchar(255)	NO	<null>	
+model_evaluation_sets	dataset_sha256	char(64)	NO	<null>	
+model_evaluation_sets	license_note	text	NO	<null>	
+model_evaluation_sets	manifest_object_key	varchar(255)	NO	<null>	
+model_evaluation_sets	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+model_evaluations	id	char(36)	NO	<null>	
+model_evaluations	model_version_id	char(36)	NO	<null>	
+model_evaluations	dataset_name	varchar(255)	NO	<null>	
+model_evaluations	dataset_sha256	char(64)	NO	<null>	
+model_evaluations	annotation_version	varchar(255)	NO	<null>	
+model_evaluations	metrics	json	NO	<null>	
+model_evaluations	signed_off_by	char(36)	YES	<null>	
+model_evaluations	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+model_versions	id	char(36)	NO	<null>	
+model_versions	task	varchar(255)	NO	<null>	
+model_versions	model_name	varchar(255)	NO	<null>	
+model_versions	semantic_version	varchar(255)	NO	<null>	
+model_versions	weights_sha256	char(64)	YES	<null>	
+model_versions	license_id	varchar(255)	YES	<null>	
+model_versions	config	json	NO	json_object()	DEFAULT_GENERATED
+model_versions	evaluation_id	char(36)	YES	<null>	
+model_versions	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+movement_segments	id	char(36)	NO	<null>	
+movement_segments	video_id	char(36)	NO	<null>	
+movement_segments	track_id	char(36)	NO	<null>	
+movement_segments	player_id	char(36)	YES	<null>	
+movement_segments	start_pts_us	bigint	NO	<null>	
+movement_segments	end_pts_us	bigint	NO	<null>	
+movement_segments	movement_kind	varchar(255)	NO	<null>	
+movement_segments	geometry_object_key	varchar(255)	YES	<null>	
+movement_segments	confidence	decimal(5,4)	YES	<null>	
+movement_segments	evidence_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	<null>	
+organizations	id	char(36)	NO	<null>	
+organizations	name	varchar(255)	NO	<null>	
+organizations	slug	varchar(255)	NO	<null>	
+organizations	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+outbox_events	id	bigint unsigned	NO	<null>	auto_increment
+outbox_events	aggregate_type	varchar(255)	NO	<null>	
+outbox_events	aggregate_id	char(36)	NO	<null>	
+outbox_events	event_type	varchar(255)	NO	<null>	
+outbox_events	event_payload	json	NO	<null>	
+outbox_events	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+outbox_events	claimed_at	datetime(6)	YES	<null>	
+outbox_events	delivered_at	datetime(6)	YES	<null>	
+outbox_events	attempt_count	int	NO	0	
+pipeline_runs	id	char(36)	NO	<null>	
+pipeline_runs	video_id	char(36)	NO	<null>	
+pipeline_runs	organization_id	char(36)	NO	<null>	
+pipeline_runs	pipeline_version	varchar(255)	NO	<null>	
+pipeline_runs	status	enum('QUEUED','RUNNING','SUCCEEDED','FAILED','CANCELLED','BLOCKED','REVIEW_REQUIRED')	NO	QUEUED	
+pipeline_runs	config	json	NO	json_object()	DEFAULT_GENERATED
+pipeline_runs	started_at	datetime(6)	YES	<null>	
+pipeline_runs	finished_at	datetime(6)	YES	<null>	
+pipeline_runs	failure_code	varchar(255)	YES	<null>	
+pipeline_runs	failure_detail	text	YES	<null>	
+pipeline_runs	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+pipeline_steps	id	char(36)	NO	<null>	
+pipeline_steps	run_id	char(36)	NO	<null>	
+pipeline_steps	step_name	varchar(255)	NO	<null>	
+pipeline_steps	status	enum('QUEUED','RUNNING','SUCCEEDED','FAILED','CANCELLED','BLOCKED','REVIEW_REQUIRED')	NO	QUEUED	
+pipeline_steps	attempt	int	NO	0	
+pipeline_steps	progress	decimal(5,2)	NO	0.00	
+pipeline_steps	output_asset_id	char(36)	YES	<null>	
+pipeline_steps	model_version_id	char(36)	YES	<null>	
+pipeline_steps	error_code	varchar(255)	YES	<null>	
+pipeline_steps	started_at	datetime(6)	YES	<null>	
+pipeline_steps	completed_at	datetime(6)	YES	<null>	
+pitch_calibrations	id	char(36)	NO	<null>	
+pitch_calibrations	video_id	char(36)	NO	<null>	
+pitch_calibrations	shot_id	char(36)	YES	<null>	
+pitch_calibrations	start_pts_us	bigint	NO	<null>	
+pitch_calibrations	end_pts_us	bigint	NO	<null>	
+pitch_calibrations	transform_matrix	json	NO	<null>	
+pitch_calibrations	pitch_length_m	float	YES	<null>	
+pitch_calibrations	pitch_width_m	float	YES	<null>	
+pitch_calibrations	reprojection_error_px	float	YES	<null>	
+pitch_calibrations	evidence_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	INFERRED	
+pitch_calibrations	quality_score	float	YES	<null>	
+pitch_calibrations	model_version_id	char(36)	YES	<null>	
+plan_prices	id	char(36)	NO	<null>	
+plan_prices	plan_version_id	char(36)	NO	<null>	
+plan_prices	provider	varchar(255)	NO	<null>	
+plan_prices	external_price_id	varchar(255)	NO	<null>	
+plan_prices	billing_period	varchar(255)	NO	<null>	
+plan_prices	currency	char(3)	NO	<null>	
+plan_prices	unit_amount_minor	bigint	NO	<null>	
+plan_prices	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+plan_versions	id	char(36)	NO	<null>	
+plan_versions	plan_id	char(36)	NO	<null>	
+plan_versions	version	int	NO	<null>	
+plan_versions	effective_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+plan_versions	feature_limits	json	NO	<null>	
+plan_versions	currency	varchar(255)	YES	<null>	
+plan_versions	is_published	tinyint(1)	NO	0	
+plans	id	char(36)	NO	<null>	
+plans	code	varchar(255)	NO	<null>	
+plans	name	varchar(255)	NO	<null>	
+plans	active	tinyint(1)	NO	1	
+plans	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+players	id	char(36)	NO	<null>	
+players	canonical_otsi_id	varchar(32)	YES	<null>	
+players	canonical_state	varchar(255)	NO	PENDING	
+players	display_name	varchar(255)	NO	<null>	
+players	birth_date	date	YES	<null>	
+players	preferred_foot	varchar(255)	YES	<null>	
+players	external_ids	json	NO	json_object()	DEFAULT_GENERATED
+policy_decisions	id	char(36)	NO	<null>	
+policy_decisions	organization_id	char(36)	NO	<null>	
+policy_decisions	action	varchar(255)	NO	<null>	
+policy_decisions	resource_type	varchar(255)	NO	<null>	
+policy_decisions	resource_id	char(36)	NO	<null>	
+policy_decisions	actor_id	char(36)	YES	<null>	
+policy_decisions	decision	varchar(255)	NO	<null>	
+policy_decisions	rule_version	varchar(255)	NO	<null>	
+policy_decisions	grant_ids	json	NO	json_array()	DEFAULT_GENERATED
+policy_decisions	dependency_asset_ids	json	NO	json_array()	DEFAULT_GENERATED
+policy_decisions	reason_codes	json	NO	json_array()	DEFAULT_GENERATED
+policy_decisions	checked_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+possession_episodes	id	char(36)	NO	<null>	
+possession_episodes	video_id	char(36)	NO	<null>	
+possession_episodes	run_id	char(36)	NO	<null>	
+possession_episodes	player_id	char(36)	YES	<null>	
+possession_episodes	start_pts_us	bigint	NO	<null>	
+possession_episodes	end_pts_us	bigint	NO	<null>	
+possession_episodes	confidence	decimal(5,4)	YES	<null>	
+possession_episodes	evidence_id	char(36)	YES	<null>	
+presence_intervals	id	char(36)	NO	<null>	
+presence_intervals	video_id	char(36)	NO	<null>	
+presence_intervals	track_id	char(36)	NO	<null>	
+presence_intervals	start_pts_us	bigint	NO	<null>	
+presence_intervals	end_pts_us	bigint	NO	<null>	
+presence_intervals	observation_count	int	NO	<null>	
+processing_dead_letters	id	char(36)	NO	<null>	
+processing_dead_letters	organization_id	char(36)	NO	<null>	
+processing_dead_letters	workflow_id	varchar(255)	NO	<null>	
+processing_dead_letters	job_kind	varchar(255)	NO	<null>	
+processing_dead_letters	error_code	varchar(255)	NO	<null>	
+processing_dead_letters	attempt_count	int	NO	<null>	
+processing_dead_letters	payload_object_key	text	NO	<null>	
+processing_dead_letters	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+processing_dead_letters	resolved_at	datetime(6)	YES	<null>	
+project_acl	project_id	char(36)	NO	<null>	
+project_acl	user_id	char(36)	NO	<null>	
+project_acl	permission	varchar(255)	NO	<null>	
+project_acl	granted_by	char(36)	NO	<null>	
+project_acl	granted_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+projects	id	char(36)	NO	<null>	
+projects	organization_id	char(36)	NO	<null>	
+projects	name	varchar(255)	NO	<null>	
+projects	created_by	char(36)	NO	<null>	
+projects	description	text	YES	<null>	
+projects	status	varchar(255)	NO	ACTIVE	
+projects	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+projects	updated_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+projects	version	bigint	NO	1	
+quota_counters	organization_id	char(36)	NO	<null>	
+quota_counters	feature_key	varchar(255)	NO	<null>	
+quota_counters	window_start	datetime(6)	NO	<null>	
+quota_counters	used_amount	bigint	NO	0	
+quota_counters	reserved_amount	bigint	NO	0	
+quota_reservations	id	char(36)	NO	<null>	
+quota_reservations	organization_id	char(36)	NO	<null>	
+quota_reservations	feature_key	varchar(255)	NO	<null>	
+quota_reservations	window_start	datetime(6)	NO	<null>	
+quota_reservations	quantity	bigint	NO	<null>	
+quota_reservations	status	varchar(255)	NO	<null>	
+quota_reservations	idempotency_key	varchar(255)	NO	<null>	
+quota_reservations	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+reel_clips	id	char(36)	NO	<null>	
+reel_clips	reel_id	char(36)	NO	<null>	
+reel_clips	source_video_id	char(36)	NO	<null>	
+reel_clips	in_pts_us	bigint	NO	<null>	
+reel_clips	out_pts_us	bigint	NO	<null>	
+reel_clips	sequence_index	int	NO	<null>	
+reel_clips	output_duration_us	bigint	YES	<null>	
+reel_clips	playback_speed	decimal(6,3)	NO	1.000	
+reel_clips	source_event_id	char(36)	YES	<null>	
+reel_clips	review_state	varchar(255)	NO	PENDING	
+reel_manifest_versions	id	char(36)	NO	<null>	
+reel_manifest_versions	reel_project_id	char(36)	NO	<null>	
+reel_manifest_versions	version	bigint	NO	<null>	
+reel_manifest_versions	manifest	json	NO	<null>	
+reel_manifest_versions	manifest_sha256	char(64)	NO	<null>	
+reel_manifest_versions	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+reel_projects	id	char(36)	NO	<null>	
+reel_projects	organization_id	char(36)	NO	<null>	
+reel_projects	project_id	char(36)	NO	<null>	
+reel_projects	video_id	char(36)	NO	<null>	
+reel_projects	name	varchar(255)	NO	<null>	
+reel_projects	created_by	char(36)	NO	<null>	
+reel_projects	status	varchar(255)	NO	DRAFT	
+reel_projects	version	bigint	NO	1	
+reel_projects	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+reel_projects	updated_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+reel_targets	reel_id	char(36)	NO	<null>	
+reel_targets	track_id	char(36)	NO	<null>	
+reel_targets	player_id	char(36)	YES	<null>	
+reel_targets	identity_decision_id	char(36)	YES	<null>	
+release_signoffs	id	char(36)	NO	<null>	
+release_signoffs	build_sha	char(40)	NO	<null>	
+release_signoffs	gate_code	varchar(255)	NO	<null>	
+release_signoffs	state	varchar(255)	NO	<null>	
+release_signoffs	signed_by	char(36)	YES	<null>	
+release_signoffs	evidence_object_key	varchar(255)	YES	<null>	
+release_signoffs	signed_at	datetime(6)	YES	<null>	
+render_jobs	id	char(36)	NO	<null>	
+render_jobs	reel_id	char(36)	NO	<null>	
+render_jobs	organization_id	char(36)	NO	<null>	
+render_jobs	requested_by	char(36)	NO	<null>	
+render_jobs	state	enum('QUEUED','RUNNING','SUCCEEDED','FAILED','CANCELLED','BLOCKED','REVIEW_REQUIRED')	NO	QUEUED	
+render_jobs	config	json	NO	<null>	
+render_jobs	manifest_asset_id	char(36)	YES	<null>	
+render_jobs	output_asset_id	char(36)	YES	<null>	
+render_jobs	idempotency_key	varchar(255)	NO	<null>	
+render_jobs	attempt_count	int	NO	0	
+render_jobs	failure_code	varchar(255)	YES	<null>	
+render_jobs	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+render_jobs	started_at	datetime(6)	YES	<null>	
+render_jobs	completed_at	datetime(6)	YES	<null>	
+report_jobs	id	char(36)	NO	<null>	
+report_jobs	organization_id	char(36)	NO	<null>	
+report_jobs	project_id	char(36)	NO	<null>	
+report_jobs	video_id	char(36)	YES	<null>	
+report_jobs	player_id	char(36)	YES	<null>	
+report_jobs	requested_by	char(36)	NO	<null>	
+report_jobs	state	enum('QUEUED','RUNNING','SUCCEEDED','FAILED','CANCELLED','BLOCKED','REVIEW_REQUIRED')	NO	QUEUED	
+report_jobs	report_type	varchar(255)	NO	<null>	
+report_jobs	config	json	NO	json_object()	DEFAULT_GENERATED
+report_jobs	output_asset_id	char(36)	YES	<null>	
+report_jobs	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+retention_jobs	id	char(36)	NO	<null>	
+retention_jobs	organization_id	char(36)	NO	<null>	
+retention_jobs	subject_type	varchar(255)	NO	<null>	
+retention_jobs	subject_id	char(36)	NO	<null>	
+retention_jobs	requested_by	char(36)	YES	<null>	
+retention_jobs	legal_hold	tinyint(1)	NO	0	
+retention_jobs	status	varchar(255)	NO	<null>	
+retention_jobs	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+retention_jobs	finished_at	datetime(6)	YES	<null>	
+rights_grants	id	char(36)	NO	<null>	
+rights_grants	organization_id	char(36)	NO	<null>	
+rights_grants	asset_id	char(36)	YES	<null>	
+rights_grants	video_id	char(36)	YES	<null>	
+rights_grants	rights_state	enum('UNKNOWN','ANALYSIS_ONLY','INTERNAL','EXPORT_ALLOWED','PUBLIC','EXPIRED')	NO	UNKNOWN	
+rights_grants	allowed_uses	json	NO	json_array()	DEFAULT_GENERATED
+rights_grants	territory_codes	json	NO	json_array()	DEFAULT_GENERATED
+rights_grants	valid_from	datetime(6)	YES	<null>	
+rights_grants	valid_until	datetime(6)	YES	<null>	
+rights_grants	guardian_consent_state	varchar(255)	NO	NOT_APPLICABLE	
+rights_grants	evidence_asset_id	char(36)	YES	<null>	
+rights_grants	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+saved_searches	id	char(36)	NO	<null>	
+saved_searches	organization_id	char(36)	NO	<null>	
+saved_searches	user_id	char(36)	NO	<null>	
+saved_searches	name	varchar(255)	NO	<null>	
+saved_searches	query	json	NO	<null>	
+saved_searches	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+security_events	id	bigint unsigned	NO	<null>	auto_increment
+security_events	organization_id	char(36)	YES	<null>	
+security_events	actor_id	char(36)	YES	<null>	
+security_events	ip_hash	char(64)	YES	<null>	
+security_events	event_kind	varchar(255)	NO	<null>	
+security_events	outcome	varchar(255)	NO	<null>	
+security_events	occurred_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+share_link_access	id	bigint unsigned	NO	<null>	auto_increment
+share_link_access	share_link_id	char(36)	NO	<null>	
+share_link_access	actor_id	char(36)	YES	<null>	
+share_link_access	action	varchar(255)	NO	<null>	
+share_link_access	decision	varchar(255)	NO	<null>	
+share_link_access	accessed_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+share_link_access	ip_hash	char(64)	YES	<null>	
+share_links	id	char(36)	NO	<null>	
+share_links	organization_id	char(36)	NO	<null>	
+share_links	asset_id	char(36)	NO	<null>	
+share_links	created_by	char(36)	NO	<null>	
+share_links	token_hash	char(64)	NO	<null>	
+share_links	expires_at	datetime(6)	YES	<null>	
+share_links	can_download	tinyint(1)	NO	0	
+share_links	can_comment	tinyint(1)	NO	0	
+share_links	revoked_at	datetime(6)	YES	<null>	
+share_links	password_hash	varchar(255)	YES	<null>	
+share_links	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+subscriptions	id	char(36)	NO	<null>	
+subscriptions	organization_id	char(36)	NO	<null>	
+subscriptions	plan_version_id	char(36)	NO	<null>	
+subscriptions	provider_subscription_id	varchar(255)	YES	<null>	
+subscriptions	state	enum('TRIALING','ACTIVE','PAST_DUE','CANCELED','UNPAID','INCOMPLETE')	NO	<null>	
+subscriptions	period_start	datetime(6)	YES	<null>	
+subscriptions	period_end	datetime(6)	YES	<null>	
+subscriptions	trial_end	datetime(6)	YES	<null>	
+subscriptions	cancel_at_period_end	tinyint(1)	NO	0	
+subscriptions	version	bigint	NO	1	
+subscriptions	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+tactical_windows	id	char(36)	NO	<null>	
+tactical_windows	video_id	char(36)	NO	<null>	
+tactical_windows	run_id	char(36)	NO	<null>	
+tactical_windows	from_pts_us	bigint	NO	<null>	
+tactical_windows	to_pts_us	bigint	NO	<null>	
+tactical_windows	kind	varchar(255)	NO	<null>	
+tactical_windows	coverage_ratio	decimal(5,4)	NO	<null>	
+tactical_windows	metrics	json	NO	<null>	
+tactical_windows	evidence_state	enum('DETECTED','INFERRED','CONFIRMED','NOT_MEASURED')	NO	<null>	
+tactical_windows	evidence_id	char(36)	YES	<null>	
+timeline_items	id	char(36)	NO	<null>	
+timeline_items	timeline_track_id	char(36)	NO	<null>	
+timeline_items	reel_clip_id	char(36)	YES	<null>	
+timeline_items	start_us	bigint	NO	<null>	
+timeline_items	duration_us	bigint	NO	<null>	
+timeline_items	effect_preset_id	char(36)	YES	<null>	
+timeline_items	parameters	json	NO	json_object()	DEFAULT_GENERATED
+timeline_items	asset_id	char(36)	YES	<null>	
+timeline_tracks	id	char(36)	NO	<null>	
+timeline_tracks	reel_id	char(36)	NO	<null>	
+timeline_tracks	track_type	varchar(255)	NO	<null>	
+timeline_tracks	layer	int	NO	<null>	
+timeline_tracks	muted	tinyint(1)	NO	0	
+timeline_tracks	locked	tinyint(1)	NO	0	
+track_gaps	id	char(36)	NO	<null>	
+track_gaps	video_id	char(36)	NO	<null>	
+track_gaps	track_id	char(36)	NO	<null>	
+track_gaps	start_pts_us	bigint	NO	<null>	
+track_gaps	end_pts_us	bigint	NO	<null>	
+track_gaps	gap_reason	varchar(255)	NO	<null>	
+track_identity_candidates	id	char(36)	NO	<null>	
+track_identity_candidates	track_id	char(36)	NO	<null>	
+track_identity_candidates	player_id	char(36)	NO	<null>	
+track_identity_candidates	match_id	char(36)	YES	<null>	
+track_identity_candidates	score	float	NO	<null>	
+track_identity_candidates	evidence	json	NO	json_object()	DEFAULT_GENERATED
+track_identity_candidates	model_version_id	char(36)	YES	<null>	
+track_identity_candidates	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+track_identity_decisions	id	char(36)	NO	<null>	
+track_identity_decisions	track_id	char(36)	NO	<null>	
+track_identity_decisions	player_id	char(36)	YES	<null>	
+track_identity_decisions	state	enum('UNRESOLVED','CANDIDATE','CONFIRMED','REJECTED','CONFLICT')	NO	<null>	
+track_identity_decisions	decided_by	char(36)	YES	<null>	
+track_identity_decisions	basis	varchar(255)	NO	<null>	
+track_identity_decisions	evidence_id	char(36)	YES	<null>	
+track_identity_decisions	decided_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+track_identity_decisions	supersedes_id	char(36)	YES	<null>	
+track_observations	video_id	char(36)	NO	<null>	
+track_observations	frame_index	bigint	NO	<null>	
+track_observations	track_id	char(36)	NO	<null>	
+track_observations	pts_us	bigint	NO	<null>	
+track_observations	bbox_x	float	NO	<null>	
+track_observations	bbox_y	float	NO	<null>	
+track_observations	bbox_w	float	NO	<null>	
+track_observations	bbox_h	float	NO	<null>	
+track_observations	detector_confidence	float	YES	<null>	
+track_observations	association_confidence	float	YES	<null>	
+track_observations	observation_state	varchar(255)	NO	<null>	
+track_observations	model_version_id	char(36)	YES	<null>	
+track_segments	id	char(36)	NO	<null>	
+track_segments	track_id	char(36)	NO	<null>	
+track_segments	shot_id	char(36)	YES	<null>	
+track_segments	start_pts_us	bigint	NO	<null>	
+track_segments	end_pts_us	bigint	NO	<null>	
+track_segments	observation_asset_id	char(36)	NO	<null>	
+track_segments	interpolation_policy	varchar(255)	NO	NONE	
+track_segments	gap_count	int	NO	0	
+track_segments	quality_score	float	YES	<null>	
+tracks	id	char(36)	NO	<null>	
+tracks	run_id	char(36)	NO	<null>	
+tracks	video_id	char(36)	NO	<null>	
+tracks	internal_track_number	bigint	NO	<null>	
+tracks	class_name	varchar(255)	NO	<null>	
+tracks	first_pts_us	bigint	NO	<null>	
+tracks	last_pts_us	bigint	NO	<null>	
+tracks	status	varchar(255)	NO	ACTIVE	
+tracks	identity_state	enum('UNRESOLVED','CANDIDATE','CONFIRMED','REJECTED','CONFLICT')	NO	UNRESOLVED	
+tracks	quality_score	float	YES	<null>	
+tracks	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+upload_parts	session_id	char(36)	NO	<null>	
+upload_parts	part_number	int	NO	<null>	
+upload_parts	byte_size	bigint	NO	<null>	
+upload_parts	remote_etag	varchar(255)	NO	<null>	
+upload_parts	checked_at	datetime(6)	YES	<null>	
+upload_sessions	id	char(36)	NO	<null>	
+upload_sessions	organization_id	char(36)	NO	<null>	
+upload_sessions	video_id	char(36)	NO	<null>	
+upload_sessions	created_by	char(36)	NO	<null>	
+upload_sessions	idempotency_key	varchar(255)	NO	<null>	
+upload_sessions	multipart_upload_id	varchar(255)	YES	<null>	
+upload_sessions	expected_bytes	bigint	NO	<null>	
+upload_sessions	expected_sha256	char(64)	YES	<null>	
+upload_sessions	transferred_bytes	bigint	NO	0	
+upload_sessions	status	varchar(255)	NO	INITIALIZED	
+upload_sessions	expires_at	datetime(6)	NO	<null>	
+upload_sessions	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+usage_events	id	char(36)	NO	<null>	
+usage_events	organization_id	char(36)	NO	<null>	
+usage_events	reservation_id	char(36)	YES	<null>	
+usage_events	event_key	varchar(255)	NO	<null>	
+usage_events	quantity	bigint	NO	<null>	
+usage_events	unit	varchar(255)	NO	<null>	
+usage_events	occurred_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+users	id	char(36)	NO	<null>	
+users	external_subject	varchar(255)	NO	<null>	
+users	email	varchar(255)	NO	<null>	
+users	display_name	varchar(255)	NO	<null>	
+users	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+video_frame_index	video_id	char(36)	NO	<null>	
+video_frame_index	frame_index	bigint	NO	<null>	
+video_frame_index	pts_us	bigint	NO	<null>	
+video_frame_index	shot_id	char(36)	YES	<null>	
+video_frame_index	keyframe	tinyint(1)	NO	0	
+video_shots	id	char(36)	NO	<null>	
+video_shots	video_id	char(36)	NO	<null>	
+video_shots	start_pts_us	bigint	NO	<null>	
+video_shots	end_pts_us	bigint	NO	<null>	
+video_shots	camera_class	varchar(255)	YES	<null>	
+video_shots	confidence	float	YES	<null>	
+video_sources	id	char(36)	NO	<null>	
+video_sources	organization_id	char(36)	NO	<null>	
+video_sources	project_id	char(36)	NO	<null>	
+video_sources	match_id	char(36)	YES	<null>	
+video_sources	source_asset_id	char(36)	YES	<null>	
+video_sources	ingest_mode	varchar(255)	NO	<null>	
+video_sources	source_uri	text	YES	<null>	
+video_sources	title	varchar(255)	YES	<null>	
+video_sources	state	varchar(255)	NO	PENDING	
+video_sources	duration_us	bigint	YES	<null>	
+video_sources	width	int	YES	<null>	
+video_sources	height	int	YES	<null>	
+video_sources	timebase_num	int	YES	<null>	
+video_sources	timebase_den	int	YES	<null>	
+video_sources	avg_frame_rate_num	int	YES	<null>	
+video_sources	avg_frame_rate_den	int	YES	<null>	
+video_sources	video_sha256	char(64)	YES	<null>	
+video_sources	created_by	char(36)	NO	<null>	
+video_sources	created_at	datetime(6)	NO	CURRENT_TIMESTAMP(6)	DEFAULT_GENERATED
+
+## indexes
+admin_actions	fk_admin_actions_153	1	1	actor_id
+admin_actions	fk_admin_actions_154	1	1	organization_id
+admin_actions	fk_admin_actions_155	1	1	approved_by
+admin_actions	fk_admin_actions_156	1	1	resulting_audit_event_id
+admin_actions	PRIMARY	0	1	id
+artifact_checks	fk_artifact_checks_177	1	1	artifact_id
+artifact_checks	PRIMARY	0	1	id
+artifact_dependencies	idx_asset_dependencies_source	1	1	depends_on_asset_id
+artifact_dependencies	PRIMARY	0	1	artifact_asset_id
+artifact_dependencies	PRIMARY	0	2	depends_on_asset_id
+artifact_dependencies	PRIMARY	0	3	dependency_type
+assets	fk_assets_11	1	1	project_id
+assets	fk_assets_12	1	1	source_asset_id
+assets	fk_assets_13	1	1	created_by
+assets	idx_assets_org_project	1	1	organization_id
+assets	idx_assets_org_project	1	2	project_id
+assets	idx_assets_org_project	1	3	created_at
+assets	PRIMARY	0	1	id
+assets	storage_bucket	0	1	storage_bucket
+assets	storage_bucket	0	2	object_key
+audit_events	fk_audit_events_36	1	1	actor_id
+audit_events	idx_audit_org_time	1	1	organization_id
+audit_events	idx_audit_org_time	1	2	occurred_at
+audit_events	PRIMARY	0	1	id
+billing_customers	organization_id	0	1	organization_id
+billing_customers	PRIMARY	0	1	id
+billing_customers	provider_customer_id	0	1	provider_customer_id
+billing_webhook_inbox	PRIMARY	0	1	id
+billing_webhook_inbox	provider	0	1	provider
+billing_webhook_inbox	provider	0	2	external_event_id
+camera_transforms	fk_camera_transforms_161	1	1	video_id
+camera_transforms	fk_camera_transforms_162	1	1	shot_id
+camera_transforms	PRIMARY	0	1	id
+clip_reviews	fk_clip_reviews_126	1	1	reel_clip_id
+clip_reviews	fk_clip_reviews_127	1	1	reviewer_id
+clip_reviews	fk_clip_reviews_128	1	1	evidence_id
+clip_reviews	PRIMARY	0	1	id
+clubs	PRIMARY	0	1	id
+comments	fk_comments_112	1	1	organization_id
+comments	fk_comments_113	1	1	project_id
+comments	fk_comments_114	1	1	reel_id
+comments	fk_comments_115	1	1	author_id
+comments	PRIMARY	0	1	id
+deliveries	fk_deliveries_109	1	1	organization_id
+deliveries	fk_deliveries_110	1	1	asset_id
+deliveries	fk_deliveries_111	1	1	requested_by
+deliveries	PRIMARY	0	1	id
+detection_batches	fk_detection_batches_39	1	1	run_id
+detection_batches	fk_detection_batches_40	1	1	model_version_id
+detection_batches	fk_detection_batches_41	1	1	payload_asset_id
+detection_batches	PRIMARY	0	1	id
+effect_keyframes	PRIMARY	0	1	id
+effect_keyframes	timeline_item_id	0	1	timeline_item_id
+effect_keyframes	timeline_item_id	0	2	time_offset_us
+effect_keyframes	timeline_item_id	0	3	property_name
+effect_presets	organization_id	0	1	organization_id
+effect_presets	organization_id	0	2	name
+effect_presets	organization_id	0	3	version
+effect_presets	PRIMARY	0	1	id
+entitlement_grants	fk_entitlement_grants_145	1	1	source_subscription_id
+entitlement_grants	idx_entitlement_org_feature	1	1	organization_id
+entitlement_grants	idx_entitlement_org_feature	1	2	feature_key
+entitlement_grants	idx_entitlement_org_feature	1	3	valid_until
+entitlement_grants	PRIMARY	0	1	id
+event_candidates	fk_event_candidates_63	1	1	run_id
+event_candidates	fk_event_candidates_65	1	1	primary_track_id
+event_candidates	fk_event_candidates_66	1	1	secondary_track_id
+event_candidates	fk_event_candidates_67	1	1	model_version_id
+event_candidates	fk_event_candidates_68	1	1	evidence_id
+event_candidates	idx_events_video_t	1	1	video_id
+event_candidates	idx_events_video_t	1	2	start_pts_us
+event_candidates	PRIMARY	0	1	id
+event_decisions	fk_event_decisions_69	1	1	event_id
+event_decisions	fk_event_decisions_70	1	1	reviewer_id
+event_decisions	PRIMARY	0	1	id
+evidence_records	fk_evidence_records_27	1	1	video_id
+evidence_records	fk_evidence_records_28	1	1	pipeline_run_id
+evidence_records	fk_evidence_records_29	1	1	model_version_id
+evidence_records	fk_evidence_records_30	1	1	reviewer_id
+evidence_records	PRIMARY	0	1	id
+identity_review_history	fk_identity_review_history_174	1	1	organization_id
+identity_review_history	fk_identity_review_history_175	1	1	video_id
+identity_review_history	fk_identity_review_history_176	1	1	reviewer_id
+identity_review_history	PRIMARY	0	1	id
+invoices	fk_invoices_142	1	1	organization_id
+invoices	fk_invoices_143	1	1	subscription_id
+invoices	PRIMARY	0	1	id
+invoices	provider_invoice_id	0	1	provider_invoice_id
+job_events	fk_job_events_26	1	1	step_id
+job_events	idx_job_events_run_id	1	1	run_id
+job_events	idx_job_events_run_id	1	2	id
+job_events	PRIMARY	0	1	id
+match_rosters	fk_match_rosters_8	1	1	player_id
+match_rosters	fk_match_rosters_9	1	1	club_id
+match_rosters	PRIMARY	0	1	match_id
+match_rosters	PRIMARY	0	2	player_id
+matches	fk_matches_4	1	1	organization_id
+matches	fk_matches_5	1	1	home_club_id
+matches	fk_matches_6	1	1	away_club_id
+matches	PRIMARY	0	1	id
+memberships	fk_memberships_1	1	1	user_id
+memberships	PRIMARY	0	1	organization_id
+memberships	PRIMARY	0	2	user_id
+metric_cohorts	fk_metric_cohorts_123	1	1	organization_id
+metric_cohorts	PRIMARY	0	1	id
+metric_definitions	PRIMARY	0	1	key
+metric_values	fk_metric_values_71	1	1	video_id
+metric_values	fk_metric_values_73	1	1	track_id
+metric_values	fk_metric_values_74	1	1	metric_key
+metric_values	fk_metric_values_75	1	1	evidence_id
+metric_values	fk_metric_values_76	1	1	model_version_id
+metric_values	idx_metrics_player_video	1	1	player_id
+metric_values	idx_metrics_player_video	1	2	video_id
+metric_values	idx_metrics_player_video	1	3	metric_key
+metric_values	PRIMARY	0	1	id
+model_evaluation_runs	fk_model_evaluation_runs_157	1	1	model_version_id
+model_evaluation_runs	fk_model_evaluation_runs_158	1	1	evaluation_set_id
+model_evaluation_runs	fk_model_evaluation_runs_159	1	1	reviewed_by
+model_evaluation_runs	PRIMARY	0	1	id
+model_evaluation_sets	name	0	1	name
+model_evaluation_sets	PRIMARY	0	1	id
+model_evaluations	fk_model_evaluations_135	1	1	model_version_id
+model_evaluations	fk_model_evaluations_136	1	1	signed_off_by
+model_evaluations	PRIMARY	0	1	id
+model_versions	PRIMARY	0	1	id
+model_versions	task	0	1	task
+model_versions	task	0	2	model_name
+model_versions	task	0	3	semantic_version
+movement_segments	fk_movement_segments_172	1	1	video_id
+movement_segments	fk_movement_segments_173	1	1	player_id
+movement_segments	PRIMARY	0	1	id
+organizations	PRIMARY	0	1	id
+organizations	slug	0	1	slug
+outbox_events	idx_outbox_pending	1	1	delivered_at
+outbox_events	idx_outbox_pending	1	2	claimed_at
+outbox_events	idx_outbox_pending	1	3	id
+outbox_events	PRIMARY	0	1	id
+pipeline_runs	fk_pipeline_runs_21	1	1	organization_id
+pipeline_runs	idx_pipeline_video_created	1	1	video_id
+pipeline_runs	idx_pipeline_video_created	1	2	created_at
+pipeline_runs	PRIMARY	0	1	id
+pipeline_steps	fk_pipeline_steps_23	1	1	output_asset_id
+pipeline_steps	fk_pipeline_steps_24	1	1	model_version_id
+pipeline_steps	PRIMARY	0	1	id
+pipeline_steps	run_id	0	1	run_id
+pipeline_steps	run_id	0	2	step_name
+pitch_calibrations	fk_pitch_calibrations_60	1	1	video_id
+pitch_calibrations	fk_pitch_calibrations_61	1	1	shot_id
+pitch_calibrations	fk_pitch_calibrations_62	1	1	model_version_id
+pitch_calibrations	PRIMARY	0	1	id
+plan_prices	external_price_id	0	1	external_price_id
+plan_prices	fk_plan_prices_138	1	1	plan_version_id
+plan_prices	PRIMARY	0	1	id
+plan_versions	plan_id	0	1	plan_id
+plan_versions	plan_id	0	2	version
+plan_versions	PRIMARY	0	1	id
+plans	code	0	1	code
+plans	PRIMARY	0	1	id
+players	canonical_otsi_id	0	1	canonical_otsi_id
+players	PRIMARY	0	1	id
+policy_decisions	fk_policy_decisions_129	1	1	organization_id
+policy_decisions	fk_policy_decisions_130	1	1	actor_id
+policy_decisions	idx_policy_resource_recent	1	1	resource_type
+policy_decisions	idx_policy_resource_recent	1	2	resource_id
+policy_decisions	idx_policy_resource_recent	1	3	checked_at
+policy_decisions	PRIMARY	0	1	id
+possession_episodes	fk_possession_episodes_165	1	1	video_id
+possession_episodes	fk_possession_episodes_166	1	1	run_id
+possession_episodes	fk_possession_episodes_167	1	1	player_id
+possession_episodes	fk_possession_episodes_168	1	1	evidence_id
+possession_episodes	PRIMARY	0	1	id
+presence_intervals	fk_presence_intervals_164	1	1	video_id
+presence_intervals	PRIMARY	0	1	id
+processing_dead_letters	fk_processing_dead_letters_178	1	1	organization_id
+processing_dead_letters	PRIMARY	0	1	id
+project_acl	fk_project_acl_121	1	1	user_id
+project_acl	fk_project_acl_122	1	1	granted_by
+project_acl	PRIMARY	0	1	project_id
+project_acl	PRIMARY	0	2	user_id
+project_acl	PRIMARY	0	3	permission
+projects	fk_projects_2	1	1	organization_id
+projects	fk_projects_3	1	1	created_by
+projects	PRIMARY	0	1	id
+quota_counters	PRIMARY	0	1	organization_id
+quota_counters	PRIMARY	0	2	feature_key
+quota_counters	PRIMARY	0	3	window_start
+quota_reservations	fk_quota_reservations_148	1	1	organization_id
+quota_reservations	fk_quota_reservations_148	1	2	feature_key
+quota_reservations	fk_quota_reservations_148	1	3	window_start
+quota_reservations	organization_id	0	1	organization_id
+quota_reservations	organization_id	0	2	feature_key
+quota_reservations	organization_id	0	3	idempotency_key
+quota_reservations	PRIMARY	0	1	id
+reel_clips	fk_reel_clips_86	1	1	source_video_id
+reel_clips	fk_reel_clips_87	1	1	source_event_id
+reel_clips	idx_reel_clips_order	1	1	reel_id
+reel_clips	idx_reel_clips_order	1	2	sequence_index
+reel_clips	PRIMARY	0	1	id
+reel_clips	reel_id	0	1	reel_id
+reel_clips	reel_id	0	2	sequence_index
+reel_manifest_versions	PRIMARY	0	1	id
+reel_manifest_versions	reel_project_id	0	1	reel_project_id
+reel_manifest_versions	reel_project_id	0	2	version
+reel_projects	fk_reel_projects_77	1	1	organization_id
+reel_projects	fk_reel_projects_78	1	1	project_id
+reel_projects	fk_reel_projects_79	1	1	video_id
+reel_projects	fk_reel_projects_80	1	1	created_by
+reel_projects	PRIMARY	0	1	id
+reel_targets	fk_reel_targets_82	1	1	track_id
+reel_targets	fk_reel_targets_83	1	1	player_id
+reel_targets	fk_reel_targets_84	1	1	identity_decision_id
+reel_targets	PRIMARY	0	1	reel_id
+reel_targets	PRIMARY	0	2	track_id
+release_signoffs	build_sha	0	1	build_sha
+release_signoffs	build_sha	0	2	gate_code
+release_signoffs	fk_release_signoffs_160	1	1	signed_by
+release_signoffs	PRIMARY	0	1	id
+render_jobs	fk_render_jobs_95	1	1	reel_id
+render_jobs	fk_render_jobs_97	1	1	requested_by
+render_jobs	fk_render_jobs_98	1	1	manifest_asset_id
+render_jobs	fk_render_jobs_99	1	1	output_asset_id
+render_jobs	idx_render_state	1	1	state
+render_jobs	idx_render_state	1	2	created_at
+render_jobs	organization_id	0	1	organization_id
+render_jobs	organization_id	0	2	idempotency_key
+render_jobs	PRIMARY	0	1	id
+report_jobs	fk_report_jobs_100	1	1	organization_id
+report_jobs	fk_report_jobs_101	1	1	project_id
+report_jobs	fk_report_jobs_102	1	1	video_id
+report_jobs	fk_report_jobs_103	1	1	player_id
+report_jobs	fk_report_jobs_104	1	1	requested_by
+report_jobs	fk_report_jobs_105	1	1	output_asset_id
+report_jobs	PRIMARY	0	1	id
+retention_jobs	fk_retention_jobs_179	1	1	organization_id
+retention_jobs	fk_retention_jobs_180	1	1	requested_by
+retention_jobs	PRIMARY	0	1	id
+rights_grants	fk_rights_grants_31	1	1	organization_id
+rights_grants	fk_rights_grants_32	1	1	asset_id
+rights_grants	fk_rights_grants_33	1	1	video_id
+rights_grants	fk_rights_grants_34	1	1	evidence_asset_id
+rights_grants	PRIMARY	0	1	id
+saved_searches	fk_saved_searches_125	1	1	user_id
+saved_searches	organization_id	0	1	organization_id
+saved_searches	organization_id	0	2	user_id
+saved_searches	organization_id	0	3	name
+saved_searches	PRIMARY	0	1	id
+security_events	fk_security_events_151	1	1	organization_id
+security_events	fk_security_events_152	1	1	actor_id
+security_events	PRIMARY	0	1	id
+share_link_access	fk_share_link_access_134	1	1	actor_id
+share_link_access	idx_share_link_access_recent	1	1	share_link_id
+share_link_access	idx_share_link_access_recent	1	2	accessed_at
+share_link_access	PRIMARY	0	1	id
+share_links	fk_share_links_106	1	1	organization_id
+share_links	fk_share_links_107	1	1	asset_id
+share_links	fk_share_links_108	1	1	created_by
+share_links	PRIMARY	0	1	id
+share_links	token_hash	0	1	token_hash
+subscriptions	fk_subscriptions_141	1	1	plan_version_id
+subscriptions	idx_subscriptions_org_status	1	1	organization_id
+subscriptions	idx_subscriptions_org_status	1	2	state
+subscriptions	PRIMARY	0	1	id
+subscriptions	provider_subscription_id	0	1	provider_subscription_id
+tactical_windows	fk_tactical_windows_169	1	1	video_id
+tactical_windows	fk_tactical_windows_170	1	1	run_id
+tactical_windows	fk_tactical_windows_171	1	1	evidence_id
+tactical_windows	PRIMARY	0	1	id
+timeline_items	fk_timeline_items_90	1	1	timeline_track_id
+timeline_items	fk_timeline_items_91	1	1	reel_clip_id
+timeline_items	fk_timeline_items_92	1	1	effect_preset_id
+timeline_items	fk_timeline_items_93	1	1	asset_id
+timeline_items	PRIMARY	0	1	id
+timeline_tracks	PRIMARY	0	1	id
+timeline_tracks	reel_id	0	1	reel_id
+timeline_tracks	reel_id	0	2	track_type
+timeline_tracks	reel_id	0	3	layer
+track_gaps	fk_track_gaps_163	1	1	video_id
+track_gaps	PRIMARY	0	1	id
+track_identity_candidates	fk_track_identity_candidates_52	1	1	player_id
+track_identity_candidates	fk_track_identity_candidates_53	1	1	match_id
+track_identity_candidates	fk_track_identity_candidates_54	1	1	model_version_id
+track_identity_candidates	PRIMARY	0	1	id
+track_identity_candidates	track_id	0	1	track_id
+track_identity_candidates	track_id	0	2	player_id
+track_identity_candidates	track_id	0	3	model_version_id
+track_identity_decisions	fk_track_identity_decisions_56	1	1	player_id
+track_identity_decisions	fk_track_identity_decisions_57	1	1	decided_by
+track_identity_decisions	fk_track_identity_decisions_58	1	1	evidence_id
+track_identity_decisions	fk_track_identity_decisions_59	1	1	supersedes_id
+track_identity_decisions	idx_id_decisions_track_recent	1	1	track_id
+track_identity_decisions	idx_id_decisions_track_recent	1	2	decided_at
+track_identity_decisions	PRIMARY	0	1	id
+track_observations	fk_track_observations_49	1	1	model_version_id
+track_observations	idx_track_obs_track_time	1	1	track_id
+track_observations	idx_track_obs_track_time	1	2	pts_us
+track_observations	PRIMARY	0	1	video_id
+track_observations	PRIMARY	0	2	frame_index
+track_observations	PRIMARY	0	3	track_id
+track_segments	fk_track_segments_44	1	1	track_id
+track_segments	fk_track_segments_45	1	1	shot_id
+track_segments	fk_track_segments_46	1	1	observation_asset_id
+track_segments	PRIMARY	0	1	id
+tracks	fk_tracks_43	1	1	video_id
+tracks	PRIMARY	0	1	id
+tracks	run_id	0	1	run_id
+tracks	run_id	0	2	internal_track_number
+upload_parts	PRIMARY	0	1	session_id
+upload_parts	PRIMARY	0	2	part_number
+upload_sessions	fk_upload_sessions_117	1	1	video_id
+upload_sessions	fk_upload_sessions_118	1	1	created_by
+upload_sessions	organization_id	0	1	organization_id
+upload_sessions	organization_id	0	2	idempotency_key
+upload_sessions	PRIMARY	0	1	id
+usage_events	event_key	0	1	event_key
+usage_events	fk_usage_events_149	1	1	organization_id
+usage_events	fk_usage_events_150	1	1	reservation_id
+usage_events	PRIMARY	0	1	id
+users	external_subject	0	1	external_subject
+users	PRIMARY	0	1	id
+video_frame_index	fk_video_frame_index_38	1	1	shot_id
+video_frame_index	PRIMARY	0	1	video_id
+video_frame_index	PRIMARY	0	2	frame_index
+video_frame_index	video_id	0	1	video_id
+video_frame_index	video_id	0	2	pts_us
+video_shots	PRIMARY	0	1	id
+video_shots	video_id	0	1	video_id
+video_shots	video_id	0	2	start_pts_us
+video_sources	fk_video_sources_15	1	1	project_id
+video_sources	fk_video_sources_16	1	1	match_id
+video_sources	fk_video_sources_17	1	1	source_asset_id
+video_sources	fk_video_sources_18	1	1	created_by
+video_sources	idx_videos_org_project	1	1	organization_id
+video_sources	idx_videos_org_project	1	2	project_id
+video_sources	idx_videos_org_project	1	3	created_at
+video_sources	PRIMARY	0	1	id
+
+## foreign_keys
+admin_actions	fk_admin_actions_153	users
+admin_actions	fk_admin_actions_154	organizations
+admin_actions	fk_admin_actions_155	users
+admin_actions	fk_admin_actions_156	audit_events
+artifact_checks	fk_artifact_checks_177	assets
+artifact_dependencies	fk_artifact_dependencies_131	assets
+artifact_dependencies	fk_artifact_dependencies_132	assets
+assets	fk_assets_10	organizations
+assets	fk_assets_11	projects
+assets	fk_assets_12	assets
+assets	fk_assets_13	users
+audit_events	fk_audit_events_35	organizations
+audit_events	fk_audit_events_36	users
+billing_customers	fk_billing_customers_139	organizations
+camera_transforms	fk_camera_transforms_161	video_sources
+camera_transforms	fk_camera_transforms_162	video_shots
+clip_reviews	fk_clip_reviews_126	reel_clips
+clip_reviews	fk_clip_reviews_127	users
+clip_reviews	fk_clip_reviews_128	evidence_records
+comments	fk_comments_112	organizations
+comments	fk_comments_113	projects
+comments	fk_comments_114	reel_projects
+comments	fk_comments_115	users
+deliveries	fk_deliveries_109	organizations
+deliveries	fk_deliveries_110	assets
+deliveries	fk_deliveries_111	users
+detection_batches	fk_detection_batches_39	pipeline_runs
+detection_batches	fk_detection_batches_40	model_versions
+detection_batches	fk_detection_batches_41	assets
+effect_keyframes	fk_effect_keyframes_94	timeline_items
+effect_presets	fk_effect_presets_88	organizations
+entitlement_grants	fk_entitlement_grants_144	organizations
+entitlement_grants	fk_entitlement_grants_145	subscriptions
+event_candidates	fk_event_candidates_63	pipeline_runs
+event_candidates	fk_event_candidates_64	video_sources
+event_candidates	fk_event_candidates_65	tracks
+event_candidates	fk_event_candidates_66	tracks
+event_candidates	fk_event_candidates_67	model_versions
+event_candidates	fk_event_candidates_68	evidence_records
+event_decisions	fk_event_decisions_69	event_candidates
+event_decisions	fk_event_decisions_70	users
+evidence_records	fk_evidence_records_27	video_sources
+evidence_records	fk_evidence_records_28	pipeline_runs
+evidence_records	fk_evidence_records_29	model_versions
+evidence_records	fk_evidence_records_30	users
+identity_review_history	fk_identity_review_history_174	organizations
+identity_review_history	fk_identity_review_history_175	video_sources
+identity_review_history	fk_identity_review_history_176	users
+invoices	fk_invoices_142	organizations
+invoices	fk_invoices_143	subscriptions
+job_events	fk_job_events_25	pipeline_runs
+job_events	fk_job_events_26	pipeline_steps
+match_rosters	fk_match_rosters_7	matches
+match_rosters	fk_match_rosters_8	players
+match_rosters	fk_match_rosters_9	clubs
+matches	fk_matches_4	organizations
+matches	fk_matches_5	clubs
+matches	fk_matches_6	clubs
+memberships	fk_memberships_0	organizations
+memberships	fk_memberships_1	users
+metric_cohorts	fk_metric_cohorts_123	organizations
+metric_values	fk_metric_values_71	video_sources
+metric_values	fk_metric_values_72	players
+metric_values	fk_metric_values_73	tracks
+metric_values	fk_metric_values_74	metric_definitions
+metric_values	fk_metric_values_75	evidence_records
+metric_values	fk_metric_values_76	model_versions
+model_evaluation_runs	fk_model_evaluation_runs_157	model_versions
+model_evaluation_runs	fk_model_evaluation_runs_158	model_evaluation_sets
+model_evaluation_runs	fk_model_evaluation_runs_159	users
+model_evaluations	fk_model_evaluations_135	model_versions
+model_evaluations	fk_model_evaluations_136	users
+movement_segments	fk_movement_segments_172	video_sources
+movement_segments	fk_movement_segments_173	players
+pipeline_runs	fk_pipeline_runs_20	video_sources
+pipeline_runs	fk_pipeline_runs_21	organizations
+pipeline_steps	fk_pipeline_steps_22	pipeline_runs
+pipeline_steps	fk_pipeline_steps_23	assets
+pipeline_steps	fk_pipeline_steps_24	model_versions
+pitch_calibrations	fk_pitch_calibrations_60	video_sources
+pitch_calibrations	fk_pitch_calibrations_61	video_shots
+pitch_calibrations	fk_pitch_calibrations_62	model_versions
+plan_prices	fk_plan_prices_138	plan_versions
+plan_versions	fk_plan_versions_137	plans
+policy_decisions	fk_policy_decisions_129	organizations
+policy_decisions	fk_policy_decisions_130	users
+possession_episodes	fk_possession_episodes_165	video_sources
+possession_episodes	fk_possession_episodes_166	pipeline_runs
+possession_episodes	fk_possession_episodes_167	players
+possession_episodes	fk_possession_episodes_168	evidence_records
+presence_intervals	fk_presence_intervals_164	video_sources
+processing_dead_letters	fk_processing_dead_letters_178	organizations
+project_acl	fk_project_acl_120	projects
+project_acl	fk_project_acl_121	users
+project_acl	fk_project_acl_122	users
+projects	fk_projects_2	organizations
+projects	fk_projects_3	users
+quota_counters	fk_quota_counters_146	organizations
+quota_reservations	fk_quota_reservations_147	organizations
+quota_reservations	fk_quota_reservations_148	quota_counters
+reel_clips	fk_reel_clips_85	reel_projects
+reel_clips	fk_reel_clips_86	video_sources
+reel_clips	fk_reel_clips_87	event_candidates
+reel_projects	fk_reel_projects_77	organizations
+reel_projects	fk_reel_projects_78	projects
+reel_projects	fk_reel_projects_79	video_sources
+reel_projects	fk_reel_projects_80	users
+reel_targets	fk_reel_targets_81	reel_projects
+reel_targets	fk_reel_targets_82	tracks
+reel_targets	fk_reel_targets_83	players
+reel_targets	fk_reel_targets_84	track_identity_decisions
+release_signoffs	fk_release_signoffs_160	users
+render_jobs	fk_render_jobs_95	reel_projects
+render_jobs	fk_render_jobs_96	organizations
+render_jobs	fk_render_jobs_97	users
+render_jobs	fk_render_jobs_98	assets
+render_jobs	fk_render_jobs_99	assets
+report_jobs	fk_report_jobs_100	organizations
+report_jobs	fk_report_jobs_101	projects
+report_jobs	fk_report_jobs_102	video_sources
+report_jobs	fk_report_jobs_103	players
+report_jobs	fk_report_jobs_104	users
+report_jobs	fk_report_jobs_105	assets
+retention_jobs	fk_retention_jobs_179	organizations
+retention_jobs	fk_retention_jobs_180	users
+rights_grants	fk_rights_grants_31	organizations
+rights_grants	fk_rights_grants_32	assets
+rights_grants	fk_rights_grants_33	video_sources
+rights_grants	fk_rights_grants_34	assets
+saved_searches	fk_saved_searches_124	organizations
+saved_searches	fk_saved_searches_125	users
+security_events	fk_security_events_151	organizations
+security_events	fk_security_events_152	users
+share_link_access	fk_share_link_access_133	share_links
+share_link_access	fk_share_link_access_134	users
+share_links	fk_share_links_106	organizations
+share_links	fk_share_links_107	assets
+share_links	fk_share_links_108	users
+subscriptions	fk_subscriptions_140	organizations
+subscriptions	fk_subscriptions_141	plan_versions
+tactical_windows	fk_tactical_windows_169	video_sources
+tactical_windows	fk_tactical_windows_170	pipeline_runs
+tactical_windows	fk_tactical_windows_171	evidence_records
+timeline_items	fk_timeline_items_90	timeline_tracks
+timeline_items	fk_timeline_items_91	reel_clips
+timeline_items	fk_timeline_items_92	effect_presets
+timeline_items	fk_timeline_items_93	assets
+timeline_tracks	fk_timeline_tracks_89	reel_projects
+track_gaps	fk_track_gaps_163	video_sources
+track_identity_candidates	fk_track_identity_candidates_51	tracks
+track_identity_candidates	fk_track_identity_candidates_52	players
+track_identity_candidates	fk_track_identity_candidates_53	matches
+track_identity_candidates	fk_track_identity_candidates_54	model_versions
+track_identity_decisions	fk_track_identity_decisions_55	tracks
+track_identity_decisions	fk_track_identity_decisions_56	players
+track_identity_decisions	fk_track_identity_decisions_57	users
+track_identity_decisions	fk_track_identity_decisions_58	evidence_records
+track_identity_decisions	fk_track_identity_decisions_59	track_identity_decisions
+track_observations	fk_track_observations_47	video_sources
+track_observations	fk_track_observations_48	tracks
+track_observations	fk_track_observations_49	model_versions
+track_observations	fk_track_observations_50	video_frame_index
+track_segments	fk_track_segments_44	tracks
+track_segments	fk_track_segments_45	video_shots
+track_segments	fk_track_segments_46	assets
+tracks	fk_tracks_42	pipeline_runs
+tracks	fk_tracks_43	video_sources
+upload_parts	fk_upload_parts_119	upload_sessions
+upload_sessions	fk_upload_sessions_116	organizations
+upload_sessions	fk_upload_sessions_117	video_sources
+upload_sessions	fk_upload_sessions_118	users
+usage_events	fk_usage_events_149	organizations
+usage_events	fk_usage_events_150	quota_reservations
+video_frame_index	fk_video_frame_index_37	video_sources
+video_frame_index	fk_video_frame_index_38	video_shots
+video_shots	fk_video_shots_19	video_sources
+video_sources	fk_video_sources_14	organizations
+video_sources	fk_video_sources_15	projects
+video_sources	fk_video_sources_16	matches
+video_sources	fk_video_sources_17	assets
+video_sources	fk_video_sources_18	users
+
+## checks
+artifact_dependencies	artifact_dependencies_chk_1	(`dependency_type` in (_utf8mb4\\'SOURCE_VIDEO\\',_utf8mb4\\'AUDIO\\',_utf8mb4\\'FONT\\',_utf8mb4\\'LOGO\\',_utf8mb4\\'TRACKS\\',_utf8mb4\\'MODEL\\',_utf8mb4\\'METADATA\\',_utf8mb4\\'OTHER\\'))
+artifact_dependencies	artifact_dependencies_chk_2	(`artifact_asset_id` <> `depends_on_asset_id`)
+assets	assets_chk_1	(`byte_size` >= 0)
+camera_transforms	camera_transforms_chk_1	(`to_pts_us` > `from_pts_us`)
+clip_reviews	clip_reviews_chk_1	(`decision` in (_utf8mb4\\'APPROVED\\',_utf8mb4\\'REJECTED\\',_utf8mb4\\'RED\\',_utf8mb4\\'NEEDS_REVIEW\\'))
+deliveries	deliveries_chk_1	(`destination_type` in (_utf8mb4\\'SIGNED_URL\\',_utf8mb4\\'EMAIL_INVITE\\',_utf8mb4\\'INTERNAL\\'))
+detection_batches	detection_batches_chk_1	(`detection_count` >= 0)
+detection_batches	detection_batches_chk_2	(`end_frame` >= `start_frame`)
+effect_keyframes	effect_keyframes_chk_1	(`time_offset_us` >= 0)
+effect_keyframes	effect_keyframes_chk_2	(`interpolation` in (_utf8mb4\\'HOLD\\',_utf8mb4\\'LINEAR\\',_utf8mb4\\'EASE_IN_OUT\\'))
+entitlement_grants	entitlement_grants_chk_1	((`valid_until` is null) or (`valid_until` > `valid_from`))
+event_candidates	event_candidates_chk_1	(`confidence` between 0 and 1)
+event_candidates	event_candidates_chk_2	(`end_pts_us` >= `start_pts_us`)
+event_decisions	event_decisions_chk_1	(`decision` in (_utf8mb4\\'CONFIRM\\',_utf8mb4\\'REJECT\\',_utf8mb4\\'EDIT\\',_utf8mb4\\'NEEDS_REVIEW\\'))
+evidence_records	evidence_records_chk_1	(`confidence` between 0 and 1)
+evidence_records	evidence_records_chk_2	((`state` <> _utf8mb4\\'CONFIRMED\\') or (`reviewer_id` is not null))
+identity_review_history	identity_review_history_chk_1	(`decision` in (_utf8mb4\\'CONFIRM\\',_utf8mb4\\'REJECT\\',_utf8mb4\\'SPLIT\\',_utf8mb4\\'MERGE\\',_utf8mb4\\'UNRESOLVE\\'))
+invoices	invoices_chk_1	(`amount_due_minor` >= 0)
+match_rosters	match_rosters_chk_1	(`jersey_number` between 0 and 99)
+matches	matches_chk_1	(`home_score` >= 0)
+matches	matches_chk_2	(`away_score` >= 0)
+memberships	memberships_chk_1	(`role` in (_utf8mb4\\'OWNER\\',_utf8mb4\\'ADMIN\\',_utf8mb4\\'ANALYST\\',_utf8mb4\\'EDITOR\\',_utf8mb4\\'SCOUT\\',_utf8mb4\\'VIEWER\\'))
+memberships	memberships_chk_2	(`status` in (_utf8mb4\\'INVITED\\',_utf8mb4\\'ACTIVE\\',_utf8mb4\\'SUSPENDED\\'))
+metric_cohorts	metric_cohorts_chk_1	(`sample_count` >= 0)
+metric_definitions	metric_definitions_chk_1	(`minimum_quality` between 0 and 1)
+metric_definitions	metric_definitions_chk_2	(`measurement_class` in (_latin1\\'PIXEL\\',_latin1\\'PITCH_CALIBRATED\\',_latin1\\'OBSERVED_EVENT\\',_latin1\\'MODEL_ESTIMATE\\',_latin1\\'HUMAN_REVIEW\\'))
+metric_values	metric_values_chk_1	(`quality_score` between 0 and 1)
+metric_values	metric_values_chk_2	(`end_pts_us` >= `start_pts_us`)
+metric_values	metric_values_chk_3	((`evidence_state` <> _utf8mb4\\'NOT_MEASURED\\') or (`value_numeric` is null))
+model_evaluation_runs	model_evaluation_runs_chk_1	(`acceptance_state` in (_utf8mb4\\'PENDING\\',_utf8mb4\\'PASSED\\',_utf8mb4\\'FAILED\\'))
+movement_segments	movement_segments_chk_1	(`confidence` between 0 and 1)
+movement_segments	movement_segments_chk_2	(`end_pts_us` > `start_pts_us`)
+pipeline_steps	pipeline_steps_chk_1	(`step_name` in (_utf8mb4\\'VALIDATE\\',_utf8mb4\\'TRANSCODE\\',_utf8mb4\\'SHOTS\\',_utf8mb4\\'DETECT\\',_utf8mb4\\'TRACK\\',_utf8mb4\\'IDENTIFY\\',_utf8mb4\\'EVENTS\\',_utf8mb4\\'TACTICS\\',_utf8mb4\\'INDEX\\',_utf8mb4\\'QUALITY\\',_utf8mb4\\'FINISH\\'))
+pipeline_steps	pipeline_steps_chk_2	(`attempt` >= 0)
+pipeline_steps	pipeline_steps_chk_3	(`progress` between 0 and 100)
+pitch_calibrations	pitch_calibrations_chk_1	(`quality_score` between 0 and 1)
+pitch_calibrations	pitch_calibrations_chk_2	(`end_pts_us` > `start_pts_us`)
+plan_prices	plan_prices_chk_1	(`billing_period` in (_utf8mb4\\'MONTHLY\\',_utf8mb4\\'YEARLY\\',_utf8mb4\\'CUSTOM\\'))
+plan_prices	plan_prices_chk_2	(`unit_amount_minor` >= 0)
+plan_versions	plan_versions_chk_1	(`version` > 0)
+players	ck_players_verified_id	((`canonical_state` <> _latin1\\'VERIFIED\\') or (`canonical_otsi_id` is not null))
+players	players_chk_1	(`canonical_state` in (_utf8mb4\\'PENDING\\',_utf8mb4\\'VERIFIED\\',_utf8mb4\\'RETIRED\\'))
+players	players_chk_2	(`preferred_foot` in (_utf8mb4\\'LEFT\\',_utf8mb4\\'RIGHT\\',_utf8mb4\\'BOTH\\',_utf8mb4\\'UNKNOWN\\'))
+policy_decisions	policy_decisions_chk_1	(`action` in (_utf8mb4\\'ANALYZE\\',_utf8mb4\\'PRODUCE\\',_utf8mb4\\'EXPORT\\',_utf8mb4\\'VIEW\\',_utf8mb4\\'DOWNLOAD\\',_utf8mb4\\'SHARE\\',_utf8mb4\\'DELIVER\\'))
+policy_decisions	policy_decisions_chk_2	(`decision` in (_utf8mb4\\'ALLOW\\',_utf8mb4\\'DENY\\',_utf8mb4\\'REVIEW\\'))
+possession_episodes	possession_episodes_chk_1	(`confidence` between 0 and 1)
+possession_episodes	possession_episodes_chk_2	(`end_pts_us` > `start_pts_us`)
+presence_intervals	presence_intervals_chk_1	(`observation_count` >= 1)
+presence_intervals	presence_intervals_chk_2	(`end_pts_us` > `start_pts_us`)
+project_acl	project_acl_chk_1	(`permission` in (_utf8mb4\\'READ\\',_utf8mb4\\'EDIT\\',_utf8mb4\\'REVIEW\\',_utf8mb4\\'ADMIN\\'))
+projects	projects_chk_1	(`status` in (_utf8mb4\\'ACTIVE\\',_utf8mb4\\'ARCHIVED\\'))
+quota_counters	quota_counters_chk_1	(`used_amount` >= 0)
+quota_counters	quota_counters_chk_2	(`reserved_amount` >= 0)
+quota_reservations	quota_reservations_chk_1	(`quantity` > 0)
+quota_reservations	quota_reservations_chk_2	(`status` in (_utf8mb4\\'RESERVED\\',_utf8mb4\\'COMMITTED\\',_utf8mb4\\'RELEASED\\'))
+reel_clips	reel_clips_chk_1	(`in_pts_us` >= 0)
+reel_clips	reel_clips_chk_2	(`sequence_index` >= 0)
+reel_clips	reel_clips_chk_3	(`playback_speed` > 0)
+reel_clips	reel_clips_chk_4	(`review_state` in (_utf8mb4\\'PENDING\\',_utf8mb4\\'APPROVED\\',_utf8mb4\\'REJECTED\\',_utf8mb4\\'RED\\'))
+reel_clips	reel_clips_chk_5	(`out_pts_us` > `in_pts_us`)
+reel_manifest_versions	reel_manifest_versions_chk_1	(`version` > 0)
+reel_projects	reel_projects_chk_1	(`status` in (_utf8mb4\\'DRAFT\\',_utf8mb4\\'READY\\',_utf8mb4\\'RENDERING\\',_utf8mb4\\'PUBLISHED\\',_utf8mb4\\'BLOCKED\\',_utf8mb4\\'ARCHIVED\\'))
+release_signoffs	release_signoffs_chk_1	(`state` in (_utf8mb4\\'PENDING\\',_utf8mb4\\'PASS\\',_utf8mb4\\'FAIL\\',_utf8mb4\\'WAIVED\\'))
+retention_jobs	retention_jobs_chk_1	(`status` in (_utf8mb4\\'QUEUED\\',_utf8mb4\\'RUNNING\\',_utf8mb4\\'DONE\\',_utf8mb4\\'BLOCKED\\',_utf8mb4\\'FAILED\\'))
+rights_grants	rights_grants_chk_1	(`guardian_consent_state` in (_utf8mb4\\'NOT_APPLICABLE\\',_utf8mb4\\'PENDING\\',_utf8mb4\\'VERIFIED\\',_utf8mb4\\'REVOKED\\'))
+rights_grants	rights_grants_chk_2	((`valid_until` is null) or (`valid_from` is null) or (`valid_until` > `valid_from`))
+share_link_access	share_link_access_chk_1	(`decision` in (_utf8mb4\\'ALLOW\\',_utf8mb4\\'DENY\\'))
+subscriptions	subscriptions_chk_1	((`period_end` is null) or (`period_start` is null) or (`period_end` > `period_start`))
+tactical_windows	tactical_windows_chk_1	(`coverage_ratio` between 0 and 1)
+tactical_windows	tactical_windows_chk_2	(`to_pts_us` > `from_pts_us`)
+timeline_items	timeline_items_chk_1	(`start_us` >= 0)
+timeline_items	timeline_items_chk_2	(`duration_us` > 0)
+timeline_tracks	timeline_tracks_chk_1	(`track_type` in (_utf8mb4\\'VIDEO\\',_utf8mb4\\'SPOTLIGHT\\',_utf8mb4\\'GRAPHICS\\',_utf8mb4\\'CAPTIONS\\',_utf8mb4\\'STATISTICS\\',_utf8mb4\\'AUDIO\\',_utf8mb4\\'TRANSITION\\'))
+track_gaps	track_gaps_chk_1	(`gap_reason` in (_utf8mb4\\'OCCLUDED\\',_utf8mb4\\'OUT_OF_FRAME\\',_utf8mb4\\'CAMERA_CUT\\',_utf8mb4\\'DETECTION_FAILURE\\',_utf8mb4\\'UNKNOWN\\'))
+track_gaps	track_gaps_chk_2	(`end_pts_us` > `start_pts_us`)
+track_identity_candidates	track_identity_candidates_chk_1	(`score` between 0 and 1)
+track_identity_decisions	track_identity_decisions_chk_1	(`basis` in (_utf8mb4\\'HUMAN\\',_utf8mb4\\'AUTO_POLICY\\',_utf8mb4\\'REGISTRY\\'))
+track_identity_decisions	track_identity_decisions_chk_2	((`state` <> _utf8mb4\\'CONFIRMED\\') or (`player_id` is not null))
+track_identity_decisions	track_identity_decisions_chk_3	((`basis` <> _utf8mb4\\'HUMAN\\') or (`decided_by` is not null))
+track_observations	track_observations_chk_1	(`bbox_x` between 0 and 1)
+track_observations	track_observations_chk_2	(`bbox_y` between 0 and 1)
+track_observations	track_observations_chk_3	((`bbox_w` > 0) and (`bbox_w` <= 1))
+track_observations	track_observations_chk_4	((`bbox_h` > 0) and (`bbox_h` <= 1))
+track_observations	track_observations_chk_5	(`detector_confidence` between 0 and 1)
+track_observations	track_observations_chk_6	(`association_confidence` between 0 and 1)
+track_observations	track_observations_chk_7	(`observation_state` in (_utf8mb4\\'DETECTED\\',_utf8mb4\\'PREDICTED\\',_utf8mb4\\'INTERPOLATED\\',_utf8mb4\\'REVIEWED\\'))
+track_observations	track_observations_chk_8	((`bbox_x` + `bbox_w`) <= 1.00001)
+track_observations	track_observations_chk_9	((`bbox_y` + `bbox_h`) <= 1.00001)
+track_segments	track_segments_chk_1	(`interpolation_policy` in (_utf8mb4\\'NONE\\',_utf8mb4\\'SHORT_GAP_LINEAR\\',_utf8mb4\\'KALMAN\\',_utf8mb4\\'REVIEWED\\'))
+track_segments	track_segments_chk_2	(`gap_count` >= 0)
+track_segments	track_segments_chk_3	(`quality_score` between 0 and 1)
+track_segments	track_segments_chk_4	(`end_pts_us` > `start_pts_us`)
+tracks	tracks_chk_1	(`class_name` in (_utf8mb4\\'PLAYER\\',_utf8mb4\\'GOALKEEPER\\',_utf8mb4\\'REFEREE\\',_utf8mb4\\'BALL\\',_utf8mb4\\'OTHER\\'))
+tracks	tracks_chk_2	(`status` in (_utf8mb4\\'ACTIVE\\',_utf8mb4\\'OCCLUDED\\',_utf8mb4\\'LEFT_FRAME\\',_utf8mb4\\'ENDED\\',_utf8mb4\\'REVIEW_REQUIRED\\'))
+tracks	tracks_chk_3	(`quality_score` between 0 and 1)
+tracks	tracks_chk_4	(`last_pts_us` >= `first_pts_us`)
+upload_parts	upload_parts_chk_1	(`part_number` > 0)
+upload_parts	upload_parts_chk_2	(`byte_size` > 0)
+upload_sessions	upload_sessions_chk_1	(`expected_bytes` > 0)
+upload_sessions	upload_sessions_chk_2	(`transferred_bytes` >= 0)
+upload_sessions	upload_sessions_chk_3	(`status` in (_utf8mb4\\'INITIALIZED\\',_utf8mb4\\'UPLOADING\\',_utf8mb4\\'VERIFYING\\',_utf8mb4\\'COMPLETED\\',_utf8mb4\\'ABORTED\\',_utf8mb4\\'EXPIRED\\',_utf8mb4\\'FAILED\\'))
+usage_events	usage_events_chk_1	(`quantity` >= 0)
+video_frame_index	video_frame_index_chk_1	(`frame_index` >= 0)
+video_frame_index	video_frame_index_chk_2	(`pts_us` >= 0)
+video_shots	video_shots_chk_1	(`start_pts_us` >= 0)
+video_shots	video_shots_chk_2	(`confidence` between 0 and 1)
+video_shots	video_shots_chk_3	(`end_pts_us` > `start_pts_us`)
+video_sources	ck_ingested_source_asset	((`state` <> _latin1\\'INGESTED\\') or (`source_asset_id` is not null))
+video_sources	video_sources_chk_1	(`ingest_mode` in (_utf8mb4\\'UPLOAD\\',_utf8mb4\\'DIRECT_URL\\',_utf8mb4\\'AUTHORIZED_PROVIDER\\'))
+video_sources	video_sources_chk_2	(`state` in (_utf8mb4\\'PENDING\\',_utf8mb4\\'VALIDATING\\',_utf8mb4\\'INGESTED\\',_utf8mb4\\'FAILED\\',_utf8mb4\\'QUARANTINED\\'))
+video_sources	video_sources_chk_3	(`duration_us` > 0)
+video_sources	video_sources_chk_4	(`width` > 0)
+video_sources	video_sources_chk_5	(`height` > 0)
+video_sources	video_sources_chk_6	(`timebase_num` > 0)
+video_sources	video_sources_chk_7	(`timebase_den` > 0)
+video_sources	video_sources_chk_8	(`avg_frame_rate_num` > 0)
+video_sources	video_sources_chk_9	(`avg_frame_rate_den` > 0)
+
+## triggers
+trg_projects_update	projects	BEFORE	UPDATE
+trg_reels_update	reel_projects	BEFORE	UPDATE
+trg_render_transition	render_jobs	BEFORE	UPDATE

@@ -1,0 +1,130 @@
+{
+ "embedder": "openvino-GPU",
+ "clips": [
+  {
+   "video": "france_germany_ccbysa.ogv",
+   "pairs_same": 34,
+   "pairs_different": 1002,
+   "same_cosine_p5_p25_p50": [
+    0.792,
+    0.872,
+    0.915
+   ],
+   "same_score_p10_p50": [
+    0.773,
+    0.878
+   ],
+   "different_score_p50_p90_p99": [
+    0.683,
+    0.84,
+    0.922
+   ]
+  },
+  {
+   "video": "naples_amateur_pd.webm",
+   "pairs_same": 24,
+   "pairs_different": 382,
+   "same_cosine_p5_p25_p50": [
+    0.822,
+    0.926,
+    0.97
+   ],
+   "same_score_p10_p50": [
+    0.853,
+    0.955
+   ],
+   "different_score_p50_p90_p99": [
+    0.693,
+    0.832,
+    0.917
+   ]
+  },
+  {
+   "video": "ocsc_vs_oakland_ccby.webm",
+   "pairs_same": 44,
+   "pairs_different": 396,
+   "same_cosine_p5_p25_p50": [
+    0.648,
+    0.825,
+    0.861
+   ],
+   "same_score_p10_p50": [
+    0.693,
+    0.829
+   ],
+   "different_score_p50_p90_p99": [
+    0.759,
+    0.871,
+    0.914
+   ]
+  }
+ ],
+ "pooled": {
+  "same_cosine_percentiles": {
+   "1": 0.507,
+   "5": 0.717,
+   "10": 0.784,
+   "25": 0.851,
+   "50": 0.901
+  },
+  "drift_half_vs_half_by_crops_per_half": {
+   "1": {
+    "p5": 0.353,
+    "p50": 0.727,
+    "n": 204
+   },
+   "2": {
+    "p5": 0.6,
+    "p50": 0.834,
+    "n": 204
+   },
+   "3": {
+    "p5": 0.697,
+    "p50": 0.881,
+    "n": 204
+   },
+   "4": {
+    "p5": 0.783,
+    "p50": 0.918,
+    "n": 204
+   }
+  },
+  "link_score_thresholds": {
+   "0.5": {
+    "same_kept": 0.99,
+    "different_kept": 0.863,
+    "precision_if_one_same_per_query": 0.062
+   },
+   "0.55": {
+    "same_kept": 0.98,
+    "different_kept": 0.822,
+    "precision_if_one_same_per_query": 0.064
+   },
+   "0.6": {
+    "same_kept": 0.98,
+    "different_kept": 0.754,
+    "precision_if_one_same_per_query": 0.069
+   },
+   "0.65": {
+    "same_kept": 0.961,
+    "different_kept": 0.651,
+    "precision_if_one_same_per_query": 0.078
+   },
+   "0.7": {
+    "same_kept": 0.931,
+    "different_kept": 0.5,
+    "precision_if_one_same_per_query": 0.096
+   },
+   "0.75": {
+    "same_kept": 0.863,
+    "different_kept": 0.34,
+    "precision_if_one_same_per_query": 0.127
+   },
+   "0.8": {
+    "same_kept": 0.755,
+    "different_kept": 0.204,
+    "precision_if_one_same_per_query": 0.175
+   }
+  }
+ }
+}

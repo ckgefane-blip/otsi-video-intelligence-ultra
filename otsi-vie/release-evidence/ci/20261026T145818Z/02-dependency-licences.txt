@@ -1,0 +1,6 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe -I tools/licenses/dependency_licenses.py --check
+(cwd otsi-vie)
+
+396 packages: {'permissive': 392, 'review': 4, 'blocked': 0}; unreviewed non-permissive: 0
+
+exit=0

@@ -1,0 +1,68 @@
+{
+ "libx264 {\"preset\": \"medium\", \"crf\": \"20\"}": {
+  "fps": 43.9,
+  "mbit_s": 11.46,
+  "psnr_y": 41.49,
+  "frames": 300,
+  "codec": "h264",
+  "profile": "High",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ },
+ "libx264 {\"preset\": \"veryfast\", \"crf\": \"20\"}": {
+  "fps": 90.1,
+  "mbit_s": 9.36,
+  "psnr_y": 40.26,
+  "frames": 300,
+  "codec": "h264",
+  "profile": "High",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ },
+ "h264_mf {\"hw_encoding\": \"1\", \"rate_control\": \"quality\", \"quality\": \"70\"}": {
+  "fps": 80.6,
+  "mbit_s": 14.22,
+  "psnr_y": 41.79,
+  "frames": 300,
+  "codec": "h264",
+  "profile": "Constrained Baseline",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ },
+ "h264_mf {\"hw_encoding\": \"1\", \"rate_control\": \"cbr\"}": {
+  "fps": 98.1,
+  "mbit_s": 12.01,
+  "psnr_y": 41.05,
+  "frames": 300,
+  "codec": "h264",
+  "profile": "Constrained Baseline",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ },
+ "hevc_mf {\"hw_encoding\": \"1\", \"rate_control\": \"quality\", \"quality\": \"70\"}": {
+  "fps": 96.2,
+  "mbit_s": 10.7,
+  "psnr_y": 41.69,
+  "frames": 300,
+  "codec": "hevc",
+  "profile": "Main",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ },
+ "h264_mf {\"hw_encoding\": \"0\", \"rate_control\": \"quality\", \"quality\": \"70\"}": {
+  "fps": 115.9,
+  "mbit_s": 14.68,
+  "psnr_y": 41.45,
+  "frames": 300,
+  "codec": "h264",
+  "profile": "Constrained Baseline",
+  "pix_fmt": "yuv420p",
+  "w": 1920,
+  "h": 1080
+ }
+}

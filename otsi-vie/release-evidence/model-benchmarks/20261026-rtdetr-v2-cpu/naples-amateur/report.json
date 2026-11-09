@@ -1,0 +1,52 @@
+{
+ "machine": {
+  "cpu": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+  "logical_cores": 22,
+  "ram_gb": 32,
+  "gpu": "none (CPU only)",
+  "os": "Windows-11-10.0.26300-SP0",
+  "python": "3.13.15"
+ },
+ "results": [
+  {
+   "video": "naples_amateur_pd.webm",
+   "frame_size": "1920x1080",
+   "model": "rtdetr_v2_r18vd",
+   "tiles": 1,
+   "threads": 20,
+   "frames": 12,
+   "load_seconds": 5.3,
+   "ms_per_frame_mean": 305.2,
+   "ms_per_frame_p95": 314.4,
+   "frames_per_second": 3.28,
+   "cpu_utilisation_cores": 5.2,
+   "peak_rss_mb": 667,
+   "on_pitch_persons_per_frame_mean": 4.1,
+   "ball_found_in_frames": "3/12",
+   "accuracy": "not measured: no labelled ground truth for this footage",
+   "full_match_minutes_at_1fps": 27.0,
+   "full_match_minutes_at_2fps": 55.0,
+   "full_match_minutes_at_5fps": 137.0
+  },
+  {
+   "video": "naples_amateur_pd.webm",
+   "frame_size": "1920x1080",
+   "model": "rtdetr_v2_r18vd",
+   "tiles": 2,
+   "threads": 20,
+   "frames": 12,
+   "load_seconds": 5.3,
+   "ms_per_frame_mean": 1209.2,
+   "ms_per_frame_p95": 1274.0,
+   "frames_per_second": 0.83,
+   "cpu_utilisation_cores": 8.7,
+   "peak_rss_mb": 1116,
+   "on_pitch_persons_per_frame_mean": 4.2,
+   "ball_found_in_frames": "3/12",
+   "accuracy": "not measured: no labelled ground truth for this footage",
+   "full_match_minutes_at_1fps": 109.0,
+   "full_match_minutes_at_2fps": 218.0,
+   "full_match_minutes_at_5fps": 544.0
+  }
+ ]
+}

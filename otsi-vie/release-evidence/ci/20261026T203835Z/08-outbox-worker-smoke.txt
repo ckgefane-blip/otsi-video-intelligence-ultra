@@ -1,0 +1,9 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe tools/smoke/outbox_worker_smoke.py
+(cwd otsi-vie)
+
+worker alive while polling: True
+event 1 delivered_at: 2026-10-26 20:39:17.691309
+worker output:
+[Nest] 48996  - 10/26/2026, 11:39:17 PM     LOG [outbox-dispatcher] started as dispatcher-8eba0d96, polling every 100 ms
+
+exit=0

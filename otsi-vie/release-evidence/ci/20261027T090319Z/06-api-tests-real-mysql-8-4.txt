@@ -1,0 +1,73 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm test
+(cwd otsi-vie\apps\api)
+
+
+> @otsi-vie/api@0.1.0 test D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\api
+> vitest run
+
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/api
+
+ ✓ test/matches.api.test.ts (6 tests) 2249ms
+   ✓ clubs and matches > create clubs per organization, search them, and refuse duplicates; a match has two different teams and links its video 391ms
+   ✓ rosters > are edited with history, one shirt number per team, verified by a person, and corrected only with a reason 347ms
+   ✓ rosters > record the player's club and number on verification; a later transfer opens new history and the OTSI Player ID never changes 314ms
+   ✓ team identity, shirt numbers and candidates > assign kit groups to the match's teams only by a person: not-a-team allowed, one group per team, corrections need a reason 338ms
+   ✓ team identity, shirt numbers and candidates > combine shirt number, verified roster, team and appearance into ranked suggestions with conflicts, deciding nothing 420ms
+ ✓ test/media.api.test.ts (13 tests) 1132ms
+[Nest] 32400  - 10/27/2026, 12:03:51 PM    WARN [OutboxDispatcher] event 83 (test.happened) attempt 1 failed; will retry: test.flaky: boom
+[Nest] 32400  - 10/27/2026, 12:03:51 PM    WARN [OutboxDispatcher] event 84 (test.happened) attempt 1 failed; will retry: test.leaky: connect mysql://[REDACTED]@db.internal:3306/x failed; password=[REDACTED]; Bearer [REDACTED]
+[Nest] 32400  - 10/27/2026, 12:03:52 PM    WARN [OutboxDispatcher] event 85 (test.happened) attempt 1 failed; will retry: test.poison: cannot handle this
+[Nest] 32400  - 10/27/2026, 12:03:52 PM    WARN [OutboxDispatcher] event 86 (test.happened) attempt 1 failed; will retry: test.hung: timed out after 150 ms
+[Nest] 32400  - 10/27/2026, 12:03:54 PM    WARN [OutboxDispatcher] event 87 (test.happened) attempt 1 failed; will retry: test.writer: failed after writing
+[Nest] 32400  - 10/27/2026, 12:03:54 PM    WARN [OutboxDispatcher] event 88 (test.happened) attempt 1 failed; will retry: test.sequence: first try fails
+ ✓ test/outbox.dispatcher.test.ts (14 tests) 3991ms
+   ✓ concurrency, crashes and fencing > recovers events claimed by a crashed dispatcher once the lease expires; the crashed one is fenced off 449ms
+   ✓ failures > retries with back-off and keeps a redacted error 408ms
+   ✓ failures > times out a hung handler and retries the event 1590ms
+   ✓ ordering and tenants > keeps events of one aggregate in order, without holding up other aggregates 563ms
+{"level":50,"time":1793091835576,"pid":32400,"hostname":"OTSI-LTD","reqId":"01a17c9a-1613-777d-b5a0-cd1d62079ebe","err":{"type":"Error","message":"Deadlock found when trying to get lock; try restarting transaction","stack":"Error: Deadlock found when trying to get lock; try restarting transaction\n    at PromisePoolConnection.query (D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\node_modules\\.pnpm\\mysql2@3.12.0\\node_modules\\mysql2\\lib\\promise\\connection.js:29:22)\n    at D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\apps\\api\\src\\modules\\players\\players.service.ts:118:17\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at Db.retryTransient (D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\apps\\api\\src\\core\\db.ts:61:16)\n    at PlayersService.register (D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\apps\\api\\src\\modules\\players\\players.service.ts:115:5)\n    at D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\node_modules\\.pnpm\\@nestjs+core@11.0.11_@nestjs+common@11.0.11_reflect-metadata@0.2.2_rxjs@7.8.1__reflect-metadata@0.2.2_rxjs@7.8.1\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:46:28\n    at Object.<anonymous> (D:\\OTSI-Workspace\\VIE-Engine-v2\\otsi-vie\\node_modules\\.pnpm\\@nestjs+core@11.0.11_@nestjs+common@11.0.11_reflect-metadata@0.2.2_rxjs@7.8.1__reflect-metadata@0.2.2_rxjs@7.8.1\\node_modules\\@nestjs\\core\\router\\router-proxy.js:9:17)","code":"ER_LOCK_DEADLOCK","errno":1213,"sql":"CALL sp_issue_canonical_player_id('01a17c9a-15df-7347-ba58-be2564abc75b', 'BEN', '01a17c9a-1501-7438-b8b7-32c561d603f7', '01a17c9a-1503-767c-87d7-686e87df8d86', '01a17c9a-1501-7438-b8b7-32c561d603f7:k-380ddda9-3f5a-4103-8b3c-cb7719203b12', @cid)","sqlState":"40001","sqlMessage":"Deadlock found when trying to get lock; try restarting transaction"},"msg":"unhandled error"}
+ ❯ test/identity.api.test.ts (12 tests | 1 failed) 1185ms
+   × player registry and the permanent OTSI Player ID > allocates distinct, contiguous IDs under concurrent API requests (test 4) 271ms
+     → expected false to be true // Object.is equality
+ ✓ test/reels.api.test.ts (4 tests) 1252ms
+   ✓ reels > suggest moments where the player is visible, and let the user add, trim, reorder and remove clips 309ms
+   ✓ reels > render: one job per request key, one RENDER worker job, signed playback and download once the file exists 498ms
+ ✓ test/auth.api.test.ts (11 tests) 3232ms
+   ✓ login > gives the same answer for an unknown email and a wrong password 455ms
+   ✓ login > locks the credential after 5 failures, even for the right password, until the lock expires 1223ms
+ ✓ test/analysis.api.test.ts (6 tests) 463ms
+ ✓ test/audit.api.test.ts (7 tests) 328ms
+ ✓ test/links.api.test.ts (4 tests) 572ms
+ ✓ test/profiles.api.test.ts (2 tests) 384ms
+
+ Test Files  1 failed | 9 passed (10)
+      Tests  1 failed | 78 passed (79)
+   Start at  12:03:36
+   Duration  27.16s (transform 515ms, setup 0ms, collect 3.10s, tests 14.79s, environment 0ms, prepare 106ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+[Nest] 32400  - 10/27/2026, 12:03:52 PM   ERROR [OutboxDispatcher] event 85 (test.happened) dead-lettered after 2 attempts: test.poison: cannot handle this
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/identity.api.test.ts > player registry and the permanent OTSI Player ID > allocates distinct, contiguous IDs under concurrent API requests (test 4)
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/identity.api.test.ts:92:52
+     90|     const ids = await Promise.all(Array.from({ length: 20 }, async (_,…
+     91|     const results = await Promise.all(ids.map((id) => register(a, id, …
+     92|     expect(results.every((r) => r.status === 200)).toBe(true);
+       |                                                    ^
+     93|     const cids = results.map((r) => r.body.canonical_otsi_id as string…
+     94|     expect(new Set(cids).size).toBe(20);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+exit=1

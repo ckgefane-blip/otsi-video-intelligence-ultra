@@ -1,0 +1,290 @@
+{
+ "machine": {
+  "cpu": "Intel Core Ultra 7 155H",
+  "logical_cores": 22,
+  "ram_gb": 31.5,
+  "openvino_devices": {
+   "CPU": "Intel(R) Core(TM) Ultra 7 155H",
+   "GPU": "Intel(R) Arc(TM) Graphics (iGPU)",
+   "NPU": "Intel(R) AI Boost"
+  },
+  "openvino": "2025.3.0-19807-44526285f24-releases/2025/3",
+  "os": "Windows-11-10.0.26300-SP0"
+ },
+ "videos": [
+  "ocsc_vs_oakland_ccby.webm",
+  "france_germany_ccbysa.ogv"
+ ],
+ "start_s": 0.0,
+ "fps": 2.0,
+ "results": [
+  {
+   "runtime": "torch-cpu",
+   "tiles": 1,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 5.3,
+   "actual_runtime": "torch-cpu",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 281.3,
+   "ms_per_frame_p95": 291.4,
+   "drift_second_half_vs_first": 1.006,
+   "process_peak_rss_mb": 1067,
+   "gpu_memory_mb": null,
+   "people_per_frame": 4.93,
+   "ball_frames": 2,
+   "match_90min_minutes_at_1fps": 25,
+   "match_90min_minutes_at_2fps": 51,
+   "match_90min_minutes_at_4fps": 101
+  },
+  {
+   "runtime": "CPU",
+   "tiles": 1,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 0.6,
+   "actual_runtime": "openvino-CPU",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 203.4,
+   "ms_per_frame_p95": 216.6,
+   "drift_second_half_vs_first": 0.983,
+   "process_peak_rss_mb": 1313,
+   "gpu_memory_mb": null,
+   "people_per_frame": 4.93,
+   "ball_frames": 2,
+   "match_90min_minutes_at_1fps": 18,
+   "match_90min_minutes_at_2fps": 37,
+   "match_90min_minutes_at_4fps": 73,
+   "agreement_iou0.5": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "agreement_iou0.9": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "ball_agreement": {
+    "matched": 2,
+    "missing": 0,
+    "extra": 0
+   }
+  },
+  {
+   "runtime": "GPU",
+   "tiles": 1,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 1.3,
+   "actual_runtime": "openvino-GPU",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 104.8,
+   "ms_per_frame_p95": 107.8,
+   "drift_second_half_vs_first": 0.743,
+   "process_peak_rss_mb": 2187,
+   "gpu_memory_mb": null,
+   "people_per_frame": 4.93,
+   "ball_frames": 2,
+   "match_90min_minutes_at_1fps": 9,
+   "match_90min_minutes_at_2fps": 19,
+   "match_90min_minutes_at_4fps": 38,
+   "agreement_iou0.5": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "agreement_iou0.9": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "ball_agreement": {
+    "matched": 2,
+    "missing": 0,
+    "extra": 0
+   }
+  },
+  {
+   "runtime": "GPU-FP16",
+   "tiles": 1,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 1.4,
+   "actual_runtime": "openvino-GPU-FP16",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 83.0,
+   "ms_per_frame_p95": 90.8,
+   "drift_second_half_vs_first": 0.738,
+   "process_peak_rss_mb": 2165,
+   "gpu_memory_mb": null,
+   "people_per_frame": 4.9,
+   "ball_frames": 2,
+   "match_90min_minutes_at_1fps": 7,
+   "match_90min_minutes_at_2fps": 15,
+   "match_90min_minutes_at_4fps": 30,
+   "agreement_iou0.5": {
+    "matched": 0.9866,
+    "missing": 4,
+    "extra": 2
+   },
+   "agreement_iou0.9": {
+    "matched": 0.9866,
+    "missing": 4,
+    "extra": 2
+   },
+   "ball_agreement": {
+    "matched": 2,
+    "missing": 0,
+    "extra": 0
+   }
+  },
+  {
+   "runtime": "NPU",
+   "tiles": 1,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 0.6,
+   "actual_runtime": "torch-cpu",
+   "status": "UNAVAILABLE (fell back to the CPU)"
+  },
+  {
+   "runtime": "torch-cpu",
+   "tiles": 2,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 0.1,
+   "actual_runtime": "torch-cpu",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 1057.6,
+   "ms_per_frame_p95": 1101.1,
+   "drift_second_half_vs_first": 0.992,
+   "process_peak_rss_mb": 2313,
+   "gpu_memory_mb": null,
+   "people_per_frame": 8.4,
+   "ball_frames": 22,
+   "match_90min_minutes_at_1fps": 95,
+   "match_90min_minutes_at_2fps": 190,
+   "match_90min_minutes_at_4fps": 381
+  },
+  {
+   "runtime": "CPU",
+   "tiles": 2,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 0.5,
+   "actual_runtime": "openvino-CPU",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 896.9,
+   "ms_per_frame_p95": 993.7,
+   "drift_second_half_vs_first": 0.995,
+   "process_peak_rss_mb": 3050,
+   "gpu_memory_mb": null,
+   "people_per_frame": 8.4,
+   "ball_frames": 22,
+   "match_90min_minutes_at_1fps": 81,
+   "match_90min_minutes_at_2fps": 161,
+   "match_90min_minutes_at_4fps": 323,
+   "agreement_iou0.5": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "agreement_iou0.9": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "ball_agreement": {
+    "matched": 42,
+    "missing": 0,
+    "extra": 0
+   }
+  },
+  {
+   "runtime": "GPU",
+   "tiles": 2,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 1.3,
+   "actual_runtime": "openvino-GPU",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 462.1,
+   "ms_per_frame_p95": 543.9,
+   "drift_second_half_vs_first": 0.834,
+   "process_peak_rss_mb": 3842,
+   "gpu_memory_mb": null,
+   "people_per_frame": 8.4,
+   "ball_frames": 22,
+   "match_90min_minutes_at_1fps": 42,
+   "match_90min_minutes_at_2fps": 83,
+   "match_90min_minutes_at_4fps": 166,
+   "agreement_iou0.5": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "agreement_iou0.9": {
+    "matched": 1.0,
+    "missing": 0,
+    "extra": 0
+   },
+   "ball_agreement": {
+    "matched": 42,
+    "missing": 0,
+    "extra": 0
+   }
+  },
+  {
+   "runtime": "GPU-FP16",
+   "tiles": 2,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 1.3,
+   "actual_runtime": "openvino-GPU-FP16",
+   "status": "OK",
+   "errors": 0,
+   "ms_per_frame_mean": 307.6,
+   "ms_per_frame_p95": 339.2,
+   "drift_second_half_vs_first": 0.867,
+   "process_peak_rss_mb": 3816,
+   "gpu_memory_mb": null,
+   "people_per_frame": 8.35,
+   "ball_frames": 22,
+   "match_90min_minutes_at_1fps": 28,
+   "match_90min_minutes_at_2fps": 55,
+   "match_90min_minutes_at_4fps": 111,
+   "agreement_iou0.5": {
+    "matched": 0.9908,
+    "missing": 5,
+    "extra": 2
+   },
+   "agreement_iou0.9": {
+    "matched": 0.989,
+    "missing": 6,
+    "extra": 3
+   },
+   "ball_agreement": {
+    "matched": 41,
+    "missing": 1,
+    "extra": 1
+   }
+  },
+  {
+   "runtime": "NPU",
+   "tiles": 2,
+   "frames": 60,
+   "threads": 20,
+   "load_seconds": 0.5,
+   "actual_runtime": "torch-cpu",
+   "status": "UNAVAILABLE (fell back to the CPU)"
+  }
+ ]
+}

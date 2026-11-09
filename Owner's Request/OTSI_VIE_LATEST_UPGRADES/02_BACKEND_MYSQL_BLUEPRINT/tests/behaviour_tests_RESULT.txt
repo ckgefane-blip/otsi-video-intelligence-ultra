@@ -1,0 +1,58 @@
++-------------------------------------------------------+--------+--------------------------------------------------------------------------------------------+
+| name                                                  | passed | actual                                                                                     |
++-------------------------------------------------------+--------+--------------------------------------------------------------------------------------------+
+| cross-tenant video->project blocked                   |      1 | Cannot add or update a child row: a foreign key constraint fails (`otsi_owner_vie`.`video_ |
+| cross-tenant asset reference blocked                  |      1 |                                                                                            |
+| project creator must be member of same tenant         |      1 | Cannot add or update a child row: a foreign key constraint fails (`otsi_owner_vie`.`projec |
+| PENDING -> INGESTED skipped validation blocked        |      1 | INVALID_VIDEO_STATE_TRANSITION                                                             |
+| VALIDATING allowed                                    |      1 |                                                                                            |
+| INGESTED without probe metadata blocked               |      1 | Check constraint 'ck_vs_ingested' is violated.                                             |
+| INGESTED with probe metadata allowed                  |      1 |                                                                                            |
+| fps generated column = 50                             |      1 | 50.0000                                                                                    |
+| QUEUED -> SUCCEEDED blocked                           |      1 | INVALID_PIPELINE_STATE_TRANSITION                                                          |
+| QUEUED -> RUNNING allowed                             |      1 |                                                                                            |
+| ingest options locked on run start                    |      1 |                                                                                            |
+| locked ingest options cannot change                   |      1 | INGEST_OPTIONS_LOCKED_START_NEW_RUN                                                        |
+| progress cannot go backwards                          |      1 | PROGRESS_MUST_BE_MONOTONIC                                                                 |
+| SUCCEEDED requires 100%                               |      1 | Check constraint 'ck_runs_succeeded' is violated.                                          |
+| FAILED requires failure_code                          |      1 | Check constraint 'ck_runs_failed' is violated.                                             |
+| track cannot claim CONFIRMED without player           |      1 | Check constraint 'ck_tracks_identity' is violated.                                         |
+| HUMAN decision requires decided_by                    |      1 | Check constraint 'ck_tid_human' is violated.                                               |
+| AUTO_POLICY confirmation requires policy_version      |      1 | Check constraint 'ck_tid_policy' is violated.                                              |
+| human confirmation accepted                           |      1 |                                                                                            |
+| track projection updated to CONFIRMED player          |      1 |                                                                                            |
+| decisions are append-only (update)                    |      1 | APPEND_ONLY_TABLE                                                                          |
+| decisions are append-only (delete)                    |      1 | APPEND_ONLY_TABLE                                                                          |
+| NOT_MEASURED with a value rejected                    |      1 | Check constraint 'ck_mv_not_measured' is violated.                                         |
+| NOT_MEASURED without value accepted                   |      1 |                                                                                            |
+| INFERRED without value rejected                       |      1 | Check constraint 'ck_mv_measured' is violated.                                             |
+| team shape in metres without calibration rejected     |      1 | Check constraint 'ck_tss_metres' is violated.                                              |
+| target with decision for a different player blocked   |      1 | IDENTITY_UNRESOLVED                                                                        |
+| target with matching confirmed decision accepted      |      1 |                                                                                            |
+| reel DRAFT -> PUBLISHED blocked                       |      1 | INVALID_REEL_STATE_TRANSITION                                                              |
+| spotlight slider > 100 rejected                       |      1 | Check constraint 'ck_rss_ranges' is violated.                                              |
+| STAT timeline item must bind to a real metric         |      1 |                                                                                            |
+| typed number on STAT item rejected                    |      1 | Check constraint 'ck_ti_stat' is violated.                                                 |
+| render QUEUED -> SUCCEEDED blocked                    |      1 | INVALID_RENDER_STATE_TRANSITION                                                            |
+| render RUNNING ok                                     |      1 |                                                                                            |
+| render SUCCEEDED without output+manifest blocked      |      1 | Check constraint 'ck_rj_done' is violated.                                                 |
+| saved revisions immutable                             |      1 | APPEND_ONLY_TABLE                                                                          |
+| duplicate idempotency key rejected                    |      1 | Duplicate entry '11111111-0000-7000-8000-00000000000a-r1' for key 'render_jobs.uq_rj_idem' |
+| allocator format/sequence                             |      1 | OTSI-NGA-2026-000001 / OTSI-NGA-2026-000002                                                |
+| re-allocation blocked                                 |      1 | OTSI_ID_ALREADY_ALLOCATED                                                                  |
+| malformed OTSI id rejected                            |      1 | Check constraint 'ck_players_otsi_format' is violated.                                     |
+| URL fetch without SSRF + terms check blocked          |      1 | Check constraint 'ck_url_fetch_gate' is violated.                                          |
+| scout cannot verify own assessment                    |      1 | Check constraint 'ck_sa_verified' is violated.                                             |
+| policy decisions append-only                          |      1 |                                                                                            |
+| policy decision cannot be rewritten                   |      1 | APPEND_ONLY_TABLE                                                                          |
+| saved search schema enforced                          |      1 | The JSON document location '#/dateRange' failed requirement 'enum' at JSON Schema location |
+| v_upload_recent returns tenant A row                  |      1 |                                                                                            |
+| v_upload_recent tenant B sees nothing                 |      1 |                                                                                            |
+| v_run_stage_progress lists UI stages                  |      1 | 7                                                                                          |
+| v_player_header derives age (NULL birth date -> NULL) |      1 |                                                                                            |
++-------------------------------------------------------+--------+--------------------------------------------------------------------------------------------+
++--------+-------+
+| passed | total |
++--------+-------+
+|     49 |    49 |
++--------+-------+

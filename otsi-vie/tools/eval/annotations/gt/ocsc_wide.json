@@ -1,0 +1,271 @@
+{
+ "video": "ocsc_wide",
+ "labeller": "developer (Claude), single annotator, pool-assisted manual annotation 2026-10-27",
+ "method": "pool-assisted manual annotation (tools/eval/annotate.py)",
+ "frame_width": 1920,
+ "frame_height": 1080,
+ "frames": [
+  {
+   "pts_us": 124000000,
+   "t": 124.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "ocsc_wide@124.0#0",
+     "x": 0.21821996370951335,
+     "y": 0.3640540228949653,
+     "w": 0.0678959051767985,
+     "h": 0.3389318960684317,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@124.0#1",
+     "x": 0.5011679848035177,
+     "y": 0.454575487419411,
+     "w": 0.07563762267430629,
+     "h": 0.19666698773701985,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@124.0#2",
+     "x": 0.7064153671264648,
+     "y": 0.3067477473506221,
+     "w": 0.12888622283935547,
+     "h": 0.4500667713306568,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@124.0#3",
+     "x": 0.008452240626017253,
+     "y": 0.42044926396122684,
+     "w": 0.05462534427642822,
+     "h": 0.25022899486400463,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@124.0#4",
+     "x": -0.015045798972800922,
+     "y": 0.4317710051359954,
+     "w": 0.10009159794560185,
+     "h": 0.25022899486400463,
+     "ignore": true,
+     "approximate": true,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 136000000,
+   "t": 136.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "ocsc_wide@136.0#0",
+     "x": 0.02544275720914205,
+     "y": 0.3860046951859086,
+     "w": 0.08209576805432638,
+     "h": 0.40680513735170715,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#1",
+     "x": 0.09614010651906331,
+     "y": 0.3835322344744647,
+     "w": 0.10164390405019126,
+     "h": 0.4131289729365596,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#2",
+     "x": 0.27111771901448567,
+     "y": 0.4258273371943721,
+     "w": 0.08693122863769531,
+     "h": 0.3659381725169994,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#3",
+     "x": 0.23770956194842302,
+     "y": 0.40854780974211513,
+     "w": 0.14858087610315396,
+     "h": 0.3714521902578849,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#4",
+     "x": 0.35400282541910805,
+     "y": 0.4124892905906395,
+     "w": 0.07918370564778648,
+     "h": 0.37576816700122967,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#5",
+     "x": 0.4343777974446615,
+     "y": 0.369097900390625,
+     "w": 0.1054848988850911,
+     "h": 0.4447171811704282,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#6",
+     "x": 0.43463897252965855,
+     "y": 0.3931948626482929,
+     "w": 0.16272205494068287,
+     "h": 0.40680513735170715,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@136.0#7",
+     "x": 0.8619321823120117,
+     "y": 0.4165691517017506,
+     "w": 0.09039993286132808,
+     "h": 0.3714521902578849,
+     "ignore": true,
+     "approximate": false,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 204000000,
+   "t": 204.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "ocsc_wide@204.0#0",
+     "x": 0.000557340681552887,
+     "y": 0.35012147691514756,
+     "w": 0.06509197403987249,
+     "h": 0.27756955182110826,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@204.0#1",
+     "x": 0.13267184893290201,
+     "y": 0.39976806640625,
+     "w": 0.060135062535603856,
+     "h": 0.21237493444372108,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@204.0#2",
+     "x": 0.21632402737935383,
+     "y": 0.35769116436993637,
+     "w": 0.09246958096822103,
+     "h": 0.32809114809389467,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@204.0#3",
+     "x": 0.5137064615885417,
+     "y": 0.3349873295536748,
+     "w": 0.06918582916259763,
+     "h": 0.344435797797309,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@204.0#4",
+     "x": 0.7360542933146159,
+     "y": 0.36137878983109084,
+     "w": 0.043567212422688795,
+     "h": 0.26963650738751443,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    }
+   ]
+  },
+  {
+   "pts_us": 208000000,
+   "t": 208.0,
+   "complete": true,
+   "segment": null,
+   "boxes": [
+    {
+     "id": "ocsc_wide@208.0#0",
+     "x": 0.02036599119504293,
+     "y": 0.3073719731083623,
+     "w": 0.08550691803296408,
+     "h": 0.31226586235894094,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@208.0#1",
+     "x": 0.1376862366994222,
+     "y": 0.26902923583984373,
+     "w": 0.07161250114440917,
+     "h": 0.32243041992187504,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@208.0#2",
+     "x": 0.3935097058614095,
+     "y": 0.31951638680917244,
+     "w": 0.12120440800984705,
+     "h": 0.30151870162398725,
+     "ignore": false,
+     "approximate": false,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@208.0#3",
+     "x": 0.4115468275282118,
+     "y": 0.29773413764105905,
+     "w": 0.12490634494357639,
+     "h": 0.31226586235894094,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    },
+    {
+     "id": "ocsc_wide@208.0#4",
+     "x": 0.43654682752821183,
+     "y": 0.30273413764105905,
+     "w": 0.12490634494357639,
+     "h": 0.31226586235894094,
+     "ignore": false,
+     "approximate": true,
+     "player_ref": null
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+command: corepack pnpm -C apps/api test (run 1)
+   ✓ concurrency, crashes and fencing > recovers events claimed by a crashed dispatcher once the lease expires; the crashed one is fenced off 429ms
+   ✓ failures > retries with back-off and keeps a redacted error 397ms
+   ✓ failures > times out a hung handler and retries the event 1575ms
+   ✓ ordering and tenants > keeps events of one aggregate in order, without holding up other aggregates 512ms
+ ✓ test/identity.api.test.ts (11 tests) 634ms
+ ✓ test/audit.api.test.ts (7 tests) 157ms
+
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+   Start at  16:38:19
+   Duration  10.16s (transform 200ms, setup 0ms, collect 1.06s, tests 4.42s, environment 0ms, prepare 82ms)
+

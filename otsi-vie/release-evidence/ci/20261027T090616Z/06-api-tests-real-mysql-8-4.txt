@@ -1,0 +1,43 @@
+$ C:\Program Files\nodejs\corepack.CMD pnpm test
+(cwd otsi-vie\apps\api)
+
+
+> @otsi-vie/api@0.1.0 test D:\OTSI-Workspace\VIE-Engine-v2\otsi-vie\apps\api
+> vitest run
+
+
+ RUN  v2.1.8 D:/OTSI-Workspace/VIE-Engine-v2/otsi-vie/apps/api
+
+ ✓ test/matches.api.test.ts (6 tests) 1534ms
+   ✓ team identity, shirt numbers and candidates > combine shirt number, verified roster, team and appearance into ranked suggestions with conflicts, deciding nothing 302ms
+ ✓ test/media.api.test.ts (13 tests) 833ms
+[Nest] 48956  - 10/27/2026, 12:06:38 PM    WARN [OutboxDispatcher] event 83 (test.happened) attempt 1 failed; will retry: test.flaky: boom
+[Nest] 48956  - 10/27/2026, 12:06:38 PM    WARN [OutboxDispatcher] event 84 (test.happened) attempt 1 failed; will retry: test.leaky: connect mysql://[REDACTED]@db.internal:3306/x failed; password=[REDACTED]; Bearer [REDACTED]
+[Nest] 48956  - 10/27/2026, 12:06:39 PM    WARN [OutboxDispatcher] event 85 (test.happened) attempt 1 failed; will retry: test.poison: cannot handle this
+[Nest] 48956  - 10/27/2026, 12:06:39 PM    WARN [OutboxDispatcher] event 86 (test.happened) attempt 1 failed; will retry: test.hung: timed out after 150 ms
+[Nest] 48956  - 10/27/2026, 12:06:41 PM    WARN [OutboxDispatcher] event 87 (test.happened) attempt 1 failed; will retry: test.writer: failed after writing
+[Nest] 48956  - 10/27/2026, 12:06:41 PM    WARN [OutboxDispatcher] event 88 (test.happened) attempt 1 failed; will retry: test.sequence: first try fails
+ ✓ test/outbox.dispatcher.test.ts (14 tests) 3969ms
+   ✓ concurrency, crashes and fencing > recovers events claimed by a crashed dispatcher once the lease expires; the crashed one is fenced off 440ms
+   ✓ failures > retries with back-off and keeps a redacted error 418ms
+   ✓ failures > times out a hung handler and retries the event 1592ms
+   ✓ ordering and tenants > keeps events of one aggregate in order, without holding up other aggregates 558ms
+ ✓ test/identity.api.test.ts (12 tests) 995ms
+ ✓ test/reels.api.test.ts (4 tests) 1345ms
+   ✓ reels > render: one job per request key, one RENDER worker job, signed playback and download once the file exists 594ms
+ ✓ test/auth.api.test.ts (11 tests) 2805ms
+   ✓ login > gives the same answer for an unknown email and a wrong password 384ms
+   ✓ login > locks the credential after 5 failures, even for the right password, until the lock expires 1076ms
+ ✓ test/analysis.api.test.ts (6 tests) 377ms
+ ✓ test/audit.api.test.ts (7 tests) 252ms
+ ✓ test/links.api.test.ts (4 tests) 441ms
+ ✓ test/profiles.api.test.ts (2 tests) 311ms
+
+ Test Files  10 passed (10)
+      Tests  79 passed (79)
+   Start at  12:06:27
+   Duration  21.89s (transform 510ms, setup 0ms, collect 2.54s, tests 12.86s, environment 0ms, prepare 86ms)
+
+[Nest] 48956  - 10/27/2026, 12:06:39 PM   ERROR [OutboxDispatcher] event 85 (test.happened) dead-lettered after 2 attempts: test.poison: cannot handle this
+
+exit=0

@@ -1,0 +1,5 @@
+.next/
+.e2e-results/
+next-env.d.ts.bak
+*.tsbuildinfo
+.e2e-shots/

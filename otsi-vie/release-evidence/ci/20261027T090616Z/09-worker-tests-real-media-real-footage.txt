@@ -1,0 +1,12 @@
+$ D:\OTSI-Workspace\VIE-Engine-v2\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider -rs
+(cwd otsi-vie\services\worker)
+
+.................................................sss.................... [ 65%]
+......................................                                   [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_providers_live.py:19: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+SKIPPED [1] tests\test_providers_live.py:26: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+SKIPPED [1] tests\test_providers_live.py:33: live internet tests are opt-in (OTSI_VIE_LIVE_TESTS=1)
+107 passed, 3 skipped in 238.57s (0:03:58)
+
+exit=0

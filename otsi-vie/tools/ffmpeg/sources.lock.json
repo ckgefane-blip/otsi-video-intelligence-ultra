@@ -1,0 +1,62 @@
+{
+ "ffmpeg_version": "7.1.1",
+ "sources": [
+  {
+   "name": "FFmpeg",
+   "version": "7.1.1",
+   "licence": "LGPL-2.1-or-later (as configured)",
+   "url": "https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz",
+   "file": "ffmpeg-7.1.1.tar.xz",
+   "sha256": "733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1"
+  },
+  {
+   "name": "libvpl",
+   "version": "2.14.0",
+   "licence": "MIT",
+   "url": "https://github.com/intel/libvpl/archive/refs/tags/v2.14.0.tar.gz",
+   "file": "libvpl-2.14.0.tar.gz",
+   "sha256": "7c6bff1c1708d910032c2e6c44998ffff3f5fdbf06b00972bc48bf2dd9e5ac06"
+  },
+  {
+   "name": "libvpx",
+   "version": "1.15.0",
+   "licence": "BSD-3-Clause (+ WebM patent grant)",
+   "url": "https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.0.tar.gz",
+   "file": "libvpx-1.15.0.tar.gz",
+   "sha256": "e935eded7d81631a538bfae703fd1e293aad1c7fd3407ba00440c95105d2011e"
+  },
+  {
+   "name": "dav1d",
+   "version": "1.5.1",
+   "licence": "BSD-2-Clause",
+   "url": "https://code.videolan.org/videolan/dav1d/-/archive/1.5.1/dav1d-1.5.1.tar.gz",
+   "file": "dav1d-1.5.1.tar.gz",
+   "sha256": "fa635e2bdb25147b1384007c83e15de44c589582bb3b9a53fc1579cb9d74b695"
+  },
+  {
+   "name": "Opus",
+   "version": "1.5.2",
+   "licence": "BSD-3-Clause (+ patent grants)",
+   "url": "https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz",
+   "file": "opus-1.5.2.tar.gz",
+   "sha256": "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1"
+  },
+  {
+   "name": "SVT-AV1",
+   "version": "2.3.0",
+   "licence": "BSD-3-Clause-Clear + AOMedia Patent License 1.0",
+   "url": "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v2.3.0/SVT-AV1-v2.3.0.tar.gz",
+   "file": "SVT-AV1-v2.3.0.tar.gz",
+   "sha256": "ebb0b484ef4a0dc281e94342a9f73ad458496f5d3457eca7465bec943910c6c3"
+  },
+  {
+   "name": "OpenH264 (headers/import library only)",
+   "version": "2.5.0",
+   "licence": "BSD-2-Clause (patent coverage only for Cisco's binary)",
+   "url": "https://github.com/cisco/openh264/archive/refs/tags/v2.5.0.tar.gz",
+   "file": "openh264-2.5.0.tar.gz",
+   "sha256": "94c8ca364db990047ec4ec3481b04ce0d791e62561ef5601443011bdc00825e3"
+  }
+ ],
+ "locked_at": "2026-10-27"
+}

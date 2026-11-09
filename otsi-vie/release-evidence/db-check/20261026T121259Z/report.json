@@ -1,0 +1,8 @@
+{
+ "utc": "20261026T121259Z",
+ "server": "8.4.13 | MySQL Community Server - GPL | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION",
+ "migrations": [],
+ "checks": {},
+ "ok": false,
+ "error": "sh: line 1: vie_check_20261026t121259z_a: command not found\nERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci' at line 1"
+}

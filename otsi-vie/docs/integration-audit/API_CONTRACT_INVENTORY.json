@@ -1,0 +1,6175 @@
+{
+ "generated_at": "2026-10-26T21:30:49.798Z",
+ "git_commit": "d3ef2f5",
+ "base_url": "http://127.0.0.1:4320 (direct) or same-origin /api/* through the Next.js web app (proxy)",
+ "conventions": {
+  "authentication": "Authorization: Bearer <RS256 access token> from POST /v1/auth/login or /v1/auth/refresh (local sign-in, ADR-021); external OIDC is configurable but not used yet",
+  "tenant_context": "X-Organization-Id: <uuid> on every organization route; the API checks an ACTIVE membership in MySQL on every request and takes the role from it, never from the token",
+  "roles": [
+   "OWNER",
+   "ADMIN",
+   "ANALYST",
+   "EDITOR",
+   "SCOUT",
+   "VIEWER"
+  ],
+  "errors": "every failure is {code, message, request_id} (contract Problem); codes are stable; X-Request-Id is returned on every response",
+  "common_errors": [
+   "UNAUTHENTICATED 401",
+   "INVALID_TOKEN 401",
+   "ORGANIZATION_REQUIRED 400",
+   "NOT_A_MEMBER 403",
+   "ROLE_NOT_ALLOWED 403 (routes with roles)",
+   "INVALID_REQUEST 422 (body/query fails the contract)",
+   "INTERNAL_ERROR 500"
+  ],
+  "idempotency": "POST /v1/uploads, /v1/imports, /v1/players and player registration require an Idempotency-Key header (8-128 safe characters)",
+  "time": "media times are integer microseconds since the video's first frame (pts_us); boxes are normalised 0..1 to the decoded frame (x, y = top-left)",
+  "identity": "track_number is a temporary per-run reference; canonical_otsi_id appears only for REGISTERED/RETIRED players and only after a CONFIRMED human decision"
+ },
+ "implemented": [
+  {
+   "method": "POST",
+   "path": "/v1/auth/login",
+   "authentication": "none (CSRF header x-otsi-csrf: 1, allowed Origin)",
+   "tenant_context": "none",
+   "roles": "—",
+   "request": {
+    "contract": "LoginRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "email": {
+       "type": "string",
+       "format": "email",
+       "maxLength": 255
+      },
+      "password": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 256
+      }
+     },
+     "required": [
+      "email",
+      "password"
+     ]
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "SessionResponse",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "access_token": {
+       "type": "string"
+      },
+      "token_type": {
+       "const": "Bearer"
+      },
+      "expires_in": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "me": {
+       "type": "object",
+       "properties": {
+        "user": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "email": {
+           "type": "string"
+          },
+          "display_name": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "id",
+          "email",
+          "display_name"
+         ]
+        },
+        "memberships": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "organization_id": {
+            "type": "string",
+            "format": "uuid"
+           },
+           "organization_name": {
+            "type": "string"
+           },
+           "role": {
+            "type": "string",
+            "enum": [
+             "OWNER",
+             "ADMIN",
+             "ANALYST",
+             "EDITOR",
+             "SCOUT",
+             "VIEWER"
+            ]
+           }
+          },
+          "required": [
+           "organization_id",
+           "organization_name",
+           "role"
+          ]
+         }
+        }
+       },
+       "required": [
+        "user",
+        "memberships"
+       ]
+      }
+     },
+     "required": [
+      "access_token",
+      "token_type",
+      "expires_in",
+      "me"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": "HttpOnly SameSite=Strict refresh cookie",
+   "errors": [
+    "CSRF_HEADER_REQUIRED 403",
+    "ORIGIN_NOT_ALLOWED 403",
+    "INVALID_REQUEST 422",
+    "INVALID_CREDENTIALS 401",
+    "ACCOUNT_LOCKED 429"
+   ],
+   "service_files": [
+    "apps/api/src/modules/auth/auth.controller.ts",
+    "auth.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/auth.api.test.ts",
+     "cases": 11
+    },
+    "apps/web/e2e/shell.spec.ts (sign-in, reload, sign-out)"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/auth/refresh",
+   "authentication": "refresh cookie + CSRF header",
+   "tenant_context": "none",
+   "roles": "—",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "SessionResponse",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "access_token": {
+       "type": "string"
+      },
+      "token_type": {
+       "const": "Bearer"
+      },
+      "expires_in": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "me": {
+       "type": "object",
+       "properties": {
+        "user": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "email": {
+           "type": "string"
+          },
+          "display_name": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "id",
+          "email",
+          "display_name"
+         ]
+        },
+        "memberships": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "organization_id": {
+            "type": "string",
+            "format": "uuid"
+           },
+           "organization_name": {
+            "type": "string"
+           },
+           "role": {
+            "type": "string",
+            "enum": [
+             "OWNER",
+             "ADMIN",
+             "ANALYST",
+             "EDITOR",
+             "SCOUT",
+             "VIEWER"
+            ]
+           }
+          },
+          "required": [
+           "organization_id",
+           "organization_name",
+           "role"
+          ]
+         }
+        }
+       },
+       "required": [
+        "user",
+        "memberships"
+       ]
+      }
+     },
+     "required": [
+      "access_token",
+      "token_type",
+      "expires_in",
+      "me"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": "rotated refresh cookie (reuse detection ends the session family)",
+   "errors": [
+    "CSRF_HEADER_REQUIRED 403",
+    "NO_SESSION 401",
+    "SESSION_REVOKED 401"
+   ],
+   "service_files": [
+    "apps/api/src/modules/auth/auth.controller.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/auth.api.test.ts",
+     "cases": "rotation, replay"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/auth/logout",
+   "authentication": "refresh cookie + CSRF header",
+   "tenant_context": "none",
+   "roles": "—",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": null,
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "CSRF_HEADER_REQUIRED 403"
+   ],
+   "service_files": [
+    "apps/api/src/modules/auth/auth.controller.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/auth.api.test.ts",
+     "cases": "logout"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/me",
+   "authentication": "Bearer",
+   "tenant_context": "none (account-level)",
+   "roles": "—",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Me",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "user": {
+       "type": "object",
+       "properties": {
+        "id": {
+         "type": "string",
+         "format": "uuid"
+        },
+        "email": {
+         "type": "string"
+        },
+        "display_name": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "id",
+        "email",
+        "display_name"
+       ]
+      },
+      "memberships": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "organization_id": {
+          "type": "string",
+          "format": "uuid"
+         },
+         "organization_name": {
+          "type": "string"
+         },
+         "role": {
+          "type": "string",
+          "enum": [
+           "OWNER",
+           "ADMIN",
+           "ANALYST",
+           "EDITOR",
+           "SCOUT",
+           "VIEWER"
+          ]
+         }
+        },
+        "required": [
+         "organization_id",
+         "organization_name",
+         "role"
+        ]
+       }
+      }
+     },
+     "required": [
+      "user",
+      "memberships"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "UNAUTHENTICATED 401",
+    "INVALID_TOKEN 401",
+    "UNKNOWN_ACCOUNT 401"
+   ],
+   "service_files": [
+    "apps/api/src/modules/account/account.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/auth.api.test.ts",
+     "cases": "/me"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/audit-events",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN"
+   ],
+   "request": null,
+   "query": {
+    "contract": "AuditQuery",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "entity_type": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "entity_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "action": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]*([.][a-z][a-z0-9_]*)+$"
+      },
+      "before_id": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "limit": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 200,
+       "default": 50
+      }
+     }
+    }
+   },
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "AuditPage",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "items": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         "occurred_at": {
+          "type": "string"
+         },
+         "actor_kind": {
+          "type": "string",
+          "enum": [
+           "USER",
+           "SERVICE",
+           "SYSTEM"
+          ]
+         },
+         "actor_id": {
+          "anyOf": [
+           {
+            "type": "string",
+            "format": "uuid"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "actor_service": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "action": {
+          "type": "string"
+         },
+         "entity_type": {
+          "type": "string"
+         },
+         "entity_id": {
+          "anyOf": [
+           {
+            "type": "string",
+            "format": "uuid"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "request_id": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "before_state": {
+          "anyOf": [
+           {},
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "after_state": {
+          "anyOf": [
+           {},
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "id",
+         "occurred_at",
+         "actor_kind",
+         "actor_id",
+         "actor_service",
+         "action",
+         "entity_type",
+         "entity_id",
+         "request_id",
+         "before_state",
+         "after_state"
+        ]
+       }
+      },
+      "next_before_id": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "required": [
+      "items",
+      "next_before_id"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "ROLE_NOT_ALLOWED 403",
+    "INVALID_REQUEST 422"
+   ],
+   "service_files": [
+    "apps/api/src/modules/audit/audit.controller.ts",
+    "audit.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/audit.api.test.ts",
+     "cases": 7
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/projects",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Project[]",
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "name": {
+        "type": "string"
+       },
+       "description": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "status": {
+        "type": "string",
+        "enum": [
+         "ACTIVE",
+         "ARCHIVED"
+        ]
+       },
+       "video_count": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "created_at": {
+        "type": "string"
+       },
+       "updated_at": {
+        "type": "string"
+       },
+       "version": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "description",
+       "status",
+       "video_count",
+       "created_at",
+       "updated_at",
+       "version"
+      ]
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [],
+   "service_files": [
+    "apps/api/src/modules/projects/projects.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "projects"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/projects",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": {
+    "contract": "CreateProjectRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "minLength": 2,
+       "maxLength": 255
+      },
+      "description": {
+       "type": "string",
+       "maxLength": 4000
+      }
+     },
+     "required": [
+      "name"
+     ]
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 201,
+    "contract": "Project",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "name": {
+       "type": "string"
+      },
+      "description": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "ACTIVE",
+        "ARCHIVED"
+       ]
+      },
+      "video_count": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      },
+      "version": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      }
+     },
+     "required": [
+      "id",
+      "name",
+      "description",
+      "status",
+      "video_count",
+      "created_at",
+      "updated_at",
+      "version"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "ROLE_NOT_ALLOWED 403",
+    "INVALID_REQUEST 422"
+   ],
+   "service_files": [
+    "apps/api/src/modules/projects/projects.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "projects"
+    },
+    "apps/web/e2e/upload.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/projects/:projectId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Project",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "name": {
+       "type": "string"
+      },
+      "description": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "ACTIVE",
+        "ARCHIVED"
+       ]
+      },
+      "video_count": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      },
+      "version": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      }
+     },
+     "required": [
+      "id",
+      "name",
+      "description",
+      "status",
+      "video_count",
+      "created_at",
+      "updated_at",
+      "version"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404 (also for another organization's project)"
+   ],
+   "service_files": [
+    "apps/api/src/modules/projects/projects.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "projects"
+    }
+   ]
+  },
+  {
+   "method": "PATCH",
+   "path": "/v1/projects/:projectId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": {
+    "contract": "UpdateProjectRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "minLength": 2,
+       "maxLength": 255
+      },
+      "description": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 4000
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "ACTIVE",
+        "ARCHIVED"
+       ]
+      },
+      "version": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      }
+     },
+     "required": [
+      "version"
+     ]
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Project",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "name": {
+       "type": "string"
+      },
+      "description": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "ACTIVE",
+        "ARCHIVED"
+       ]
+      },
+      "video_count": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      },
+      "version": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      }
+     },
+     "required": [
+      "id",
+      "name",
+      "description",
+      "status",
+      "video_count",
+      "created_at",
+      "updated_at",
+      "version"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404",
+    "STALE_VERSION 409"
+   ],
+   "service_files": [
+    "apps/api/src/modules/projects/projects.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "optimistic concurrency"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/videos",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": {
+    "description": "project_id (uuid, optional)"
+   },
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Video[]",
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "project_id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "title": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "original_filename": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "ingest_mode": {
+        "type": "string",
+        "enum": [
+         "UPLOAD",
+         "DIRECT_URL",
+         "AUTHORIZED_PROVIDER"
+        ]
+       },
+       "source_uri": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "state": {
+        "type": "string",
+        "enum": [
+         "PENDING",
+         "VALIDATING",
+         "INGESTED",
+         "FAILED",
+         "QUARANTINED"
+        ]
+       },
+       "byte_size": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "duration_us": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "width": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "height": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "frame_rate": {
+        "anyOf": [
+         {
+          "type": "object",
+          "properties": {
+           "num": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+           },
+           "den": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+           }
+          },
+          "required": [
+           "num",
+           "den"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "is_variable_frame_rate": {
+        "anyOf": [
+         {
+          "type": "boolean"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "container_format": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "video_codec": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "audio_codec": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "sha256": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "failure_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "failure_detail": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "has_thumbnail": {
+        "type": "boolean"
+       },
+       "job": {
+        "anyOf": [
+         {
+          "type": "object",
+          "properties": {
+           "kind": {
+            "type": "string"
+           },
+           "state": {
+            "type": "string",
+            "enum": [
+             "QUEUED",
+             "RUNNING",
+             "SUCCEEDED",
+             "FAILED",
+             "CANCELLED"
+            ]
+           },
+           "progress": {
+            "type": "number"
+           },
+           "stage_message": {
+            "anyOf": [
+             {
+              "type": "string"
+             },
+             {
+              "type": "null"
+             }
+            ]
+           },
+           "error_code": {
+            "anyOf": [
+             {
+              "type": "string"
+             },
+             {
+              "type": "null"
+             }
+            ]
+           }
+          },
+          "required": [
+           "kind",
+           "state",
+           "progress",
+           "stage_message",
+           "error_code"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "upload": {
+        "anyOf": [
+         {
+          "type": "object",
+          "properties": {
+           "upload_id": {
+            "type": "string",
+            "format": "uuid"
+           },
+           "status": {
+            "type": "string"
+           },
+           "expected_bytes": {
+            "type": "integer"
+           },
+           "received_bytes": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "upload_id",
+           "status",
+           "expected_bytes",
+           "received_bytes"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "created_at": {
+        "type": "string"
+       },
+       "updated_at": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "project_id",
+       "title",
+       "original_filename",
+       "ingest_mode",
+       "source_uri",
+       "state",
+       "byte_size",
+       "duration_us",
+       "width",
+       "height",
+       "frame_rate",
+       "is_variable_frame_rate",
+       "container_format",
+       "video_codec",
+       "audio_codec",
+       "sha256",
+       "failure_code",
+       "failure_detail",
+       "has_thumbnail",
+       "job",
+       "upload",
+       "created_at",
+       "updated_at"
+      ]
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404 (bad project_id)"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "videos"
+    },
+    "apps/web/e2e/upload.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/videos/:videoId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Video",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "project_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "title": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "original_filename": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ingest_mode": {
+       "type": "string",
+       "enum": [
+        "UPLOAD",
+        "DIRECT_URL",
+        "AUTHORIZED_PROVIDER"
+       ]
+      },
+      "source_uri": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "state": {
+       "type": "string",
+       "enum": [
+        "PENDING",
+        "VALIDATING",
+        "INGESTED",
+        "FAILED",
+        "QUARANTINED"
+       ]
+      },
+      "byte_size": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "duration_us": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "width": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "height": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "frame_rate": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "num": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          },
+          "den": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          }
+         },
+         "required": [
+          "num",
+          "den"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "is_variable_frame_rate": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "container_format": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "video_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "audio_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "sha256": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "has_thumbnail": {
+       "type": "boolean"
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "kind": {
+           "type": "string"
+          },
+          "state": {
+           "type": "string",
+           "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+           ]
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "error_code": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "kind",
+          "state",
+          "progress",
+          "stage_message",
+          "error_code"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "upload": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "upload_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "status": {
+           "type": "string"
+          },
+          "expected_bytes": {
+           "type": "integer"
+          },
+          "received_bytes": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "upload_id",
+          "status",
+          "expected_bytes",
+          "received_bytes"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "id",
+      "project_id",
+      "title",
+      "original_filename",
+      "ingest_mode",
+      "source_uri",
+      "state",
+      "byte_size",
+      "duration_us",
+      "width",
+      "height",
+      "frame_rate",
+      "is_variable_frame_rate",
+      "container_format",
+      "video_codec",
+      "audio_codec",
+      "sha256",
+      "failure_code",
+      "failure_detail",
+      "has_thumbnail",
+      "job",
+      "upload",
+      "created_at",
+      "updated_at"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "videos"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/videos/:videoId/thumbnail",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "description": "image/jpeg (binary)"
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "thumbnail"
+    },
+    "apps/web/e2e/upload.spec.ts"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/uploads",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": {
+    "contract": "CreateUploadRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "project_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "file_name": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 255
+      },
+      "byte_size": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "title": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 255
+      },
+      "sha256": {
+       "type": "string",
+       "pattern": "^[0-9a-f]{64}$"
+      }
+     },
+     "required": [
+      "project_id",
+      "file_name",
+      "byte_size"
+     ]
+    }
+   },
+   "query": null,
+   "headers": "Idempotency-Key (required)",
+   "response": {
+    "status": "201 new / 200 same key",
+    "contract": "UploadSession",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "upload_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "video_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "INITIALIZED",
+        "UPLOADING",
+        "VERIFYING",
+        "COMPLETED",
+        "ABORTED",
+        "EXPIRED",
+        "FAILED"
+       ]
+      },
+      "part_bytes": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "part_count": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "expected_bytes": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "received_parts": {
+       "type": "array",
+       "items": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+       }
+      },
+      "expires_at": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "upload_id",
+      "video_id",
+      "status",
+      "part_bytes",
+      "part_count",
+      "expected_bytes",
+      "received_parts",
+      "expires_at"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "IDEMPOTENCY_KEY_REQUIRED 400",
+    "IDEMPOTENCY_KEY_REUSED 409",
+    "UNSUPPORTED_FILE_TYPE 422",
+    "FILE_TOO_LARGE 413",
+    "PROJECT_ARCHIVED 409",
+    "NOT_FOUND 404",
+    "STORAGE_NOT_CONFIGURED 503"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "upload sessions"
+    },
+    "apps/web/e2e/upload.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/uploads/:uploadId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "UploadSession",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "upload_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "video_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "INITIALIZED",
+        "UPLOADING",
+        "VERIFYING",
+        "COMPLETED",
+        "ABORTED",
+        "EXPIRED",
+        "FAILED"
+       ]
+      },
+      "part_bytes": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "part_count": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "expected_bytes": {
+       "type": "integer",
+       "exclusiveMinimum": 0
+      },
+      "received_parts": {
+       "type": "array",
+       "items": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+       }
+      },
+      "expires_at": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "upload_id",
+      "video_id",
+      "status",
+      "part_bytes",
+      "part_count",
+      "expected_bytes",
+      "received_parts",
+      "expires_at"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "resume"
+    }
+   ]
+  },
+  {
+   "method": "PUT",
+   "path": "/v1/uploads/:uploadId/parts/:n",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": {
+    "description": "binary part (exact planned size)"
+   },
+   "query": null,
+   "headers": "Content-Type: application/octet-stream; X-Part-SHA256 (optional, verified)",
+   "response": {
+    "status": 200,
+    "schema": {
+     "type": "object",
+     "properties": {
+      "part_number": {
+       "type": "integer"
+      },
+      "bytes": {
+       "type": "integer"
+      },
+      "sha256": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "OCTET_STREAM_REQUIRED 415",
+    "UPLOAD_NOT_OPEN 409",
+    "UPLOAD_EXPIRED 410",
+    "INVALID_PART 422",
+    "PART_SIZE_MISMATCH 422",
+    "PART_CHECKSUM_MISMATCH 422",
+    "PART_TOO_LARGE 413"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "parts"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/uploads/:uploadId/complete",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Video",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "project_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "title": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "original_filename": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ingest_mode": {
+       "type": "string",
+       "enum": [
+        "UPLOAD",
+        "DIRECT_URL",
+        "AUTHORIZED_PROVIDER"
+       ]
+      },
+      "source_uri": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "state": {
+       "type": "string",
+       "enum": [
+        "PENDING",
+        "VALIDATING",
+        "INGESTED",
+        "FAILED",
+        "QUARANTINED"
+       ]
+      },
+      "byte_size": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "duration_us": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "width": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "height": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "frame_rate": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "num": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          },
+          "den": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          }
+         },
+         "required": [
+          "num",
+          "den"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "is_variable_frame_rate": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "container_format": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "video_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "audio_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "sha256": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "has_thumbnail": {
+       "type": "boolean"
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "kind": {
+           "type": "string"
+          },
+          "state": {
+           "type": "string",
+           "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+           ]
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "error_code": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "kind",
+          "state",
+          "progress",
+          "stage_message",
+          "error_code"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "upload": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "upload_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "status": {
+           "type": "string"
+          },
+          "expected_bytes": {
+           "type": "integer"
+          },
+          "received_bytes": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "upload_id",
+          "status",
+          "expected_bytes",
+          "received_bytes"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "id",
+      "project_id",
+      "title",
+      "original_filename",
+      "ingest_mode",
+      "source_uri",
+      "state",
+      "byte_size",
+      "duration_us",
+      "width",
+      "height",
+      "frame_rate",
+      "is_variable_frame_rate",
+      "container_format",
+      "video_codec",
+      "audio_codec",
+      "sha256",
+      "failure_code",
+      "failure_detail",
+      "has_thumbnail",
+      "job",
+      "upload",
+      "created_at",
+      "updated_at"
+     ]
+    }
+   },
+   "side_effects": "outbox video.uploaded -> INGEST_UPLOAD worker job",
+   "sets": null,
+   "errors": [
+    "UPLOAD_INCOMPLETE 409",
+    "UPLOAD_NOT_OPEN 409"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts",
+    "core/outbox/subscribers.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "exactly one ingest job"
+    },
+    "services/worker/tests/test_ingest.py"
+   ]
+  },
+  {
+   "method": "DELETE",
+   "path": "/v1/uploads/:uploadId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": null,
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "UPLOAD_NOT_OPEN 409"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "aborts"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/import-providers",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "description": "provider policy list (providers.json without host lists)"
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts",
+    "packages/contracts/src/providers.json"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "import policy"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/imports",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR"
+   ],
+   "request": {
+    "contract": "CreateImportRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "project_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "url": {
+       "type": "string",
+       "minLength": 10,
+       "maxLength": 2048
+      },
+      "title": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 255
+      },
+      "access_token": {
+       "type": "string",
+       "minLength": 8,
+       "maxLength": 4096
+      }
+     },
+     "required": [
+      "project_id",
+      "url"
+     ]
+    }
+   },
+   "query": null,
+   "headers": "Idempotency-Key (required)",
+   "response": {
+    "status": 201,
+    "contract": "Video",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "project_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "title": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "original_filename": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ingest_mode": {
+       "type": "string",
+       "enum": [
+        "UPLOAD",
+        "DIRECT_URL",
+        "AUTHORIZED_PROVIDER"
+       ]
+      },
+      "source_uri": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "state": {
+       "type": "string",
+       "enum": [
+        "PENDING",
+        "VALIDATING",
+        "INGESTED",
+        "FAILED",
+        "QUARANTINED"
+       ]
+      },
+      "byte_size": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "duration_us": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "width": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "height": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "frame_rate": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "num": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          },
+          "den": {
+           "type": "integer",
+           "exclusiveMinimum": 0
+          }
+         },
+         "required": [
+          "num",
+          "den"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "is_variable_frame_rate": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "container_format": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "video_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "audio_codec": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "sha256": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "has_thumbnail": {
+       "type": "boolean"
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "kind": {
+           "type": "string"
+          },
+          "state": {
+           "type": "string",
+           "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+           ]
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "error_code": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "kind",
+          "state",
+          "progress",
+          "stage_message",
+          "error_code"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "upload": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "upload_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "status": {
+           "type": "string"
+          },
+          "expected_bytes": {
+           "type": "integer"
+          },
+          "received_bytes": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "upload_id",
+          "status",
+          "expected_bytes",
+          "received_bytes"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "updated_at": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "id",
+      "project_id",
+      "title",
+      "original_filename",
+      "ingest_mode",
+      "source_uri",
+      "state",
+      "byte_size",
+      "duration_us",
+      "width",
+      "height",
+      "frame_rate",
+      "is_variable_frame_rate",
+      "container_format",
+      "video_codec",
+      "audio_codec",
+      "sha256",
+      "failure_code",
+      "failure_detail",
+      "has_thumbnail",
+      "job",
+      "upload",
+      "created_at",
+      "updated_at"
+     ]
+    }
+   },
+   "side_effects": "outbox video.import_requested -> INGEST_URL worker job (sealed token only in the job)",
+   "sets": null,
+   "errors": [
+    "INVALID_URL 422",
+    "UNSUPPORTED_PROVIDER 422",
+    "AUTH_REQUIRED 422",
+    "BLOCKED_DESTINATION 422",
+    "CREDENTIALS_NOT_CONFIGURED 503",
+    "IDEMPOTENCY_KEY_REQUIRED 400"
+   ],
+   "service_files": [
+    "apps/api/src/modules/media/media.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/media.api.test.ts",
+     "cases": "imports"
+    },
+    "services/worker/tests/test_url_import.py",
+    "services/worker/tests/test_providers.py",
+    "apps/web/e2e/upload.spec.ts"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/videos/:videoId/analysis-runs",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST"
+   ],
+   "request": {
+    "contract": "CreateAnalysisRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "sample_fps": {
+       "type": "number",
+       "minimum": 0.5,
+       "maximum": 10,
+       "default": 2
+      },
+      "tiles": {
+       "anyOf": [
+        {
+         "const": 1
+        },
+        {
+         "const": 2
+        }
+       ],
+       "default": 2
+      },
+      "detector": {
+       "type": "string",
+       "pattern": "^[a-z0-9_]{3,64}$"
+      }
+     }
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 201,
+    "contract": "AnalysisRun",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "video_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "BLOCKED",
+        "REVIEW_REQUIRED"
+       ]
+      },
+      "config": {
+       "type": "object",
+       "properties": {
+        "sample_fps": {
+         "type": "number"
+        },
+        "tiles": {
+         "type": "number"
+        },
+        "detector": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "required": [
+        "sample_fps",
+        "tiles",
+        "detector"
+       ]
+      },
+      "steps": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "status": {
+          "type": "string",
+          "enum": [
+           "QUEUED",
+           "RUNNING",
+           "SUCCEEDED",
+           "FAILED",
+           "CANCELLED",
+           "BLOCKED",
+           "REVIEW_REQUIRED"
+          ]
+         },
+         "progress": {
+          "type": "number"
+         },
+         "error_code": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "name",
+         "status",
+         "progress",
+         "error_code"
+        ]
+       }
+      },
+      "result": {
+       "anyOf": [
+        {
+         "type": "object",
+         "additionalProperties": {}
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "state": {
+           "type": "string"
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "state",
+          "progress",
+          "stage_message"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "started_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "finished_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "required": [
+      "id",
+      "video_id",
+      "status",
+      "config",
+      "steps",
+      "result",
+      "failure_code",
+      "failure_detail",
+      "job",
+      "created_at",
+      "started_at",
+      "finished_at"
+     ]
+    }
+   },
+   "side_effects": "outbox analysis.requested -> ANALYZE worker job",
+   "sets": null,
+   "errors": [
+    "VIDEO_NOT_READY 409",
+    "ANALYSIS_ALREADY_RUNNING 409",
+    "NOT_FOUND 404",
+    "ROLE_NOT_ALLOWED 403"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "start"
+    },
+    "services/worker/tests/test_analyze.py",
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/videos/:videoId/analysis-runs",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "AnalysisRun[]",
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "video_id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "status": {
+        "type": "string",
+        "enum": [
+         "QUEUED",
+         "RUNNING",
+         "SUCCEEDED",
+         "FAILED",
+         "CANCELLED",
+         "BLOCKED",
+         "REVIEW_REQUIRED"
+        ]
+       },
+       "config": {
+        "type": "object",
+        "properties": {
+         "sample_fps": {
+          "type": "number"
+         },
+         "tiles": {
+          "type": "number"
+         },
+         "detector": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "sample_fps",
+         "tiles",
+         "detector"
+        ]
+       },
+       "steps": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string"
+          },
+          "status": {
+           "type": "string",
+           "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "BLOCKED",
+            "REVIEW_REQUIRED"
+           ]
+          },
+          "progress": {
+           "type": "number"
+          },
+          "error_code": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "name",
+          "status",
+          "progress",
+          "error_code"
+         ]
+        }
+       },
+       "result": {
+        "anyOf": [
+         {
+          "type": "object",
+          "additionalProperties": {}
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "failure_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "failure_detail": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "job": {
+        "anyOf": [
+         {
+          "type": "object",
+          "properties": {
+           "state": {
+            "type": "string"
+           },
+           "progress": {
+            "type": "number"
+           },
+           "stage_message": {
+            "anyOf": [
+             {
+              "type": "string"
+             },
+             {
+              "type": "null"
+             }
+            ]
+           }
+          },
+          "required": [
+           "state",
+           "progress",
+           "stage_message"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "created_at": {
+        "type": "string"
+       },
+       "started_at": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "finished_at": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "required": [
+       "id",
+       "video_id",
+       "status",
+       "config",
+       "steps",
+       "result",
+       "failure_code",
+       "failure_detail",
+       "job",
+       "created_at",
+       "started_at",
+       "finished_at"
+      ]
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "runs"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/analysis-runs/:runId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "AnalysisRun",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "video_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "BLOCKED",
+        "REVIEW_REQUIRED"
+       ]
+      },
+      "config": {
+       "type": "object",
+       "properties": {
+        "sample_fps": {
+         "type": "number"
+        },
+        "tiles": {
+         "type": "number"
+        },
+        "detector": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "required": [
+        "sample_fps",
+        "tiles",
+        "detector"
+       ]
+      },
+      "steps": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "status": {
+          "type": "string",
+          "enum": [
+           "QUEUED",
+           "RUNNING",
+           "SUCCEEDED",
+           "FAILED",
+           "CANCELLED",
+           "BLOCKED",
+           "REVIEW_REQUIRED"
+          ]
+         },
+         "progress": {
+          "type": "number"
+         },
+         "error_code": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "name",
+         "status",
+         "progress",
+         "error_code"
+        ]
+       }
+      },
+      "result": {
+       "anyOf": [
+        {
+         "type": "object",
+         "additionalProperties": {}
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "state": {
+           "type": "string"
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "state",
+          "progress",
+          "stage_message"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "started_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "finished_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "required": [
+      "id",
+      "video_id",
+      "status",
+      "config",
+      "steps",
+      "result",
+      "failure_code",
+      "failure_detail",
+      "job",
+      "created_at",
+      "started_at",
+      "finished_at"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "run"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/analysis-runs/:runId/cancel",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST"
+   ],
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "AnalysisRun",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "video_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "BLOCKED",
+        "REVIEW_REQUIRED"
+       ]
+      },
+      "config": {
+       "type": "object",
+       "properties": {
+        "sample_fps": {
+         "type": "number"
+        },
+        "tiles": {
+         "type": "number"
+        },
+        "detector": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "required": [
+        "sample_fps",
+        "tiles",
+        "detector"
+       ]
+      },
+      "steps": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "status": {
+          "type": "string",
+          "enum": [
+           "QUEUED",
+           "RUNNING",
+           "SUCCEEDED",
+           "FAILED",
+           "CANCELLED",
+           "BLOCKED",
+           "REVIEW_REQUIRED"
+          ]
+         },
+         "progress": {
+          "type": "number"
+         },
+         "error_code": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "name",
+         "status",
+         "progress",
+         "error_code"
+        ]
+       }
+      },
+      "result": {
+       "anyOf": [
+        {
+         "type": "object",
+         "additionalProperties": {}
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_code": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "failure_detail": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "job": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "state": {
+           "type": "string"
+          },
+          "progress": {
+           "type": "number"
+          },
+          "stage_message": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "required": [
+          "state",
+          "progress",
+          "stage_message"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "created_at": {
+       "type": "string"
+      },
+      "started_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "finished_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "required": [
+      "id",
+      "video_id",
+      "status",
+      "config",
+      "steps",
+      "result",
+      "failure_code",
+      "failure_detail",
+      "job",
+      "created_at",
+      "started_at",
+      "finished_at"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "RUN_NOT_ACTIVE 409",
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "cancel"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/analysis-runs/:runId/tracks",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "TrackSummary[]",
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "track_id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "track_number": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+       },
+       "class_name": {
+        "type": "string",
+        "enum": [
+         "PERSON",
+         "PLAYER",
+         "GOALKEEPER",
+         "REFEREE",
+         "BALL",
+         "OTHER"
+        ]
+       },
+       "shot_number": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "first_pts_us": {
+        "type": "integer"
+       },
+       "last_pts_us": {
+        "type": "integer"
+       },
+       "observation_count": {
+        "type": "integer"
+       },
+       "mean_confidence": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "identity_state": {
+        "type": "string",
+        "enum": [
+         "UNRESOLVED",
+         "CANDIDATE",
+         "CONFIRMED",
+         "REJECTED",
+         "CONFLICT"
+        ]
+       },
+       "label": {
+        "type": "string"
+       },
+       "canonical_otsi_id": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "required": [
+       "track_id",
+       "track_number",
+       "class_name",
+       "shot_number",
+       "first_pts_us",
+       "last_pts_us",
+       "observation_count",
+       "mean_confidence",
+       "identity_state",
+       "label",
+       "canonical_otsi_id"
+      ]
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "honest labels"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/analysis-runs/:runId/observations",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": {
+    "description": "from_us, to_us (integers, microseconds, window <= 20 s)"
+   },
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "ObservationWindow",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "from_us": {
+       "type": "integer"
+      },
+      "to_us": {
+       "type": "integer"
+      },
+      "observations": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "track_id": {
+          "type": "string",
+          "format": "uuid"
+         },
+         "track_number": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+         },
+         "class_name": {
+          "type": "string"
+         },
+         "pts_us": {
+          "type": "integer"
+         },
+         "x": {
+          "type": "number"
+         },
+         "y": {
+          "type": "number"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         },
+         "score": {
+          "anyOf": [
+           {
+            "type": "number"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "track_id",
+         "track_number",
+         "class_name",
+         "pts_us",
+         "x",
+         "y",
+         "w",
+         "h",
+         "score"
+        ]
+       }
+      },
+      "shots": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "shot_number": {
+          "type": "integer"
+         },
+         "start_pts_us": {
+          "type": "integer"
+         },
+         "end_pts_us": {
+          "type": "integer"
+         }
+        },
+        "required": [
+         "shot_number",
+         "start_pts_us",
+         "end_pts_us"
+        ]
+       }
+      }
+     },
+     "required": [
+      "from_us",
+      "to_us",
+      "observations",
+      "shots"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "INVALID_WINDOW 422",
+    "WINDOW_TOO_LONG 422",
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "observation window"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/videos/:videoId/playback",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "Playback",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "available": {
+       "type": "boolean"
+      },
+      "url": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "mime": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "expires_at": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "reason": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "required": [
+      "available",
+      "url",
+      "mime",
+      "expires_at",
+      "reason"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "signed URL"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/media/:assetId",
+   "authentication": "HMAC-signed URL (org, exp, sig) issued by /playback; no Bearer",
+   "tenant_context": "org in the signature",
+   "roles": "—",
+   "request": null,
+   "query": {
+    "description": "org, exp, sig"
+   },
+   "headers": "Range (optional)",
+   "response": {
+    "status": "200/206",
+    "description": "video/webm (binary, 200 or 206)"
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "INVALID_SIGNATURE 403",
+    "LINK_EXPIRED 403",
+    "NOT_FOUND 404",
+    "STORAGE_NOT_CONFIGURED 503",
+    "416 range not satisfiable"
+   ],
+   "service_files": [
+    "apps/api/src/modules/analysis/analysis.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/analysis.api.test.ts",
+     "cases": "Range, tampered/foreign/expired"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/players",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST",
+    "EDITOR",
+    "SCOUT"
+   ],
+   "request": {
+    "contract": "CreatePlayerRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "display_name": {
+       "type": "string",
+       "minLength": 2,
+       "maxLength": 255
+      },
+      "birth_date": {
+       "type": "string",
+       "format": "date"
+      },
+      "preferred_foot": {
+       "type": "string",
+       "enum": [
+        "LEFT",
+        "RIGHT",
+        "BOTH",
+        "UNKNOWN"
+       ]
+      }
+     },
+     "required": [
+      "display_name"
+     ]
+    }
+   },
+   "query": null,
+   "headers": "Idempotency-Key (required)",
+   "response": {
+    "status": "201 new / 200 same key",
+    "contract": "PlayerIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "own_canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "canonical_state": {
+       "type": "string",
+       "enum": [
+        "PROVISIONAL",
+        "REGISTERED",
+        "RETIRED",
+        "MERGED"
+       ]
+      },
+      "resolved_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "display_name": {
+       "type": "string"
+      },
+      "identity_label": {
+       "type": "string",
+       "enum": [
+        "REGISTERED_PLAYER",
+        "PROVISIONAL_PLAYER",
+        "RETIRED_PLAYER",
+        "MERGED_DUPLICATE"
+       ]
+      }
+     },
+     "required": [
+      "player_id",
+      "canonical_otsi_id",
+      "own_canonical_otsi_id",
+      "canonical_state",
+      "resolved_player_id",
+      "display_name",
+      "identity_label"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "IDEMPOTENCY_KEY_REQUIRED 400",
+    "ROLE_NOT_ALLOWED 403"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.controller.ts",
+    "players.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "test 5"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/players",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": {
+    "description": "q (2-100 chars: name prefix or exact OTSI Player ID)"
+   },
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "PlayerIdentity[]",
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "player_id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "canonical_otsi_id": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 20,
+          "minLength": 20,
+          "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "own_canonical_otsi_id": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 20,
+          "minLength": 20,
+          "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "canonical_state": {
+        "type": "string",
+        "enum": [
+         "PROVISIONAL",
+         "REGISTERED",
+         "RETIRED",
+         "MERGED"
+        ]
+       },
+       "resolved_player_id": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "display_name": {
+        "type": "string"
+       },
+       "identity_label": {
+        "type": "string",
+        "enum": [
+         "REGISTERED_PLAYER",
+         "PROVISIONAL_PLAYER",
+         "RETIRED_PLAYER",
+         "MERGED_DUPLICATE"
+        ]
+       }
+      },
+      "required": [
+       "player_id",
+       "canonical_otsi_id",
+       "own_canonical_otsi_id",
+       "canonical_state",
+       "resolved_player_id",
+       "display_name",
+       "identity_label"
+      ]
+     }
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "QUERY_TOO_SHORT 422"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "player search"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/players/by-otsi-id/:canonicalId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "PlayerIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "own_canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "canonical_state": {
+       "type": "string",
+       "enum": [
+        "PROVISIONAL",
+        "REGISTERED",
+        "RETIRED",
+        "MERGED"
+       ]
+      },
+      "resolved_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "display_name": {
+       "type": "string"
+      },
+      "identity_label": {
+       "type": "string",
+       "enum": [
+        "REGISTERED_PLAYER",
+        "PROVISIONAL_PLAYER",
+        "RETIRED_PLAYER",
+        "MERGED_DUPLICATE"
+       ]
+      }
+     },
+     "required": [
+      "player_id",
+      "canonical_otsi_id",
+      "own_canonical_otsi_id",
+      "canonical_state",
+      "resolved_player_id",
+      "display_name",
+      "identity_label"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "INVALID_OTSI_PLAYER_ID 422",
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "lookup"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/players/:playerId",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id (provisional records visible only to their organization)",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "PlayerIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "own_canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "canonical_state": {
+       "type": "string",
+       "enum": [
+        "PROVISIONAL",
+        "REGISTERED",
+        "RETIRED",
+        "MERGED"
+       ]
+      },
+      "resolved_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "display_name": {
+       "type": "string"
+      },
+      "identity_label": {
+       "type": "string",
+       "enum": [
+        "REGISTERED_PLAYER",
+        "PROVISIONAL_PLAYER",
+        "RETIRED_PLAYER",
+        "MERGED_DUPLICATE"
+       ]
+      }
+     },
+     "required": [
+      "player_id",
+      "canonical_otsi_id",
+      "own_canonical_otsi_id",
+      "canonical_state",
+      "resolved_player_id",
+      "display_name",
+      "identity_label"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "visibility"
+    }
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/players/:playerId/registration",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN"
+   ],
+   "request": {
+    "contract": "RegisterPlayerRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "country_code": {
+       "type": "string",
+       "pattern": "^[A-Z]{3}$"
+      }
+     },
+     "required": [
+      "country_code"
+     ]
+    }
+   },
+   "query": null,
+   "headers": "Idempotency-Key (required)",
+   "response": {
+    "status": 200,
+    "contract": "PlayerIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "own_canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "canonical_state": {
+       "type": "string",
+       "enum": [
+        "PROVISIONAL",
+        "REGISTERED",
+        "RETIRED",
+        "MERGED"
+       ]
+      },
+      "resolved_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "display_name": {
+       "type": "string"
+      },
+      "identity_label": {
+       "type": "string",
+       "enum": [
+        "REGISTERED_PLAYER",
+        "PROVISIONAL_PLAYER",
+        "RETIRED_PLAYER",
+        "MERGED_DUPLICATE"
+       ]
+      }
+     },
+     "required": [
+      "player_id",
+      "canonical_otsi_id",
+      "own_canonical_otsi_id",
+      "canonical_state",
+      "resolved_player_id",
+      "display_name",
+      "identity_label"
+     ]
+    }
+   },
+   "side_effects": "issues the permanent OTSI-CCC-YYYY-NNNNNN once",
+   "sets": null,
+   "errors": [
+    "INVALID_COUNTRY_CODE 422",
+    "PLAYER_NOT_ELIGIBLE_FOR_ISSUANCE 409",
+    "CANONICAL_SEQUENCE_EXHAUSTED 409",
+    "REQUEST_KEY_ALREADY_USED_FOR_ANOTHER_PLAYER 409"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.service.ts",
+    "migration 0007 allocator"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "tests 4, 11-13"
+    },
+    "tests/db/test_identity.py"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/players/:playerId/merge",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN"
+   ],
+   "request": {
+    "contract": "MergePlayersRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "into_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "reason": {
+       "type": "string",
+       "minLength": 3,
+       "maxLength": 4000
+      },
+      "evidence_id": {
+       "type": "string",
+       "format": "uuid"
+      }
+     },
+     "required": [
+      "into_player_id",
+      "reason"
+     ]
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "PlayerIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "own_canonical_otsi_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 20,
+         "minLength": 20,
+         "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "canonical_state": {
+       "type": "string",
+       "enum": [
+        "PROVISIONAL",
+        "REGISTERED",
+        "RETIRED",
+        "MERGED"
+       ]
+      },
+      "resolved_player_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "display_name": {
+       "type": "string"
+      },
+      "identity_label": {
+       "type": "string",
+       "enum": [
+        "REGISTERED_PLAYER",
+        "PROVISIONAL_PLAYER",
+        "RETIRED_PLAYER",
+        "MERGED_DUPLICATE"
+       ]
+      }
+     },
+     "required": [
+      "player_id",
+      "canonical_otsi_id",
+      "own_canonical_otsi_id",
+      "canonical_state",
+      "resolved_player_id",
+      "display_name",
+      "identity_label"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "PLATFORM_ADMIN_REQUIRED 403",
+    "SURVIVOR_MUST_BE_REGISTERED 409",
+    "PLAYER_ALREADY_MERGED 409",
+    "MERGE_REASON_REQUIRED 422",
+    "CANNOT_MERGE_A_PLAYER_INTO_ITSELF 422"
+   ],
+   "service_files": [
+    "apps/api/src/modules/players/players.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "test 14"
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/v1/tracks/:trackId/identity",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": "any ACTIVE member",
+   "request": null,
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 200,
+    "contract": "TrackIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "track_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "decision_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "state": {
+       "type": "string",
+       "enum": [
+        "UNRESOLVED",
+        "CANDIDATE",
+        "CONFIRMED",
+        "REJECTED",
+        "CONFLICT"
+       ]
+      },
+      "player": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "player_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "canonical_otsi_id": {
+           "anyOf": [
+            {
+             "type": "string",
+             "maxLength": 20,
+             "minLength": 20,
+             "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "own_canonical_otsi_id": {
+           "anyOf": [
+            {
+             "type": "string",
+             "maxLength": 20,
+             "minLength": 20,
+             "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "canonical_state": {
+           "type": "string",
+           "enum": [
+            "PROVISIONAL",
+            "REGISTERED",
+            "RETIRED",
+            "MERGED"
+           ]
+          },
+          "resolved_player_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "display_name": {
+           "type": "string"
+          },
+          "identity_label": {
+           "type": "string",
+           "enum": [
+            "REGISTERED_PLAYER",
+            "PROVISIONAL_PLAYER",
+            "RETIRED_PLAYER",
+            "MERGED_DUPLICATE"
+           ]
+          }
+         },
+         "required": [
+          "player_id",
+          "canonical_otsi_id",
+          "own_canonical_otsi_id",
+          "canonical_state",
+          "resolved_player_id",
+          "display_name",
+          "identity_label"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "display": {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "enum": [
+          "IDENTIFIED",
+          "UNIDENTIFIED"
+         ]
+        },
+        "label": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "kind",
+        "label"
+       ]
+      }
+     },
+     "required": [
+      "track_id",
+      "decision_id",
+      "state",
+      "player",
+      "display"
+     ]
+    }
+   },
+   "side_effects": null,
+   "sets": null,
+   "errors": [
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/tracks/track-identity.controller.ts",
+    "service"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "tests 15, 20"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/tracks/:trackId/identity-decisions",
+   "authentication": "Bearer",
+   "tenant_context": "X-Organization-Id",
+   "roles": [
+    "OWNER",
+    "ADMIN",
+    "ANALYST"
+   ],
+   "request": {
+    "contract": "IdentityDecisionRequest",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "state": {
+       "type": "string",
+       "enum": [
+        "UNRESOLVED",
+        "CANDIDATE",
+        "CONFIRMED",
+        "REJECTED",
+        "CONFLICT"
+       ]
+      },
+      "player_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "supersedes_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null
+      },
+      "reason": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 4000
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null
+      },
+      "evidence_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null
+      }
+     },
+     "required": [
+      "state",
+      "player_id"
+     ]
+    }
+   },
+   "query": null,
+   "headers": null,
+   "response": {
+    "status": 201,
+    "contract": "TrackIdentity",
+    "schema": {
+     "type": "object",
+     "properties": {
+      "track_id": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "decision_id": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "state": {
+       "type": "string",
+       "enum": [
+        "UNRESOLVED",
+        "CANDIDATE",
+        "CONFIRMED",
+        "REJECTED",
+        "CONFLICT"
+       ]
+      },
+      "player": {
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "player_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "canonical_otsi_id": {
+           "anyOf": [
+            {
+             "type": "string",
+             "maxLength": 20,
+             "minLength": 20,
+             "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "own_canonical_otsi_id": {
+           "anyOf": [
+            {
+             "type": "string",
+             "maxLength": 20,
+             "minLength": 20,
+             "pattern": "^OTSI-[A-Z]{3}-[0-9]{4}-[0-9]{6}$"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "canonical_state": {
+           "type": "string",
+           "enum": [
+            "PROVISIONAL",
+            "REGISTERED",
+            "RETIRED",
+            "MERGED"
+           ]
+          },
+          "resolved_player_id": {
+           "type": "string",
+           "format": "uuid"
+          },
+          "display_name": {
+           "type": "string"
+          },
+          "identity_label": {
+           "type": "string",
+           "enum": [
+            "REGISTERED_PLAYER",
+            "PROVISIONAL_PLAYER",
+            "RETIRED_PLAYER",
+            "MERGED_DUPLICATE"
+           ]
+          }
+         },
+         "required": [
+          "player_id",
+          "canonical_otsi_id",
+          "own_canonical_otsi_id",
+          "canonical_state",
+          "resolved_player_id",
+          "display_name",
+          "identity_label"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "display": {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "enum": [
+          "IDENTIFIED",
+          "UNIDENTIFIED"
+         ]
+        },
+        "label": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "kind",
+        "label"
+       ]
+      }
+     },
+     "required": [
+      "track_id",
+      "decision_id",
+      "state",
+      "player",
+      "display"
+     ]
+    }
+   },
+   "side_effects": "append-only decision + audit + outbox track.identity_decided/corrected",
+   "sets": null,
+   "errors": [
+    "PLAYER_REQUIRED 422",
+    "STALE_DECISION 409",
+    "CORRECTION_REASON_REQUIRED 422",
+    "IDENTITY_DECISION_TARGET_NOT_LIVE 409",
+    "NOT_FOUND 404"
+   ],
+   "service_files": [
+    "apps/api/src/modules/tracks/track-identity.service.ts"
+   ],
+   "tests": [
+    {
+     "file": "apps/api/test/identity.api.test.ts",
+     "cases": "decisions"
+    },
+    {
+     "file": "apps/api/test/audit.api.test.ts",
+     "cases": "audit"
+    },
+    "apps/web/e2e/workspace.spec.ts"
+   ]
+  }
+ ],
+ "not_http_endpoints": [
+  {
+   "name": "bootstrap-owner",
+   "how": "CLI: python otsi-vie/tools/dev/local_stack.py bootstrap-owner (apps/api/src/cli)",
+   "note": "creates the first organization and owner; there is no public registration endpoint"
+  },
+  {
+   "name": "outbox dispatcher",
+   "how": "worker process apps/api/dist/workers/outbox-dispatcher.js",
+   "note": "turns events into worker jobs (ingest, proxy, analyze)"
+  },
+  {
+   "name": "Python worker",
+   "how": "python -m vie_worker.main (services/worker)",
+   "note": "jobs INGEST_UPLOAD, INGEST_URL, PROXY, ANALYZE"
+  }
+ ],
+ "planned_from_page_specs": {
+  "note": "Contracts named in the approved page specifications. NONE of these paths exist yet unless an implemented route above covers the same need (see FRONTEND_PAGE_MATRIX.md). Figma Make must not call them until they are implemented.",
+  "sections": [
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 1,
+    "section_title": "Global app header and navigation",
+    "spec_contract": [
+     "GET /me",
+     "GET /workspaces/:id",
+     "GET /search/suggest?q=",
+     "PATCH /me/preferences"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 2,
+    "section_title": "Hero: football video intelligence",
+    "spec_contract": [
+     "GET /marketing/home",
+     "route /upload?mode=file|url"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 3,
+    "section_title": "Featured reel",
+    "spec_contract": [
+     "GET /reels?featured=true",
+     "POST /reels/:id/share"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 4,
+    "section_title": "Headline KPI strip",
+    "spec_contract": [
+     "GET /analytics/home?period=30d&workspace="
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 5,
+    "section_title": "Trust and credibility strip",
+    "spec_contract": [
+     "GET /marketing/endorsements"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 6,
+    "section_title": "Recent matches",
+    "spec_contract": [
+     "GET /matches?sort=recent&limit=4"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 7,
+    "section_title": "Sample reels gallery",
+    "spec_contract": [
+     "GET /reels?sample=true&limit=3",
+     "POST /bookmarks"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 8,
+    "section_title": "Platform capabilities grid",
+    "spec_contract": [
+     "GET /capabilities"
+    ]
+   },
+   {
+    "page": 1,
+    "page_title": "Home / Overview",
+    "section": 9,
+    "section_title": "How It Works journey",
+    "spec_contract": [
+     "GET /onboarding/progress",
+     "POST /onboarding/action"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 1,
+    "section_title": "Upload page header and source-mode tabs",
+    "spec_contract": [
+     "POST /ingest/drafts",
+     "PATCH /ingest/drafts/:id"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 2,
+    "section_title": "Match context metadata sidebar",
+    "spec_contract": [
+     "GET /competitions",
+     "GET /matches?season=",
+     "POST /matches"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 3,
+    "section_title": "Visual processing configuration",
+    "spec_contract": [
+     "PATCH /ingest/drafts/:id/settings",
+     "POST /transcodes"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 4,
+    "section_title": "Detection and ingest options",
+    "spec_contract": [
+     "GET /pipeline/capabilities",
+     "PATCH /ingest/drafts/:id/config"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 5,
+    "section_title": "Primary drag-drop file panel",
+    "spec_contract": [
+     "POST /uploads/init",
+     "PUT signed parts",
+     "POST /uploads/complete",
+     "DELETE /uploads/:id"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 6,
+    "section_title": "URL input and external-source ingestion",
+    "spec_contract": [
+     "POST /ingest/resolve-url",
+     "POST /ingest/from-url"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 7,
+    "section_title": "Supported formats strip",
+    "spec_contract": [
+     "GET /system/media-capabilities"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 8,
+    "section_title": "Recent uploads panel",
+    "spec_contract": [
+     "GET /ingest/jobs?limit=5",
+     "POST /ingest/jobs/:id/retry"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 9,
+    "section_title": "Selected upload preview / metadata editor",
+    "spec_contract": [
+     "GET /media/:id/metadata",
+     "PATCH /media/:id/metadata"
+    ]
+   },
+   {
+    "page": 2,
+    "page_title": "Upload & Ingest",
+    "section": 10,
+    "section_title": "Processing pipeline preview strip",
+    "spec_contract": [
+     "GET /analysis-runs/:id",
+     "GET /jobs/:id/events"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 1,
+    "section_title": "Run headline and selected media summary",
+    "spec_contract": [
+     "GET /analysis-runs/:id"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 2,
+    "section_title": "Five-step pipeline lifecycle",
+    "spec_contract": [
+     "GET /analysis-runs/:id/stages",
+     "POST /analysis-runs/:id/retry-stage"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 3,
+    "section_title": "Main frame-level detection preview",
+    "spec_contract": [
+     "GET /runs/:id/frames?from_ms=&to_ms=",
+     "GET /media/:id/playback"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 4,
+    "section_title": "Player detection inset",
+    "spec_contract": [
+     "GET /runs/:id/detections?kind=person"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 5,
+    "section_title": "Ball detection inset",
+    "spec_contract": [
+     "GET /runs/:id/detections?kind=ball"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 6,
+    "section_title": "Team identification inset",
+    "spec_contract": [
+     "GET /runs/:id/team-assignments",
+     "POST /review/team-assignments/:id"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 7,
+    "section_title": "Event marker inset",
+    "spec_contract": [
+     "GET /runs/:id/events?types="
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 8,
+    "section_title": "Processing log",
+    "spec_contract": [
+     "GET /jobs/:id/events",
+     "GET /jobs/:id/logs"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 9,
+    "section_title": "System resources",
+    "spec_contract": [
+     "GET /system/processing-capacity"
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 10,
+    "section_title": "Frame-level processing timeline",
+    "spec_contract": [
+     "GET /analysis-runs/:id/timeline?start_ms=&end_ms="
+    ]
+   },
+   {
+    "page": 3,
+    "page_title": "AI Processing Pipeline",
+    "section": 11,
+    "section_title": "Live output summary",
+    "spec_contract": [
+     "GET /analysis-runs/:id/summary"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 1,
+    "section_title": "Match selector and left match rail",
+    "spec_contract": [
+     "GET /matches/:id",
+     "GET /analysis-runs?match_id="
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 2,
+    "section_title": "Analysis mode tabs",
+    "spec_contract": [
+     "GET /capabilities",
+     "PATCH /workspace-state"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 3,
+    "section_title": "Video player and score HUD",
+    "spec_contract": [
+     "GET /media/:id/playback",
+     "GET /matches/:id/clock-map"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 4,
+    "section_title": "All-player bounding boxes and IDs",
+    "spec_contract": [
+     "GET /runs/:id/tracks?start_ms=&end_ms=",
+     "POST /tracks/:id/review"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 5,
+    "section_title": "Overlay toggles and filter rail",
+    "spec_contract": [
+     "PATCH /me/preferences",
+     "GET /runs/:id/layers"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 6,
+    "section_title": "Player selection and 22-person roster panel",
+    "spec_contract": [
+     "GET /runs/:id/participants?q=&team_id="
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 7,
+    "section_title": "Selected player detail card",
+    "spec_contract": [
+     "GET /runs/:id/players/:id/summary",
+     "GET /measurements?subject_id="
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 8,
+    "section_title": "Playback transport",
+    "spec_contract": [
+     "GET /media/:id/playback"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 9,
+    "section_title": "Events filter ribbon",
+    "spec_contract": [
+     "GET /runs/:id/events/counts?filters="
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 10,
+    "section_title": "Multi-lane presence and event timeline",
+    "spec_contract": [
+     "GET /runs/:id/presence?window=",
+     "POST /clips"
+    ]
+   },
+   {
+    "page": 4,
+    "page_title": "Analysis Workspace",
+    "section": 11,
+    "section_title": "Clip-from-analysis entry",
+    "spec_contract": [
+     "POST /clips",
+     "GET /clips?run_id="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 1,
+    "section_title": "Tactical header and filter context",
+    "spec_contract": [
+     "GET /tactics/filters",
+     "GET /runs/:id/tactical-slices"
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 2,
+    "section_title": "Team shape and formation pitch",
+    "spec_contract": [
+     "GET /runs/:id/tactics/formation?at_ms="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 3,
+    "section_title": "Team shape metrics",
+    "spec_contract": [
+     "GET /runs/:id/tactics/team-shape?window="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 4,
+    "section_title": "Synced tactical video preview",
+    "spec_contract": [
+     "GET /matches/:id/cameras",
+     "GET /media/:id/playback"
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 5,
+    "section_title": "Pass network",
+    "spec_contract": [
+     "GET /runs/:id/tactics/pass-network?from_ms=&to_ms="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 6,
+    "section_title": "Possession and heat zones",
+    "spec_contract": [
+     "GET /runs/:id/tactics/possession-zones"
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 7,
+    "section_title": "Pressing map",
+    "spec_contract": [
+     "GET /runs/:id/tactics/pressing?phase="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 8,
+    "section_title": "Off-ball run analysis",
+    "spec_contract": [
+     "GET /runs/:id/tactics/off-ball?player_id="
+    ]
+   },
+   {
+    "page": 5,
+    "page_title": "Tactical Intelligence",
+    "section": 9,
+    "section_title": "Player comparison",
+    "spec_contract": [
+     "GET /compare/players?ids=&window="
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 1,
+    "section_title": "Four-step reel workflow",
+    "spec_contract": [
+     "GET /reels/:id",
+     "PATCH /reels/:id/workflow"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 2,
+    "section_title": "Aspect ratio presets",
+    "spec_contract": [
+     "GET /reel-presets",
+     "PATCH /reels/:id/variants"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 3,
+    "section_title": "Reel metadata and music",
+    "spec_contract": [
+     "PATCH /reels/:id",
+     "GET /audio-library"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 4,
+    "section_title": "Cinematic preview video",
+    "spec_contract": [
+     "GET /reels/:id/preview-manifest",
+     "GET /tracks/:id/points"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 5,
+    "section_title": "Targeting and lock controls",
+    "spec_contract": [
+     "POST /reels/:id/resolve-target",
+     "POST /tracks/:id/reanalyse"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 6,
+    "section_title": "Spotlight settings sliders",
+    "spec_contract": [
+     "PATCH /reels/:id/effects",
+     "POST /reels/:id/undo"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 7,
+    "section_title": "Overlays and branding toggles",
+    "spec_contract": [
+     "GET /branding/assets",
+     "PATCH /reels/:id/overlays"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 8,
+    "section_title": "Suggested key moments carousel",
+    "spec_contract": [
+     "GET /runs/:id/clip-suggestions?player_id=",
+     "POST /reels/:id/segments"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 9,
+    "section_title": "Multitrack quick timeline",
+    "spec_contract": [
+     "PATCH /reels/:id/timeline",
+     "POST /reels/:id/versions"
+    ]
+   },
+   {
+    "page": 6,
+    "page_title": "Reel Builder / Spotlight Composer",
+    "section": 10,
+    "section_title": "Generate Reel, Preview Render and Save",
+    "spec_contract": [
+     "POST /reels/:id/preflight",
+     "POST /reels/:id/render"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 1,
+    "section_title": "Editor header and action toolbar",
+    "spec_contract": [
+     "GET /reels/:id",
+     "PATCH /reels/:id",
+     "POST /reels/:id/undo"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 2,
+    "section_title": "Media bin / asset browser",
+    "spec_contract": [
+     "GET /library/assets?folder=&q=",
+     "GET /media/:id/proxy"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 3,
+    "section_title": "Video preview compositor",
+    "spec_contract": [
+     "GET /reels/:id/preview-manifest",
+     "GET /reels/:id/timeline"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 4,
+    "section_title": "Clip inspector",
+    "spec_contract": [
+     "GET /clips/:id",
+     "PATCH /clips/:id",
+     "POST /clips/:id/notes"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 5,
+    "section_title": "Editing tools ribbon",
+    "spec_contract": [
+     "POST /reels/:id/operations"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 6,
+    "section_title": "Timeline ruler and playhead",
+    "spec_contract": [
+     "GET /reels/:id/timeline"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 7,
+    "section_title": "Video Clips lane",
+    "spec_contract": [
+     "PATCH /reels/:id/segments/batch"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 8,
+    "section_title": "Transitions lane",
+    "spec_contract": [
+     "PATCH /reels/:id/transitions"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 9,
+    "section_title": "Graphics & spotlight lane",
+    "spec_contract": [
+     "PATCH /reels/:id/overlays"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 10,
+    "section_title": "Lower-third, captions and statistics lanes",
+    "spec_contract": [
+     "GET /reels/:id/captions",
+     "PATCH /reels/:id/captions"
+    ]
+   },
+   {
+    "page": 7,
+    "page_title": "Clip Studio / Timeline Editor",
+    "section": 11,
+    "section_title": "Soundtrack and audio FX lanes",
+    "spec_contract": [
+     "PATCH /reels/:id/audio"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 1,
+    "section_title": "Report navigation sidebar",
+    "spec_contract": [
+     "GET /reports/:id/sections"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 2,
+    "section_title": "Player identity hero",
+    "spec_contract": [
+     "GET /players/:id/profile",
+     "GET /runs/:id/identity/:player_id"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 3,
+    "section_title": "Tracking confidence gauge",
+    "spec_contract": [
+     "GET /runs/:id/players/:id/tracking-quality"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 4,
+    "section_title": "Role summary and traits",
+    "spec_contract": [
+     "GET /reports/:id/insights",
+     "PATCH /reports/:id/notes"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 5,
+    "section_title": "Report actions",
+    "spec_contract": [
+     "POST /reports/:id/export",
+     "POST /reports/:id/share",
+     "POST /dossiers/:id/items"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 6,
+    "section_title": "Metric KPI row",
+    "spec_contract": [
+     "GET /reports/:id/metrics"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 7,
+    "section_title": "Pitch heatmap",
+    "spec_contract": [
+     "GET /reports/:id/heatmap?mode="
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 8,
+    "section_title": "Event timeline",
+    "spec_contract": [
+     "GET /reports/:id/events?cursor=",
+     "GET /events/:id/evidence"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 9,
+    "section_title": "Pitch action map",
+    "spec_contract": [
+     "GET /reports/:id/action-map?types="
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 10,
+    "section_title": "Peer comparison bars",
+    "spec_contract": [
+     "GET /reports/:id/comparison?cohort="
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 11,
+    "section_title": "Generated insights",
+    "spec_contract": [
+     "GET /reports/:id/insights",
+     "POST /insights/:id/review"
+    ]
+   },
+   {
+    "page": 8,
+    "page_title": "Player Report",
+    "section": 12,
+    "section_title": "Scouting rating and narrative",
+    "spec_contract": [
+     "GET /reports/:id/scouting",
+     "POST /assessments/:id/approve"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 1,
+    "section_title": "Library header and create-project",
+    "spec_contract": [
+     "GET /library/summary",
+     "POST /projects"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 2,
+    "section_title": "Asset-type tabs",
+    "spec_contract": [
+     "GET /library/assets?type="
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 3,
+    "section_title": "Search and advanced filters",
+    "spec_contract": [
+     "GET /library/assets?q=&filters=&sort=&cursor="
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 4,
+    "section_title": "Saved searches",
+    "spec_contract": [
+     "GET /saved-searches",
+     "POST /saved-searches",
+     "DELETE /saved-searches/:id"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 5,
+    "section_title": "Main asset table",
+    "spec_contract": [
+     "GET /library/assets?cursor=",
+     "POST /library/bulk-actions"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 6,
+    "section_title": "Status and collaboration indicators",
+    "spec_contract": [
+     "GET /library/assets/:id/access",
+     "POST /library/assets/:id/publish"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 7,
+    "section_title": "Selected-item video preview",
+    "spec_contract": [
+     "GET /library/assets/:id",
+     "GET /media/:id/playback"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 8,
+    "section_title": "Selected-item metadata",
+    "spec_contract": [
+     "GET /library/assets/:id/details",
+     "PATCH /library/assets/:id"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 9,
+    "section_title": "Selected-item quick actions",
+    "spec_contract": [
+     "POST /library/assets/:id/share",
+     "POST /library/assets/:id/duplicate",
+     "POST /delivery/send"
+    ]
+   },
+   {
+    "page": 9,
+    "page_title": "Library / Project Center",
+    "section": 10,
+    "section_title": "Collaborator access control",
+    "spec_contract": [
+     "GET /assets/:id/collaborators",
+     "PATCH /assets/:id/access"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 1,
+    "section_title": "Export workflow rail",
+    "spec_contract": [
+     "GET /reels/:id/export-status"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 2,
+    "section_title": "Final video preview and chapters",
+    "spec_contract": [
+     "GET /reels/:id/chapters",
+     "GET /renders/:id/preview"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 3,
+    "section_title": "Export preset and codec form",
+    "spec_contract": [
+     "GET /export/capabilities",
+     "PATCH /reels/:id/export-profile"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 4,
+    "section_title": "Branded overlay settings",
+    "spec_contract": [
+     "GET /branding/assets",
+     "PATCH /reels/:id/branding"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 5,
+    "section_title": "Export queue",
+    "spec_contract": [
+     "GET /render-jobs?workspace=",
+     "POST /renders/:id/cancel",
+     "POST /renders/:id/retry"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 6,
+    "section_title": "Output bundles and reports",
+    "spec_contract": [
+     "POST /exports/:id/bundle",
+     "GET /exports/:id/artifacts"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 7,
+    "section_title": "Shareable link settings",
+    "spec_contract": [
+     "POST /deliveries/links",
+     "PATCH /deliveries/links/:id",
+     "DELETE /deliveries/links/:id"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 8,
+    "section_title": "Team collaboration and client message",
+    "spec_contract": [
+     "POST /deliveries/:id/send",
+     "GET /deliveries/:id/receipts"
+    ]
+   },
+   {
+    "page": 10,
+    "page_title": "Export & Delivery",
+    "section": 9,
+    "section_title": "Bottom render progress and final actions",
+    "spec_contract": [
+     "GET /renders/:id",
+     "GET /exports/:id/download",
+     "POST /deliveries/:id/send"
+    ]
+   }
+  ]
+ }
+}
