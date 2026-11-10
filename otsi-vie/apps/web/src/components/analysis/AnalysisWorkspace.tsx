@@ -14,7 +14,7 @@ import type { AnalysisRun, ObservationWindow, Observation, PitchCalibration, Pit
 import { AlertTriangle, Link2, Loader2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
 import { rememberVideo } from "@/lib/currentVideo";
@@ -267,6 +267,8 @@ export function AnalysisWorkspace({ videoId, finishedRunId, children }: { videoI
 /* ------------------------------------------------------------------ section 1: which video and run */
 export function MatchContext() {
   const { video, run, error, tracks, canWrite, reloadVideo, bumpEvidence, evidenceKey } = useWs();
+  // the two counts are derived from the track list, not re-filtered on every video frame (the provider re-renders per frame while playing)
+  const counts = useMemo(() => tracks ? { people: tracks.filter((t) => t.class_name !== "BALL").length, ball: tracks.filter((t) => t.class_name === "BALL").length } : null, [tracks]);
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
   if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</p>;
   return (
@@ -275,7 +277,7 @@ export function MatchContext() {
       <p className="text-xs text-muted">{formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</p>
       {run ? (
         <p className="text-xs" data-run={run.id}>Analysis of {run.finished_at?.slice(0, 16).replace("T", " ") ?? "—"} · {run.config.sample_fps} frames/s analysed ·{" "}
-          {tracks ? `${tracks.filter((t) => t.class_name !== "BALL").length} people tracks, ${tracks.filter((t) => t.class_name === "BALL").length} ball tracks` : "…"}</p>
+          {counts ? `${counts.people} people tracks, ${counts.ball} ball tracks` : "…"}</p>
       ) : (
         <p className="text-xs text-muted">No finished analysis yet. <Link className="text-primary underline" href={`/videos/${video.id}/processing`}>Start one on the processing page</Link>.</p>
       )}
@@ -290,10 +292,11 @@ export function MatchContext() {
 export function VideoWithBoxes() {
   const { video, playback, videoRef, visible, layers, selectedId, select, tracks } = useWs();
   const labelOf = useMemo(() => new Map((tracks ?? []).map((t) => [t.track_id, t])), [tracks]);
-  if (!playback) return <div className="aspect-video animate-pulse rounded-ctl bg-raised/50" />;
+  // the boxes at the playhead, after the layer toggles — derived from the frame's observations and the toggles only, not re-filtered per render
+  const shown = useMemo(() => visible.filter(({ o }) => (o.class_name === "BALL" ? layers.ball : layers.people) && layers.boxes), [visible, layers]);
+  if (!playback) return <div role="status" aria-label="Loading playback" className="aspect-video animate-pulse rounded-ctl bg-raised/50" />;
   if (!playback.available || !playback.url) return <p className="text-sm text-muted">No playback yet: {playback.reason}</p>;
   const W = video?.width ?? 1920, H = video?.height ?? 1080;           // boxes are normalised to the decoded frame: draw in its pixels
-  const shown = visible.filter(({ o }) => (o.class_name === "BALL" ? layers.ball : layers.people) && layers.boxes);
   return (
     <div className="relative w-full overflow-hidden rounded-ctl bg-black" style={{ aspectRatio: `${W} / ${H}` }}>
       <video ref={videoRef} src={playback.url} preload="metadata" playsInline className="absolute inset-0 h-full w-full" aria-label="Match video" />
@@ -331,11 +334,42 @@ export function OverlayToggles() {
 }
 
 /* ------------------------------------------------------------------ section 6: tracks of this run */
+// one row of the track list: memoised, so the rows do not re-render on every video frame — only the selected row changes, and the list
+// itself only when the tracks, the kind filter or the minimum-observation filter change (select and seek are stable callbacks)
+const TrackRow = memo(function TrackRow({ t, selected, onSelect, onSeek }: { t: TrackSummary; selected: boolean; onSelect: (id: string) => void; onSeek: (t: number) => void }) {
+  return (
+    <li>
+      <button type="button" data-track={t.track_number} aria-pressed={selected}
+        onClick={() => { onSelect(t.track_id); onSeek(t.first_pts_us); }}
+        className={`flex w-full items-start gap-2 rounded-ctl border px-2 py-1.5 text-left ${selected ? "border-primary bg-primary/10" : "border-line/60 hover:border-primary/50"}`}>
+        {t.class_name !== "BALL" && <TrackThumb trackId={t.track_id} has={t.has_thumbnail} size={22} />}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium">{t.label}</span>
+          <span className="block text-xs text-muted">{seconds(t.first_pts_us)}–{seconds(t.last_pts_us)} · {t.observation_count} obs · conf {t.mean_confidence?.toFixed(2) ?? "—"}
+            {t.identity_state !== "UNRESOLVED" ? ` · ${t.identity_state.toLowerCase()}` : ""}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-2">
+            <KitSwatch t={t} />
+            {(t.links_proposed ?? 0) + (t.links_confirmed ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[11px] text-cyan" title="Same-person suggestions / confirmed links">
+                <Link2 className="h-3 w-3" />{t.links_confirmed ? `${t.links_confirmed} linked` : ""}{t.links_confirmed && t.links_proposed ? " · " : ""}{t.links_proposed ? `${t.links_proposed} to review` : ""}
+              </span>
+            )}
+            {t.possible_identity_switch && <span className="inline-flex items-center gap-0.5 text-[11px] text-amber" title="Appearance changes during the track"><AlertTriangle className="h-3 w-3" />check</span>}
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+});
+
 export function TrackList() {
   const { tracks, select, selectedId, seek, run, video, canWrite, canReview, bumpEvidence } = useWs();
   const [tab, setTab] = useState<"tracks" | "roster" | "teams">("tracks");
   const [kind, setKind] = useState<"PERSON" | "BALL" | "ALL">("PERSON");
   const [minObs, setMinObs] = useState(3);
+  // the filtered + sorted list is derived from the track list and the two filters only — not rebuilt on every video frame
+  const list = useMemo(() => (tracks ?? []).filter((t) => (kind === "ALL" || (kind === "BALL" ? t.class_name === "BALL" : t.class_name !== "BALL")) && t.observation_count >= minObs)
+    .sort((a, b) => a.first_pts_us - b.first_pts_us), [tracks, kind, minObs]);
   const tabs = (
     <div role="tablist" aria-label="Players panel" className="flex gap-1 text-xs">
       {([["tracks", "Tracks"], ["roster", "Roster"], ["teams", "Teams"]] as const).map(([k, l]) => (
@@ -351,9 +385,7 @@ export function TrackList() {
     ? <TeamAssignment runId={run.id} canReview={canReview} onChanged={bumpEvidence} />
     : <p className="text-sm text-muted">Kit groups appear after an analysis has finished.</p>}</div>;
   if (!run) return <div className="space-y-2">{tabs}<p className="text-sm text-muted">Tracks appear after an analysis has finished.</p></div>;
-  if (!tracks) return <p className="text-sm text-muted">Loading tracks…</p>;
-  const list = tracks.filter((t) => (kind === "ALL" || (kind === "BALL" ? t.class_name === "BALL" : t.class_name !== "BALL")) && t.observation_count >= minObs)
-    .sort((a, b) => a.first_pts_us - b.first_pts_us);
+  if (!tracks) return <p role="status" className="text-sm text-muted">Loading tracks…</p>;
   return (
     <div className="flex min-h-0 flex-col gap-2 text-sm">
       {tabs}
@@ -367,30 +399,9 @@ export function TrackList() {
           </select> observations</label>
       </div>
       <p className="text-xs text-muted">{list.length} of {tracks.length} tracks. Track numbers are temporary references within this analysis, not player IDs.</p>
+      {list.length === 0 && <p className="text-sm text-muted">No tracks match these filters — lower the minimum observations or show all kinds.</p>}
       <ul aria-label="Tracks" className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
-        {list.map((t) => (
-          <li key={t.track_id}>
-            <button type="button" data-track={t.track_number} aria-pressed={t.track_id === selectedId}
-              onClick={() => { select(t.track_id); seek(t.first_pts_us); }}
-              className={`flex w-full items-start gap-2 rounded-ctl border px-2 py-1.5 text-left ${t.track_id === selectedId ? "border-primary bg-primary/10" : "border-line/60 hover:border-primary/50"}`}>
-              {t.class_name !== "BALL" && <TrackThumb trackId={t.track_id} has={t.has_thumbnail} size={22} />}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{t.label}</span>
-                <span className="block text-xs text-muted">{seconds(t.first_pts_us)}–{seconds(t.last_pts_us)} · {t.observation_count} obs · conf {t.mean_confidence?.toFixed(2) ?? "—"}
-                  {t.identity_state !== "UNRESOLVED" ? ` · ${t.identity_state.toLowerCase()}` : ""}</span>
-                <span className="mt-0.5 flex flex-wrap items-center gap-2">
-                  <KitSwatch t={t} />
-                  {(t.links_proposed ?? 0) + (t.links_confirmed ?? 0) > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] text-cyan" title="Same-person suggestions / confirmed links">
-                      <Link2 className="h-3 w-3" />{t.links_confirmed ? `${t.links_confirmed} linked` : ""}{t.links_confirmed && t.links_proposed ? " · " : ""}{t.links_proposed ? `${t.links_proposed} to review` : ""}
-                    </span>
-                  )}
-                  {t.possible_identity_switch && <span className="inline-flex items-center gap-0.5 text-[11px] text-amber" title="Appearance changes during the track"><AlertTriangle className="h-3 w-3" />check</span>}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
+        {list.map((t) => <TrackRow key={t.track_id} t={t} selected={t.track_id === selectedId} onSelect={select} onSeek={seek} />)}
       </ul>
     </div>
   );
@@ -400,7 +411,10 @@ export function TrackList() {
 export function SelectedTrack() {
   const { tracks, selectedId, visible, canReview, reloadTracks, seek, select, video, evidenceKey, bumpEvidence } = useWs();
   const router = useRouter();
-  const t = tracks?.find((x) => x.track_id === selectedId) ?? null;
+  // the selected track, looked up once per selection / track-list change — not on every video frame
+  const t = useMemo(() => tracks?.find((x) => x.track_id === selectedId) ?? null, [tracks, selectedId]);
+  // the track's box at the playhead, if any — same lookup, same cadence
+  const here = useMemo(() => (t ? visible.find((v) => v.o.track_id === t.track_id) : undefined), [visible, t]);
   const [identity, setIdentity] = useState<TrackIdentity | null>(null);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<PlayerIdentity[] | null>(null);
@@ -418,7 +432,6 @@ export function SelectedTrack() {
     return () => clearTimeout(h);
   }, [q]);
   if (!t) return <p className="text-sm text-muted">Click a box on the video or a track in the list.</p>;
-  const here = visible.find((v) => v.o.track_id === t.track_id);
   // changing an existing decision is a correction: the history needs a reason (enforced by the database too)
   const correcting = !!identity?.decision_id;
   const reasonOk = !correcting || reason.trim().length >= 3;
@@ -574,15 +587,19 @@ export function PresenceTimeline() {
     if (selectedId) void observationsOf(selectedId).then(setObs, () => setObs([]));
   }, [selectedId, observationsOf]);
   const dur = Math.max(1, video?.duration_us ?? 1);
+  // spans: consecutive observations no further apart than 1.5 sample intervals; gaps are shown as gaps (not observed) — derived from the
+  // loaded observations only, not rebuilt on every video frame
+  const spans: [number, number][] = useMemo(() => {
+    const out: [number, number][] = [];
+    for (const o of obs ?? []) {
+      const last = out[out.length - 1];
+      if (last && o.pts_us - last[1] <= intervalUs * 1.5) last[1] = o.pts_us; else out.push([o.pts_us, o.pts_us]);
+    }
+    return out;
+  }, [obs, intervalUs]);
   if (!run) return <p className="text-sm text-muted">Presence appears after an analysis has finished.</p>;
   if (!selectedId) return <p className="text-sm text-muted">Select a track to see when it was observed.</p>;
   if (!obs) return <p className="text-sm text-muted">Loading…</p>;
-  // spans: consecutive observations no further apart than 1.5 sample intervals; gaps are shown as gaps (not observed)
-  const spans: [number, number][] = [];
-  for (const o of obs) {
-    const last = spans[spans.length - 1];
-    if (last && o.pts_us - last[1] <= intervalUs * 1.5) last[1] = o.pts_us; else spans.push([o.pts_us, o.pts_us]);
-  }
   return (
     <div className="space-y-1">
       <div className="relative h-6 w-full cursor-pointer rounded bg-raised/60" aria-label="Observed spans of the selected track" role="img"
@@ -592,7 +609,9 @@ export function PresenceTimeline() {
         ))}
         <span className="absolute top-0 h-6 w-0.5 bg-primary" style={{ left: `${(100 * timeUs) / dur}%` }} />
       </div>
-      <p className="text-xs text-muted">{obs.length} observations in {spans.length} span{spans.length === 1 ? "" : "s"}; gaps are times the track was not observed. Click to seek.</p>
+      <p className="text-xs text-muted">{obs.length === 0
+        ? "No observations of this track were loaded."
+        : `${obs.length} observations in ${spans.length} span${spans.length === 1 ? "" : "s"}; gaps are times the track was not observed. Click to seek.`}</p>
     </div>
   );
 }
