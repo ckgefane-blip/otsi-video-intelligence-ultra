@@ -286,22 +286,84 @@ mirroring single-match behaviour).
 - A manual pin can no longer smuggle an ineligible moment into a cross-match reel: eligibility and the per-match cap are
   enforced in the API, not left to the UI.
 
-## Build B still to do
+## Build B (built 2026-11-10, local on muse/ultra-main, not pushed)
 
-- **Worker multi-source render:** read the snapshot's `selection` and per-clip `source_video_id`, render clips from their own
-  videos (spotlight per clip video), skip or adapt the match card (its facts are null), stamp the rule version ("2.1") and
-  length into the render manifest and the .otsi-reel, and count the intro's lead like today.
-- **Reel Builder UI:** the Player Profile step (already the intro's preview), the cross-match selection view (selected + not
-  selected with reasons, swap one in by hand — chains shown with their sequence label, labels in the "[Tier S] …" format), per-clip
-  source video and preview/path per clip video, the length picker (90 s / 3 min / 5 min, default 3 min), and the cross-match
-  creation flow (no video picker).
-- **Web fallout from this build:** `Reel.video_id` is now nullable and `ReelClip` carries `source_video_id`, so the Reel
-  Builder, PreviewPanel, Export preflight and Clip Studio components that read `reel.video_id` need their null handling
-  (Build B owns those; the API and contracts are done). The 6 web type errors Build A left (nullable video_id fallout) stay
-  Build B's scope — the v2.1 rework added no new web errors.
-- **Follow-up (not Build B):** a cross-match .otsi-reel export manifest; an on-target flag for shots; a per-match rating model
-  for Recent Form (ADR-130); measuring dribbles, through balls, duels, clearances, saves and assists (which would wake the
-  dormant promotions in §5 and move the rule version on from "2.1").
+### Worker multi-source render
+
+- `handle_render` reads the snapshot's per-clip `source_video_id`; each clip's source file is resolved from its video
+  (`video_sources` → `source_asset_id` → `assets` object_key), per distinct video. The reel's `video_id` is NULL for
+  cross-match reels and is never read as a source.
+- Output geometry/fps: the FIRST clip's video is the anchor — its width/height/fps set ow/oh/fps/frame_us; every clip is
+  decoded from its own source at anchor geometry (the existing crop/resize path normalises frames to ow/oh). If videos differ
+  in fps, frame timing follows the anchor fps and the existing per-clip plan mechanism. Mixed-aspect sources are scaled to the
+  anchor frame; all match footage is 16:9, so this is a recorded limitation, not a handled case.
+- Spotlight path per clip: observations are queried per clip video (targets grouped by video via tracks → run → video).
+  Dense re-analysis (`target_path`) runs per clip against that clip's source file; detector config comes from that clip's
+  video's latest SUCCEEDED pipeline run — EXCEPT the reel's own video, which keeps the run the reel was built on
+  (single-match behaviour identical). A video with no run falls back to the existing defaults and never fails a render.
+- Match card: skipped for cross-match reels (`card_n = 0`) — a cross-match reel has no single match. The Profile Intro
+  (first, ADR-130) and the per-clip event tags (ADR-050, written on screen as each clip starts) carry the identity and the
+  match+minute+reason.
+- Audio: `_audio_for_clips` — one ffmpeg input per distinct source, per-clip `t_v0`; `_audio` delegates to it (headless
+  unchanged; the single-source graph is identical). Silence under the profile intro as today.
+- Manifest: `source: "ALL_MATCHES"`, `best_moments_rule: {version: "2.1", length_s}`, `video_ids` (distinct source videos, in
+  clip order), per-clip `source_video_id` + `detector` ("run"/"defaults"), `rules.best_moments_rule_version`; the single
+  `video_id` is null for cross-match reels. The single-match manifest shape is unchanged apart from the additive fields.
+- Failure: a clip whose source video/asset/file is missing fails with the named code `CLIP_SOURCE_MISSING` and a plain
+  message, never a silent wrong render.
+- The pure planning helpers live in `services/worker/vie_worker/render/cross_match.py` (anchor, grouping, source plan,
+  match-card skip, manifest fields, detector fallback); 11 unit tests in `services/worker/tests/test_cross_match_render.py`
+  pass via the direct runner `~/workspace/cross-match-render-runner/run_cross_match_render_tests.py` (pytest cannot run here
+  — conftest needs `.local/mysql-lint.env` + MySQL 3507 on the owner's host).
+- `GET /v1/reels/:id/path` gains an optional `?video_id=` (a small API addition inside this build): a cross-match reel
+  without it returns the empty path as before; with it, that video's clip-window path; a video holding none of the reel's
+  clips → 404 NOT_FOUND, never another video's positions. API test added in `apps/api/test/crossMatch.api.test.ts` (runs on
+  the owner's host).
+
+### Reel Builder UI
+
+- Provider (`ReelBuilder.tsx`): `load()` reads the reel first, then branches — cross-match reels fetch the selection into
+  `crossMatch` (`moments` stays null); single-match reels fetch the ranked suggestions as today. `ReelSteps` links "All
+  matches" instead of a source video; `ReelPreview` follows the selected clip's own video.
+- Entry point: `ReelSourceChoice` — "This match" (current, default) vs "All matches" + length picker (90 s / 3 min / 5 min,
+  default 3 min, fixed options only) + "Create all-matches reel" → POST `/v1/reels {source: "ALL_MATCHES", length_s,
+  player_id}`, then opens the new reel; the original reel is untouched. A compact variant (one select + Create) lives in the
+  left column's Reel Info section as the "Matches" row — the only free slot in the fixed 2560×1440 composition (the Moments
+  header row, the left column sections and the Inspector sections are all full); the Description box is shorter to make room,
+  and the row ends inside the panel. For a cross-match reel the row is a read-only summary ("All matches · 5 min · best
+  moments rule v2.1").
+- Moments (`MomentsTimeline.tsx`): for a cross-match reel the section shows the selection — tier badge ("Tier S" etc.),
+  label, match (home vs away + competition), minute (or media time when halves aren't CONFIRMED), reason; a chain's reason
+  IS its sequence label ("Tackle (possible) → Key pass → Goal"). Selected moments vs left-out ones with their reason
+  ("per-match cap reached", "length cap reached", "rejected for this reel"); pin = addClip (the API guards eligibility and
+  the per-match cap), remove = clip delete, reject/restore per video, swap/move as for single-match. Add-all counts only
+  selected moments not yet in the reel. "Build a draft" and "Is this him?" are hidden for cross-match reels (drafts refuse
+  cross-match reels; WhoQueue is single-match only). Undo/redo/history unchanged. Cross-match cards are not draggable into
+  the timeline (click actions cover pin/remove/swap) — drag for cross-match cards is follow-up, not half-built.
+- Preview (`PreviewPanel.tsx`): playback, video, match and spotlight path follow the selected clip's video
+  (`clip.source_video_id ?? reel.video_id`); stepping clips steps videos. Scoreboard: source mode shows the current clip's
+  match; render mode shows a plain "All matches" note (the rendered reel carries per-clip event tags; there is no single
+  match). `useReelPath(reel, videoId?)` fetches `/path?video_id=` per clip; if the spotlight cannot be shown for a clip, the
+  clip plays without a spotlight rather than failing the preview.
+- Inspector: "Find more of him" is hidden for cross-match reels (no single video to look in); the scoreboard reason names
+  "no single match" for them.
+- Profile Intro: verified by inspection + test — it takes player id + reel id only (`GET /v1/players/:id/profile-intro?reel_id=`),
+  no video, so it opens for cross-match reels exactly as for single-match reels; no change was needed.
+- The 6 web type errors Build A left (nullable `reel.video_id`): `Centre.tsx:227`, `ExportPreflight.tsx:73`,
+  `useLibrary.ts:48` (null = "no single video", the single-video path is skipped, never a video invented),
+  `test/interchange.test.ts:72,82,92` (clip literals gain `source_video_id`). Fixing the clip literals surfaced a 7th error —
+  the base reel literal needed `source: "MATCH"`. Web typecheck is clean apart from the 1 pre-existing
+  `formationsPanel.test.tsx` error; `next build` is green again (25/25 pages).
+
+### What stays single-video (unchanged from §12)
+
+- The cross-match .otsi-reel export manifest stays single-video; blocks/templates/draft reels stay single-video.
+
+### Follow-up (not Build B)
+
+- A cross-match .otsi-reel export manifest; drag-and-drop of cross-match cards into the timeline; an on-target flag for
+  shots; a per-match rating model for Recent Form (ADR-130); measuring dribbles, through balls, duels, clearances, saves and
+  assists (which would wake the dormant promotions in §5 and move the rule version on from "2.1").
 
 ## Verification
 
@@ -317,6 +379,12 @@ mirroring single-match behaviour).
   MySQL) — selection across two matches (chain, labels, sprint from measured positions, v2.1 windows), reel creation, reject/
   restore per video, add-moments, add-clip per video (eligible pin, INELIGIBLE_MOMENT, PER_MATCH_CAP_REACHED), render snapshot
   (version "2.1"), duplicate, and the single-match regression.
+- Build B verification: web vitest 70 files / 314 tests pass (10 new in `apps/web/test/crossMatchBuilder.test.tsx`: source
+  choice + length picker, moments view with tiers/chains/reasons, pin by hand with its source video, no single-video reads,
+  per-clip preview + path, render-mode "All matches" note, Profile Intro dialog for a cross-match reel); web typecheck clean
+  apart from the 1 pre-existing `formationsPanel.test.tsx` error; `next build` succeeds 25/25 pages; worker direct-runner
+  tests 11/11 pass; API typecheck shows only the same 4 pre-existing errors; the `?video_id=` path test is added to
+  `crossMatch.api.test.ts` (runs on the owner's host).
 - Not verified here: a live render of a cross-match reel (no GPU/OpenVINO/weights/footage in this workspace), the API tests
   themselves (no MySQL here — they run on the owner's host), or a click-through of the builder (no running engine here) —
   visual confirmation on the owner's host is the honest last step, as with every UI pass.
