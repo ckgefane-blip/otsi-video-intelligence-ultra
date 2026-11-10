@@ -14,6 +14,11 @@ ball). One frame cannot tell them apart - the ball often scores no higher than a
                           candidates in nearby frames joined by a constant-velocity prediction, within a ball's reach
                           (U.9: when a tracklet is in flight, by its parabolic arc - `ball_flight` - instead, so the ball is not lost
                           to a boot sitting near the tangent when frames are missed or the sample rate is low)
+                          (U.11: when two tracklets cross, the greedy smallest-pair assignment can hand each the other's candidate -
+                          a new one-point tracklet's prediction is its own position, and a boot sitting where the ball was is closer
+                          to it than the ball's new position is. `use_identity` re-pairs that frame's assignments by each tracklet's
+                          own identity - its motion model plus its score pattern - when the re-pairing clearly wins, and declines
+                          otherwise; it never changes which candidates are used, only which tracklet gets which)
   4  one path per shot    the best chain of tracklets through the shot (dynamic programming): each tracklet earns its scores, each gap
                           costs, a jump must be physically reachable in the gap; after a long gap the path may restart anywhere. Where two
                           tracklets overlap in time (a boot's and the ball's, side by side) the chain may hand over: the later one is used
@@ -90,6 +95,19 @@ GLUE_PENALTY = 1.2           # U.10, path-search penalty per glued piece: about 
 HANDOVER_BONUS = 0.5         # U.10, path-search bonus for a roll piece that starts where a flight landed: it carries the ball's
                              # identity across the bounce instead of paying RESTART_COST for it. A tuning constant, to calibrate on
                              # labelled Sukhum flights.
+IDENTITY_MARGIN = 0.002      # U.11, picture widths: the re-paired assignment must beat the greedy one by this much (in total
+                             # identity cost) to overturn it. Detection jitter is ~0.001 a point, so a margin below that would
+                             # fire on noise; the scene-V crossing it has to settle is won by 0.0044 (seed 1, decided by the
+                             # score pattern - the ball's tracklet has one point and no velocity, so motion alone prefers the
+                             # swap) to 0.0185 (seed 3), so 0.002 sits between the noise and the real cases. A tuning
+                             # constant, to calibrate on labelled Sukhum crossings.
+IDENTITY_SCORE_WIDTH = 0.02  # U.11, picture widths per unit score: how much a candidate's score pattern counts against a
+                             # tracklet's mean score so far (a ball at 0.30 against a boot tracklet's 0.475 costs 0.0035).
+IDENTITY_SCORE_CAP = 0.005   # U.11, picture widths: the most the score pattern may contribute for one candidate. The score
+                             # is a tiebreaker, not the verdict: it can tip a close motion call (the scene-V crossing, won by
+                             # 0.0031 on motion alone), but it can never override a clear motion verdict - a motion difference
+                             # above ~0.007 beats any score evidence. Scores overlap in reality (the ball often scores no
+                             # higher than a boot), so a large score term would be a guess, not evidence.
 
 
 @dataclass(frozen=True)
@@ -163,6 +181,83 @@ def is_glued(points: list[Cand]) -> bool:
         return False
     spread = offset_spread(points)
     return spread is not None and spread <= GLUE_MAX_SPREAD
+
+
+def identity_cost(tracklet: Tracklet, cand: Cand, aspect: float) -> float:
+    """U.11: how well a candidate fits a tracklet's own identity, in picture widths. Two parts, from the
+    tracklet's history only (the points before this frame):
+
+    * motion: how far the candidate lies from the tracklet's own prediction - its parabolic arc when it is
+      in flight (a ball's gravity arc), else the straight-line extrapolation of its last two points (a roll,
+      a boot). A tracklet with fewer than two points has no velocity to extrapolate, so its motion model
+      predicts nothing and the motion term is 0: the candidate's distance from its single point is not
+      evidence against it - a ball moves two frames' worth while its candidate is dropped as a duplicate of
+      the boot beside it (scene V, seed 1: the ball's tracklet is born at k=17, its k=18 candidate is
+      dropped, and at k=19 the ball is 0.022 from that single point while the boot tracklet's prediction
+      sits 0.006 from it; charging the raw distance would acquit the swap). Reachability is still enforced
+      separately, by the tolerance guard in `_resolve_identities`.
+    * score pattern: how far the candidate's detector score lies from the tracklet's mean score so far, at
+      IDENTITY_SCORE_WIDTH a unit, capped at IDENTITY_SCORE_CAP a candidate - a tiebreaker only. A boot
+      tracklet scoring 0.45-0.50 does not take a 0.30 ball candidate on score alone, and a ball tracklet
+      scoring 0.30 does not take a 0.48 boot candidate; but a score difference can never, on its own,
+      overturn a clear motion verdict, because scores overlap in reality.
+
+    A low cost is a good fit. The cost is only ever compared between two pairings of the same two
+    tracklets and the same two candidates, so its absolute scale does not matter - only the difference."""
+    if len(tracklet.points) < 2:
+        motion = 0.0
+    else:
+        px, py = tracklet.predict(cand.pts_us, aspect)
+        motion = dist(cand.x, cand.y, px, py, aspect)
+    mean = sum(p.score for p in tracklet.points) / len(tracklet.points)
+    score = min(IDENTITY_SCORE_CAP, IDENTITY_SCORE_WIDTH * abs(cand.score - mean))
+    return motion + score
+
+
+def _resolve_identities(assigned: list[tuple[int, int]], live: list[Tracklet], cands: list[Cand], pts: int,
+                        aspect: float, step_us: float) -> list[tuple[int, int]]:
+    """U.11: re-pair one frame's greedy assignments by identity. `assigned` is the greedy (tracklet index,
+    candidate index) pairing for this frame; the candidates and the tracklets that get one are fixed - only
+    which tracklet gets which candidate may change.
+
+    For each pair of assignments, compare the total identity cost of the greedy pairing with the swapped
+    one. The swap happens only when it wins by at least IDENTITY_MARGIN and both swapped pairings are
+    within the same reach the greedy pass allowed (a tracklet never takes a candidate it would not have
+    accepted). Otherwise the rule declines and the greedy pairing stands - when the two objects are
+    indistinguishable at the crossing, unknown beats wrong, and the path search (steps 4-5) still has its
+    say. Repeated passes run until no swap fires: each swap strictly improves the total by at least the
+    margin, so it terminates, and with a handful of assignments a frame the cost is negligible.
+
+    The costs are computed from the tracklets' points before this frame, so they are stable while the
+    pairing changes - the rule judges each tracklet by the identity it had coming into the crossing, not
+    by the candidate it is about to take."""
+    by_t = dict(assigned)
+    tis = [ti for ti, _ in assigned]
+    if len(tis) < 2:
+        return assigned
+    cost = {(ti, ci): identity_cost(live[ti], cands[ci], aspect) for ti in tis for ci in by_t.values()}
+    motion = {(ti, ci): dist(cands[ci].x, cands[ci].y, *live[ti].predict(pts, aspect), aspect)
+              for ti in tis for ci in by_t.values()}
+
+    def tol(ti: int) -> float:
+        t = live[ti]
+        return (TRACK_SPEED if len(t.points) < 2 else TRACK_ACCEL) * (pts - t.end) / 1e6 + TRACK_SLACK
+
+    changed = True
+    while changed:
+        changed = False
+        for a in range(len(tis)):
+            for b in range(a + 1, len(tis)):
+                ti, tj = tis[a], tis[b]
+                ci, cj = by_t[ti], by_t[tj]
+                if motion[(ti, cj)] > tol(ti) or motion[(tj, ci)] > tol(tj):
+                    continue            # the swap would hand a candidate to a tracklet that cannot reach it
+                now = cost[(ti, ci)] + cost[(tj, cj)]
+                alt = cost[(ti, cj)] + cost[(tj, ci)]
+                if alt + IDENTITY_MARGIN < now:
+                    by_t[ti], by_t[tj] = cj, ci
+                    changed = True
+    return [(ti, by_t[ti]) for ti, _ in assigned]
 
 
 @dataclass(frozen=True)
@@ -286,11 +381,13 @@ def _size_ok(c: Cand, boxes: list[tuple[float, float, float, float]], tallest_px
 
 
 def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
-              use_flight: bool = False) -> list[Tracklet]:
+              use_flight: bool = False, use_identity: bool = False) -> list[Tracklet]:
     """Step 3: greedy constant-velocity linking inside each shot; every candidate belongs to exactly one tracklet.
     `use_flight` (U.9, off by default): a tracklet that is in flight predicts from its parabola (see Tracklet.predict),
     refitted as it grows; a tracklet whose points stop fitting a flight (a kick, a bounce, a roll) falls back to the
-    straight line on its own - the fit fails its own checks, so nothing is forced."""
+    straight line on its own - the fit fails its own checks, so nothing is forced.
+    `use_identity` (U.11, off by default): after the greedy pairing of a frame, re-pair it by each tracklet's own
+    identity (see `_resolve_identities`) when the re-pairing clearly wins; without it, behaviour is exactly as before."""
     done: list[Tracklet] = []
     live: list[Tracklet] = []
     for pts in sorted(frames):
@@ -310,10 +407,15 @@ def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: f
                 if d <= (TRACK_SPEED if len(t.points) < 2 else TRACK_ACCEL) * (pts - t.end) / 1e6 + TRACK_SLACK:
                     pairs.append((d, ci, ti))
         used_c, used_t = set(), set()
+        assigned: list[tuple[int, int]] = []
         for d, ci, ti in sorted(pairs):
             if ci in used_c or ti in used_t:
                 continue
             used_c.add(ci); used_t.add(ti)
+            assigned.append((ti, ci))
+        if use_identity:
+            assigned = _resolve_identities(assigned, live, frames[pts], pts, aspect, step_us)
+        for ti, ci in assigned:
             live[ti].points.append(frames[pts][ci])
             if use_flight:
                 live[ti].flight = flight_of(live[ti].points, aspect)
@@ -415,17 +517,19 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight
 
 
 def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
-                use_flight: bool = False, use_handover: bool = False) -> list[BallPoint]:
+                use_flight: bool = False, use_handover: bool = False, use_identity: bool = False) -> list[BallPoint]:
     """Steps 3-5 on already plausible candidates: the ball's DETECTED and INFERRED positions; frames not returned are UNKNOWN.
     `use_flight` (U.9, off by default): parabolic flight prediction in the tracklets and flight-continuity joins plus a flight
     bonus in the path search (see `best_paths`); without it, behaviour is exactly as before.
     `use_handover` (U.10, off by default): bounce/rolling handover in the path search - a roll piece that starts where a
     flight landed carries the ball across the bounce (HANDOVER_BONUS, linked), and a piece from a tracklet glued to one
-    player's feet for its whole life pays GLUE_PENALTY; without it, behaviour is exactly as before."""
+    player's feet for its whole life pays GLUE_PENALTY; without it, behaviour is exactly as before.
+    `use_identity` (U.11, off by default): tracklet-level identity rule at crossings in the association (see
+    `tracklets` / `_resolve_identities`); without it, behaviour is exactly as before."""
     out: list[BallPoint] = []
     prev: tuple[Cand, float] | None = None
-    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight), step_us, aspect, use_flight,
-                               use_handover=use_handover):
+    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight, use_identity=use_identity),
+                               step_us, aspect, use_flight, use_handover=use_handover):
         w = t.weight()
         conf = w / (w + 3.0) if len(t.points) > 1 else min(0.5, t.points[0].score)     # more consistent evidence, closer to 1
         pts = t.points
