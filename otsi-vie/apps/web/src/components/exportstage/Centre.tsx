@@ -12,7 +12,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { actionClips, clipOutputUs, gapUs, slotUs, type PlayerEvents, type PlayerMeasures } from "@otsi-vie/contracts";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
 import { Switch } from "@/components/reelstage/shared";
@@ -70,8 +70,10 @@ function Picker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boole
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-reel">
           <Dialog.Title className="text-base font-semibold">Open a reel to export</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Reels of your organization. Make one from a confirmed player in the Analysis workspace.</Dialog.Description>
-          {e.reels === null && <p className="text-muted">Loading…</p>}
-          {e.reels?.length === 0 && <p className="text-muted">No reels yet.</p>}
+          {e.reels === null && !e.reelsFailed && <p className="text-muted">Loading…</p>}
+          {e.reelsFailed && (<><p className="text-muted">Reels could not be loaded.</p>
+            <button type="button" onClick={() => void e.reload()} className="rounded-ctl border border-line px-3 py-1.5">Try again</button></>)}
+          {e.reels?.length === 0 && !e.reelsFailed && <p className="text-muted">No reels yet.</p>}
           <ul aria-label="Reels" className="space-y-1">
             {e.reels?.map((r) => (
               <li key={r.id}>
@@ -135,6 +137,8 @@ export function Preview() {
   const line2 = !e.reel ? "NOT RENDERED" : !r ? "NOT RENDERED" : r.state === "SUCCEEDED" ? "RENDERED" : r.state === "FAILED" ? "RENDER FAILED" : r.state === "QUEUED" ? "WAITING FOR THE WORKER" : `RENDERING ${r.progress != null ? Math.round(r.progress) + "%" : ""}`;
   const line3 = !e.reel ? "OPEN A REEL FROM THE LIBRARY" : r?.state === "SUCCEEDED" ? "" : "USE RENDER & PROCESS TO CREATE THE VIDEO";
   const toggle = () => { const v = ref.current; if (v) { if (v.paused) void v.play(); else v.pause(); } };
+  // the chapter seek is stable so the memoised chapters box does not re-render on every video timeupdate
+  const seek = useCallback((us: number) => { const v = ref.current; if (v) v.currentTime = us / 1e6; }, []);
   return (
     <section aria-label="Reel preview" data-section="p10-s04" data-preview={url ? "render" : "none"}>
       <P x={444} y={120} w={1365} h={845} />
@@ -197,17 +201,17 @@ export function Preview() {
         </div>
       )}
       <Hit x={1726} y={665} w={44} h={40} label="Full screen" {...(url ? { onClick: fs.toggle } : { reason: "No rendered reel yet" })} /><Ic x={1748} y={685} k="full" size={26} />
-      <ChaptersBox seek={(us) => { const v = ref.current; if (v) v.currentTime = us / 1e6; }} canSeek={!!url} />
+      <ChaptersBox seek={seek} canSeek={!!url} />
     </section>
   );
 }
 
-function ChaptersBox({ seek, canSeek }: { seek(us: number): void; canSeek: boolean }) {
+const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: number): void; canSeek: boolean }) {
   const e = useExport();
   const row = useRef<HTMLDivElement | null>(null);
   const all = e.autoChapters ? e.reel?.clips ?? [] : [];
-  let acc = 0;
-  const allOffs = all.map((c) => { const o = acc + gapUs(c); acc += slotUs(c); return o; });   // B.19: a chapter starts after its clip's spacer     // E2: reel time, with speed effects
+  // the chapter offsets and the shown list are memoised: Preview re-renders on every video timeupdate, and this box must not rebuild them then
+  const allOffs = useMemo(() => { let acc = 0; return all.map((c) => { const o = acc + gapUs(c); acc += slotUs(c); return o; }); }, [all]);   // B.19: a chapter starts after its clip's spacer     // E2: reel time, with speed effects
   // B.23 (ADR-098): "Hide no-action" leaves out the chapters with no event of the reel's player that the engine recorded. With none of his
   // events recorded in this video it is not known which have action, and the filter stays off (unknown beats wrong).
   const pid = e.reel?.player?.player_id ?? null;
@@ -220,9 +224,9 @@ function ChaptersBox({ seek, canSeek }: { seek(us: number): void; canSeek: boole
     api<PlayerEvents>(`/v1/players/${pid}/events`).then((x) => live && setEvents(x), () => live && setEvents(null));
     return () => { live = false; };
   }, [pid]);
-  const acts = e.reel && events ? actionClips(e.reel.video_id, all, events.items) : null;
-  const shown = all.map((c, i) => ({ c, i, at: allOffs[i]! })).filter((x) => !(hide && acts) || acts.has(x.c.id));
-  const clips = shown.map((x) => x.c), offs = shown.map((x) => x.at);
+  const acts = useMemo(() => (e.reel && events ? actionClips(e.reel.video_id, all, events.items) : null), [e.reel, events, all]);
+  const shown = useMemo(() => all.map((c, i) => ({ c, i, at: allOffs[i]! })).filter((x) => !(hide && acts) || acts.has(x.c.id)), [all, allOffs, acts, hide]);
+  const clips = useMemo(() => shown.map((x) => x.c), [shown]), offs = useMemo(() => shown.map((x) => x.at), [shown]);
   const hidden = all.length - clips.length;
   return (
     <>
@@ -257,4 +261,4 @@ function ChaptersBox({ seek, canSeek }: { seek(us: number): void; canSeek: boole
       </div>
     </>
   );
-}
+});

@@ -12,7 +12,7 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import { BUNDLE_ITEM_NAMES, type BundleItemKind, type CreatedDelivery, type Delivery, type ExportBundle } from "@otsi-vie/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { Hit } from "@/components/workspace/shared";
 import { api, ApiProblem } from "@/lib/api";
@@ -70,7 +70,9 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
   useEffect(() => { setErr(null); void load(); }, [load, renderId]);
 
   const bundle = (bundles ?? []).filter((b) => b.render_id === renderId).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
-  const make = async () => {
+  // the outbox object is memoised (with the provider value): the page polls the reels every 2 s while a render runs
+  const toggle = useCallback((k: BundleItemKind) => setPicks((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k])), []);
+  const make = useCallback(async () => {
     if (!reelId || !picks.length) return null;
     setMaking(true); setErr(null);
     try {
@@ -78,8 +80,8 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
       setBundles((x) => [b, ...(x ?? []).filter((y) => y.id !== b.id)]);
       return b;
     } catch (x) { setErr(why(x, "The files could not be made.")); return null; } finally { setMaking(false); }
-  };
-  const downloadAll = () => {
+  }, [reelId, picks]);
+  const downloadAll = useCallback(() => {
     if (!picks.length) { if (e.links) window.location.href = e.links.download_url; return; }
     void (async () => {
       const same = bundle && bundle.completed_at && bundle.requested.length === picks.length && picks.every((k) => bundle.requested.includes(k)) ? bundle : null;
@@ -96,12 +98,13 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
       }
       if (z) window.location.href = z.download_url;
     })();
-  };
-  return {
-    picks, toggle: (k) => setPicks((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k])), bundle, making, err, make, downloadAll,
-    notifyTeam, setNotifyTeam, notifyClient, setNotifyClient, message, setMessage: (s) => setMessage(s.slice(0, MESSAGE_MAX)), dialog, setDialog, deliveries,
+  }, [picks, bundle, make, reelId, e.links]);
+  const setMessageCapped = useCallback((s: string) => setMessage(s.slice(0, MESSAGE_MAX)), []);
+  return useMemo(() => ({
+    picks, toggle, bundle, making, err, make, downloadAll,
+    notifyTeam, setNotifyTeam, notifyClient, setNotifyClient, message, setMessage: setMessageCapped, dialog, setDialog, deliveries,
     reloadDeliveries: load,
-  };
+  }), [picks, toggle, bundle, making, err, make, downloadAll, notifyTeam, notifyClient, message, setMessageCapped, dialog, deliveries, load]);
 }
 
 /** Section 10 Output & Reports: the four companion files of the finished render */

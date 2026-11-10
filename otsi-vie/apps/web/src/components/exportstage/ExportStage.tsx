@@ -11,7 +11,7 @@ import { ExportPreflight } from "./ExportPreflight";
 import { InterchangeDialog } from "./Interchange";
 import { PresetLibrary } from "./PresetLibrary";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
@@ -20,6 +20,7 @@ import { Preview, Summary, Workflow } from "./Centre";
 import { useOutbox } from "./Deliver";
 import { Right } from "./Right";
 import { active, ExportProvider, type Codec, type ExportState, type Links, type Preset } from "./state";
+import { typing } from "@/lib/keymap";
 
 const WRITERS = ["OWNER", "ADMIN", "ANALYST", "EDITOR"];
 const TAB_TARGET = ["p10-settings", "p10-branding", "p10-reports", "p10-delivery"];
@@ -29,6 +30,8 @@ export function ExportStage() {
   const router = useRouter();
   const want = useSearchParams().get("reel");
   const [reels, setReels] = useState<Reel[] | null>(null);
+  // a failed reels read is named, never shown as empty (Blueprint §4): the read keeps the last good list, if any
+  const [reelsErr, setReelsErr] = useState(false);
   const [links, setLinks] = useState<Links | null>(null);
   const [match, setMatch] = useState<ExportState["match"]>(null);
   const [codec, setCodec] = useState<Codec>("h264");
@@ -41,14 +44,14 @@ export function ExportStage() {
   const [confirm, setConfirm] = useState(false);
   const loadPresets = useCallback(() => api<ExportPreset[]>("/v1/export-presets").then(setPresets, () => setPresets(BUILTIN_PRESETS)), []);
   useEffect(() => { void loadPresets(); }, [loadPresets]);
-  const chosen = presets.find((p) => p.id === preset) ?? BUILTIN_PRESETS[0]!;
+  const chosen = useMemo(() => presets.find((p) => p.id === preset) ?? BUILTIN_PRESETS[0]!, [presets, preset]);
   /** choosing a preset that keeps a format and quality sets them on the page too */
-  const setPreset = (id: Preset) => {
+  const setPreset = useCallback((id: Preset) => {
     setPresetId(id);
     const p = presets.find((x) => x.id === id);
     if (p?.spec.codec) setCodec(p.spec.codec);
     if (p?.spec.bitrate_mbps) setBitrate(p.spec.bitrate_mbps);
-  };
+  }, [presets]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<ExportState["msg"]>(null);
   const [tab, setTab] = useState(0);
@@ -61,8 +64,28 @@ export function ExportStage() {
     void api<Member[]>("/v1/members").then(setMembers, () => setMembers([]));
   }, []);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);   // the focus highlight never outlives the page
+  /** move between the export tabs (lib/keymap.ts, Exports scope): only here, never while typing or with a dialog open */
+  const jump = useCallback((i: number) => {
+    setTab(i);
+    const id = TAB_TARGET[i]!;
+    setFocus(id);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setFocus((f) => (f === id ? null : f)), 1600);
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || library || interchange || confirm) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "]") jump(Math.min(TAB_TARGET.length - 1, tab + 1));
+      else if (e.key === "[") jump(Math.max(0, tab - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab, jump, library, interchange, confirm]);
 
-  const load = useCallback(() => api<Reel[]>("/v1/reels").then(setReels, () => setReels((x) => x ?? [])), []);
+  const load = useCallback(() => api<Reel[]>("/v1/reels").then((r) => { setReels(r); setReelsErr(false); }, () => setReelsErr(true)), []);
   useEffect(() => { void load(); }, [load]);
   const anyActive = !!reels?.some(active);
   useEffect(() => { if (!anyActive) return; const t = setInterval(() => void load(), 2000); return () => clearInterval(t); }, [anyActive, load]);
@@ -90,10 +113,14 @@ export function ExportStage() {
     }, () => undefined);
   }, [videoId]);
 
-  const fail = (x: unknown, d: string) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : d });
-  const base: Omit<ExportState, "outbox"> = {
-    reels, reel, reload: async () => { await load(); }, canEdit: !!organization && WRITERS.includes(organization.role), busy, msg, codec, setCodec, bitrate, setBitrate, links, match, tab, focus, autoChapters: auto, setAutoChapters: setAuto,
-    brand, members, canManageTeam: !!organization && ["OWNER", "ADMIN"].includes(organization.role),
+  const fail = useCallback((x: unknown, d: string) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : d }), []);
+  const reload = useCallback(async () => { await load(); }, [load]);
+  const canEdit = !!organization && WRITERS.includes(organization.role);
+  const canManageTeam = !!organization && ["OWNER", "ADMIN"].includes(organization.role);
+  // the provider value is memoised: the page polls the reels every 2 s while a render runs, and that must not re-render every consumer
+  const base: Omit<ExportState, "outbox"> = useMemo(() => ({
+    reels, reel, reload, canEdit, busy, msg, codec, setCodec, bitrate, setBitrate, links, match, tab, focus, autoChapters: auto, setAutoChapters: setAuto,
+    brand, members, canManageTeam, reelsFailed: reelsErr,
     setSettings: (patch, ok) => {
       if (!reel) return;
       setBusy(true); setMsg(null);
@@ -111,15 +138,8 @@ export function ExportStage() {
     // B.22 (ADR-097): Export opens the preflight; its Start makes every file of the preset in one batch request
     render: () => { if (reel) setConfirm(true); },
     pick: () => router.push("/exports"),
-    jump: (i) => {
-      setTab(i);
-      const id = TAB_TARGET[i]!;
-      setFocus(id);
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => setFocus((f) => (f === id ? null : f)), 1600);
-    },
-  };
+    jump,
+  }), [reels, reel, reload, canEdit, busy, msg, codec, bitrate, links, match, tab, focus, auto, brand, members, canManageTeam, reelsErr, setPreset, presets, jump, load, fail, router]);
   const start = () => {
     if (!reel) return;
     setConfirm(false); setBusy(true); setMsg(null);
@@ -132,7 +152,7 @@ export function ExportStage() {
       }, (x) => { fail(x, "The render could not be started."); return load(); }).finally(() => setBusy(false));
   };
   const outbox = useOutbox(base);
-  const state: ExportState = { ...base, outbox };
+  const state: ExportState = useMemo(() => ({ ...base, outbox }), [base, outbox]);
   return (
     <DesignStage page="exports" background="#000a16">
       <ExportProvider value={state}>

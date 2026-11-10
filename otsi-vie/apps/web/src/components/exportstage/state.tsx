@@ -23,6 +23,8 @@ export type Preset = string;
 
 export interface ExportState {
   reels: Reel[] | null;
+  /** the last reels read failed: a failed read is named, never shown as empty */
+  reelsFailed: boolean;
   /** read the reels (and their renders) again */
   reload(): Promise<void>;
   reel: Reel | null;

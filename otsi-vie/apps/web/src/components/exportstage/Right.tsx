@@ -14,8 +14,8 @@
  * The renderer has no resolution / frame-rate choice (it keeps the source's): drawn as in the reference, disabled with the reason.
  */
 import Link from "next/link";
-import { useState } from "react";
-import type { ReelAspectT } from "@otsi-vie/contracts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Reel, ReelAspectT } from "@otsi-vie/contracts";
 import { api } from "@/lib/api";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
@@ -72,6 +72,10 @@ export function Right() {
   const setAspect = (a: ReelAspectT) => { if (reel && a !== reel.aspect) e.setAspect(a); };
   const quality = QUALITY.find(([, b]) => b === e.bitrate)?.[0] ?? "High";
   const o = e.outbox;
+  // the queue rows are filtered and sorted once per reels read, not once per render (and not once per section that reads them)
+  const queueRows = useMemo(() => (e.reels ?? []).filter((r) => r.latest_render && !(r.latest_render.cleared && !active(r)))
+    .sort((a, b) => (active(b) ? 1 : 0) - (active(a) ? 1 : 0)), [e.reels]);
+  const finishedCount = useMemo(() => queueRows.filter((r) => r.latest_render && !r.latest_render.cleared && !active(r)).length, [queueRows]);
   const tw = e.canEdit ? undefined : "Your role can look, not deliver";
   return (
     <>
@@ -139,13 +143,13 @@ export function Right() {
         <Branding />
       </section>
 
-      <section aria-label="Export queue" data-section="p10-s09" data-queue={String((e.reels ?? []).filter((r) => r.latest_render && !(r.latest_render.cleared && !active(r))).length)}>
+      <section aria-label="Export queue" data-section="p10-s09" data-queue={String(queueRows.length)}>
         <P x={444} y={980} w={743} h={317} />
         <B x={462} y={995} w={3} h={25} style={{ background: "#1e90ff" }} />
-        <T x={482} y={1007} size={22} weight={600} as="h2">{`Export Queue (${(e.reels ?? []).filter((r) => r.latest_render && !(r.latest_render.cleared && !active(r))).length})`}</T>
+        <T x={482} y={1007} size={22} weight={600} as="h2">{`Export Queue (${queueRows.length})`}</T>
         <T x={1160} y={1008} size={19} color="#33a8ff" align="right">Clear All</T>
-        <ClearAll />
-        <Queue />
+        <ClearAll finished={finishedCount} />
+        <Queue rows={queueRows} />
       </section>
 
       <section id="p10-reports" aria-label="Output and reports" data-section="p10-s10">
@@ -180,13 +184,14 @@ export function Right() {
 }
 
 /** Clear All: finished renders leave the queue (POST /v1/renders/clear-finished); the renders and their files stay in the Library */
-function ClearAll() {
+function ClearAll({ finished }: { finished: number }) {
   const e = useExport();
   const [msg, setMsg] = useState<string | null>(null);
-  const finished = (e.reels ?? []).filter((r) => r.latest_render && !r.latest_render.cleared && !active(r)).length;
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);   // the "cleared" note never outlives the page
   const run = () => {
     void api<{ cleared: number }>("/v1/renders/clear-finished", { method: "POST" }).then(async (x) => { await e.reload(); setMsg(x.cleared ? `${x.cleared} cleared` : "Nothing to clear"); },
-      () => setMsg("Could not clear")).finally(() => setTimeout(() => setMsg(null), 2500));
+      () => setMsg("Could not clear")).finally(() => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setMsg(null), 2500); });
   };
   return (
     <>
@@ -197,13 +202,20 @@ function ClearAll() {
   );
 }
 
-function Queue() {
+function Queue({ rows }: { rows: Reel[] }) {
   const e = useExport();
-  const rows = (e.reels ?? []).filter((r) => r.latest_render && !(r.latest_render.cleared && !active(r))).sort((a, b) => (active(b) ? 1 : 0) - (active(a) ? 1 : 0)).slice(0, 4);
-  if (!rows.length) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">No render jobs queued</T>;
+  const shown = rows.slice(0, 4);
+  if (e.reels === null && !e.reelsFailed) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">Loading the render queue…</T>;
+  if (e.reelsFailed) return (<>
+    <T x={815} y={1150} size={20} color="#8ea3bf" align="center">The render queue could not be loaded.</T>
+    <B x={760} y={1190} w={180} h={40} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8) }} />
+    <T x={850} y={1205} size={18} color="#33a8ff" align="center">Try again</T>
+    <Hit x={760} y={1190} w={180} h={40} label="Try again: read the reels again" onClick={() => void e.reload()} />
+  </>);
+  if (!shown.length) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">No render jobs queued</T>;
   return (
     <div role="list" aria-label="Render jobs" className="absolute" style={{ left: u(462), top: u(1040 - 101), width: u(707), height: u(245), overflowY: "auto" }}>
-      {rows.map((r) => {
+      {shown.map((r) => {
         const j = r.latest_render!;
         return (
           <Link key={r.id} role="listitem" href={`/exports?reel=${r.id}`} data-job={j.state}
@@ -272,7 +284,7 @@ function Footer({ o }: { o: Outbox }) {
 /** Branded Overlays: the reel's logo, lower third, match info and intro / outro, as the next render draws them */
 function Branding() {
   const e = useExport();
-  const b = branding(e);
+  const b = useMemo(() => branding(e), [e.reel, e.brand]);
   const reel = e.reel;
   const can = !!reel && e.canEdit && !e.busy;
   const why = !reel ? "Open a reel first" : !e.canEdit ? "Your role cannot change this reel" : "Saving the previous change…";
