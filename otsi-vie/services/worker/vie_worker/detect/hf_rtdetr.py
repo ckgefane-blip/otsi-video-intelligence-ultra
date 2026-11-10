@@ -15,6 +15,7 @@ import torch
 from transformers import RTDetrImageProcessor, RTDetrV2ForObjectDetection
 
 from .base import Detection, iou, nms
+from .tiling import windows_from_plan
 
 OVERLAP = 0.12
 EDGE = 3            # px: a tile detection this close to an inner tile edge is a cut-off fragment
@@ -62,11 +63,16 @@ class HfRtDetr:
             out += [((x, y, tw, th), k) for y in ys for x in xs]
         return out
 
-    def detect(self, frames: list[np.ndarray]) -> list[list[Detection]]:
+    def detect(self, frames: list[np.ndarray], tile_windows: list | None = None) -> list[list[Detection]]:
+        """`tile_windows`: an optional horizon tile plan for these frames (a list of `tiling.Tile`, one plan per call:
+        the detector is called per batch of same-shot frames, so one plan covers the batch). When given, the plan's
+        windows replace the uniform grids - the full-frame pass stays first and the fragment filter, NMS and
+        cross-scale logic apply unchanged. When None (the default) the behaviour is exactly as before: uniform grids.
+        (U.7: a caller that knows the shot homography builds the plan with `tiling.horizon_tiles`.)"""
         results: list[list[Detection]] = []
         for frame in frames:
             h, w = frame.shape[:2]
-            scaled = self._scaled_windows(h, w)
+            scaled = self._scaled_windows(h, w) if tile_windows is None else [((0, 0, w, h), 0)] + windows_from_plan(tile_windows)
             wins = [win for win, _ in scaled]
             crops = [np.ascontiguousarray(frame[y:y + ch, x:x + cw]) for (x, y, cw, ch) in wins]
             dets: list[Detection] = []
