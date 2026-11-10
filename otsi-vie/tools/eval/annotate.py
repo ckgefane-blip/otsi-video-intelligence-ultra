@@ -31,7 +31,7 @@ from vie_worker import ff  # noqa: E402
 from vie_worker.frames import MAX_ANALYSIS_WIDTH  # noqa: E402
 
 FOOTAGE = APP.parent / ".local" / "eval-footage"
-CLIPS = {"naples_amateur": "naples_amateur_pd.webm", "ocsc_wide": "ocsc_vs_oakland_ccby.webm", "france_germany": "france_germany_ccbysa.ogv"}
+CLIPS = {"naples_amateur": "naples_amateur_pd.webm", "ocsc_wide": "ocsc_vs_oakland_ccby.webm", "france_germany": "france_germany_ccbysa.ogv", "nart_ercakhu_r20": "nart-v-ercakhu-round-20.mp4"}
 
 
 def frame_at(path: Path, t: float):
