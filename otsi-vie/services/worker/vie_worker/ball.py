@@ -21,6 +21,10 @@ ball). One frame cannot tell them apart - the ball often scores no higher than a
                           keep the part of a tracklet that followed the ball and leave where it drifted onto something else
                           (U.9: a piece that continues a flight must lie on the flight's parabola, else the join is a restart, not the
                           same flight; and a piece that is itself a flight earns FLIGHT_BONUS - a gravity-consistent arc is ball evidence)
+                          (U.10: a roll piece that starts where a flight landed carries the ball across the bounce - a handover, not a
+                          restart, and it earns HANDOVER_BONUS; and a piece from a tracklet glued to one player's feet for its whole
+                          life pays GLUE_PENALTY - a boot, which out-scores the ball for the whole shot and stays glued to it, must not
+                          win the path search on detector score alone)
   5  output               frames on the path are DETECTED (a real detection); short gaps between two path points of one chain are
                           INFERRED (straight line, at most INFER_MAX_GAP_US); everything else is UNKNOWN - unknown beats wrong
 
@@ -34,7 +38,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import Callable
 
-from .ball_flight import FLIGHT_BONUS, FLIGHT_LINK_TOL, Flight, deviation, flight_of
+from .ball_flight import FLIGHT_BONUS, FLIGHT_LINK_TOL, Flight, deviation, flight_of, is_roll
 
 STATIC_CELL = 0.004            # picture widths: about 5 px at 1280
 STATIC_MIN_FRAMES = 30         # a spot printed on the picture recurs in this many frames ...
@@ -70,6 +74,22 @@ GAP_COST = 0.04                # per missed frame inside a chain
 RESTART_COST = 0.3
 PIECE_FRAMES = 6               # tracklets enter the path search in pieces of this many detections (1 s at 6 fps)
 INFER_MAX_GAP_US = 500_000
+GLUE_MIN_POINTS = 12         # U.10: a tracklet needs this many points before its foot-offset spread means anything: over fewer,
+                             # jitter alone decides it
+GLUE_MIN_FEET_SHARE = 0.8    # U.10: ... and this share of its points at a player's feet: a tracklet that only sometimes passes a
+                             # player's feet is not glued to one
+GLUE_MAX_SPREAD = 0.02       # U.10, picture widths: the farthest two foot offsets of a glued tracklet may lie apart. A boot's offset
+                             # from its player's foot is constant up to detection jitter (0.008-0.014 on the synthetic scenes here,
+                             # across seeds); a rolling ball separates from the player (0.05 over the shot in scene V). 0.02 sits
+                             # between them - it is a tuning constant, to calibrate on labelled Sukhum crossings. A ball trapped at a
+                             # player's feet, or dribbled without ever leaving the foot, looks glued too: that is the known ambiguity,
+                             # and the penalty only ever costs weight, never invents a position.
+GLUE_PENALTY = 1.2           # U.10, path-search penalty per glued piece: about the weight a boot piece gains over a ball piece by
+                             # detector score alone (0.45-0.50 vs 0.30 a point, ~1.05 a 6-point piece). Sized to cancel that
+                             # advantage and leave a small margin; a tuning constant, to calibrate on labelled Sukhum flights.
+HANDOVER_BONUS = 0.5         # U.10, path-search bonus for a roll piece that starts where a flight landed: it carries the ball's
+                             # identity across the bounce instead of paying RESTART_COST for it. A tuning constant, to calibrate on
+                             # labelled Sukhum flights.
 
 
 @dataclass(frozen=True)
@@ -81,6 +101,10 @@ class Cand:
     score: float
     on_pitch: bool = True      # the detector's own test: over the grass, or in the air just above it (vie_worker.detect.pitch)
     at_feet: bool = False      # inside a person's box, in its lowest 30 % (set by `plausible`)
+    feet_off: tuple[float, float] | None = None   # U.10: offset from the nearest player's foot centre (bottom centre of
+                               # the box), in picture widths (dy scaled by 1/aspect, as in `dist`) - set by `plausible`
+                               # alongside at_feet, None when not at any player's feet. A boot's offset is (nearly)
+                               # constant over a shot; a rolling ball's drifts away from the player.
 
 
 @dataclass
@@ -116,6 +140,29 @@ class Tracklet:
 def weight(points: list[Cand]) -> float:
     """What a run of detections earns as the ball: each its score above the floor (less at a player's feet), each continuation a bonus."""
     return sum(p.score - SCORE_FLOOR - (FEET_PENALTY if p.at_feet else 0.0) for p in points) + STEP_BONUS * (len(points) - 1)
+
+
+def offset_spread(points: list[Cand]) -> float | None:
+    """U.10: how far apart (picture widths) the foot offsets of a run of points lie: the farthest two offsets.
+    None when fewer than two points carry an offset."""
+    offs = [p.feet_off for p in points if p.feet_off is not None]
+    if len(offs) < 2:
+        return None
+    return max(math.hypot(a[0] - b[0], a[1] - b[1]) for a in offs for b in offs)
+
+
+def is_glued(points: list[Cand]) -> bool:
+    """U.10: has this tracklet spent its life glued to one player's feet? Nearly all its points at feet, enough of
+    them to judge, and their foot offsets (nearly) unchanging: a boot, rigidly attached to its player's foot. A
+    rolling ball separates from the player, so its offsets drift; a ball that only sometimes passes a player's feet,
+    or a tracklet too short to judge, is not glued - unknown beats wrong."""
+    if len(points) < GLUE_MIN_POINTS:
+        return False
+    at_feet = [p for p in points if p.at_feet]
+    if len(at_feet) < GLUE_MIN_FEET_SHARE * len(points):
+        return False
+    spread = offset_spread(points)
+    return spread is not None and spread <= GLUE_MAX_SPREAD
 
 
 @dataclass(frozen=True)
@@ -175,6 +222,22 @@ def on_calibrated_pitch(pitch: Pitch, x: float, y: float) -> bool:
     return abs(px) <= length / 2 + PITCH_MARGIN_M and abs(py) <= width / 2 + PITCH_MARGIN_M
 
 
+def _foot_offset(c: Cand, boxes: list[tuple[float, float, float, float]], aspect: float) -> tuple[float, float] | None:
+    """U.10: the candidate's offset from the nearest player's foot centre (bottom centre of the box), in picture widths
+    (dy scaled by 1/aspect, as in `dist`) - or None when the candidate is not at any player's feet (inside a box
+    horizontally, within its height plus a little below it: the same test as `at_feet`). Only the nearest foot counts:
+    a candidate between two players takes the closer foot, so a handover between players does not read as drift."""
+    best: tuple[float, tuple[float, float]] | None = None
+    for bx, by, bw, bh in boxes:
+        if not (bx < c.x < bx + bw and by < c.y < by + bh * 1.05):
+            continue
+        off = (c.x - (bx + bw / 2), (c.y - (by + bh)) / aspect)
+        d = math.hypot(*off)
+        if best is None or d < best[0]:
+            best = (d, off)
+    return best[1] if best else None
+
+
 def plausible(frames: dict[int, list[Cand]], persons: dict[int, list[tuple[float, float, float, float]]], shot_of: dict[int, int],
               width_px: int, height_px: int, step_us: float, pitch_at: Callable[[int], Pitch | None] | None = None) -> tuple[dict[int, list[Cand]], dict]:
     """Steps 1-2: drop candidates off the grass or off the calibrated pitch, printed and still spots, implausible sizes and candidates on a
@@ -204,9 +267,9 @@ def plausible(frames: dict[int, list[Cand]], persons: dict[int, list[tuple[float
             elif any(dist(c.x, c.y, k.x, k.y, width_px / height_px) < SAME_SPOT for k in keep):
                 why["duplicate"] += 1
             else:
-                feet = any(bx < c.x < bx + bw and by < c.y < by + bh * 1.05 for bx, by, bw, bh in boxes)
-                why["at_feet"] += feet
-                keep.append(replace(c, at_feet=True) if feet else c)
+                off = _foot_offset(c, boxes, width_px / height_px)
+                why["at_feet"] += off is not None
+                keep.append(replace(c, at_feet=True, feet_off=off) if off is not None else c)
         why["kept"] += len(keep)
         out[pts] = keep
     return out, why
@@ -260,15 +323,30 @@ def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: f
     return done + live
 
 
-def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight: bool = False) -> list[tuple[Tracklet, bool]]:
+def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight: bool = False,
+               use_handover: bool = False) -> list[tuple[Tracklet, bool]]:
     """Step 4: per shot, the chain of tracklets with the highest total. Returns the chosen tracklets in time order, each with whether it
     continues the previous one physically (True) or starts after a restart (False).
     `use_flight` (U.9, off by default): a piece that is itself a flight earns FLIGHT_BONUS (a gravity-consistent arc is ball
     evidence - boots and players do not fly), and a join out of a flight piece is a physical continuation only when the new
     piece's first point lies on that flight's parabola; anything else (a kick, a bounce, a boot at the landing spot) is a
-    restart, so no INFERRED positions are invented across it."""
-    pieces = [Tracklet(t.shot, t.points[k:k + PIECE_FRAMES]) for t in tracks for k in range(0, len(t.points), PIECE_FRAMES)]
-    flights = {id(p): flight_of(p.points, aspect) for p in pieces} if use_flight else {}
+    restart, so no INFERRED positions are invented across it.
+    `use_handover` (U.10, off by default): a roll piece that starts where a flight landed carries the ball across the bounce -
+    a handover, not a restart, earning HANDOVER_BONUS; and a piece from a tracklet glued to one player's feet for its whole
+    life pays GLUE_PENALTY, so a boot that out-scores the ball for the whole shot and stays glued to it cannot win the path
+    search on detector score alone. The handover uses the flight fit (built when either flag is on); the flight bonus itself
+    stays gated on `use_flight`."""
+    pieces: list[Tracklet] = []
+    parents: dict[int, Tracklet] = {}       # U.10: the tracklet each piece was cut from (the glue verdict is on the
+    last_piece: dict[int, bool] = {}       # whole tracklet, not the piece); and whether the piece is its tracklet's
+    for t in tracks:                        # last - only a flight's last piece can hand over to a roll at the bounce
+        for k in range(0, len(t.points), PIECE_FRAMES):
+            p = Tracklet(t.shot, t.points[k:k + PIECE_FRAMES])
+            pieces.append(p)
+            parents[id(p)] = t
+            last_piece[id(p)] = k + PIECE_FRAMES >= len(t.points)
+    flights = {id(p): flight_of(p.points, aspect) for p in pieces} if (use_flight or use_handover) else {}
+    glued = {id(p): is_glued(parents[id(p)].points) for p in pieces} if use_handover else {}
     useful = [t for t in pieces if (len(t.points) > 1 or t.points[0].score >= SINGLE_MIN_SCORE)
               and not (all(q.at_feet for q in t.points) and sum(q.score for q in t.points) / len(t.points) < FEET_MIN_MEAN)]
     by_shot: dict[int, list[Tracklet]] = defaultdict(list)
@@ -280,7 +358,8 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight
         best = [0.0] * len(ts)
         back: list[tuple[int, bool, int] | None] = [None] * len(ts)              # (previous tracklet, physically linked, first point used here)
         for i, t in enumerate(ts):
-            w = t.weight() + (FLIGHT_BONUS if flights.get(id(t)) is not None else 0.0)
+            w = t.weight() + (FLIGHT_BONUS if use_flight and flights.get(id(t)) is not None else 0.0) \
+                - (GLUE_PENALTY if glued.get(id(t)) else 0.0)
             best[i], back[i] = w, None
             for j in range(i):
                 s = ts[j]
@@ -293,15 +372,25 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight
                 part = t.points[cut:]
                 a, b = part[0], s.points[-1]
                 gap = a.pts_us - s.end
-                wp = w if cut == 0 else weight(part) + (FLIGHT_BONUS if use_flight and flight_of(part, aspect) is not None else 0.0)
+                wp = w if cut == 0 else weight(part) + (FLIGHT_BONUS if use_flight and flight_of(part, aspect) is not None else 0.0) \
+                    - (GLUE_PENALTY if glued.get(id(t)) else 0.0)
                 continues_flight = True
                 if use_flight:
                     f = flights.get(id(s))
                     if f is not None and deviation(f, a.pts_us, a.x, a.y, aspect) > FLIGHT_LINK_TOL:
                         continues_flight = False   # the new piece is not on the old flight's arc: a kick, a bounce, or
                                                    # another object - a restart, never the same flight
-                if continues_flight and gap <= JUMP_MAX_US and dist(a.x, a.y, b.x, b.y, aspect) <= JUMP_SPEED * gap / 1e6 + JUMP_SLACK:
-                    missed = max(0, round(gap / step_us) - 1)
+                handover = False
+                if use_handover and last_piece.get(id(s)) and flights.get(id(s)) is not None \
+                        and is_roll(part, aspect) and gap <= JUMP_MAX_US \
+                        and dist(a.x, a.y, b.x, b.y, aspect) <= JUMP_SPEED * gap / 1e6 + JUMP_SLACK:
+                    handover = True   # the new piece rolls away from where the last piece of the flight landed: the same
+                                      # ball across the bounce, not a restart - and not a boot at the landing spot (that
+                                      # piece pays the glue penalty instead, so the two do not both collect the bonus)
+                missed = max(0, round(gap / step_us) - 1)
+                if handover:
+                    v, linked = best[j] + wp + HANDOVER_BONUS - GAP_COST * missed + (STEP_BONUS if missed == 0 else 0.0), True
+                elif continues_flight and gap <= JUMP_MAX_US and dist(a.x, a.y, b.x, b.y, aspect) <= JUMP_SPEED * gap / 1e6 + JUMP_SLACK:
                     v, linked = best[j] + wp - GAP_COST * missed + (STEP_BONUS if missed == 0 else 0.0), True
                 else:
                     v, linked = best[j] + wp - RESTART_COST, False
@@ -326,13 +415,17 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight
 
 
 def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
-                use_flight: bool = False) -> list[BallPoint]:
+                use_flight: bool = False, use_handover: bool = False) -> list[BallPoint]:
     """Steps 3-5 on already plausible candidates: the ball's DETECTED and INFERRED positions; frames not returned are UNKNOWN.
     `use_flight` (U.9, off by default): parabolic flight prediction in the tracklets and flight-continuity joins plus a flight
-    bonus in the path search (see `best_paths`); without it, behaviour is exactly as before."""
+    bonus in the path search (see `best_paths`); without it, behaviour is exactly as before.
+    `use_handover` (U.10, off by default): bounce/rolling handover in the path search - a roll piece that starts where a
+    flight landed carries the ball across the bounce (HANDOVER_BONUS, linked), and a piece from a tracklet glued to one
+    player's feet for its whole life pays GLUE_PENALTY; without it, behaviour is exactly as before."""
     out: list[BallPoint] = []
     prev: tuple[Cand, float] | None = None
-    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight), step_us, aspect, use_flight):
+    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight), step_us, aspect, use_flight,
+                               use_handover=use_handover):
         w = t.weight()
         conf = w / (w + 3.0) if len(t.points) > 1 else min(0.5, t.points[0].score)     # more consistent evidence, closer to 1
         pts = t.points

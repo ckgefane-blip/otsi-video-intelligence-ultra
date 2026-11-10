@@ -46,6 +46,17 @@ A rolling ball is not a flight (its vertical acceleration is ~0), and neither
 is a jittering boot (its points do not fit any parabola). A flight needs at
 least FLIGHT_MIN_POINTS observations; fewer than that, or a fit that does not
 clear the checks, is not a flight - unknown beats wrong.
+
+U.10 (bounce/rolling handover): a flight ends in a bounce, and the ball then
+rolls - a roll is the same constant-velocity run a flight is not, so `is_roll`
+is the complement here: a tight quadratic fit with (nearly) no picture-y
+acceleration. A roll on its own is not ball evidence (a boot rolls along the
+ground too, in the picture) - it only matters as the continuation of a flight:
+a roll piece that starts where a flight landed is the same ball across the
+bounce. And a boot is told from a rolling ball not by its motion but by its
+glue: it keeps a (nearly) fixed offset from its player's foot, while a rolling
+ball separates from the player - see `ball.is_glued`, which needs the foot
+offsets `ball.plausible` records on each candidate.
 """
 from __future__ import annotations
 
@@ -70,6 +81,12 @@ FLIGHT_BONUS = 1.5          # path-search bonus per flight piece: about five det
                             # 6-point piece's own weight (see module docstring); a tuning constant, to calibrate on labelled
                             # Sukhum flights. It has to clear the weight a boot piece gains by displacing the ball's points
                             # (about 0.8 in the synthetic scenes): at 1.0 the decision was a knife-edge, at 1.5 it is not.
+ROLL_MAX_ACCEL = 0.05       # picture widths/s^2: a roll moves at (nearly) constant velocity on the ground, so its fitted
+                            # picture-y acceleration is ~0 - the noise scale of a quadratic fit over 6 points (up to 0.02
+                            # on the synthetic boot in U.9, 0.019 on a boot piece here). A flight's is 0.12-0.42 (gravity).
+                            # 0.05 sits ~2.5x above the noise and ~2.4x below the smallest real flight here, the same
+                            # margin as FLIGHT_MIN_ACCEL - it is a tuning constant, to calibrate on labelled Sukhum
+                            # flights. A roll that misses the cut only loses the handover bonus in U.10, never a position.
 GRAVITY_MPS2 = 9.81         # recorded for the model above; the fit itself needs no gravity value (it measures the acceleration)
 
 
@@ -139,6 +156,19 @@ def flight_of(points, aspect: float) -> Flight | None:
     """`fit_flight` plus the validation: the flight of these points, or None."""
     f = fit_flight(points, aspect)
     return f if is_flight(f) else None
+
+
+def is_roll(points, aspect: float) -> bool:
+    """Is this run of points a ball rolling on the ground? A constant-velocity run: the quadratic fit is tight (the
+    points really lie on a straight line) and the picture-y acceleration is ~0 (no gravity) - as opposed to a flight,
+    whose accel_y is 0.12+. A jittering boot passes this test too: it is a roll-shaped run of points, and only the
+    glue test in ball.py (a boot stays glued to one player's feet) tells it from a rolling ball. A roll needs at
+    least FLIGHT_MIN_POINTS observations; fewer, or a fit that does not clear the checks, is not a roll - unknown
+    beats wrong."""
+    f = fit_flight(points, aspect)
+    if f is None:
+        return False
+    return f.n >= FLIGHT_MIN_POINTS and f.rms <= FLIGHT_MAX_RESIDUAL and abs(f.accel_y) <= ROLL_MAX_ACCEL
 
 
 def deviation(flight: Flight, pts_us: int, x: float, y: float, aspect: float) -> float:
