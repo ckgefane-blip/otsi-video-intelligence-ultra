@@ -138,6 +138,10 @@ def resolve_manifest(
     look = raw.get("look") or {}
     overlay = raw.get("overlay") or raw.get("overlays") or {}
 
+    # ADR-130: the Player Profile Intro snapshot and its setting, carried through unchanged (the render reads cfg["profile_intro"]);
+    # `profile` is not carried here — in the snapshot it is the export profile (REEL / SCOUT / …), not the intro.
+    settings = raw.get("settings") or {}
+
     return {
         "source": src,
         "clips": clips,
@@ -149,6 +153,8 @@ def resolve_manifest(
         "music": music,
         "look": look,
         "overlay": overlay,
+        "settings": settings,
+        "profile_intro": raw.get("profile_intro"),
         "raw_manifest": raw,
     }
 

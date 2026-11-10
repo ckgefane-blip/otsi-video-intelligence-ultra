@@ -41,7 +41,7 @@ from ..tracker import Tracker
 from . import encoders as enc
 from . import look as lk
 from . import transitions as trn
-from .overlays import CARD_S, END_S, Overlays
+from .overlays import CARD_S, END_S, PROFILE_S, Overlays
 from .text import draw_text, text_size
 from .validate import validate
 
@@ -672,6 +672,17 @@ def insert_frames(path: str, n: int, ow: int, oh: int, fps: Fraction):
         proc.wait()
 
 
+def opening_frames(over: Overlays, profile_n: int, profile: dict | None, intro_frames, card_n: int):
+    """The reel's opening frames in order (ADR-130, ADR-050): the Player Profile Intro first, then the intro video, then the match card.
+    Yields exactly profile_n + (the intro video's frames) + card_n frames."""
+    if profile_n:
+        yield from over.profile_frames(profile_n, profile)
+    if intro_frames is not None:
+        yield from intro_frames
+    if card_n:
+        yield from over.card_frames(card_n)
+
+
 def join_audio(parts: list[tuple[str | None, float]], work: Path, name: str) -> str | None:
     """One track from pieces of (wav or media file or None = silence, seconds), each cut or padded to its length; None when no piece has
     sound (the reel is then silent, as before)."""
@@ -784,9 +795,13 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     # 3 + 4: composite every source frame and encode
     work = Path(tempfile.mkdtemp(prefix="render-", dir=store.ensure_dir(f"org/{org}/reels/{reel_id}")))
     spot = Spotlight(ow, oh, settings, caption)
-    over = Overlays(ow, oh, settings, cfg.get("overlay") or {}, row["display_name"], row["canonical_otsi_id"], store.path)
+    # ADR-130: the Player Profile Intro snapshot (cfg["profile_intro"]); cfg["profile"] is the export profile (REEL / SCOUT / …), not this
+    profile = cfg.get("profile_intro")
+    profile = profile if isinstance(profile, dict) else None
+    over = Overlays(ow, oh, settings, cfg.get("overlay") or {}, row["display_name"], row["canonical_otsi_id"], store.path, profile_intro=profile)
     end_n = int(round(END_S * float(fps))) if over.end_screen else 0
     card_n = int(round(CARD_S * float(fps))) if over.match_card else 0
+    profile_n = int(round(PROFILE_S * float(fps))) if over.profile_intro else 0
     # ADR-050: the intro / outro videos a person chose (their rights were checked when the render was queued)
     inserts = {}
     for side in ("intro", "outro"):
@@ -803,18 +818,17 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     # E5 (ADR-068): the reel's colour look, baked into a 3D LUT that the clip decoder applies (the spotlight then lights the graded picture)
     look_cfg = settings.get("look") or None
     look_vf = None if lk.is_neutral(look_cfg) else lk.lut_filter(lk.write_cube(look_cfg, work / "look.cube"))
-    lead_n = (inserts["intro"][1] if "intro" in inserts else 0) + card_n
+    lead_n = profile_n + (inserts["intro"][1] if "intro" in inserts else 0) + card_n
 
     def frames():
+        if profile_n:
+            runner.progress(job, 53, "Adding the player profile intro")
         if "intro" in inserts:
             runner.progress(job, 54, "Adding the intro")
-            for fr in insert_frames(inserts["intro"][0], inserts["intro"][1], ow, oh, fps):
-                total_frames[0] += 1
-                yield fr
-        if card_n:
-            for fr in over.card_frames(card_n):
-                total_frames[0] += 1
-                yield fr
+        intro_iter = insert_frames(inserts["intro"][0], inserts["intro"][1], ow, oh, fps) if "intro" in inserts else None
+        for fr in opening_frames(over, profile_n, profile, intro_iter, card_n):
+            total_frames[0] += 1
+            yield fr
         handle: list[np.ndarray] = []                          # ADR-055: the clip before's picture past its out point, for the transition
         for i, c in enumerate(clips):
             runner.progress(job, 55 + 35 * i / len(clips), f"Drawing the spotlight on clip {i + 1} of {len(clips)}")
@@ -936,10 +950,11 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
         if not mixed:
             return _fail(runner, job, render_id, reel_id, "MUSIC_UNREADABLE", "The chosen music file could not be read; choose another.")
         audio = mixed
-    if card_n or inserts:                                      # ADR-050: silence under the match card; the intro's / outro's own sound
+    if profile_n or card_n or inserts:                         # ADR-050: silence under the match card; ADR-130: and under the profile intro; the intro's / outro's own sound
         main_s = reel_s + end_n / float(fps)
         r_ = float(fps)
-        parts = [(inserts["intro"][0], inserts["intro"][1] / r_)] if "intro" in inserts else []
+        parts = [(None, profile_n / r_)] if profile_n else []
+        parts += [(inserts["intro"][0], inserts["intro"][1] / r_)] if "intro" in inserts else []
         parts += [(None, card_n / r_), (audio, main_s)]
         parts += [(inserts["outro"][0], inserts["outro"][1] / r_)] if "outro" in inserts else []
         audio = join_audio(parts, work, "audio_full") if any(p for p, _ in parts) else None
