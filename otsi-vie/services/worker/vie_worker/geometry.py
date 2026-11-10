@@ -379,6 +379,17 @@ def pitch_position(H: np.ndarray, x_norm: float, y_norm: float) -> tuple[float, 
         return None
     return None if not np.isfinite(p).all() else (float(p[0]), float(p[1]))
 
+def feet_pitch_position(H: np.ndarray, box: tuple[float, float, float, float],
+                        length: float = DEFAULT_LENGTH_M, width: float = DEFAULT_WIDTH_M) -> tuple[float, float] | None:
+    """The pitch position (metres) of the feet of a normalised (x, y, w, h) box — the bottom centre, where the player
+    stands on the ground plane — or None when it cannot be placed: H cannot be inverted, the feet unproject to NaN,
+    or they lie more than 6 m outside the pitch (the same margin pitch_job uses for observations: a box that far off
+    the pitch is not a player standing on it, so it must never gate a match). (U.4.)"""
+    p = pitch_position(H, box[0] + box[2] / 2, box[1] + box[3])
+    if p is None or abs(p[0]) > length / 2 + 6.0 or abs(p[1]) > width / 2 + 6.0:
+        return None
+    return p
+
 
 def shift_matrix(dx: float, dy: float) -> np.ndarray:
     """The picture moved by (dx, dy) (normalised units): what a camera pan does to H (left-multiply)."""

@@ -16,6 +16,17 @@
     (cosine below `dino_gate`); it never creates an association. `dino_gate=None` (the default) disables it entirely: no model
     call, no behaviour change. No live provider is wired in analyze.py yet — embeddings are computed post-hoc there (appearance.py)
     — so the gate is off in production until a caller supplies one to `update(appearance_fn=...)`.
+  * U.4 pitch-plane Kalman + biomechanical velocity gate: when the caller supplies a pitch homography
+    (`pitch_homography`, pitch metres -> normalised picture, as in `geometry.py`), each PERSON track also
+    carries a constant-velocity Kalman filter in pitch metres (feet position, bottom centre of the box) and
+    a match is forbidden when the player would have had to run from where he last was to the new box faster
+    than `max_speed_mps` (12 m/s by default: the fastest recorded football sprint is ~10.6 m/s, so 12 leaves
+    room for calibration and box noise). The gate only forbids, it never creates an association, and it never
+    fires for the ball (a shot is far faster than any player) or when a position cannot be placed (no
+    calibration, feet off the pitch, dt = 0). `pitch_homography=None` (the default) disables it entirely:
+    no behaviour change. No live calibration is wired in analyze.py yet — calibrations live per shot in
+    pitch_job — so the gate is off in production until a caller supplies H (replace it per shot: a camera
+    cut ends the calibration as surely as it ends the tracks).
 
 A track is an anonymous, temporary reference ("track 7") inside one processing run. It is never a player identity (ADR-016).
 """
@@ -27,6 +38,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from .detect.base import Detection
+from .geometry import feet_pitch_position
 
 
 @dataclass
@@ -56,6 +68,9 @@ class Track:
     feat: np.ndarray | None = None  # running torso-colour descriptor (kit gate)
     state: np.ndarray = field(default_factory=lambda: np.zeros(8))
     cov: np.ndarray = field(default_factory=lambda: np.eye(8))
+    pitch_state: np.ndarray | None = None  # U.4: [x, y, vx, vy] in pitch metres (feet); None until calibrated
+    pitch_cov: np.ndarray | None = None
+    pitch_pos: tuple[float, float] | None = None  # U.4: last measured pitch position (metres), for the velocity gate
 
 
 # U.2 thresholds (Deep-EIoU + on-demand DINOv2 gate).
@@ -66,6 +81,10 @@ DINO_REJECT_COS = 0.35   # a DINOv2 cosine below this is a different person: for
                          # noisier, so only a clearly-low cosine forbids — the gate never creates a match.
 TRACK_OVERLAP_IOU = 0.15 # two tracks whose predicted boxes overlap at this IoU are crossing (mirrors follow.OVERLAP_IOU, U.1):
                          # their matches are ambiguous however confident motion looks
+MAX_SPEED_MPS = 12.0     # U.4: no player runs faster than this (fastest recorded football sprint ~10.6 m/s); the gate
+                         # forbids a match that would need more, with room for calibration and box noise
+PITCH_MEAS_STD_M = 0.7   # U.4: how far a feet position in metres is trusted (calibration + box noise)
+PITCH_ACCEL_STD = 2.5    # U.4: m/s^2 the pitch Kalman allows between samples (a player can accelerate hard)
 
 
 def _expand_box(b: tuple[float, float, float, float], frac: float) -> tuple[float, float, float, float]:
@@ -101,7 +120,8 @@ class Tracker:
     def __init__(self, *, high: float = 0.5, low: float = 0.15, min_iou: float = 0.1, max_center_jump: float = 1.5,
                  min_hits: int = 2, max_lost_s: float = 1.0, ball_min_score: float = 0.3, ball_speed: float = 0.8,
                  distance_weight: float = 0.0, kit_gate: float | None = None, team_gate: bool = False,
-                 eiou_expand: float = EIOU_EXPAND, dino_gate: float | None = None, ambiguity_margin: float = AMBIGUITY_MARGIN):
+                 eiou_expand: float = EIOU_EXPAND, dino_gate: float | None = None, ambiguity_margin: float = AMBIGUITY_MARGIN,
+                 pitch_homography=None, max_speed_mps: float = MAX_SPEED_MPS):
         self.high, self.low, self.min_iou, self.max_jump = high, low, min_iou, max_center_jump
         self.team_gate = team_gate                   # True: a track that is clearly one team (or the officials) never takes a detection that is clearly another
         self.kit_gate = kit_gate                     # None: no colour check; else minimum torso-colour similarity for an association
@@ -111,6 +131,9 @@ class Tracker:
         self.dino_gate = dino_gate              # None: no appearance gate (zero cost); else the cosine below which a match is forbidden
         self.ambiguity_margin = ambiguity_margin
         self.dino_stats = {"calls": 0, "forbids": 0, "ambiguous": 0}   # U.2: how often the gate was consulted / forbade (0 calls = it never ran)
+        self.pitch_homography = pitch_homography  # U.4: 3x3 pitch metres -> normalised picture, or None (gate off)
+        self.max_speed_mps = max_speed_mps
+        self.pitch_stats = {"gated": 0, "checked": 0}  # U.4: pitch-plane pair-checks run / matches forbidden (0 = it never ran)
         self.min_hits, self.max_lost_us, self.ball_min = min_hits, int(max_lost_s * 1_000_000), ball_min_score
         self.active: list[Track] = []
         self.finished: list[Track] = []
@@ -151,6 +174,54 @@ class Tracker:
         k = t.cov @ hmat.T @ np.linalg.inv(s)
         t.state = t.state + k @ y
         t.cov = (np.eye(8) - k @ hmat) @ t.cov
+
+    # ------------------------------------------------------------------ pitch-plane Kalman (U.4, metres)
+    @staticmethod
+    def _pitch_init(t: Track, pos: tuple[float, float]) -> None:
+        """Start the pitch filter at a measured feet position, velocity unknown (wide prior: a player may already be running)."""
+        t.pitch_state = np.array([pos[0], pos[1], 0.0, 0.0])
+        t.pitch_cov = np.diag([PITCH_MEAS_STD_M ** 2, PITCH_MEAS_STD_M ** 2, 3.0 ** 2, 3.0 ** 2])
+        t.pitch_pos = pos
+
+    @staticmethod
+    def _pitch_predict(t: Track, dt: float) -> None:
+        """Constant-velocity prediction in pitch metres (nothing to predict without a state, or with no time passed)."""
+        if t.pitch_state is None or dt <= 0:
+            return
+        f = np.eye(4)
+        f[0, 2] = f[1, 3] = dt
+        a = PITCH_ACCEL_STD
+        q = a * a * np.array([[dt ** 4 / 4, 0, dt ** 3 / 2, 0], [0, dt ** 4 / 4, 0, dt ** 3 / 2],
+                              [dt ** 3 / 2, 0, dt ** 2, 0], [0, dt ** 3 / 2, 0, dt ** 2]])
+        t.pitch_state = f @ t.pitch_state
+        t.pitch_cov = f @ t.pitch_cov @ f.T + q
+
+    @staticmethod
+    def _pitch_update(t: Track, pos: tuple[float, float] | None) -> None:
+        """Correct the pitch filter with a measured feet position; None (no calibration, feet off the pitch) leaves it alone."""
+        if pos is None:
+            return
+        if t.pitch_state is None:
+            Tracker._pitch_init(t, pos)
+            return
+        hmat = np.zeros((2, 4))
+        hmat[0, 0] = hmat[1, 1] = 1.0
+        r = np.diag([PITCH_MEAS_STD_M ** 2, PITCH_MEAS_STD_M ** 2])
+        y = np.array(pos) - hmat @ t.pitch_state
+        s = hmat @ t.pitch_cov @ hmat.T + r
+        k = t.pitch_cov @ hmat.T @ np.linalg.inv(s)
+        t.pitch_state = t.pitch_state + k @ y
+        t.pitch_cov = (np.eye(4) - k @ hmat) @ t.pitch_cov
+        t.pitch_pos = pos
+
+    @staticmethod
+    def track_pitch_speed(t: Track) -> float | None:
+        """The track's smoothed pitch-plane speed (m/s) from its Kalman velocity, or None before it is calibrated."""
+        return None if t.pitch_state is None else float(np.hypot(t.pitch_state[2], t.pitch_state[3]))
+
+    def _pitch_pos(self, d: Detection) -> tuple[float, float] | None:
+        """The feet position (metres) of a detection under this tracker's homography, or None (gate off / unplaceable)."""
+        return None if self.pitch_homography is None else feet_pitch_position(self.pitch_homography, (d.x, d.y, d.w, d.h))
 
     # ------------------------------------------------------------------ association
     def _associate(self, tracks: list[Track], preds: list[tuple], dets: list[Detection], label: str = "PERSON",
@@ -200,6 +271,25 @@ class Tracker:
                 for j, d in enumerate(teams):
                     if d is not None and d != c:
                         cost[i, j] = 1.0                           # another team (or the referee): never this track
+        if label == "PERSON" and self.pitch_homography is not None and dt > 0:
+            # U.4: the biomechanical gate. It asks, from where the track last was on the pitch (not from the
+            # image-plane prediction, so a wrong prediction can neither waive it nor trigger it), could a player
+            # have run to this box in dt? Faster than max_speed_mps is not a player — it is another player,
+            # or a detector jump — so the match is forbidden. It only forbids; it never creates an association.
+            # A detection whose feet cannot be placed (off the pitch) is never gated: unmeasured beats wrong.
+            for i, t in enumerate(tracks):
+                if t.pitch_pos is None:
+                    continue
+                for j, d in enumerate(dets):
+                    if cost[i, j] >= 1:
+                        continue
+                    pp = self._pitch_pos(d)
+                    if pp is None:
+                        continue
+                    self.pitch_stats["checked"] += 1
+                    if float(np.hypot(pp[0] - t.pitch_pos[0], pp[1] - t.pitch_pos[1])) / dt > self.max_speed_mps:
+                        cost[i, j] = 1.0
+                        self.pitch_stats["gated"] += 1
         rows, cols = linear_sum_assignment(cost)
         matches = [(int(r), int(c), 1 - float(cost[r, c])) for r, c in zip(rows, cols) if cost[r, c] < 1]
         if label == "PERSON" and app_fn is not None and self.dino_gate is not None:
@@ -305,6 +395,8 @@ class Tracker:
             preds = []
             for t in tracks:
                 self._predict(t, dt)
+                if label == "PERSON":
+                    self._pitch_predict(t, dt)
                 seen = follow.get(id(t)) if follow else None
                 if seen is not None:
                     t.state[0], t.state[1] = seen
@@ -320,12 +412,16 @@ class Tracker:
             m1, free_t, free_d = self._associate(tracks, preds, high, label, dt, fh if fmap else None, th, app_fn=appearance_fn)
             for i, j, a in m1:
                 self._update(tracks[i], high[j]); self._record(tracks[i], high[j], frame_index, pts_us, a, th[j] if th else None); self._feat(tracks[i], fh[j] if fmap else None)
+                if label == "PERSON":
+                    self._pitch_update(tracks[i], self._pitch_pos(high[j]))
             rest = sorted(free_t)
             m2, free_t2, _ = self._associate([tracks[i] for i in rest], [preds[i] for i in rest], low, label, dt, fl if fmap else None, tl,
                                              app_fn=appearance_fn)
             for i, j, a in m2:
                 t = tracks[rest[i]]
                 self._update(t, low[j]); self._record(t, low[j], frame_index, pts_us, a, tl[j] if tl else None); self._feat(t, fl[j] if fmap else None)
+                if label == "PERSON":
+                    self._pitch_update(t, self._pitch_pos(low[j]))
             for i in (rest[k] for k in free_t2):
                 tracks[i].misses += 1
             for j in sorted(free_d):                               # new tentative tracks from unmatched confident detections
@@ -335,6 +431,10 @@ class Tracker:
                 self._init(t, d)
                 self._record(t, d, frame_index, pts_us, 1.0, th[j] if th else None)
                 self._feat(t, fh[j] if fmap else None)
+                if label == "PERSON":
+                    pos = self._pitch_pos(d)
+                    if pos is not None:
+                        self._pitch_init(t, pos)
                 self.active.append(t)
         keep = []
         for t in self.active:
