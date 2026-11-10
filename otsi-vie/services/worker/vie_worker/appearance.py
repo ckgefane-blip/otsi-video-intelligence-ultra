@@ -410,16 +410,20 @@ SPLIT_DISTANCE = 30.0          # Lab distance between the two halves of a track'
 
 
 def _split_point(pts: list[int], labs: list[np.ndarray]) -> int | None:
-    """Index k (crops [:k] vs [k:]) where a track's shirt colour changes from one steady colour to another, else None. Each side needs two
-    crops and must be steady within itself, so a single odd crop (shadow, a teammate passing in front) never splits a track."""
+    """Index k (crops [:k] vs [k:]) where a track's shirt colour first changes from one steady colour to another, else None. Only the
+    colour before the change and the next two crops after it must each be steady and far apart: the rest of the track may change again
+    (white -> dark -> white), and the caller re-checks each piece, so a track swapped twice is cut twice instead of never. A single odd
+    crop (shadow, a teammate passing in front) never splits a track: with only one odd crop the next two crops are mixed, so neither
+    side is steady."""
     n = len(labs)
     best = None
     for k in range(2, n - 1):
-        a, b = np.median(labs[:k], axis=0), np.median(labs[k:], axis=0)
+        a, b = np.median(labs[:k], axis=0), np.median(labs[k:k + 2], axis=0)
         gap = float(np.linalg.norm(a - b))
         if gap < SPLIT_DISTANCE:
             continue
-        spread = max(float(np.max([np.linalg.norm(x - a) for x in labs[:k]])), float(np.max([np.linalg.norm(x - b) for x in labs[k:]])))
+        spread = max(float(np.max([np.linalg.norm(x - a) for x in labs[:k]])),
+                     float(np.max([np.linalg.norm(x - b) for x in labs[k:k + 2]])))
         if spread < gap * 0.6 and (best is None or gap > best[0]):
             best = (gap, k)
     return best[1] if best else None
@@ -427,8 +431,10 @@ def _split_point(pts: list[int], labs: list[np.ndarray]) -> int | None:
 
 def split_on_shirt_change(tracks, reservoirs: dict, new_number) -> list:
     """The tracker sometimes follows one person and then, after a crossing, a person in a different shirt under the same number. A track whose
-    shirt colour clearly changes from one steady colour to another is cut where it changes, into two tracks (each with its own crops), so a
-    track is one shirt and a box keeps one team colour. `new_number()` gives the next free track number. Returns the new list of tracks."""
+    shirt colour clearly changes from one steady colour to another is cut where it changes, into one track per steady-colour run (each with
+    its own crops), so a track is one shirt and a box keeps one team colour — including a track that changes and then changes back. A
+    same-kit swap (white to white) cannot be split by shirt colour at all; that is a U.5 job, not this one. `new_number()` gives the next
+    free track number. Returns the new list of tracks."""
     from .tracker import Track
     out, queue = [], list(tracks)
     while queue:

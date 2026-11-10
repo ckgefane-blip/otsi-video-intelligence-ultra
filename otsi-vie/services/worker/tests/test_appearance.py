@@ -104,6 +104,31 @@ def test_a_track_is_cut_where_its_shirt_colour_changes_and_an_odd_crop_does_not_
     assert drop_double_boxes([a, b]) == 1 and len(a.observations) == 2 and b.observations == []   # one person, one box: the longer track keeps it
 
 
+def test_a_track_is_cut_twice_when_its_shirt_changes_and_returns_to_the_first_colour():
+    # U.3: a track swapped twice (white -> dark -> white) is three people under one number, not one.
+    # Deliberately imports only tracker, not analyze: analyze needs pyarrow, which this workspace lacks.
+    from vie_worker.tracker import Observation, Track
+    white, dark = shirt((235, 235, 235)), shirt((25, 25, 30))
+
+    def make(colours):
+        obs = [Observation(i, i * 100_000, 0.1, 0.1, 0.05, 0.2, 0.9, 1.0) for i in range(len(colours) * 2)]
+        t = Track(number=1, label="PERSON", shot_number=0, observations=obs, hits=len(obs), last_pts_us=obs[-1].pts_us)
+        res = ap.CropReservoir(crops=[(i * 200_000, c) for i, c in enumerate(colours)])
+        return t, {id(t): res}
+
+    t, res = make([white] * 4 + [dark] * 4 + [white] * 4)
+    nums = iter(range(100, 200))
+    out = ap.split_on_shirt_change([t], res, lambda: next(nums))
+    assert len(out) == 3 and [o.number for o in out] == [1, 100, 101]
+    assert [len(o.observations) for o in out] == [7, 8, 9] and sum(len(o.observations) for o in out) == 24
+    assert out[0].observations[-1].pts_us < 700_000 <= out[1].observations[0].pts_us
+    assert out[1].observations[-1].pts_us < 1_500_000 <= out[2].observations[0].pts_us
+
+    t2, res2 = make([white] * 4 + [dark] * 2 + [white] * 4)       # a two-crop middle run is still a different person
+    out2 = ap.split_on_shirt_change([t2], res2, lambda: 7)
+    assert len(out2) == 3
+
+
 def test_a_bright_lime_shirt_is_not_thrown_away_as_grass_so_the_referee_is_an_official():
     lime = np.full((120, 60, 3), (70, 110, 50), np.uint8)                  # a far referee: little shirt, much grass around it
     lime[int(0.18 * 120):int(0.55 * 120), int(0.42 * 60):int(0.58 * 60)] = (205, 232, 40)
