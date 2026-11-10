@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from . import geometry as geo
+from .ocr import NullReader, torso as _ocr_torso
+
 OCR_MIN_PX = 100             # person box height in analysed pixels below which no shirt number is legible (labelled set: none below ~150)
 MAX_FRAMES = 6
 MIN_GAP_US = 400_000
@@ -109,10 +112,57 @@ def aggregate(frame_reads: list[dict], candidate_frames: int) -> JerseyEvidence:
     return JerseyEvidence(state, best, conf, side, candidate_frames, frame_reads, alts)
 
 
-def read_tracks(candidates: dict[int, OcrCandidates], reader) -> dict[int, JerseyEvidence]:
-    """candidates: track number -> its candidate frames. Returns track number -> evidence (only for tracks offered at all)."""
+@dataclass
+class RectifySpec:
+    """Perspective rectification of the torso band before OCR (U.6): `taper` / `shear` describe the quad the band was
+    photographed as (see geometry.torso_band_quad); out_w/out_h are the rectified size, or None to keep the band's own
+    size. No taper is estimated from a box anywhere — the caller supplies one when it knows the camera tilt, otherwise
+    the rectification stays off (rectify=None)."""
+    taper: float = 0.0
+    shear: float = 0.0
+    out_w: int | None = None
+    out_h: int | None = None
+
+
+def rectified_torso(crop: np.ndarray, spec: RectifySpec | None = None) -> np.ndarray:
+    """The number region of a person crop: the torso band (ocr.torso, 10–70 % of the height), perspective-rectified to
+    spec.out_w x spec.out_h when spec is given. spec=None returns the plain band. A degenerate quad falls back to the
+    plain band — rectification must never lose a crop — and a band too small to warp is returned unchanged."""
+    band = _ocr_torso(crop)
+    if spec is None or band.shape[0] < 2 or band.shape[1] < 2:
+        return band
+    try:
+        quad = geo.torso_band_quad(band.shape[1], band.shape[0], spec.taper, spec.shear)
+        return geo.warp_quad(band, quad, spec.out_w or band.shape[1], spec.out_h or band.shape[0])
+    except ValueError:
+        return band
+
+
+def read_number(reader, crop: np.ndarray, rectify: RectifySpec | None = None):
+    """One crop through the U.6 path: rectify the torso band when `rectify` is given, then read it. reader=None means no
+    provider is available: no number, confidence 0, never a guess. A reader without read_torso falls back to the
+    unrectified read() — a rectified image must never be cut into a torso band a second time."""
+    if reader is None:
+        reader = NullReader()
+    if rectify is None:
+        return reader.read([crop])[0]
+    image = rectified_torso(crop, rectify)
+    if hasattr(reader, "read_torso"):
+        return reader.read_torso([image])[0]
+    return reader.read([crop])[0]
+
+
+def read_tracks(candidates: dict[int, OcrCandidates], reader, rectify: RectifySpec | None = None) -> dict[int, JerseyEvidence]:
+    """candidates: track number -> its candidate frames. Returns track number -> evidence (only for tracks offered at all).
+    rectify=None (default) is the existing behaviour: raw crops through reader.read. With a RectifySpec, each candidate's
+    torso band is rectified first and read through reader.read_torso; reader=None is the NullReader (no number, no crash)."""
+    if reader is None:
+        reader = NullReader()
     items = [(n, pts, crop) for n, c in candidates.items() for _, pts, crop in sorted(c.frames, key=lambda f: f[1])]
-    reads = reader.read([crop for _, _, crop in items]) if items else []
+    if rectify is None or not hasattr(reader, "read_torso"):
+        reads = reader.read([crop for _, _, crop in items]) if items else []
+    else:
+        reads = reader.read_torso([rectified_torso(crop, rectify) for _, _, crop in items]) if items else []
     per: dict[int, list[dict]] = {}
     for (n, pts, _), r in zip(items, reads):
         per.setdefault(n, []).append({"pts_us": int(pts), "number": r.number, "confidence": float(r.confidence), "texts": r.texts[:6],

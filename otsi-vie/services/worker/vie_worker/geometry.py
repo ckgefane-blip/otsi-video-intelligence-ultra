@@ -450,3 +450,55 @@ def covers_grass(H: np.ndarray, rgb: np.ndarray, length: float = DEFAULT_LENGTH_
 def covers_surface(H: np.ndarray, surf: np.ndarray, length: float = DEFAULT_LENGTH_M, width: float = DEFAULT_WIDTH_M) -> bool:
     cov, pure = coverage_on_surface(H, surf, length, width)
     return cov >= MIN_GRASS_COVERED and pure >= MIN_PITCH_GRASS
+
+# ------------------------------------------------------------------ perspective rectification (U.6)
+def rectify_homography(quad: np.ndarray, out_w: int, out_h: int) -> np.ndarray:
+    """H mapping a front-on rectangle (out_w x out_h, origin top-left) to the `quad` it was photographed as: quad corners in
+    (x, y) pixel order top-left, top-right, bottom-right, bottom-left. A shirt number is printed on a flat chest, so the
+    chest is a plane; un-warping its photographed quad to a rectangle restores the glyphs' aspect. Raises ValueError on a
+    degenerate quad (fewer than 4 finite corners, zero area, or a repeated corner): a rectification from such a quad is a
+    guess, and the caller must fall back to the unrectified crop instead. (U.6.)"""
+    q = np.asarray(quad, float)
+    if q.shape != (4, 2) or not np.isfinite(q).all():
+        raise ValueError("quad must be 4 finite (x, y) corners")
+    if len({(round(float(x), 6), round(float(y), 6)) for x, y in q}) < 4:
+        raise ValueError("quad corners must be distinct")
+    area = 0.5 * abs(float(np.sum(q[:, 0] * np.roll(q[:, 1], -1) - np.roll(q[:, 0], -1) * q[:, 1])))
+    if area <= 1e-9:
+        raise ValueError("quad has zero area")
+    if int(out_w) <= 0 or int(out_h) <= 0:
+        raise ValueError("output size must be positive")
+    rect = np.array([[0.0, 0.0], [out_w, 0.0], [out_w, out_h], [0.0, out_h]])
+    return dlt(rect, q)
+
+
+def warp_quad(image: np.ndarray, quad: np.ndarray, out_w: int, out_h: int) -> np.ndarray:
+    """The `quad` region of `image` warped to a front-on `out_w` x `out_h` view (bilinear sampling, numpy/scipy only — no
+    OpenCV in this worker). The output pixel (u, v) samples the source at H @ (u, v); outside the source the edge is
+    replicated, never invented. Same dtype as the input. Raises ValueError on a degenerate quad (see
+    `rectify_homography`); the caller falls back to the unrectified crop. (U.6.)"""
+    H = rectify_homography(quad, out_w, out_h)
+    us, vs = np.meshgrid(np.arange(out_w), np.arange(out_h))
+    src = project(H, np.c_[us.ravel(), vs.ravel()])
+    xs, ys = src[:, 0], src[:, 1]
+    if image.ndim == 2:
+        out = ndimage.map_coordinates(image.astype(np.float32), [ys, xs], order=1, mode="nearest")
+        out = out.reshape(out_h, out_w)
+        return np.clip(np.rint(out), 0, 255).astype(image.dtype) if image.dtype == np.uint8 else out
+    out = np.empty((out_h, out_w, image.shape[2]), np.float32)
+    for c in range(image.shape[2]):
+        out[:, :, c] = ndimage.map_coordinates(image[:, :, c].astype(np.float32), [ys, xs], order=1, mode="nearest").reshape(out_h, out_w)
+    return np.clip(np.rint(out), 0, 255).astype(image.dtype) if image.dtype == np.uint8 else out
+
+
+def torso_band_quad(width: int, height: int, taper: float = 0.0, shear: float = 0.0) -> np.ndarray:
+    """The quad a torso band of `width` x `height` was photographed as: the top edge is `taper` narrower (each side inset by
+    taper/2 of the width — a chest seen from below/above, the shoulders farther from the camera than the waist) and shifted
+    by `shear` widths (a player leaning sideways in the picture). taper = shear = 0 is the axis-aligned rectangle, i.e. the
+    identity warp. The caller supplies taper/shear — nothing here estimates them from a box, because a single box does not
+    determine them; a caller that knows the camera tilt supplies them, otherwise the rectification stays off. (U.6.)"""
+    if not (0.0 <= taper < 0.9) or not (-0.9 < shear < 0.9):
+        raise ValueError("taper must be in [0, 0.9) and shear in (-0.9, 0.9)")
+    w, h = float(width), float(height)
+    inset, shift = taper * w / 2, shear * w
+    return np.array([[inset + shift, 0.0], [w - inset + shift, 0.0], [w, h], [0.0, h]])

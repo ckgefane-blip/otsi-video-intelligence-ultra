@@ -275,7 +275,12 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
             reader = JerseyReader()
             ocr_runtime = reader.runtime
             by_number = {t.number: ocr_candidates[id(t)] for t in tracks if id(t) in ocr_candidates}
-            jersey = jer.read_tracks(by_number, reader)
+            # U.6: cfg["jersey_rectify"] {"taper": .., "shear": .., "out_w": .., "out_h": ..} rectifies each candidate's
+            # torso band before OCR; absent (the default) the existing unrectified path runs. No taper is estimated
+            # from data yet — a caller that knows the camera tilt supplies one — so this stays off unless configured.
+            _rect = cfg.get("jersey_rectify")
+            spec = jer.RectifySpec(**{k: v for k, v in _rect.items() if k in ("taper", "shear", "out_w", "out_h")}) if isinstance(_rect, dict) else None
+            jersey = jer.read_tracks(by_number, reader, rectify=spec)
         except Exception as e:  # noqa: BLE001 - shirt numbers are optional evidence; tracking and identity review work without them
             import logging
             logging.getLogger("vie_worker.analyze").warning("shirt-number reading unavailable: %s", e)

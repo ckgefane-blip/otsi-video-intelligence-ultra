@@ -126,10 +126,11 @@ class JerseyReader:
             out.append(("".join(text), float(np.mean(confs)) if confs else 0.0))
         return out
 
-    def read(self, crops: list[np.ndarray]) -> list[Read]:
+    def read_torso(self, torsos: list[np.ndarray]) -> list[Read]:
+        """Read already-cut torso images: the same detection + recognition as read(), without cutting the torso band a
+        second time. A rectified torso (U.6) arrives here front-on; a plain torso band arrives unchanged."""
         reads = []
-        for crop in crops:
-            t = torso(crop)
+        for t in torsos:
             regions = self._regions(t) if t.shape[0] >= 8 and t.shape[1] >= 8 else []
             lines = [t[y0:y1, x0:x1] for x0, y0, x1, y1, _ in regions if y1 - y0 >= 3 and x1 - x0 >= 3]
             texts = self._read_lines(lines)
@@ -142,3 +143,19 @@ class JerseyReader:
             best = hyps[0] if hyps else (None, 0.0)
             reads.append(Read(best[0], best[1], hyps[1:4], [x for x, _ in texts], len(regions)))
         return reads
+
+    def read(self, crops: list[np.ndarray]) -> list[Read]:
+        return self.read_torso([torso(c) for c in crops])
+
+class NullReader:
+    """Stub OCR provider (U.6): no model, no reads — every crop reports no number with confidence 0. Lets the
+    rectification + number-region path run and be tested where the PaddleOCR models are absent (this workspace has no
+    OpenVINO), and is the honest answer when no provider is available: no number, never a guessed one."""
+
+    runtime = "none"
+
+    def read(self, crops: list[np.ndarray]) -> list[Read]:
+        return [Read(None, 0.0) for _ in crops]
+
+    def read_torso(self, torsos: list[np.ndarray]) -> list[Read]:
+        return [Read(None, 0.0) for _ in torsos]
