@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  # The desktop app is distributed as a built installer (electron-builder),
+  # not installed by the engine's `pnpm install`. Keeping it out of the
+  # workspace stops that install pulling Electron (~300 MB) on every machine.
+  - "!apps/desktop"

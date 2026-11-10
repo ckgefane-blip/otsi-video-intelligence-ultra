@@ -1,0 +1,25 @@
+appId: cc.otsi.vie
+productName: OTSI VIE
+copyright: Copyright © OTSI
+directories:
+  output: dist
+files:
+  - main.js
+  - backend.js
+  - preload.js
+  - renderer/**/*
+  - assets/**/*
+  - package.json
+win:
+  icon: assets/icon.ico
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: OTSI VIE
+portable:
+  artifactName: OTSI-VIE-Portable-${version}.${ext}

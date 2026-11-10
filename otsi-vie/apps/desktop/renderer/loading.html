@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #0b1e3a;
+    color: #e8eef7;
+    padding: 28px 32px;
+    user-select: none;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.4px; }
+  .sub { color: #9db4d4; font-size: 13px; margin: 0 0 22px; }
+  #status { font-size: 15px; min-height: 22px; }
+  .bar {
+    height: 6px; background: #16305c; border-radius: 3px;
+    overflow: hidden; margin: 14px 0 18px;
+  }
+  .bar > div {
+    height: 100%; width: 40%; background: #2f7de1; border-radius: 3px;
+    animation: slide 1.4s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { margin-left: -40%; }
+    100% { margin-left: 100%; }
+  }
+  details { color: #9db4d4; font-size: 12px; }
+  details summary { cursor: pointer; outline: none; }
+  pre {
+    background: #071426; color: #b9cbe4; border-radius: 6px;
+    padding: 10px; max-height: 120px; overflow: auto;
+    font-size: 11px; line-height: 1.45; white-space: pre-wrap;
+    word-break: break-word; user-select: text;
+  }
+  form label { display: block; font-size: 13px; color: #c6d6ec; margin: 12px 0 4px; }
+  form input {
+    width: 100%; padding: 9px 10px; font-size: 14px; border-radius: 6px;
+    border: 1px solid #2a4a7a; background: #10294f; color: #fff; outline: none;
+  }
+  form input:focus { border-color: #2f7de1; }
+  button {
+    margin-top: 18px; padding: 10px 18px; font-size: 14px; border: none;
+    border-radius: 6px; background: #2f7de1; color: #fff; cursor: pointer;
+  }
+  button.secondary { background: transparent; border: 1px solid #2a4a7a; color: #c6d6ec; }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .link {
+    display: inline-block; margin-top: 14px; font-size: 13px; color: #7fa8dd;
+    cursor: pointer; background: none; border: none; padding: 0;
+  }
+  .err { color: #ffb4b4; font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
+  .hidden { display: none; }
+  .note { color: #9db4d4; font-size: 12px; margin-top: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1>OTSI VIE</h1>
+  <p class="sub">Video Intelligence Engine</p>
+
+  <div id="status-view">
+    <div id="status">Starting OTSI VIE...</div>
+    <div class="bar"><div></div></div>
+    <details>
+      <summary>What is happening</summary>
+      <pre id="log"></pre>
+    </details>
+  </div>
+
+  <div id="owner-view" class="hidden">
+    <p style="margin:0 0 4px;">First time: create your owner account.</p>
+    <p class="sub" style="margin:0;">This is the account you sign in with. It lives only on this machine.</p>
+    <form id="owner-form">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="email">
+      <label for="name">Your name</label>
+      <input id="name" type="text" required autocomplete="name">
+      <label for="org">Organisation (your club or academy)</label>
+      <input id="org" type="text" required autocomplete="organization">
+      <div id="owner-error" class="err"></div>
+      <button id="owner-submit" type="submit">Create account</button>
+    </form>
+    <button class="link" id="have-account" type="button">I already have an owner account</button>
+  </div>
+
+  <div id="error-view" class="hidden">
+    <p style="margin:0 0 4px;">Something did not work.</p>
+    <p id="error-message" class="err"></p>
+    <details open>
+      <summary>What happened</summary>
+      <pre id="error-log"></pre>
+    </details>
+    <button id="retry" type="button">Try again</button>
+    <button id="close" class="secondary" type="button">Close</button>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const logEl = $('log');
+  let logLines = [];
+
+  function appendLog(line) {
+    logLines.push(line);
+    if (logLines.length > 200) logLines = logLines.slice(-200);
+    logEl.textContent = logLines.join('');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function show(view) {
+    $('status-view').classList.toggle('hidden', view !== 'status');
+    $('owner-view').classList.toggle('hidden', view !== 'owner');
+    $('error-view').classList.toggle('hidden', view !== 'error');
+  }
+
+  window.otsi.onStatus((text) => { $('status').textContent = text; });
+  window.otsi.onLog((line) => appendLog(line));
+  window.otsi.onShowOwner(() => { show('owner'); $('email').focus(); });
+  window.otsi.onShowError((data) => {
+    $('error-message').textContent = data.message || 'Something did not work.';
+    $('error-log').textContent = data.log || '';
+    show('error');
+  });
+
+  $('owner-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = $('email').value.trim();
+    const name = $('name').value.trim();
+    const org = $('org').value.trim();
+    if (!email || !name || !org) {
+      $('owner-error').textContent = 'Email, name and organisation are all needed.';
+      return;
+    }
+    $('owner-submit').disabled = true;
+    $('owner-error').textContent = '';
+    show('status');
+    $('status').textContent = 'Creating your owner account...';
+    window.otsi.submitOwner({ email, name, organization: org });
+  });
+
+  $('have-account').addEventListener('click', () => {
+    show('status');
+    $('status').textContent = 'Carrying on...';
+    window.otsi.ownerHaveAccount();
+  });
+
+  $('retry').addEventListener('click', () => {
+    show('status');
+    $('status').textContent = 'Trying again...';
+    window.otsi.retry();
+  });
+
+  $('close').addEventListener('click', () => window.otsi.closeApp());
+</script>
+</body>
+</html>

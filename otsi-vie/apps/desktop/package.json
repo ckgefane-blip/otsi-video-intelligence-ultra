@@ -1,0 +1,18 @@
+{
+  "name": "otsi-vie-desktop",
+  "version": "0.1.0",
+  "description": "OTSI VIE desktop app for Windows (Electron shell around the local engine)",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check backend.js && node --check preload.js",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "dist:nsis": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^35.1.0",
+    "electron-builder": "^26.0.12"
+  }
+}
