@@ -9,11 +9,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { PlayerAssessment, PlayerIdentity, PlayerListEntry, PlayerMeasures, PlayerProfile } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { parsePlayerRef, type PlayerRef } from "@/lib/identity";
+import { typing } from "@/lib/keymap";
 import { Lower } from "./Bottom";
 import { AssessmentDialog, DossierDialog, NotesDialog, ReportDialog, type DialogName } from "./Dialogs";
 import { Hero, Kpis, Rail, RAIL, type Report } from "./Top";
@@ -68,9 +69,11 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
   const [picking, setPicking] = useState(!playerRef);              // B.24 (ADR-099): the landing without a player opens the picker
   const [selected, setSelected] = useState(0);
   const [measures, setMeasures] = useState<PlayerMeasures | null>(null);
+  /** the measures read failed (null then means failed, not loading): the KPI cards name it instead of showing "—" */
+  const [measuresFailed, setMeasuresFailed] = useState(false);
   useEffect(() => {                                  // what the footage measured: tracks a person confirmed as this player only
-    setMeasures(null);
-    if (player) void api<PlayerMeasures>(`/v1/players/${player.player_id}/measures`).then(setMeasures, () => setMeasures(null));
+    setMeasures(null); setMeasuresFailed(false);
+    if (player) void api<PlayerMeasures>(`/v1/players/${player.player_id}/measures`).then(setMeasures, () => { setMeasures(null); setMeasuresFailed(true); });
   }, [player]);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   useEffect(() => {
@@ -84,7 +87,7 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
   }, [player]);
   const [dialog, setDialog] = useState<DialogName>(null);
   const role = useAuth().organization?.role ?? "VIEWER";
-  const can = { write: ["OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT"].includes(role), assess: ["OWNER", "ADMIN", "ANALYST", "SCOUT"].includes(role), share: ["OWNER", "ADMIN", "ANALYST", "EDITOR"].includes(role) };
+  const can = useMemo(() => ({ write: ["OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT"].includes(role), assess: ["OWNER", "ADMIN", "ANALYST", "SCOUT"].includes(role), share: ["OWNER", "ADMIN", "ANALYST", "EDITOR"].includes(role) }), [role]);
   const [focus, setFocus] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -104,8 +107,23 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setFocus((f) => (f === target ? null : f)), 1600);
   }, [router]);
-  const r: Report = { player, missing, focus, selected, go, pick: () => setPicking(true), measures, profile, assessment, open: setDialog, can };
-  const close = () => setDialog(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);   // the focus highlight never outlives the page
+  const pick = useCallback(() => setPicking(true), []);
+  const close = useCallback(() => setDialog(null), []);
+  // [ / ] move between the rail's sections (lib/keymap.ts, Reports scope): only on this page, never while typing or with a dialog open
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || dialog !== null || picking) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "]") go(Math.min(RAIL.length - 1, selected + 1));
+      else if (e.key === "[") go(Math.max(0, selected - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, go, dialog, picking]);
+  // the Report object is memoised so opening a dialog or the picker does not re-render Rail, Hero, Kpis and Lower (they are memoised)
+  const r: Report = useMemo(() => ({ player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, open: setDialog, can }),
+    [player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, can]);
   return (
     <DesignStage page="reports" background="#010812">
       <Rail r={r} />

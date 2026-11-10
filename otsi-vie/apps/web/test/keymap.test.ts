@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ANALYSIS_KEYS, EVERYWHERE_KEYS, jkl, KEYMAP, keymapFor, REELS_KEYS, scopeOf, STUDIO_KEYS } from "../src/lib/keymap";
+import { ANALYSIS_KEYS, EVERYWHERE_KEYS, jkl, KEYMAP, keymapFor, REELS_KEYS, REPORTS_KEYS, scopeOf, STUDIO_KEYS } from "../src/lib/keymap";
 
 /** v3 Phase A.9 (S14, ADR-071): the app's one keyboard map */
 describe("keyboard map", () => {
   it("has the keys the spec names, each listed once per page", () => {
-    for (const list of [EVERYWHERE_KEYS, STUDIO_KEYS, ANALYSIS_KEYS, REELS_KEYS]) expect(new Set(list.map((s) => s.keys)).size).toBe(list.length);
+    for (const list of [EVERYWHERE_KEYS, STUDIO_KEYS, ANALYSIS_KEYS, REELS_KEYS, REPORTS_KEYS]) expect(new Set(list.map((s) => s.keys)).size).toBe(list.length);
     const has = (list: { keys: string }[], k: string) => list.some((s) => s.keys === k);
     for (const k of ["J", "K", "L", "I / O", "S", "C", "M"]) expect(has(STUDIO_KEYS, k)).toBe(true);
     // dual timeline snapshot-and-swap (Blueprint §2.3): B snapshots Cut B, Shift+B applies it
@@ -13,6 +13,8 @@ describe("keyboard map", () => {
     for (const k of ["Ctrl + K", "?"]) expect(has(EVERYWHERE_KEYS, k)).toBe(true);
     // Reel Builder: the same undo / redo keys as Clip Studio, for the reel's own History
     for (const k of ["Ctrl + Z", "Ctrl + Shift + Z or Ctrl + Y"]) expect(has(REELS_KEYS, k)).toBe(true);
+    // Player Reports: [ / ] move between the rail's sections
+    for (const k of ["[ / ]"]) expect(has(REPORTS_KEYS, k)).toBe(true);
     // L is play now; no single key does two things on one page
     const single = (list: { keys: string }[]) => list.flatMap((s) => s.keys.split(" / ")).filter((k) => /^[A-Z]$/.test(k));
     for (const list of [STUDIO_KEYS, ANALYSIS_KEYS]) expect(new Set(single(list)).size).toBe(single(list).length);
@@ -22,11 +24,14 @@ describe("keyboard map", () => {
     expect(scopeOf("/studio")).toBe("studio");
     expect(scopeOf("/analysis")).toBe("analysis");
     expect(scopeOf("/reels")).toBe("reels");
+    expect(scopeOf("/reports")).toBe("reports");
+    expect(scopeOf("/reports/players/abc")).toBe("reports");
     expect(scopeOf("/dashboard")).toBeNull();
-    expect(keymapFor("/studio").map((g) => [g.scope, g.here])).toEqual([["studio", true], ["everywhere", false], ["analysis", false], ["reels", false]]);
-    expect(keymapFor("/analysis").map((g) => g.scope)).toEqual(["analysis", "everywhere", "studio", "reels"]);
-    expect(keymapFor("/reels").map((g) => g.scope)).toEqual(["reels", "everywhere", "studio", "analysis"]);
-    expect(keymapFor("/library").map((g) => g.scope)).toEqual(["everywhere", "studio", "analysis", "reels"]);
+    expect(keymapFor("/studio").map((g) => [g.scope, g.here])).toEqual([["studio", true], ["everywhere", false], ["analysis", false], ["reels", false], ["reports", false]]);
+    expect(keymapFor("/analysis").map((g) => g.scope)).toEqual(["analysis", "everywhere", "studio", "reels", "reports"]);
+    expect(keymapFor("/reels").map((g) => g.scope)).toEqual(["reels", "everywhere", "studio", "analysis", "reports"]);
+    expect(keymapFor("/reports").map((g) => g.scope)).toEqual(["reports", "everywhere", "studio", "analysis", "reels"]);
+    expect(keymapFor("/library").map((g) => g.scope)).toEqual(["everywhere", "studio", "analysis", "reels", "reports"]);
     expect(keymapFor("/x").flatMap((g) => g.rows)).toHaveLength(KEYMAP.length);
   });
 

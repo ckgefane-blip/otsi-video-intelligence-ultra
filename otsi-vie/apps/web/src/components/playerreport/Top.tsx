@@ -14,6 +14,7 @@
  */
 import { HIGH_SPEED_KMH, kpiCoverage, SPRINT_KMH, type PlayerAssessment, type PlayerIdentity, type PlayerMeasures, type PlayerProfile } from "@otsi-vie/contracts";
 import Link from "next/link";
+import { memo, useMemo } from "react";
 import { FOOT_NAMES } from "@/components/players/PlayersList";
 import { Evidence, type EvidenceLevel } from "@/components/evidence/Evidence";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
@@ -30,6 +31,8 @@ export interface Report {
   pick(): void;
   /** what the footage measured about this player (null while loading or without a player) */
   measures: PlayerMeasures | null;
+  /** the measures read failed (measures null then means failed, not loading) */
+  measuresFailed: boolean;
   /** what a person recorded on the Players list, and his latest team sheet entry (null while loading or without a player) */
   profile: PlayerProfile | null;
   /** the scouting assessment (published version shown; null while loading or without a player) */
@@ -61,7 +64,7 @@ const KPI_EVIDENCE: Record<string, EvidenceLevel> = {
   Shots: "DETECTED", xG: "NOT_MEASURED", xA: "NOT_MEASURED",
 };
 
-export function Rail({ r }: { r: Report }) {
+function RailInner({ r }: { r: Report }) {
   return (
     <section aria-label="Report sections" data-section="p08-s02">
       <P x={22} y={115} w={348} h={978} />
@@ -83,12 +86,18 @@ export function Rail({ r }: { r: Report }) {
     </section>
   );
 }
+export const Rail = memo(RailInner);
 
-export function Hero({ r }: { r: Report }) {
+function HeroInner({ r }: { r: Report }) {
   const p = r.player;
   const idText = !p ? null : p.canonical_otsi_id ?? "Provisional player: no OTSI Player ID yet";
   const pr = r.profile, team = pr?.latest_team ?? null;
   const foot = pr?.preferred_foot ? FOOT_NAMES[pr.preferred_foot]! : "—";
+  /** the identity & evidence figures, computed once per measures read instead of on every render */
+  const evidence = useMemo(() => {
+    const m = r.measures, confirmed = !!m?.tracks, cov = m && m.seen_s > 0 ? Math.max(0, Math.min(1, m.measured_s / m.seen_s)) : null;
+    return { confirmed, cov };
+  }, [r.measures]);
   return (
     <section id="p08-overview" aria-label="Player identity" data-section="p08-s03" data-player={p?.player_id ?? ""}>
       <P x={387} y={115} w={2151} h={372} style={{ background: "linear-gradient(90deg,#0a2a5a,#071a38 55%,#06122a)", overflow: "hidden", ...hl(r.focus === "p08-overview") }} />
@@ -137,7 +146,7 @@ export function Hero({ r }: { r: Report }) {
 
       {/* Identity & Evidence (v3 Phase 0, was Tracking Confidence) */}
       {(() => {
-        const m = r.measures, confirmed = !!m?.tracks, cov = m && m.seen_s > 0 ? Math.max(0, Math.min(1, m.measured_s / m.seen_s)) : null;
+        const { confirmed, cov } = evidence;
         return (
           <>
             <B x={1581} y={196} w={365} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
@@ -153,8 +162,8 @@ export function Hero({ r }: { r: Report }) {
           </>
         );
       })()}
-      <T x={1767} y={395} size={17} color="#8ea3bf">{r.measures?.tracks ? `${r.measures.tracks} confirmed tracks` : "No tracking data"}</T>
-      <T x={1767} y={421} size={17} color="#8ea3bf">{r.measures?.tracks ? `in ${r.measures.videos} video${r.measures.videos === 1 ? "" : "s"}` : "for this player yet"}</T>
+      <T x={1767} y={395} size={17} color="#8ea3bf">{r.measures?.tracks ? `${r.measures.tracks} confirmed tracks` : r.measuresFailed ? "Could not be loaded" : "No tracking data"}</T>
+      <T x={1767} y={421} size={17} color="#8ea3bf">{r.measures?.tracks ? `in ${r.measures.videos} video${r.measures.videos === 1 ? "" : "s"}` : r.measuresFailed ? "choose the player again" : "for this player yet"}</T>
 
       {/* Player Role & Summary */}
       <B x={1964} y={196} w={574} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
@@ -187,6 +196,7 @@ export function Hero({ r }: { r: Report }) {
     </section>
   );
 }
+export const Hero = memo(HeroInner);
 
 /** the measured value and its note for a KPI card, or undefined (not measured) */
 function measured(l: string, m: PlayerMeasures | null): [string, string, string] | undefined {
@@ -205,25 +215,39 @@ function measured(l: string, m: PlayerMeasures | null): [string, string, string]
   return undefined;
 }
 
-export function Kpis({ r }: { r: Report }) {
+/** one KPI card: measured() is computed once, not once per field, and the card only re-renders when its own inputs change */
+const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, measuresFailed, focused }: {
+  label: string; x: number; w: number; icon: string; first: boolean; measures: PlayerMeasures | null; measuresFailed: boolean; focused: boolean;
+}) {
+  const m = measured(label, measures);
+  const cover = m && KPI_COVER[label] ? kpiCoverage(KPI_COVER[label]!, measures) : null;
+  return (
+    <div data-kpi={label} title={measuresFailed ? "The measurements could not be loaded — choose the player again to retry" : m?.[2] ?? "Not measured yet"}>
+      <P x={x} y={505} w={w} h={132} style={{ ...(first ? { borderLeft: `${u(4)} solid #1e90ff` } : {}), ...hl(focused) }} />
+      <T x={x + 40} y={531} size={21} color="#d6e4f7">{label}</T>
+      <Ic x={x + 60} y={586} k={icon} size={44} color="#1e90ff" />
+      {m && <B x={x + w - 32} y={520} w={20} h={20}><Evidence level={KPI_EVIDENCE[label] ?? "DETECTED"} compact size={12} /></B>}
+      {measuresFailed
+        ? <T x={x + 104} y={575} size={19} color="#ff8a8a">Load failed</T>
+        : m || !measures
+          ? <T x={x + 104} y={575} size={30} weight={700}>{m?.[0] ?? "—"}</T>
+          : <T x={x + 104} y={575} size={19} color="#8ea3bf">Not measured</T>}
+      <T x={x + 104} y={609} size={19} color="#b9cbe2">{measuresFailed ? "could not be loaded" : m?.[1] ?? (measures && KPI_EVIDENCE[label] === "NOT_MEASURED" ? "not measured" : "—")}</T>
+      {cover && (
+        <T x={x + 14} y={628} size={13} color="#7f97b5" style={{ maxWidth: u(w - 28), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span data-kpi-coverage>{cover}</span></T>
+      )}
+    </div>
+  );
+});
+
+function KpisInner({ r }: { r: Report }) {
   return (
     <section id="p08-kpi" aria-label="Key metrics" data-section="p08-s06" data-cards={String(KPIS.length)}>
       {KPIS.map(([l, x, w, icon], i) => (
-        <div key={l} data-kpi={l} title={measured(l, r.measures)?.[2] ?? "Not measured yet"}>
-          <P x={x} y={505} w={w} h={132} style={{ ...(i === 0 ? { borderLeft: `${u(4)} solid #1e90ff` } : {}), ...hl(r.focus === "p08-kpi") }} />
-          <T x={x + 40} y={531} size={21} color="#d6e4f7">{l}</T>
-          <Ic x={x + 60} y={586} k={icon} size={44} color="#1e90ff" />
-          {measured(l, r.measures) && <B x={x + w - 32} y={520} w={20} h={20}><Evidence level={KPI_EVIDENCE[l] ?? "DETECTED"} compact size={12} /></B>}
-          {measured(l, r.measures) || !r.measures
-            ? <T x={x + 104} y={575} size={30} weight={700}>{measured(l, r.measures)?.[0] ?? "—"}</T>
-            : <T x={x + 104} y={575} size={19} color="#8ea3bf">Not measured</T>}
-          <T x={x + 104} y={609} size={19} color="#b9cbe2">{measured(l, r.measures)?.[1] ?? (r.measures && KPI_EVIDENCE[l] === "NOT_MEASURED" ? "not measured" : "—")}</T>
-          {measured(l, r.measures) && KPI_COVER[l] && kpiCoverage(KPI_COVER[l]!, r.measures) && (
-            <T x={x + 14} y={628} size={13} color="#7f97b5" style={{ maxWidth: u(w - 28), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              <span data-kpi-coverage>{kpiCoverage(KPI_COVER[l]!, r.measures)}</span></T>
-          )}
-        </div>
+        <KpiCard key={l} label={l} x={x} w={w} icon={icon} first={i === 0} measures={r.measures} measuresFailed={r.measuresFailed} focused={r.focus === "p08-kpi"} />
       ))}
     </section>
   );
 }
+export const Kpis = memo(KpisInner);

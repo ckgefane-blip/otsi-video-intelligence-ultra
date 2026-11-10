@@ -16,7 +16,7 @@ import { COHORT_NAMES, type CohortGroup, type PlayerComparison, type PlayerEvent
 import Link from "next/link";
 import { HeatPitch, measuredText } from "@/components/workspace/HeatPitch";
 import { Evidence } from "@/components/evidence/Evidence";
-import { useEffect, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api } from "@/lib/api";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
@@ -86,10 +86,10 @@ function usePlayerEvents(r: Report): PlayerEvents | null | undefined {
 }
 
 /** his passes drawn from their stored ends (pitch metres from the centre spot) on the panel's pitch, inside its lines */
-function PassArrows({ ev, x, y, w, h, keyOnly }: { ev: PlayerEvents; x: number; y: number; w: number; h: number; keyOnly: boolean }) {
+const PassArrows = memo(function PassArrows({ ev, x, y, w, h, keyOnly }: { ev: PlayerEvents; x: number; y: number; w: number; h: number; keyOnly: boolean }) {
   const ix = w * 0.03, iy = h * 0.05, L = ev.length_m, Wd = ev.width_m;
   const px = (m: number) => ix + ((m + L / 2) / L) * (w - 2 * ix), py = (m: number) => iy + ((m + Wd / 2) / Wd) * (h - 2 * iy);
-  const drawn = ev.items.filter((e) => e.kind === "PASS" && e.from_m && e.to_m && (!keyOnly || e.key));
+  const drawn = useMemo(() => ev.items.filter((e) => e.kind === "PASS" && e.from_m && e.to_m && (!keyOnly || e.key)), [ev, keyOnly]);
   return (
     <svg data-pass-arrows={String(drawn.length)} role="img" aria-label={`${drawn.length} passes drawn from where the ball left him to where it was received`}
       viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", left: u(x), top: u(y - 101), width: u(w), height: u(h), overflow: "visible" }}>
@@ -110,7 +110,7 @@ function PassArrows({ ev, x, y, w, h, keyOnly }: { ev: PlayerEvents; x: number; 
       })}
     </svg>
   );
-}
+});
 
 /** the heatmap of the whole match, or of one half (fetched when chosen) */
 function useHalf(r: Report, range: Range): PlayerMeasures | null | undefined {
@@ -142,7 +142,30 @@ function useFetch<X>(r: Report, path: string | null): X | null | undefined {
 const fmt = (v: number | null, unit: string) => (v === null ? "—" : `${v}${unit ? ` ${unit}` : ""}`);
 const INSIGHT_ICONS: Record<string, [string, string]> = { SPEED: ["trend", "#3ee6a8"], PASSING: ["pick", "#33a8ff"], POSITION: ["tgt", "#8a6cff"], WORK_RATE: ["dbl", "#3ee6a8"], BALL_WINNING: ["shield", "#f5b82e"] };
 
-export function Lower({ r }: { r: Report }) {
+/** his events as a list: memoised, so a heatmap mode change does not rebuild every row */
+const EventList = memo(function EventList({ listed, multiVideo }: { listed: PlayerEvent[]; multiVideo: boolean }) {
+  return (
+    <div className="absolute" style={{ left: u(1112), top: u(716 - 101), width: u(654), height: u(368), overflowY: "auto" }}>
+      <p style={{ margin: `0 0 ${u(6)}`, fontSize: u(14), color: "#8ea3bf" }}>{`${listed.length} of his events, found by the engine on tracks a person confirmed as him. Click one to watch it.`}</p>
+      <ul aria-label="His events" data-events={String(listed.length)} style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {listed.map((e) => (
+          <li key={e.id}>
+            <Link href={`/analysis?video=${e.video_id}&t=${Math.max(0, Math.floor(e.start_us / 1e6) - 2)}`} data-event={e.kind}
+              style={{ display: "flex", alignItems: "center", gap: u(10), padding: `${u(6)} ${u(10)}`, marginBottom: u(4), borderRadius: u(6), background: "#06142a",
+                border: `${u(1.5)} solid #12335f`, color: "#e3eefb", textDecoration: "none", fontSize: u(17) }}>
+              <span style={{ width: u(64), flex: "none", color: "#8ea3bf" }}>{matchClock(e.start_us)}</span>
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{describe(e)}</span>
+              {multiVideo && <span style={{ maxWidth: u(150), fontSize: u(13), color: "#8ea3bf", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.video_title}</span>}
+              <Evidence level={e.evidence === "INFERRED" ? "INFERRED" : "DETECTED"} size={12} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+});
+
+function LowerInner({ r }: { r: Report }) {
   const [mode, setMode] = useState(0);
   const [group, setGroup] = useState<CohortGroup | "">("");
   const pid = r.player?.player_id;
@@ -153,16 +176,22 @@ export function Lower({ r }: { r: Report }) {
   const ev = usePlayerEvents(r);
   const [evf, setEvf] = useState<EvFilter>("all");
   const [act, setAct] = useState<"all" | "pass" | "key">("all");
-  const listed = (ev?.items ?? []).filter(FILTER[evf]);
-  const passes = (ev?.items ?? []).filter((e) => e.kind === "PASS");
-  const placed = passes.filter((e) => e.from_m && e.to_m);
-  const has = (f: EvFilter) => (ev?.items ?? []).some(FILTER[f]);
+  const listed = useMemo(() => (ev?.items ?? []).filter(FILTER[evf]), [ev, evf]);
+  const passes = useMemo(() => (ev?.items ?? []).filter((e) => e.kind === "PASS"), [ev]);
+  const placed = useMemo(() => passes.filter((e) => e.from_m && e.to_m), [passes]);
+  const has = useCallback((f: EvFilter) => (ev?.items ?? []).some(FILTER[f]), [ev]);
   const [range, setRange] = useState<Range>("full");
   const hm = useHalf(r, range);
   const hv = r.measures?.halves;
   const known = !!hv && hv.confirmed + hv.proposed > 0;
   const noHalves = !r.player ? "choose a player first" : !known ? "the match halves are not known for his videos" : undefined;
   const halfNote = range !== "full" && hv && hv.proposed > 0 ? (hv.confirmed ? " · some halves proposed by the engine" : " · halves proposed by the engine, not confirmed") : "";
+  /** the heatmap's empty state names a failed read instead of calling it "no data" (a null half read means failed; null full-range measures mean failed only when the measures read failed, else still loading) */
+  const heatEmpty = mode !== 0 ? (mode === 1 ? "Touches need event detection" : "Territory needs the match halves")
+    : !r.player ? "No heatmap data"
+    : hm === undefined ? "Loading…"
+    : hm === null ? (range === "full" && !r.measuresFailed ? "Loading…" : "The heatmap could not be loaded")
+    : range === "full" ? "No heatmap data" : "No heatmap data in this half";
   return (
     <>
       <section id="p08-heat" aria-label="Heatmap" data-section="p08-s07">
@@ -185,7 +214,7 @@ export function Lower({ r }: { r: Report }) {
             <HeatPitch zones={hm.heat} label={`Heat map of this player, ${range === "full" ? "whole match" : range === "h1" ? "1st half" : "2nd half"}`} />
             <div title="Teams change ends at half-time: both halves are drawn as filmed" style={{ position: "absolute", left: 0, right: 0, bottom: u(4), textAlign: "center", fontSize: u(15), color: "#e8f5ec", textShadow: "0 0 3px #000" }}>{measuredText(hm.heat)}{halfNote}</div>
           </div>
-        ) : <Badge x={736} y={760}>{mode !== 0 ? (mode === 1 ? "Touches need event detection" : "Territory needs the match halves") : hm === undefined && range !== "full" ? "Loading…" : range === "full" ? "No heatmap data" : "No heatmap data in this half"}</Badge>}
+        ) : <Badge x={736} y={760}>{heatEmpty}</Badge>}
       </section>
 
       <section id="p08-events" aria-label="Event timeline" data-section="p08-s08">
@@ -197,25 +226,7 @@ export function Lower({ r }: { r: Report }) {
         {!listed.length ? (
           <T x={1438} y={880} size={19} color="#8ea3bf" align="center">{!r.player ? "Choose a player" : ev === undefined ? "Loading…" : ev === null ? "His events could not be loaded"
             : !ev.videos ? "No video of his has the ball followed yet" : "No events recorded for this player"}</T>
-        ) : (
-          <div className="absolute" style={{ left: u(1112), top: u(716 - 101), width: u(654), height: u(368), overflowY: "auto" }}>
-            <p style={{ margin: `0 0 ${u(6)}`, fontSize: u(14), color: "#8ea3bf" }}>{`${listed.length} of his events, found by the engine on tracks a person confirmed as him. Click one to watch it.`}</p>
-            <ul aria-label="His events" data-events={String(listed.length)} style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {listed.map((e) => (
-                <li key={e.id}>
-                  <Link href={`/analysis?video=${e.video_id}&t=${Math.max(0, Math.floor(e.start_us / 1e6) - 2)}`} data-event={e.kind}
-                    style={{ display: "flex", alignItems: "center", gap: u(10), padding: `${u(6)} ${u(10)}`, marginBottom: u(4), borderRadius: u(6), background: "#06142a",
-                      border: `${u(1.5)} solid #12335f`, color: "#e3eefb", textDecoration: "none", fontSize: u(17) }}>
-                    <span style={{ width: u(64), flex: "none", color: "#8ea3bf" }}>{matchClock(e.start_us)}</span>
-                    <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{describe(e)}</span>
-                    {ev && ev.videos > 1 && <span style={{ maxWidth: u(150), fontSize: u(13), color: "#8ea3bf", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.video_title}</span>}
-                    <Evidence level={e.evidence === "INFERRED" ? "INFERRED" : "DETECTED"} size={12} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        ) : (<EventList listed={listed} multiVideo={!!ev && ev.videos > 1} />)}
       </section>
 
       <section id="p08-action" aria-label="Action map" data-section="p08-s09">
@@ -288,8 +299,8 @@ export function Lower({ r }: { r: Report }) {
                   <T x={983} y={y + h / 2 - 9} size={17} weight={600} style={{ maxWidth: u(765), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.text}</T>
                   <T x={983} y={y + h / 2 + 13} size={13} color="#8ea3bf" style={{ maxWidth: u(765), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.source}</T>
                 </>
-              ) : <T x={983} y={y + h / 2} size={21} weight={600}>{i > 0 ? "—" : !r.player ? "Choose a player" : ins === undefined ? "Loading…" : "No insights yet"}</T>}
-              {i === 0 && !it && r.player && ins !== undefined && <><T x={1264} y={y + 20} size={16} color="#b9cbe2">Sentences appear once the engine has measured</T><T x={1264} y={y + 42} size={16} color="#b9cbe2">his movement or events on confirmed tracks.</T></>}
+              ) : <T x={983} y={y + h / 2} size={21} weight={600}>{i > 0 ? "—" : !r.player ? "Choose a player" : ins === undefined ? "Loading…" : ins === null ? "His insights could not be loaded" : "No insights yet"}</T>}
+              {i === 0 && !it && r.player && ins !== undefined && ins !== null && <><T x={1264} y={y + 20} size={16} color="#b9cbe2">Sentences appear once the engine has measured</T><T x={1264} y={y + 42} size={16} color="#b9cbe2">his movement or events on confirmed tracks.</T></>}
             </div>
           );
         })}
@@ -329,3 +340,4 @@ export function Lower({ r }: { r: Report }) {
     </>
   );
 }
+export const Lower = memo(LowerInner);
