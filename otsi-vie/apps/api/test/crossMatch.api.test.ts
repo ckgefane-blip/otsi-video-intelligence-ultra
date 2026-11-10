@@ -66,8 +66,9 @@ const seedEvent = (m: Member, s: { video: string; run: string }, ball: string, k
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0.8, 'DETECTED', ?)`,
   [uuidv7(), s.run, s.video, ball, kind, from * 1e6, to * 1e6, p, q, JSON.stringify(f)]);
 
-/** two matches, two videos: v1 (60 s, Dynamo v Ercakhu) with a goal, a plain pass, a free kick and a measured sprint;
- *  v2 (600 s, Dynamo v Sukhum) with a shot at 400 s (47th minute). Both halves CONFIRMED. */
+/** two matches, two videos: v1 (60 s, Dynamo v Ercakhu) with a shot that chains into a goal (8 s, then 9.5 s — one moment),
+ *  a plain pass, a free kick and a measured sprint; v2 (600 s, Dynamo v Sukhum) with a shot at 400 s (47th minute).
+ *  Both halves CONFIRMED. */
 async function seedTwoMatches(m: Member) {
   const project = uuidv7();
   await root.query("INSERT INTO projects (id, organization_id, name, created_by) VALUES (?, ?, 'P', ?)", [project, m.orgId, m.userId]);
@@ -94,6 +95,8 @@ async function seedTwoMatches(m: Member) {
   await root.query("INSERT INTO pitch_calibrations (id, video_id, start_pts_us, end_pts_us, transform_matrix, pitch_length_m, pitch_width_m, quality_score) VALUES (?, ?, 0, 60000000, ?, 105, 68, 0.9)",
     [uuidv7(), v1.video, JSON.stringify([[1 / 105, 0, 0.5], [0, 1 / 68, 0.5], [0, 0, 1]])]);
   const ball1 = await seedBall(m, v1), ball2 = await seedBall(m, v2);
+  // the shot 1.5 s before the goal: the two events merge into one chain moment ("Shot → Goal"), window 5–18 s (v2.1 timing)
+  await seedEvent(m, v1, ball1, "SHOT", 8, 9, v1.tracks[0]!, null);
   await seedEvent(m, v1, ball1, "GOAL", 9.5, 15.5, v1.tracks[0]!, null);
   await seedEvent(m, v1, ball1, "PASS", 30, 31, v1.tracks[0]!, v1.tracks[1]!);
   await seedEvent(m, v1, ball1, "SET_PIECE", 50, 56, v1.tracks[0]!, null, { kind: "FREE_KICK" });
@@ -122,10 +125,14 @@ describe("cross-match selection (ADR-131)", () => {
   it("selects top-down across matches, with match + minute + reason on each moment", async () => {
     const s = await seedTwoMatches(a);
     const sel = (await call(a, "GET", `/v1/players/${s.player}/cross-match-moments`)).body;
-    expect(sel).toMatchObject({ rule_version: 1, length_s: 180, total_s: 28, per_match_counts: { [s.v1.video]: 2, [s.v2.video]: 1 } });
+    expect(sel).toMatchObject({ rule_version: "2.1", length_s: 180, total_s: 28, per_match_counts: { [s.v1.video]: 2, [s.v2.video]: 1 } });
     expect(sel.selected.map((m: { tier: string; reason: string }) => [m.tier, m.reason])).toEqual([
-      ["S", "Goal"], ["A", "Shot"], ["B", "Sprint — 28 km/h"]]);
-    expect(sel.selected[0]).toMatchObject({ video_id: s.v1.video, match_minute: 1, opponent: "FC Ercakhu", events: ["GOAL"] });
+      ["S", "Shot → Goal"], ["A", "Shot"], ["B", "Sprint — 28 km/h"]]);
+    expect(sel.selected[0]).toMatchObject({ video_id: s.v1.video, match_minute: 1, opponent: "FC Ercakhu", events: ["GOAL", "SHOT"],
+      is_chain: true, sequence_label: "Shot → Goal" });
+    // v2.1 windows: the chain 5–18 s (13 s), the shot 397–403.5 s (6.5 s), the sprint 38–46.5 s (8.5 s)
+    expect(sel.selected.map((m: { in_pts_us: number; out_pts_us: number }) => [m.in_pts_us, m.out_pts_us])).toEqual([
+      [5_000_000, 18_000_000], [397_000_000, 403_500_000], [38_000_000, 46_500_000]]);
     expect(sel.selected[1]).toMatchObject({ video_id: s.v2.video, match_minute: 47, opponent: "FC Sukhum", events: ["SHOT"] });
     expect(sel.selected[2]).toMatchObject({ video_id: s.v1.video, sprint: { top_kmh: 28, match_top_speed_kmh: 28 } });
     expect(sel.not_selected.map((x: { reason: string }) => x.reason)).toEqual(["not a best moment", "not a best moment"]);
@@ -152,13 +159,13 @@ describe("cross-match reels (ADR-131)", () => {
   it("creates with the selection's clips in tier order, each with its video and label", async () => {
     const s = await seedTwoMatches(a);
     const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: s.player })).body;
-    expect(reel).toMatchObject({ source: "ALL_MATCHES", video_id: null, cross_match_length_s: 180, best_moments_rule_version: 1,
+    expect(reel).toMatchObject({ source: "ALL_MATCHES", video_id: null, cross_match_length_s: 180, best_moments_rule_version: "2.1",
       name: "Cross Player — best moments (all matches)", match: null, player_roster: null, player_club: "FC Dynamo" });
     expect(reel.targets).toHaveLength(2);
     expect(reel.clips.map((c: { source_video_id: string; label: string }) => [c.source_video_id, c.label])).toEqual([
-      [s.v1.video, "Goal — 1' vs FC Ercakhu"], [s.v2.video, "Shot — 47' vs FC Sukhum"], [s.v1.video, "Sprint — 28 km/h — 1' vs FC Ercakhu"]]);
+      [s.v1.video, "[Tier S] Shot → Goal · 1' vs FC Ercakhu"], [s.v2.video, "[Tier A] Shot · 47' vs FC Sukhum"], [s.v1.video, "[Tier B] Sprint — 28 km/h · 1' vs FC Ercakhu"]]);
     const [row] = await root.query<RowDataPacket[]>("SELECT source, cross_match_length_s, best_moments_rule_version, video_id FROM reel_projects WHERE id = ?", [reel.id]);
-    expect(row[0]).toMatchObject({ source: "ALL_MATCHES", cross_match_length_s: 180, best_moments_rule_version: 1, video_id: null });
+    expect(row[0]).toMatchObject({ source: "ALL_MATCHES", cross_match_length_s: 180, best_moments_rule_version: "2.1", video_id: null });
     const got = (await call(a, "GET", `/v1/reels/${reel.id}`)).body;
     expect(got).toMatchObject({ source: "ALL_MATCHES", video_id: null });
     const moments = (await call(a, "GET", `/v1/reels/${reel.id}/moments`)).body;
@@ -184,27 +191,52 @@ describe("cross-match reels (ADR-131)", () => {
     expect(added.clips.map((c: { source_video_id: string }) => c.source_video_id)).toEqual([s.v1.video, s.v1.video, s.v2.video]);
   });
 
-  it("adds a clip per video, and refuses a clip with no video or no confirmed track", async () => {
+  it("adds a clip per video, and refuses a clip with no video, no confirmed track, or no best moment", async () => {
     const s = await seedTwoMatches(a);
     const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: s.player })).body;
     expect((await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 1_000_000, out_pts_us: 5_000_000 })).body.code).toBe("NO_SOURCE_VIDEO");
-    const added = (await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 1_000_000, out_pts_us: 5_000_000, source_video_id: s.v2.video })).body;
+    // v2.1: a pin must hold the decisive touch of a tier-assigned moment — 1–5 s of v2 holds nothing (the shot is at 400 s)
+    expect((await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 1_000_000, out_pts_us: 5_000_000, source_video_id: s.v2.video })).body.code).toBe("INELIGIBLE_MOMENT");
+    const added = (await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 397_000_000, out_pts_us: 404_000_000, source_video_id: s.v2.video })).body;
     expect(added.clips.at(-1)).toMatchObject({ source_video_id: s.v2.video });
     const v3 = await seedVideo(a, s.project, null, 60_000_000, [], [30], 30_000_000, 30_000_000);
     expect((await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 1_000_000, out_pts_us: 5_000_000, source_video_id: v3.video })).body.code).toBe("NO_CONFIRMED_TRACKS");
     expect((await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 1_000_000, out_pts_us: 5_000_000, source_video_id: uuidv7() })).status).toBe(404);
   });
 
+  it("refuses a pin that would break the per-match cap (Tier S immune) — a cap-blocked moment is eligible but capped", async () => {
+    // a fresh player, one video, five tackles 15 s apart: at 90 s the cap is 3 non-S moments, so two are left out
+    const player = (await createPlayer(a, "Cap Player")).body.player_id as string;
+    await register(a, player);
+    const project = uuidv7();
+    await root.query("INSERT INTO projects (id, organization_id, name, created_by) VALUES (?, ?, 'P', ?)", [project, a.orgId, a.userId]);
+    const still = [2, 3, 4, 5, 6, 80, 81, 82].map((s) => ({ s, x: 0.4 }));
+    const v = await seedVideo(a, project, null, 90_000_000, still, [15], 2_000_000, 82_000_000);
+    const ball = await seedBall(a, v);
+    for (const at of [10, 25, 40, 55, 70]) {
+      // a tackle is a POSSESSION_CHANGE the player won, with a TACKLE row at the same start (ADR-041)
+      await seedEvent(a, v, ball, "TACKLE", at, at + 1, v.tracks[0]!, null);
+      await seedEvent(a, v, ball, "POSSESSION_CHANGE", at, at + 1, v.tracks[1]!, v.tracks[0]!);
+    }
+    await confirm(a, v.tracks[0]!, player);
+    const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: player, length_s: 90 })).body;
+    expect(reel.clips).toHaveLength(3);
+    const sel = (await call(a, "GET", `/v1/players/${player}/cross-match-moments?length_s=90`)).body;
+    expect(sel.not_selected.map((x: { reason: string }) => x.reason)).toEqual(["per-match cap reached", "per-match cap reached"]);
+    // the tackle at 55 s (window 52–58.5 s) IS a best moment (Tier B) — the refusal is the cap, not eligibility
+    expect((await call(a, "POST", `/v1/reels/${reel.id}/clips`, { in_pts_us: 52_000_000, out_pts_us: 58_500_000, source_video_id: v.video })).body.code).toBe("PER_MATCH_CAP_REACHED");
+  });
+
   it("renders with the selection rule and per-clip videos in the snapshot; duplicates keep them", async () => {
     const s = await seedTwoMatches(a);
     const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: s.player })).body;
     const render = (await call(a, "POST", `/v1/reels/${reel.id}/renders`, {}, { "idempotency-key": key() })).body;
-    expect(render.config.selection).toEqual({ rule: "best-moments", version: 1, length_s: 180 });
+    expect(render.config.selection).toEqual({ rule: "best-moments", version: "2.1", length_s: 180 });
     expect(render.config.clips.map((c: { source_video_id: string }) => c.source_video_id)).toEqual([s.v1.video, s.v2.video, s.v1.video]);
     expect(render.config.overlay).toMatchObject({ home: null, away: null, competition: null, player_club: "FC Dynamo" });
     expect(render.config.profile_intro).toMatchObject({ name: "Cross Player", verified: true });
     const copy = (await call(a, "POST", `/v1/reels/${reel.id}/duplicate`, {})).body;
-    expect(copy).toMatchObject({ source: "ALL_MATCHES", cross_match_length_s: 180, best_moments_rule_version: 1 });
+    expect(copy).toMatchObject({ source: "ALL_MATCHES", cross_match_length_s: 180, best_moments_rule_version: "2.1" });
     expect(copy.clips.map((c: { source_video_id: string }) => c.source_video_id)).toEqual([s.v1.video, s.v2.video, s.v1.video]);
   });
 
@@ -213,8 +245,9 @@ describe("cross-match reels (ADR-131)", () => {
     const reel = (await call(a, "POST", "/v1/reels", { video_id: s.v1.video, player_id: s.player })).body;
     expect(reel).toMatchObject({ source: "MATCH", video_id: s.v1.video, cross_match_length_s: null, best_moments_rule_version: null });
     const moments = (await call(a, "GET", `/v1/reels/${reel.id}/moments`)).body;
-    expect(moments[0]).toMatchObject({ kind: "EVENT", events: ["GOAL"], label: "Goal" });
-    expect(moments.filter((m: { kind: string }) => m.kind === "EVENT").map((m: { events: string[] }) => m.events)).toEqual([["GOAL"], ["FREE_KICK"], ["PASS"]]);
+    // the shot 1.5 s before the goal is one moment with it (events ≤ 3 s apart merge — single-match behaviour, unchanged)
+    expect(moments[0]).toMatchObject({ kind: "EVENT", events: ["GOAL", "SHOT"], label: "Goal + shot" });
+    expect(moments.filter((m: { kind: string }) => m.kind === "EVENT").map((m: { events: string[] }) => m.events)).toEqual([["GOAL", "SHOT"], ["FREE_KICK"], ["PASS"]]);
     const afterReject = (await call(a, "POST", `/v1/reels/${reel.id}/moments/reject`, { in_pts_us: 9_500_000, out_pts_us: 15_500_000 })).body;
     expect(afterReject.find((m: { events: string[] }) => m.events.includes("GOAL")).rejected).toBe(true);
   });

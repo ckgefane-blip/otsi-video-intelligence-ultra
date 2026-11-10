@@ -1,13 +1,15 @@
 # ADR-131: Cross-match best moments — one reel from all of a player's matches (DRAFT, owner approval pending)
 
 - **Status:** Draft. This ADR records the cross-match best-moments build on `muse/ultra-main` (Build A: contracts selection, API,
-  migration 0068); it needs owner approval before it is presented as accepted. It changes no accepted ADR; it builds on ADR-016
-  (canonical OTSI Player ID), ADR-032 (reel builder and render), ADR-040–043 (events and suggested moments), ADR-044 (match
-  time), ADR-049 (possible scorer), ADR-091 (moment rejection), ADR-124 (evidence rules: unknown beats wrong) and ADR-130
-  (Player Profile Intro — the same PIN identifies the player in every match, and the intro opens the reel).
-- **Date:** 2026-11-10 (Muse, `muse/ultra-main`, base `0429d5e`)
+  migration 0068, rule v1.0; rework: rule v2.1 FINAL, contracts + API + migration 0069 + tests); it needs owner approval before
+  it is presented as accepted. It changes no accepted ADR; it builds on ADR-016 (canonical OTSI Player ID), ADR-032 (reel
+  builder and render), ADR-040–043 (events and suggested moments), ADR-044 (match time), ADR-049 (possible scorer), ADR-091
+  (moment rejection), ADR-124 (evidence rules: unknown beats wrong) and ADR-130 (Player Profile Intro — the same PIN identifies
+  the player in every match, and the intro opens the reel).
+- **Date:** 2026-11-10 (Muse, `muse/ultra-main`, base `6790009` — Build A HEAD)
 - **Decides:** the rule that picks a player's best moments across all his matches, the reel that holds them, and what the engine
-  cannot measure (dropped, never faked).
+  cannot measure (dropped, never faked). The rule is v2.1 FINAL, agreed by the owner 2026-11-10 (see §10 for the v1.0 → v2.1
+  delta, §11 for what was rejected and why).
 
 ## Context
 
@@ -15,23 +17,22 @@ Reels today are one player, one match. The owner asked (2026-11-10) for an OPTIO
 best moments from ALL uploaded videos/matches — instead of 10 reels from 10 games, ONE reel of the best moments from all 10 —
 for professional use (to be sent to clubs, academies, scouts), so it needs breadth across matches (consistency, not one big game)
 and a proper showcase length, not a 90-second social clip. All reels are for professional use: best moments are top quality,
-professionally selected. The agreed rule (owner, 2026-11-10 13:29) is implemented exactly as stated; where the engine cannot
-measure part of it, that part is dropped and recorded below — never approximated, never filled from a guess (ADR-124).
+professionally selected. The agreed rule (owner, 2026-11-10 13:29, finalised as v2.1) is implemented exactly as stated; where the
+engine cannot measure part of it, that part is dropped and recorded below — never approximated, never filled from a guess (ADR-124).
 
 ## Decision
 
 ### 1. The rule: fixed tiers, filled top-down, no weights, no judgement
 
-A moment's tier is its best event's tier. The reel fills Tier S, then A, then B, then C; inside a tier, moments go in
-chronological order, oldest match first (by kickoff date, then match minute, then media time; a match or minute not known sorts
-after the known ones). A goal always beats a key pass; a key pass always beats a dribble. The selection is the pure contracts
-function `selectCrossMatchMoments` (packages/contracts/src/cross-match.ts), shared by the API, the web builder and their tests —
-one rule, one implementation.
+A moment's tier is its best event's tier, AFTER the position promotion (§5). The reel fills Tier S, then A, then B, then C; inside
+a tier, chains first, then round-robin across matches, then chronological inside a match (§4). A goal always beats a key pass; a
+key pass always beats a dribble. The selection is the pure contracts function `selectCrossMatchMoments`
+(packages/contracts/src/cross-match.ts), shared by the API, the web builder and their tests — one rule, one implementation.
 
 | Tier | The owner's rule | What the engine measures (the implemented tier) |
 |---|---|---|
 | S | Goal, Assist | GOAL, FREE_KICK_GOAL, PENALTY_GOAL — the scoreboard changed and he was last on the ball (ADR-049, "possible scorer"); a free kick / penalty he took just before it makes it that kind of goal. Assist is dropped (see §2). |
-| A | Shot on target, Key pass (chance created), Penalty won, Goal-saving tackle or block, Save (goalkeeper) | SHOT, KEY_PASS — a PASS whose receiver shoots from the same spell (actions key_pass). The "on target" qualifier is an open gap (see §2). Penalty won, goal-saving tackle/block and Save are dropped. |
+| A | Shot on target, Key pass (chance created), Penalty won, Goal-saving tackle or block, Save (goalkeeper) | SHOT, KEY_PASS — a PASS whose receiver shoots from the same spell (actions key_pass). The "on target" qualifier is an open gap (see §2). Penalty won, goal-saving tackle/block and Save are dropped. A defender's tackle / interception is promoted here (§5). |
 | B | Successful dribble past an opponent, Through ball, Tackle won, Interception that starts an attack, Sprint at 85% or more of the player's own measured top speed in that match | TACKLE (possible), INTERCEPTION (possible), SPRINT — a measured Run whose top_kmh is >= 85% of the player's measured top speed in that match (Movement.top_speed_kmh for that video: the fastest pace held for 2 s). Dribble and through ball are dropped; "starts an attack" is not verified (see §2). |
 | C | Completed long pass / switch of play, Duel won, Clearance under pressure, Recovery | BALL_WON and PRESSURE_REGAIN (shown as "Recovery"), PASS with length_m >= 25 m (the long-pass threshold, §3). Duel won and clearance under pressure are dropped. |
 
@@ -42,17 +43,24 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
 ### 2. Everything dropped, with its reason (nothing faked)
 
 - **Assist (Tier S):** there is no ASSIST event type anywhere in the engine, and no pass-to-goal link (ADR-130 already records
-  assists as not measured). A goal he scored is Tier S; a pass that led to one is not credited as an assist.
+  assists as not measured). A goal he scored is Tier S; a pass that led to one is not credited as an assist. Assists stay
+  PROVISIONAL / INACTIVE in v2.1: no key-pass-then-goal heuristic is implemented — a heuristic would credit assists the engine
+  did not measure, and the owner agreed assists wait for a real pass-to-goal linkage (a later version, not this one).
+- **Recent Form:** stays "Not measured" — the engine has no per-match rating model, so no form ratings are ever shown (already
+  the case in the intro; no code change, recorded here so nobody invents one).
 - **Shot on target (Tier A qualifier):** the engine records shots without an on-target flag (actions shot_from counts off-target
   shots too). The implemented tier is "Shot". Adding an on-target flag is a worker measurement change, not a selection change.
 - **Penalty won:** the PENALTY moment is the set-piece taker's, not the player who won it — the engine does not record who was
   fouled. Dropped.
 - **Goal-saving tackle / block:** the engine does not judge whether a tackle or block saved a goal (no goal-probability model).
   A tackle is Tier B as a tackle (possible); no goal-saving credit is given. Dropped.
-- **Save (goalkeeper):** there is no goalkeeper-save event type. Dropped.
-- **Dribble past an opponent:** there is no dribble event type (a dribble is not a detected action). Dropped.
+- **Save (goalkeeper):** there is no goalkeeper-save event type. Dropped (and the goalkeeper promotion in §5 is dormant for the
+  same reason).
+- **Dribble past an opponent:** there is no dribble event type (a dribble is not a detected action). Dropped (and the winger
+  promotion in §5 is dormant for the same reason).
 - **Through ball:** there is no through-ball event type (a through ball is a pass with a receiver running behind the defence —
-  the engine does not classify it). A long through ball counts as a long pass when its length is >= 25 m. Dropped as its own kind.
+  the engine does not classify it). A long through ball counts as a long pass when its length is >= 25 m. Dropped as its own kind
+  (and the midfielder promotion in §5 is dormant for the same reason).
 - **Duel won, Clearance under pressure:** there is no duel or clearance event type. Dropped.
 - **"Interception that starts an attack":** the engine records INTERCEPTION only as a "possible" kind on a possession change
   (~50% by eye on wide footage, labelled "interception (possible)"), and does not verify that an attack followed. The implemented
@@ -68,16 +76,31 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
 - **Sprint: a Run with top_kmh >= 85% of the player's measured top speed in that match.** Runs and top speed come from his
   measured pitch positions (positionsOf + movementOf, only where the pitch is calibrated): a Run is consecutive one-second steps
   at high speed, top_kmh its fastest step; the match top speed is Movement.top_speed_kmh (fastest pace held for 2 s, so one
-  glitch cannot set it). The sprint candidate's window is the run padded like an event moment (4 s before, 5 s after, capped at
-  the video). A sprint with no measured top speed for the match is not selected ("top speed not measured").
+  glitch cannot set it). The sprint candidate's window is 3.0 s before the run to 2.5 s after it, clamped 4–12 s like an event
+  moment (§4). A sprint with no measured top speed for the match is not selected ("top speed not measured").
 
 ### 4. Length, caps, order, and the fill
 
 - **Lengths:** the person chooses 90 seconds, 3 minutes (default) or 5 minutes. **5 minutes is a solid cap, never exceeded** —
   the fill only takes a candidate that fits entirely within the remaining length, and a selection at length_s=300 never exceeds
   300 s.
-- **Moments caps:** about 12 / 20 / 30 moments for 90 s / 3 min / 5 min (CROSS_MATCH_MOMENT_CAPS). **At most 4 moments from any
-  single match**, however good it was — breadth across matches is the point.
+- **Moments caps:** about 12 / 20 / 30 moments for 90 s / 3 min / 5 min (CROSS_MATCH_MOMENT_CAPS). **Per-match cap, v2.1:** at
+  most 3 / 4 / 5 NON-Tier-S moments from any single match, for 90 s / 3 min / 5 min (CROSS_MATCH_PER_MATCH_CAPS) — breadth
+  across matches is the point, and a longer reel may take more from one match. **Tier S is IMMUNE: a hat-trick all makes the
+  reel, never discarded by a cap** — S moments never count toward the cap and are never blocked by it.
+- **Clip timing (v2.1, fixed and deterministic):** in-point 3.0 s before the decisive touch, out-point 2.5 s after the
+  action/outcome; clips clamped to 4 s minimum / 12 s maximum. Precisely: in = first event's start − 3.0 s, out = last event's
+  end + 2.5 s (for a sprint: the run's start / end); if out − in > 12 s, in = out − 12 s (keep the decisive end); if out − in
+  < 4 s, out = in + 4 s; then in ≥ 0 and out ≤ video duration (if out hits the duration cap, in shifts earlier where possible
+  to keep the 4 s minimum). The windows are built from each event's own span (start/end from its row), never from the
+  single-match moment's `a`/`b` — those carry the old 4 s / 5 s buffers plus the possession-spell extension, which is
+  ball-following timing and must not affect cross-match windows. No ball-clock / "until reception" out-point: fixed buffers only.
+- **The fill, inside a tier (v2.1):** (a) chains first, then (b) round-robin across matches — one moment from each match before
+  a second from any match — then (c) chronological (oldest match first, then minute). Round-robin: matches sorted by kickoff
+  date, oldest first (ties → video_id for determinism); round 1 takes the earliest chronological candidate of each match, round
+  2 the next earliest of each, and so on; inside a match, candidates are chronological (minute, then media time). Pure
+  chronological within a tier (v1.0) was WRONG: it let one early match fill the reel before a late-season match got in. This
+  guarantees late-season matches get in.
 - **The fill ends deterministically:** the first candidate that does not fit entirely within the remaining length ends the fill;
   later candidates are listed as not selected with reason "length cap reached", even a shorter one that would have fitted. A
   candidate beyond the per-match cap is listed as "per-match cap reached" and does NOT end the fill. Reaching the moments cap
@@ -85,14 +108,46 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
 - **Fewer than 3 eligible moments:** build with what's there — no filler, no padding. (A reel with no moments at all is created
   empty, like a single-match reel before moments exist; rendering still refuses an empty reel.)
 - **Order in the reel:** the Player Profile Intro first (ADR-130, settings default profile_intro true), then the selected clips
-  in tier order (S, then A, B, C), chronological within a tier. Every clip is labelled with match, minute and reason
-  ("Goal — 67' vs Ercakhu").
+  in tier order (S, then A, B, C), chains first inside a tier, round-robin across matches. Every clip is labelled broadcast
+  lower-third style: "[Tier S] Goal · 67' vs Ercakhu" (§4, labels).
+- **Labels (v2.1):** `[Tier {S|A|B|C}] {reason} · {minute}' vs {opponent}`; for a chain the reason is the sequence label:
+  "[Tier B] Tackle (possible) → Key pass · 67' vs Ercakhu", where the tier is the chain's tier (best action, after promotion).
 - **The minute is never invented:** the match minute is used only when the video's match halves are CONFIRMED (ADR-044),
   computed from the confirmed half windows and clamped to 45 / 90 like a broadcast clock (stoppage time is not modelled: a
-  moment in first-half stoppage reads 45'). Otherwise the label uses media time ("Goal — 12:34 vs Ercakhu"). The opponent is
-  the club that is not the player's in that match's team sheet; where it is not known the label falls back to the video title.
+  moment in first-half stoppage reads 45'). Otherwise the label uses media time ("[Tier S] Goal · 12:34 vs Ercakhu"). The
+  opponent is the club that is not the player's in that match's team sheet; where it is not known the label falls back to the
+  video title.
 
-### 5. Evidence (ADR-124): only measured moments count
+### 5. Position promotion (v2.1): one lift per line, applied before the best-tier is computed
+
+The player's line comes from the existing POSITION_LINES map (packages/contracts/src/playerreport.ts): the API supplies it the
+same way playerreport.ts does (latest team position first, then the recorded usual position); unknown / null position → no
+promotion. The promotion lifts ONE action per line to Tier A, applied to an event's tier BEFORE the moment's best-tier is
+computed — so a defender's tackle in a chain with a key pass still leaves the chain Tier A, and a defender's lone tackle is
+Tier A on its own.
+
+| Line | Promotion | Live or dormant |
+|---|---|---|
+| Defender (DEF) | Tackle won and interception move up to Tier A | **LIVE** — TACKLE and INTERCEPTION are both measured (as "possible"). |
+| Midfielder (MID) | Through ball moves up to Tier A | **DORMANT** — there is no through-ball event type (§2). The promotion exists in the table so it works the day the worker measures through balls; today it has nothing to promote. |
+| Winger / Forward (FWD) | Successful 1v1 take-on moves up to Tier A | **DORMANT** — there is no dribble / take-on event type (§2). Same: in the table, nothing to promote until the worker measures take-ons. |
+| Goalkeeper (GK) | Save stays Tier A | **DORMANT** — there is no save event type (§2). A save would be Tier A anyway; the row records the intent, not a working promotion. |
+
+A promotion never demotes: it only wins when it is a better tier than the event's base tier. It does not apply to sprints.
+
+### 6. Chains (v2.1): one sequence, one clip
+
+Actions by the same player linked in one sequence merge into ONE clip when consecutive touches are within 3 seconds of each other
+(same passage of play). The existing moment builder (eventMomentsForVideo) already merges events ≤ 3 s apart into one moment
+(EVENT_JOIN_US) — those merged groups ARE the chains. A chain is a candidate with ≥ 2 events; a single action has 1 event. A
+chain ranks by its best action's tier (after promotion), and inside a tier a chain outranks a single action. The candidate
+carries its events in TIME order (the per-event spans) so the chain label is built from time order: the label is the distinct
+event kinds in time order joined with " → ", using the existing reason words — e.g. "Tackle (possible) → Key pass" (ADR-124
+honesty beats style: "(possible)" stays). The selection exposes, per selected candidate, `is_chain` and `sequence_label`, so the
+API and the UI can show the sequence. A chain's clip window is the chain's own: 3.0 s before its first event's start to 2.5 s
+after its last event's end, clamped 4–12 s (§4).
+
+### 7. Evidence (ADR-124): only measured moments count
 
 - A moment belongs to a player only through confirmed tracks (v_track_current_identity state='CONFIRMED'), per video. A video
   where he has no confirmed track, or no SUCCEEDED ball track, contributes nothing — the same rule as single-match moments.
@@ -103,19 +158,27 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
   candidate overlapping an already-selected event moment in the same video is dropped ("overlaps a selected moment") — a sprint
   that is the run-up to a goal is that goal's moment, not a second clip. (Edge, recorded: an event moment selected after a sprint
   it overlaps is kept as well — the rule only drops the sprint. Overlapping clips are legal in a reel.)
-- **Manual override stays:** the person can pin a moment in (add a clip) or take one out (reject a moment per video, or remove a
-  clip), but the rule is the default and never changes under them. A rejected moment is listed last as "rejected for this reel"
-  (as single-match moments list rejected ones), and "add all moments" adds the selected ones not yet in the reel, in tier order,
-  never past the length cap (a moment that does not fit is skipped, as single-match add-moments does).
+- **Manual override stays, with eligibility enforced (v2.1):** the person can pin a moment in (add a clip) or take one out
+  (reject a moment per video, or remove a clip), but the rule is the default and never changes under them. A rejected moment is
+  listed last as "rejected for this reel" (as single-match moments list rejected ones), and "add all moments" adds the selected
+  ones not yet in the reel, in tier order, never past the length cap (a moment that does not fit is skipped, as single-match
+  add-moments does). **A manual pin must be a best moment:** POST /v1/reels/:id/clips on a cross-match reel refuses a window
+  that matches no eligible candidate — i.e. the window holds no tier-assigned candidate's decisive touch (key_at_us) — with a
+  named 409 INELIGIBLE_MOMENT. A VISIBLE stretch, a set piece, a plain short pass or any other ineligible moment cannot be
+  pinned. **The per-match cap is enforced on a manual pin too** (Tier S immune, as in the selection; 409 PER_MATCH_CAP_REACHED),
+  and the length cap is enforced as before (422 REEL_TOO_LONG). Caps still apply on a manual pin; ineligible moments still
+  cannot be pinned. Single-match addClip behaviour is unchanged.
 
-### 6. Versioning
+### 8. Versioning
 
-- The rule is version 1 (`BEST_MOMENTS_RULE_VERSION = 1`). The version is written into the reel at creation
-  (`best_moments_rule_version`) and into the render snapshot (`selection: { rule: "best-moments", version: 1, length_s }`).
-  Old reels keep the version they were built with, so a reel is always reproducible; the rule never changes under a reel. The
-  worker stamps the version into the render manifest and the .otsi-reel in Build B (see §9).
+- The rule is version "2.1" (`BEST_MOMENTS_RULE_VERSION = "2.1"`, a string — rule versions are dotted releases now). The version
+  is written into the reel at creation (`best_moments_rule_version`, VARCHAR(16) since migration 0069 — migration 0068 made it
+  INT; 0069 converts it, backfilling defensively: existing NULL stays NULL, any integer becomes its string form; no cross-match
+  reels exist yet) and into the render snapshot (`selection: { rule: "best-moments", version: "2.1", length_s }`). Old reels
+  keep the version they were built with, so a reel is always reproducible; the rule never changes under a reel. The worker stamps
+  the version into the render manifest and the .otsi-reel in Build B (see §13).
 
-### 7. Schema and API design
+### 9. Schema and API design
 
 - **Migration 0068:** `reel_projects` gains `source ENUM('MATCH','ALL_MATCHES') NOT NULL DEFAULT 'MATCH'`,
   `cross_match_length_s INT NULL`, `best_moments_rule_version INT NULL`, and `video_id` becomes NULLABLE, with a CHECK that a
@@ -124,43 +187,83 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
   `reel_moment_rejections` gains `video_id CHAR(36) NULL` so a rejection is per video. Known edge: the table's key is still
   (reel_id, in_pts_us), so two videos of one cross-match reel rejecting a moment at the exact same microsecond share one row —
   improbable (windows start at an event's second), and the API always filters rejections by video_id where one is recorded.
+- **Migration 0069 (v2.1):** `reel_projects.best_moments_rule_version` INT → VARCHAR(16), with a defensive backfill (NULL stays
+  NULL; any integer becomes its string form). The 0068 CHECK is untouched (it only requires the version to be NOT NULL on an
+  ALL_MATCHES reel).
 - **A cross-match reel pins targets across ALL the player's videos** (reel_targets rows for every confirmed track, every video)
   and stores the selection's chosen clips, each with its real source_video_id, in tier order (sequence_index in that order),
-  origin SUGGESTED, label match + minute + reason. It lives in the project of his most recent analysed video (project_id has to
-  be one project; the latest video's is the most current). `run_id` is NULL: there is no single run.
+  origin SUGGESTED, label match + minute + reason (v2.1 label format). It lives in the project of his most recent analysed video
+  (project_id has to be one project; the latest video's is the most current). `run_id` is NULL: there is no single run.
 - **`GET /v1/players/:id/cross-match-moments?length_s=180`** (only 90/180/300): gathers his EVENT moments across all his
   analysed videos (confirmed tracks per video; latest SUCCEEDED ball track per video) plus sprint moments per video, applies the
-  selection, and returns it with match labels and per-match counts. No reel is needed to see the selection.
+  selection (with his position group, for the promotion), and returns it with match labels and per-match counts. No reel is
+  needed to see the selection. Selected moments carry `is_chain` and `sequence_label`.
 - **`POST /v1/reels`** accepts `source: "ALL_MATCHES"` + `length_s` (default 180) with NO video_id (`video_id` stays required
   for source MATCH). Name defaults to "{display name} — best moments (all matches)".
 - **`GET /v1/reels/:id`** returns `source`, `video_id` (null for cross-match), `cross_match_length_s` and
-  `best_moments_rule_version` (null for single-match); clips include `source_video_id`. For a cross-match reel `match` is null
-  (no single match — the match card cannot represent 10 matches) and `player_roster` is null, falling back to the player's latest
-  team exactly as the web already does (PreviewPanel: player_roster ?? profile.latest_team). Nothing else in the single-match
-  response changes.
+  `best_moments_rule_version` (a string, "2.1"; null for single-match); clips include `source_video_id`. For a cross-match reel
+  `match` is null (no single match — the match card cannot represent 10 matches) and `player_roster` is null, falling back to
+  the player's latest team exactly as the web already does (PreviewPanel: player_roster ?? profile.latest_team). Nothing else in
+  the single-match response changes.
 - **`GET /v1/reels/:id/moments`** for a cross-match reel returns the selection for the reel's stored length (selected +
   not selected with reasons, in_reel marked from the reel's clips). Single-match reels return ReelMoment[], as today.
 - **`POST /v1/reels/:id/clips`** accepts `source_video_id` (required for a cross-match reel, defaulting to the reel's video for
   a single-match reel); the clip is validated against THAT video's duration, the player must have confirmed tracks in it (for a
   cross-match reel), and adding it must not take the reel past its length cap (cross-match: the reel's length_s; single-match:
-  10 minutes as today). Trims, swaps and speed effects use the same per-clip video and cap.
+  10 minutes as today). For a cross-match reel the clip must also be an eligible best moment (409 INELIGIBLE_MOMENT) and must
+  not break the per-match cap (409 PER_MATCH_CAP_REACHED, Tier S immune). Trims, swaps and speed effects use the same per-clip
+  video and cap.
 - **`POST /v1/reels/:id/clips/add-moments`** for a cross-match reel adds every SELECTED moment not yet in the reel, in tier
   order, stopping at the length cap. **`POST /v1/reels/:id/moments/reject|restore`** accept `video_id` so a cross-match moment
   is rejected per video.
-- **`startRender()`:** the snapshot gains `selection: { rule: "best-moments", version: 1, length_s }` for cross-match reels, and
-  every snapshot clip gains `source_video_id` (single-match clips get the reel's video id, as today). The overlay's match facts
-  are null for a cross-match reel; club, shirt number and position fall back to his latest team. The intro opens it exactly as
-  a single-match reel.
+- **`startRender()`:** the snapshot gains `selection: { rule: "best-moments", version: "2.1", length_s }` for cross-match reels,
+  and every snapshot clip gains `source_video_id` (single-match clips get the reel's video id, as today). The overlay's match
+  facts are null for a cross-match reel; club, shirt number and position fall back to his latest team. The intro opens it exactly
+  as a single-match reel.
 - **`duplicate()`** copies source, length_s, rule version and per-clip source_video_id. **`refreshTargets()`** re-pins targets
   across all his videos. **`path()`** cannot return one video's path for a cross-match reel: it returns an empty path with
   stale=false (Build B fetches paths per clip video another way).
 - **Single-match ranking is untouched:** EVENT_SCORE still ranks single-match suggestions, and `moments()` (both modes) honours
   rejections. The tier rule is the selection standard for reels generally — a future step could rank single-match suggestions
   by tier too, but this build does not change them. The per-video event builder moved to cross-match.ts with its ranking
-  intact; the reel-based wrapper over it is unchanged in behaviour (verified by the existing reels tests plus a single-match
-  regression test in crossMatch.api.test.ts).
+  intact (v2.1 adds the per-event spans it now carries; single-match windows still use `a`/`b`); the reel-based wrapper over
+  it is unchanged in behaviour (verified by the existing reels tests plus a single-match regression test in
+  crossMatch.api.test.ts).
 
-### 8. What stays single-video (deliberately not in this build)
+### 10. v1.0 → v2.1 delta (what the rework changed)
+
+| Area | v1.0 (Build A) | v2.1 FINAL |
+|---|---|---|
+| Chains | Merged groups existed but were not named or ranked: a chain was treated like any moment | Chains are named (`is_chain`, `sequence_label` from time-ordered spans), rank by their best action's tier, and outrank a single action inside a tier |
+| Clip timing | Single-match timing reused: 4 s before / 5 s after, plus the possession-spell extension | Fixed, deterministic: 3.0 s in / 2.5 s out from the events' own spans, clamped 4–12 s; spell extension never affects cross-match windows; same for sprints |
+| Per-match cap | Fixed 4, every tier counted | 3 / 4 / 5 by length (90 s / 3 min / 5 min); Tier S immune, never counts toward it |
+| Intra-tier order | Pure chronological (oldest match first) | Chains first, then round-robin across matches, then chronological inside a match |
+| Position promotion | None | One lift to Tier A per line (DEF live; MID / FWD / GK dormant — §5) |
+| Labels | "Goal — 67' vs Ercakhu" | Broadcast lower-third: "[Tier S] Goal · 67' vs Ercakhu"; chains show the sequence |
+| Manual pin | Any window in a confirmed video (length cap only) | Must be a tier-assigned moment (409 INELIGIBLE_MOMENT) and respect the per-match cap (409 PER_MATCH_CAP_REACHED) |
+| Version | Number `1` (INT column) | String `"2.1"` (VARCHAR(16), migration 0069) |
+| Assists / Recent Form | Dropped / not measured (recorded in v1.0) | Unchanged, restated explicitly: assists stay provisional/inactive (no heuristic), Recent Form stays "Not measured" |
+
+Everything else from v1.0 stands unchanged: tiers S/A/B/C with the v1.0 measured tier map, the 25 m long pass, the 85% sprint,
+eligibility (measured only, verified identity only, dedupe, rights valid), lengths 90 s / 3 min (default) / 5 min with the solid
+5-minute cap, moments caps ~12 / ~20 / ~30, no filler under 3 moments, Profile Intro first, best-first order, manual pin/remove
+override, first-non-fitting-ends-fill, and the add-moments skip-vs-stop edge (add-moments skips a moment that does not fit,
+mirroring single-match behaviour).
+
+### 11. Rejected in v2.1, with reasons (not deferred — decided against)
+
+- **Numeric point scores:** invented precision. The tiers deliberately have no points — a goal beats a key pass by tier, not by
+  10 points to 4. Scores would let a pile of small moments outrank a goal, which is not the owner's rule.
+- **The 10-minute reel option:** breaks the 5-minute solid cap the owner set (5 minutes maximum, never exceeded). Lengths stay
+  90 s / 3 min / 5 min.
+- **Ball-clock out-point timing / "until reception":** implementation risk — an out-point that follows the ball until the next
+  reception depends on tracking the ball through the outcome, which is the least reliable part of the pipeline on wide footage.
+  Fixed 3.0 s / 2.5 s buffers instead: deterministic, reproducible, and the same for every clip.
+- **"Quality" sub-ranking inside a tier:** under-specified — nobody could say what makes one goal better than another without
+  inventing a judgement the owner did not ask for. Round-robin across matches replaces it: inside a tier, breadth across
+  matches is the order, not a quality guess.
+
+### 12. What stays single-video (deliberately not in this build)
 
 - **Blocks** (blocks.ts, BLOCK_OTHER_VIDEO unchanged): a saved block holds clips of one video, so cross-match clips cannot be
   saved as blocks yet, and a block cannot be inserted into a cross-match reel (named 409).
@@ -176,34 +279,44 @@ selection uses EVENT moments only, never VISIBLE — a stretch where he is on ca
   single-match paths are byte-identical in behaviour.
 - The selection is reproducible from the rule version and the length stamped on the reel; the snapshot carries both, so the
   worker (Build B) needs nothing else to render the same reel.
-- The tier rule's gaps are visible, not hidden: SHOT has no on-target flag, TACKLE/INTERCEPTION are "possible", and eight of
-  the owner's kinds are not measured at all. Any of those becoming measured is a worker measurement change; the tier map then
-  gains a row and the rule version goes to 2.
+- The tier rule's gaps are visible, not hidden: SHOT has no on-target flag, TACKLE/INTERCEPTION are "possible", three of the four
+  position promotions are dormant, assists are provisional and Recent Form is not measured, and eight of the owner's kinds are
+  not measured at all. Any of those becoming measured is a worker measurement change; the tier map then gains a row and the rule
+  version moves on from "2.1".
+- A manual pin can no longer smuggle an ineligible moment into a cross-match reel: eligibility and the per-match cap are
+  enforced in the API, not left to the UI.
 
 ## Build B still to do
 
 - **Worker multi-source render:** read the snapshot's `selection` and per-clip `source_video_id`, render clips from their own
-  videos (spotlight per clip video), skip or adapt the match card (its facts are null), stamp the rule version and length into
-  the render manifest and the .otsi-reel, and count the intro's lead like today.
+  videos (spotlight per clip video), skip or adapt the match card (its facts are null), stamp the rule version ("2.1") and
+  length into the render manifest and the .otsi-reel, and count the intro's lead like today.
 - **Reel Builder UI:** the Player Profile step (already the intro's preview), the cross-match selection view (selected + not
-  selected with reasons, swap one in by hand), per-clip source video and preview/path per clip video, the length picker
-  (90 s / 3 min / 5 min, default 3 min), and the cross-match creation flow (no video picker).
+  selected with reasons, swap one in by hand — chains shown with their sequence label, labels in the "[Tier S] …" format), per-clip
+  source video and preview/path per clip video, the length picker (90 s / 3 min / 5 min, default 3 min), and the cross-match
+  creation flow (no video picker).
 - **Web fallout from this build:** `Reel.video_id` is now nullable and `ReelClip` carries `source_video_id`, so the Reel
   Builder, PreviewPanel, Export preflight and Clip Studio components that read `reel.video_id` need their null handling
-  (Build B owns those; the API and contracts are done).
+  (Build B owns those; the API and contracts are done). The 6 web type errors Build A left (nullable video_id fallout) stay
+  Build B's scope — the v2.1 rework added no new web errors.
 - **Follow-up (not Build B):** a cross-match .otsi-reel export manifest; an on-target flag for shots; a per-match rating model
-  for Recent Form (ADR-130); measuring dribbles, through balls, duels, clearances, saves and assists.
+  for Recent Form (ADR-130); measuring dribbles, through balls, duels, clearances, saves and assists (which would wake the
+  dormant promotions in §5 and move the rule version on from "2.1").
 
 ## Verification
 
-- Contracts build clean (`pnpm build` in `packages/contracts`); web contracts tests 14/14 pass
-  (`apps/web/test/crossMatch.test.ts`: every tier, the 25 m / 85% boundaries, fill order, chronological-within-tier,
-  per-match cap 4, moments caps 12/20/30, the 5-minute solid cap, first-non-fitting ends the fill, dedupe, fewer than 3,
-  excluded kinds, labels).
-- API typecheck clean apart from 4 pre-existing errors in files this change does not touch (`pressing.ts` sliceFor,
+- Contracts build clean (`./node_modules/.bin/tsc -p tsconfig.json` in `packages/contracts` — pnpm is not on PATH here, so the
+  repo's local binaries are used); web contracts tests 24/24 pass (`apps/web/test/crossMatch.test.ts`: every tier, the 25 m /
+  85% boundaries, fill order, round-robin within a tier, chains (outranking + labels), timing (3.0 s / 2.5 s buffers, 4 s / 12 s
+  clamps), per-match caps 3/4/5, Tier S immunity (a hat-trick and one more at 90 s), moments caps 12/20/30, the 5-minute solid
+  cap, first-non-fitting ends the fill, dedupe, fewer than 3, excluded kinds, the Defender promotion, the dormant promotions,
+  labels, version "2.1").
+- API typecheck clean apart from the same 4 pre-existing errors in files this change does not touch (`pressing.ts` sliceFor,
   `exports.ts:211`, `test/events.api.test.ts`, `test/load.api.test.ts`).
 - API tests for the cross-match endpoints live in `apps/api/test/crossMatch.api.test.ts` (run on the owner's host: they need
-  MySQL) — selection across two matches, labels, sprint from measured positions, reel creation, reject/restore per video,
-  add-moments, add-clip per video, render snapshot, duplicate, and the single-match regression.
-- Not verified here: a live render of a cross-match reel (no GPU/OpenVINO/weights/footage in this workspace) or a click-through
-  of the builder (no running engine here) — visual confirmation on the owner's host is the honest last step, as with every UI pass.
+  MySQL) — selection across two matches (chain, labels, sprint from measured positions, v2.1 windows), reel creation, reject/
+  restore per video, add-moments, add-clip per video (eligible pin, INELIGIBLE_MOMENT, PER_MATCH_CAP_REACHED), render snapshot
+  (version "2.1"), duplicate, and the single-match regression.
+- Not verified here: a live render of a cross-match reel (no GPU/OpenVINO/weights/footage in this workspace), the API tests
+  themselves (no MySQL here — they run on the owner's host), or a click-through of the builder (no running engine here) —
+  visual confirmation on the owner's host is the honest last step, as with every UI pass.
