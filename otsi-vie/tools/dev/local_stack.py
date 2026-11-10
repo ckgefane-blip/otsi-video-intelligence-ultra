@@ -1,6 +1,7 @@
 """Run OTSI VIE v2 for real on this machine (ADR-020, ADR-021).
 
   python otsi-vie/tools/dev/local_stack.py run                     # prepare (first time) and start API + outbox worker + web app
+  python otsi-vie/tools/dev/local_stack.py run --mysql portable   # same, but MySQL runs from a downloaded portable server (no Docker)
   python otsi-vie/tools/dev/local_stack.py bootstrap-owner --email you@example.com --name "Your Name" --organization "Your Club"
   python otsi-vie/tools/dev/local_stack.py status
   python otsi-vie/tools/dev/local_stack.py dev                     # development: web app with hot module replacement (next dev), API
@@ -71,8 +72,16 @@ def sh(cmd: list[str], check: bool = True, **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, check=check, **kw)
 
 
-def owner_db_up() -> str:
+def owner_db_up(mysql_mode: str = "docker") -> str:
     """Start (or create) the persistent MySQL container for the real workspace; returns its root password."""
+    if mysql_mode == "portable":
+        import portable_mysql  # same directory as this file; only used in portable mode
+        pw_file = LOCAL / "mysql-portable.env"  # separate file from Docker's mysql-owner.env
+        if not pw_file.exists():
+            write_secret(pw_file, f"MYSQL_ROOT_PASSWORD={secrets.token_urlsafe(24)}\n")
+        pw = env_file(pw_file)["MYSQL_ROOT_PASSWORD"]
+        portable_mysql.ensure_running(ROOT, pw)
+        return pw
     secrets_file = LOCAL / "mysql-owner.env"
     if not secrets_file.exists():
         write_secret(secrets_file, f"MYSQL_ROOT_PASSWORD={secrets.token_urlsafe(24)}\n")
@@ -104,11 +113,11 @@ def stack_dir(name: str) -> Path:
     return LOCAL / "stack" / name
 
 
-def prepare(name: str) -> dict[str, str]:
+def prepare(name: str, mysql_mode: str = "docker") -> dict[str, str]:
     """Create (once) and migrate the stack's database, roles, runtime account and signing key; returns the process environment."""
     owner = name == "owner"
     if owner:
-        port, db, root_pw = OWNER_PORT, OWNER_DB, owner_db_up()
+        port, db, root_pw = OWNER_PORT, OWNER_DB, owner_db_up(mysql_mode)
     else:
         port, db, root_pw = TEST_PORT, f"vie_{name.replace('-', '_')}", test_root_password()
     assert port != 3306
@@ -180,8 +189,8 @@ def pump(prefix: str, stream) -> None:
         sys.stdout.flush()
 
 
-def run(name: str, build: bool, public_origin: str | None = None) -> None:
-    env = {**os.environ, **prepare(name), "NEXT_TELEMETRY_DISABLED": "1", "NODE_ENV": "production"}
+def run(name: str, build: bool, public_origin: str | None = None, mysql_mode: str = "docker") -> None:
+    env = {**os.environ, **prepare(name, mysql_mode), "NEXT_TELEMETRY_DISABLED": "1", "NODE_ENV": "production"}
     if public_origin:
         if not public_origin.startswith("https://"):
             raise SystemExit("--public-origin must be an https:// origin")
@@ -216,12 +225,15 @@ def run(name: str, build: bool, public_origin: str | None = None) -> None:
                 p.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 p.kill()
+        if mysql_mode == "portable":
+            import portable_mysql
+            portable_mysql.stop()
 
 
-def dev(name: str, public_origin: str | None = None) -> None:
+def dev(name: str, public_origin: str | None = None, mysql_mode: str = "docker") -> None:
     """Development mode on the same ports and database: the web app runs `next dev` (React/CSS hot module replacement), the API is
     recompiled by `tsc --watch` and restarted by `node --watch` on every save. Bound to 127.0.0.1 only; nothing is public."""
-    env = {**os.environ, **prepare(name), "NEXT_TELEMETRY_DISABLED": "1"}
+    env = {**os.environ, **prepare(name, mysql_mode), "NEXT_TELEMETRY_DISABLED": "1"}
     if public_origin:
         if not public_origin.startswith("https://"):
             raise SystemExit("--public-origin must be an https:// origin")
@@ -251,6 +263,9 @@ def dev(name: str, public_origin: str | None = None) -> None:
         for p in procs.values():
             if p.poll() is None:
                 p.terminate()
+        if mysql_mode == "portable":
+            import portable_mysql
+            portable_mysql.stop()
 
 
 def main() -> None:
@@ -259,6 +274,8 @@ def main() -> None:
     for c in ("prepare", "run", "dev", "drop", "status", "env", "bootstrap-owner"):
         p = sub.add_parser(c)
         p.add_argument("--stack", default="owner")
+        if c != "drop":
+            p.add_argument("--mysql", choices=["docker", "portable"], default="docker")
         if c == "run":
             p.add_argument("--no-build", action="store_true")
         if c in ("run", "dev"):
@@ -270,25 +287,25 @@ def main() -> None:
             p.add_argument("--additional-organization", action="store_true")
     a = ap.parse_args()
     if a.cmd == "prepare":
-        prepare(a.stack)
+        prepare(a.stack, a.mysql)
         print(f"stack {a.stack} ready")
     elif a.cmd == "env":                                       # for test harnesses: KEY=VALUE lines (contains secrets: never log)
-        for k, v in prepare(a.stack).items():
+        for k, v in prepare(a.stack, a.mysql).items():
             print(f"{k}={v}")
     elif a.cmd == "dev":
-        dev(a.stack, a.public_origin)
+        dev(a.stack, a.public_origin, a.mysql)
     elif a.cmd == "run":
-        run(a.stack, build=not a.no_build, public_origin=a.public_origin)
+        run(a.stack, build=not a.no_build, public_origin=a.public_origin, mysql_mode=a.mysql)
     elif a.cmd == "drop":
         drop(a.stack)
     elif a.cmd == "bootstrap-owner":
-        env = {**os.environ, **prepare(a.stack)}
+        env = {**os.environ, **prepare(a.stack, a.mysql)}
         args = [NODE, "dist/cli/bootstrap-owner.js", "--email", a.email, "--name", a.name, "--organization", a.organization]
         if a.additional_organization:
             args.append("--additional-organization")
         sys.exit(subprocess.run(args, cwd=APP / "apps" / "api", env=env).returncode)
     elif a.cmd == "status":
-        env = prepare(a.stack)
+        env = prepare(a.stack, a.mysql)
         u = env["OTSI_VIE_DB_DSN"].split("@", 1)[1]
         print(f"stack {a.stack}: database {u}, storage {env['OTSI_VIE_STORAGE_DIR']}")
 
