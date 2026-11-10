@@ -46,6 +46,7 @@ import { notHidden } from "../../core/access";
 import { Db, Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 import { AnalysisService } from "../analysis/analysis";
+import { ProfileIntroService } from "../profileintro/profileintro";
 import { BrandService, rightsOk } from "./brand";
 import { matchWindows, within } from "../analysis/match-time";
 import { idempotencyKey, uuidParam } from "../players/players.controller";
@@ -112,7 +113,8 @@ export interface BlockClipRow { in_pts_us: number; out_pts_us: number; label: st
 
 @Injectable()
 export class ReelsService {
-  constructor(private readonly db: Db, @Inject(AnalysisService) private readonly analysis: AnalysisService, @Inject(BrandService) private readonly brand: BrandService) {}
+  constructor(private readonly db: Db, @Inject(AnalysisService) private readonly analysis: AnalysisService, @Inject(BrandService) private readonly brand: BrandService,
+              @Inject(ProfileIntroService) private readonly intro: ProfileIntroService) {}
 
   /** ADR-044: what the overlays can show — the video's match (team names, competition), the halves (a clock only when a person confirmed
    * them) and the player's club in the match roster. Nothing here is measured from the picture, and the score is never shown. */
@@ -856,6 +858,8 @@ export class ReelsService {
     const reel = await this.get(id, p);
     let rights: string | null = null;
     try { await this.checkLogos(reel.settings, p); } catch (e) { rights = e instanceof ApiError ? e.message : "A chosen logo, video or music cannot be used."; }
+    // ADR-130: the intro's photo is shown in the reel, so its rights are checked here too (the render refuses it as well)
+    const photoRights = reel.settings.profile_intro && reel.player ? await this.intro.photoRightsProblem(reel.player.player_id, p) : null;
     const rows = await this.db.rows<RowDataPacket>(
       `SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(config, '$.profile')), 'REEL') AS profile, JSON_UNQUOTE(JSON_EXTRACT(config, '$.aspect')) AS aspect
          FROM render_jobs WHERE reel_id = ? AND organization_id = ? AND state IN ('QUEUED', 'RUNNING')`, [id, p.organizationId]);
@@ -863,7 +867,7 @@ export class ReelsService {
     return Preflight.parse({
       checks: preflightChecks({ clips: reel.clips.length, length_us: reel.duration_us, stale: reel.stale, player: !!reel.player, rights_problem: rights, music: !!s.music_id,
         lower_third: s.lower_third, on_team_sheet: !!reel.player_roster, match_card: s.match_card, match_linked: !!reel.match, score_bug: s.score_bug,
-        clock_confirmed: reel.match?.clock === "CONFIRMED" }),
+        clock_confirmed: reel.match?.clock === "CONFIRMED", profile_intro: s.profile_intro, photo_rights_problem: photoRights }),
       open: rows.map((r) => ({ profile: r.profile, aspect: r.aspect ?? reel.aspect })),
     });
   }
@@ -885,6 +889,9 @@ export class ReelsService {
     if (open) throw new ApiError(409, "RENDER_ALREADY_RUNNING", "This file of the reel is already rendering.");
     const renderId = uuidv7();
     const logos = await this.checkLogos(reel.settings, p);
+    // ADR-130: the Player Profile Intro, fixed with the render (the worker draws it from this snapshot's profile_intro, never
+    // from a guess; the key is profile_intro because `profile` already means the export profile in this snapshot)
+    const profile = await this.intro.snapshotForRender(reel, p);
     const facts = await this.overlayFacts(reel.video_id, reel.player?.player_id ?? null, p);
     // ADR-044: everything the overlays draw, fixed with the render (the worker reads nothing else for them)
     const overlay = { title: reel.name, home: facts.short?.home ?? null, away: facts.short?.away ?? null, competition: facts.match?.competition ?? null,
@@ -896,7 +903,7 @@ export class ReelsService {
     const music = logos.music_id ? { key: logos.music_id, volume: reel.settings.music_volume, match_volume: reel.settings.match_volume } : null;
     // ADR-050: the intro / outro files; each clip's label is its event tag
     const intro = logos.intro_id ? { key: logos.intro_id } : null, outro = logos.outro_id ? { key: logos.outro_id } : null;
-    const snapshot = { codec: body.codec, bitrate_mbps: prof.bitrate_mbps ?? body.bitrate_mbps, reel_version: reel.version, aspect, settings: reel.settings, overlay, music, intro, outro,
+    const snapshot = { codec: body.codec, bitrate_mbps: prof.bitrate_mbps ?? body.bitrate_mbps, reel_version: reel.version, aspect, settings: reel.settings, overlay, music, intro, outro, profile_intro: profile,
       // E3 (ADR-066): the export profile, and the sound's loudness target (EBU R128, integrated) and whether the music dips under the match
       // B.20 (ADR-095): the reel's own loudness target, when a person chose one, for every file
       // B.22 (ADR-097): this file's own loudness when the export chose one

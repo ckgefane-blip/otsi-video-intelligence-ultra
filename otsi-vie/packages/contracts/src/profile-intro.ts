@@ -8,6 +8,18 @@
 import { z } from "zod";
 import { PlayerIdentity, PlayerProfile } from "./identity";
 import { HeatZones } from "./pitch";
+import { BrandRightsBasis } from "./reels";
+
+/** The rights declaration for a player photo upload (POST /v1/players/:id/photo): raw PNG/JPEG bytes + this as base64url JSON in
+ *  the x-asset-meta header, following the brand music/video uploads (ADR-044/047). The declaration is the uploading person's
+ *  statement, recorded with who made it; it is not legal clearance. The grant (EXPORT_ALLOWED, REEL_OVERLAY) is stored as a
+ *  rights_grants row for the photo asset, and the render refuses the intro's photo while it is not in force. */
+export const PlayerPhotoMeta = z.object({
+  rights_holder: z.string().trim().min(2).max(255),
+  rights_basis: BrandRightsBasis,
+  confirm_rights: z.literal(true),
+});
+export type PlayerPhotoMeta = z.infer<typeof PlayerPhotoMeta>;
 
 /** How long the rendered intro runs, in seconds (the worker's PROFILE_S is the same number). */
 export const PROFILE_INTRO_S = 6;
@@ -53,8 +65,9 @@ export const PlayerProfileIntro = z.object({
 export type PlayerProfileIntro = z.infer<typeof PlayerProfileIntro>;
 
 /**
- * What the API fixes into a render's snapshot as `profile` (the worker reads nothing else for the intro, like `overlay` for the
- * match card). Flat, JSON-only, no URLs: the photo is a storage key the worker resolves, the heat map is the measured grid.
+ * What the API fixes into a render's snapshot as `profile_intro` (the worker reads nothing else for the intro, like `overlay` for the
+ * match card; the key is profile_intro because `profile` already means the export profile in that snapshot). Flat, JSON-only,
+ *  no URLs: the photo is a storage key the worker resolves, the heat map is the measured grid.
  * `club_source` is the provenance of the club shown: ROSTER (a match team sheet, shown first) or USER_ENTERED (the person typed it).
  * The worker draws the badge only when `verified` is true — it never decides identity itself.
  */

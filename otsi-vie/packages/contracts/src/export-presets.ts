@@ -85,6 +85,8 @@ export type Preflight = z.infer<typeof Preflight>;
 export interface PreflightFacts {
   clips: number; length_us: number; stale: boolean; player: boolean; rights_problem: string | null; music: boolean;
   lower_third: boolean; on_team_sheet: boolean; match_card: boolean; match_linked: boolean; score_bug: boolean; clock_confirmed: boolean;
+  /** ADR-130: the Player Profile Intro opens the reel (absent = an older caller: no intro row); the photo's rights problem, if any */
+  profile_intro?: boolean; photo_rights_problem?: string | null;
 }
 /** the checks, worst first: BLOCK stops the export (the API refuses it too), WARN is worth knowing, OK says what is fine */
 export function preflightChecks(f: PreflightFacts): PreflightCheck[] {
@@ -102,6 +104,8 @@ export function preflightChecks(f: PreflightFacts): PreflightCheck[] {
   if (f.lower_third && !f.on_team_sheet) add("strap", "WARN", "The strap will show no shirt number or position: the player is not on the match's team sheet.");
   if (f.match_card && !f.match_linked) add("card", "WARN", "No match card: the video is not linked to a match.");
   if (f.score_bug && !f.clock_confirmed) add("clock", "WARN", "The score bug will show no clock: the halves are not confirmed by a person.");
+  if (f.profile_intro && f.photo_rights_problem) add("photo_rights", "BLOCK", f.photo_rights_problem);
+  else if (f.profile_intro) add("profile_intro", "OK", "The reel opens with the player's profile intro.");
   const rank = { BLOCK: 0, WARN: 1, OK: 2 } as const;
   return out.sort((a, b) => rank[a.level] - rank[b.level]);
 }

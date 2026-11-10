@@ -3,17 +3,22 @@
  * so the canonical OTSI Player ID is the same everywhere. Visibility: a REGISTERED / RETIRED / MERGED player is part of the shared
  * registry and visible to every organization; a PROVISIONAL record is visible only to the organization that created it.
  */
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
-  CanonicalOtsiId, Country, CreatePlayerRequest, identityLabel, MergePlayersRequest, PlayerIdentity, PlayerListEntry, PlayerProfile, PlayerState, RegisterPlayerRequest,
-  UpdatePlayerProfileRequest,
+  CanonicalOtsiId, Country, CreatePlayerRequest, identityLabel, MergePlayersRequest, PlayerIdentity, PlayerListEntry, PlayerPhotoMeta, PlayerProfile, PlayerProfileDetails, PlayerState, RegisterPlayerRequest,
+  UpdatePlayerProfileDetailsRequest, UpdatePlayerProfileRequest,
 } from "@otsi-vie/contracts";
+import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { Principal } from "../../core/auth";
+import { CONFIG, Config } from "../../core/config";
 import { Db, Executor } from "../../core/db";
 import { recordChange, userActor } from "../../core/audit";
 import { ApiError, forbidden, fromDatabase, notFound } from "../../core/problem";
+import { LocalStore } from "../../core/storage";
 
 interface IdentityRow extends RowDataPacket {
   player_id: string;
@@ -32,6 +37,34 @@ export const ageOn = (birth: string, today = new Date()): number => {
   const a = today.getUTCFullYear() - y;
   return today.getUTCMonth() + 1 < m || (today.getUTCMonth() + 1 === m && today.getUTCDate() < d) ? a - 1 : a;
 };
+
+/** The extra profile a person entered for the Player Profile Intro (ADR-130, migration 0067): height and weight, photo, strengths,
+ *  summary, club and league, international career. All user-entered; null = nothing entered yet. `photo_url` stays null here: a signed
+ *  read URL needs the media signer, and only the intro endpoint serves one (ProfileIntroService fills it in). */
+export async function playerProfileDetails(db: Db, playerId: string, ex?: Executor): Promise<PlayerProfileDetails | null> {
+  const d = await db.one<RowDataPacket>(
+    `SELECT d.*, u.display_name AS updated_by_name, c.name AS international_country_name
+       FROM player_profile_details d LEFT JOIN users u ON u.id = d.updated_by LEFT JOIN countries c ON c.code = d.international_country_code
+      WHERE d.player_id = ?`, [playerId], ex);
+  if (!d) return null;
+  const strengths = typeof d.strengths === "string" ? (JSON.parse(d.strengths) as unknown) : (d.strengths as unknown);
+  return PlayerProfileDetails.parse({
+    height_cm: d.height_cm === null ? null : Number(d.height_cm),
+    weight_kg: d.weight_kg === null ? null : Number(d.weight_kg),
+    photo_asset_id: (d.photo_asset_id as string | null) ?? null,
+    photo_url: null,
+    strengths: Array.isArray(strengths) ? strengths : [],
+    summary: (d.summary as string | null) ?? null,
+    club_name: (d.club_name as string | null) ?? null,
+    league: (d.league as string | null) ?? null,
+    international_country_code: (d.international_country_code as string | null) ?? null,
+    international_country_name: (d.international_country_name as string | null) ?? null,
+    international_caps: d.international_caps === null ? null : Number(d.international_caps),
+    international_goals: d.international_goals === null ? null : Number(d.international_goals),
+    updated_by_name: (d.updated_by_name as string | null) ?? null,
+    updated_at: d.updated_at ? new Date(d.updated_at).toISOString() : null,
+  });
+}
 
 /** The profile a person recorded for a player (birth date, foot, current nationality: the sporting one first), as `orgId` sees it */
 export async function playerProfile(db: Db, playerId: string, orgId: string, ex?: Executor): Promise<PlayerProfile | null> {
@@ -68,13 +101,26 @@ export async function playerProfile(db: Db, playerId: string, orgId: string, ex?
       position: t.position ?? null,
       role_confirmed: !!t.roster_verified,
     } : null,
+    details: await playerProfileDetails(db, playerId, ex),
     editable: r.created_by_organization_id === orgId,
   });
 }
 
+/** a player photo: a PNG or JPEG, at most 512 KB (the brand logo limit, ADR-044) */
+const PHOTO_MAX_BYTES = 512 * 1024;
+/** the real format of the bytes (the declared content type alone proves nothing) */
+function photoType(b: Buffer): "image/png" | "image/jpeg" | null {
+  if (b.length > 12 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (b.length > 12 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  return null;
+}
+
 @Injectable()
 export class PlayersService {
-  constructor(private readonly db: Db) {}
+  private readonly store: LocalStore | null;
+  constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db) {
+    this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
+  }
 
   private visible(row: IdentityRow, p: Principal): boolean {
     return row.own_state !== "PROVISIONAL" || row.created_by_organization_id === p.organizationId;
@@ -225,6 +271,109 @@ export class PlayersService {
       throw fromDatabase(e) ?? e;
     }
     return (await playerProfile(this.db, playerId, p.organizationId))!;
+  }
+
+  /** ADR-130: the extra profile for the Player Profile Intro — height and weight, strengths, summary, club and league, international
+   *  career. All user-entered, all optional; a field left out is unchanged, null clears it. Same ownership rule as updateProfile, and
+   *  each change is audited with before and after. Nothing here is ever filled from a guess. */
+  async updateDetails(playerId: string, body: UpdatePlayerProfileDetailsRequest, p: Principal): Promise<PlayerProfile> {
+    const r = await this.row(playerId);
+    if (!r || !this.visible(r, p)) throw notFound("Player");
+    if (r.created_by_organization_id !== p.organizationId) throw forbidden("PROFILE_NOT_YOURS", "Only the organization that created this player can change the profile.");
+    if (body.international_country_code) {
+      const k = await this.db.rows<RowDataPacket>("SELECT code FROM countries WHERE code = ? AND active", [body.international_country_code]);
+      if (!k.length) throw new ApiError(422, "UNKNOWN_COUNTRY", "Choose a country from the list.");
+    }
+    const before = await playerProfileDetails(this.db, playerId);
+    const next = {
+      height_cm: body.height_cm !== undefined ? body.height_cm : (before?.height_cm ?? null),
+      weight_kg: body.weight_kg !== undefined ? body.weight_kg : (before?.weight_kg ?? null),
+      strengths: body.strengths !== undefined ? (body.strengths === null ? null : JSON.stringify(body.strengths)) : (before ? JSON.stringify(before.strengths) : null),
+      summary: body.summary !== undefined ? body.summary : (before?.summary ?? null),
+      club_name: body.club_name !== undefined ? body.club_name : (before?.club_name ?? null),
+      league: body.league !== undefined ? body.league : (before?.league ?? null),
+      international_country_code: body.international_country_code !== undefined ? body.international_country_code : (before?.international_country_code ?? null),
+      international_caps: body.international_caps !== undefined ? body.international_caps : (before?.international_caps ?? null),
+      international_goals: body.international_goals !== undefined ? body.international_goals : (before?.international_goals ?? null),
+    };
+    try {
+      await this.db.tx(async (c) => {
+        await c.query(
+          `INSERT INTO player_profile_details (player_id, height_cm, weight_kg, strengths, summary, club_name, league, international_country_code,
+                                              international_caps, international_goals, updated_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE height_cm = VALUES(height_cm), weight_kg = VALUES(weight_kg), strengths = VALUES(strengths),
+               summary = VALUES(summary), club_name = VALUES(club_name), league = VALUES(league),
+               international_country_code = VALUES(international_country_code), international_caps = VALUES(international_caps),
+               international_goals = VALUES(international_goals), updated_by = VALUES(updated_by)`,
+          [playerId, next.height_cm, next.weight_kg, next.strengths, next.summary, next.club_name, next.league, next.international_country_code,
+           next.international_caps, next.international_goals, p.userId]);
+        await recordChange(c, userActor(p), { action: "player.profile_details_updated", entityType: "player", entityId: playerId,
+          before: before ?? undefined, after: body });
+      });
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw fromDatabase(e) ?? e;
+    }
+    return (await playerProfile(this.db, playerId, p.organizationId))!;
+  }
+
+  /** ADR-130: the player's photo for the intro — raw PNG/JPEG bytes (at most 512 KB) + the rights declaration in x-asset-meta
+   *  (base64url JSON: rights_holder, rights_basis, confirm_rights), following the brand uploads (ADR-044/047). Stored as an asset
+   *  (kind PLAYER_PHOTO) with an EXPORT_ALLOWED grant for REEL_OVERLAY; the render refuses the photo while the grant is not in
+   *  force. An earlier photo's file is left in place (files are never deleted); the details row points at the newest one. */
+  async uploadPhoto(playerId: string, bytes: Buffer | undefined, metaHeader: string | undefined, declared: string | undefined, p: Principal): Promise<PlayerProfile> {
+    const r = await this.row(playerId);
+    if (!r || !this.visible(r, p)) throw notFound("Player");
+    if (r.created_by_organization_id !== p.organizationId) throw forbidden("PROFILE_NOT_YOURS", "Only the organization that created this player can change the profile.");
+    if (!this.store) throw new ApiError(503, "STORAGE_NOT_CONFIGURED", "Media storage is not configured on this server.");
+    let meta: { rights_holder: string; rights_basis: string };
+    try { meta = PlayerPhotoMeta.parse(JSON.parse(Buffer.from(metaHeader ?? "", "base64url").toString("utf8"))); }
+    catch { throw new ApiError(422, "PHOTO_DETAILS_MISSING", "Say who owns this photo and why you may use it in reels, and confirm the rights."); }
+    if (!bytes || bytes.length === 0) throw new ApiError(400, "PHOTO_MISSING", "Choose a PNG or JPEG picture.");
+    if (bytes.length > PHOTO_MAX_BYTES) throw new ApiError(413, "PHOTO_TOO_LARGE", "The picture is larger than 512 KB.");
+    const real = photoType(bytes);
+    if (!real || (declared && declared.split(";")[0]!.trim() !== real)) throw new ApiError(400, "PHOTO_NOT_AN_IMAGE", "That file is not a PNG or JPEG picture.");
+    const assetId = uuidv7(), grantId = uuidv7(), ext = real === "image/png" ? "png" : "jpg";
+    const key = `org/${p.organizationId}/players/${playerId}/photo-${assetId}.${ext}`;
+    const file = this.store.resolve(key);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, bytes);
+    await this.db.tx(async (c) => {
+      await c.query(`INSERT INTO assets (id, organization_id, kind, object_key, storage_bucket, byte_size, sha256, mime_type, created_by, metadata)
+                     VALUES (?, ?, 'PLAYER_PHOTO', ?, 'local', ?, ?, ?, ?, ?)`,
+        [assetId, p.organizationId, key, bytes.length, createHash("sha256").update(bytes).digest("hex"), real, p.userId,
+         JSON.stringify({ player_id: playerId, rights_holder: meta.rights_holder, rights_basis: meta.rights_basis })]);
+      await c.query(`INSERT INTO rights_grants (id, organization_id, asset_id, rights_state, allowed_uses, valid_from)
+                     VALUES (?, ?, ?, 'EXPORT_ALLOWED', ?, CURRENT_TIMESTAMP(6))`,
+        [grantId, p.organizationId, assetId, JSON.stringify(["REEL_OVERLAY"])]);
+      await c.query(`INSERT INTO player_profile_details (player_id, photo_asset_id, updated_by) VALUES (?, ?, ?)
+                     ON DUPLICATE KEY UPDATE photo_asset_id = VALUES(photo_asset_id), updated_by = VALUES(updated_by)`,
+        [playerId, assetId, p.userId]);
+      await recordChange(c, userActor(p), { action: "player.photo_uploaded", entityType: "player", entityId: playerId,
+        after: { photo_asset_id: assetId, bytes: bytes.length, mime: real, rights_holder: meta.rights_holder, rights_basis: meta.rights_basis } });
+    });
+    return (await playerProfile(this.db, playerId, p.organizationId))!;
+  }
+
+  /** the photo file's storage key for the render snapshot (the worker resolves it); null = no photo entered */
+  async photoKey(playerId: string, orgId: string): Promise<string | null> {
+    const r = await this.db.one<RowDataPacket>(
+      `SELECT a.object_key FROM player_profile_details d JOIN assets a ON a.id = d.photo_asset_id AND a.organization_id = ?
+        WHERE d.player_id = ?`, [orgId, playerId]);
+    return (r?.object_key as string | null) ?? null;
+  }
+
+  /** the photo's rights grant is still in force (EXPORT_ALLOWED, REEL_OVERLAY); null when there is no photo to check */
+  async photoRightsProblem(playerId: string, orgId: string): Promise<string | null> {
+    const r = await this.db.one<RowDataPacket>(
+      `SELECT g.rights_state, g.allowed_uses, g.valid_until FROM player_profile_details d JOIN assets a ON a.id = d.photo_asset_id AND a.organization_id = ?
+         LEFT JOIN rights_grants g ON g.asset_id = a.id WHERE d.player_id = ? ORDER BY g.created_at DESC LIMIT 1`, [orgId, playerId]);
+    if (!r) return null;
+    const uses = typeof r.allowed_uses === "string" ? (JSON.parse(r.allowed_uses) as string[]) : ((r.allowed_uses as string[] | null) ?? []);
+    const until = r.valid_until ? new Date(r.valid_until as string) : null;
+    return r.rights_state === "EXPORT_ALLOWED" && uses.includes("REEL_OVERLAY") && (!until || until.getTime() > Date.now())
+      ? null : "The player's photo cannot be used in the intro: its rights are not in force. Upload it again with a rights declaration.";
   }
 
   /** The Players list (owner 2026-11-02): the players this organization created or put on one of its match team sheets, A-Z */

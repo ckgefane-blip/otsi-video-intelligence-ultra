@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Patch, Post, Query, Res, UseGuards } from "@nestjs/common";
-import { CreatePlayerRequest, MergePlayersRequest, RegisterPlayerRequest, UpdatePlayerProfileRequest } from "@otsi-vie/contracts";
+import { CreatePlayerRequest, MergePlayersRequest, RegisterPlayerRequest, UpdatePlayerProfileDetailsRequest, UpdatePlayerProfileRequest } from "@otsi-vie/contracts";
 import type { FastifyReply } from "fastify";
 import { AuthGuard, CurrentPrincipal, Principal, Roles } from "../../core/auth";
 import { ApiError, notFound } from "../../core/problem";
@@ -60,6 +60,22 @@ export class PlayersController {
   @Roles("OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT")
   updateProfile(@Param("playerId") id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
     return this.players.updateProfile(uuidParam(id, "Player"), UpdatePlayerProfileRequest.parse(body), p);
+  }
+
+  /** ADR-130: the extra profile for the Player Profile Intro (all user-entered, all optional) */
+  @Patch(":playerId/profile-details")
+  @Roles("OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT")
+  updateDetails(@Param("playerId") id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
+    return this.players.updateDetails(uuidParam(id, "Player"), UpdatePlayerProfileDetailsRequest.parse(body), p);
+  }
+
+  /** ADR-130: the player's photo for the intro — raw PNG/JPEG bytes (at most 512 KB); the rights declaration rides in
+   *  x-asset-meta (base64url JSON), following the brand music/video uploads. Returns the updated profile. */
+  @Post(":playerId/photo")
+  @Roles("OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT")
+  uploadPhoto(@Param("playerId") id: string, @Body() body: unknown, @Headers("x-asset-meta") meta: string | undefined,
+              @Headers("content-type") declared: string | undefined, @CurrentPrincipal() p: Principal) {
+    return this.players.uploadPhoto(uuidParam(id, "Player"), Buffer.isBuffer(body) ? body : undefined, meta, declared, p);
   }
 
   @Post(":playerId/registration")
