@@ -275,7 +275,7 @@ export const Reel = z.object({
   /** cross-match only: the chosen reel length in seconds (90 / 180 / 300); null for a single-match reel */
   cross_match_length_s: z.number().int().nullable().optional(),
   /** cross-match only: the best-moments rule version the reel was built with (ADR-131); null for a single-match reel */
-  best_moments_rule_version: z.number().int().nullable().optional(),
+  best_moments_rule_version: z.string().nullable().optional(),
   run_id: z.string().uuid().nullable(),
   player: z.object({ player_id: z.string().uuid(), display_name: z.string(), canonical_otsi_id: z.string().nullable(), profile: PlayerProfile.optional() }).nullable(),
   /** the player's entry on the team sheet of the video's match (team, shirt number, position), as recorded; null = not on it */
