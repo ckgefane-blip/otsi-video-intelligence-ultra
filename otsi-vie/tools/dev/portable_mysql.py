@@ -194,6 +194,30 @@ def _set_root_password(root: Path, exe: Path, root_password: str) -> None:
                 f"  mysqladmin error: {r.stderr.strip() or r.stdout.strip()}")
 
 
+def _stop_own_docker_container() -> bool:
+    """Stop the engine's own old Docker container if it is holding port 3508.
+
+    The v1 launcher ran the stack with Docker; its container
+    (otsi-vie-v2-mysql) can still be running when portable mode first starts,
+    and its MySQL answers on 3508 with the Docker stack's root password, not
+    the portable one. Stopping the container only stops it — its data stays
+    in its Docker volume, and the Docker path can start it again later.
+    Returns True when a container was stopped. Docker missing or no such
+    container running returns False (callers then report the plain message).
+    """
+    try:
+        r = subprocess.run(["docker", "ps", "--format", "{{.Names}}"],
+                           capture_output=True, text=True, timeout=15)
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return False
+    if r.returncode != 0 or "otsi-vie-v2-mysql" not in r.stdout.split():
+        return False
+    print("portable MySQL: stopping the old Docker database (it was still running)...")
+    r = subprocess.run(["docker", "stop", "otsi-vie-v2-mysql"],
+                       capture_output=True, text=True, timeout=60)
+    return r.returncode == 0
+
+
 def ensure_running(root: Path, root_password: str) -> bool:
     """Make sure a portable mysqld is running on 127.0.0.1:3508.
 
@@ -211,10 +235,18 @@ def ensure_running(root: Path, root_password: str) -> bool:
         print("portable MySQL: server already running on 127.0.0.1:3508")
         return False
     if _port_answers():
-        raise SystemExit(
-            "portable MySQL: something else is already using port 3508, and it did not "
-            "accept the stored root password. Stop that program (or the old Docker "
-            "container) and run again.")
+        # The usual cause: the v1 launcher's Docker container is still
+        # running on this port. Stop it and carry on with the portable
+        # server instead of failing.
+        if _stop_own_docker_container():
+            for _ in range(10):
+                time.sleep(1)
+                if not _port_answers():
+                    break
+        if _port_answers():
+            raise SystemExit(
+                "portable MySQL: something else is already using port 3508, and it did not "
+                "accept the stored root password. Stop that program and run again.")
     exe = _extract(root)
     data = data_dir(root)
     initialized = (data / "mysql.ibd").exists()
