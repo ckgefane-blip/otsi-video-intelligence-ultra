@@ -26,9 +26,16 @@ def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
 
 
+def _collect_det(result):
+    """Both outputs of one detector request: an OpenVINO request's tensors 0/1, or a compiled call's outputs 0/1."""
+    if hasattr(result, "get_output_tensor"):
+        return result.get_output_tensor(0).data, result.get_output_tensor(1).data
+    return result[0], result[1]
+
+
 class OvRtDetr(HfRtDetr):
     def __init__(self, entry: dict, model_dir, weights_sha256: str, *, device: str, threads: int | None, tiles: int, score_floor: float, grids: list[int] | None = None,
-                 cross_scale: bool = False):
+                 cross_scale: bool = False, async_requests: int | None = None):
         super().__init__(entry, model_dir, weights_sha256, threads=threads, tiles=tiles, score_floor=score_floor, grids=grids, cross_scale=cross_scale)
         self.device = device
         xml = self._convert(Path(model_dir), weights_sha256)
@@ -45,6 +52,15 @@ class OvRtDetr(HfRtDetr):
         self.compiled = core.compile_model(model, "GPU" if device == "GPU-FP16" else device, config)
         self.static_batch = device == "NPU"
         self.num_classes = len(self.model.config.id2label)
+        # U.8: several crops in flight at once (a tiled frame is up to 14 model passes). None (the default) keeps the
+        # previous synchronous call; a number builds an InferQueue, which falls back to synchronous if OpenVINO
+        # cannot build one. The parity check below then exercises whichever path will actually run.
+        self._infer_queue = None
+        self.infer_stats = {"async": False, "submitted": 0, "completed": 0, "num_requests": 0}
+        if async_requests is not None:
+            from ..infer_queue import InferQueue
+            self._infer_queue = InferQueue.from_compiled(self.compiled, num_requests=int(async_requests), collect=_collect_det)
+            self.infer_stats = dict(self._infer_queue.stats)
         self._parity_check()
         del self.model                                                 # the PyTorch copy is no longer needed
 
@@ -89,6 +105,12 @@ class OvRtDetr(HfRtDetr):
         return xml
 
     def _infer(self, pixel_values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if self._infer_queue is not None:
+            # one request per image: the device overlaps the crops of a tiled frame instead of running one
+            # batch call; run_batch returns them in submission order, so concatenation matches the sync path.
+            results = self._infer_queue.run_batch([{0: pixel_values[i:i + 1]} for i in range(pixel_values.shape[0])])
+            self.infer_stats = dict(self._infer_queue.stats)
+            return np.concatenate([r[0] for r in results]), np.concatenate([r[1] for r in results])
         if not self.static_batch:
             r = self.compiled(pixel_values)
             return r[0], r[1]

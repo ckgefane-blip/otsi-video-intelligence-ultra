@@ -102,7 +102,8 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
     else:
         try:
             det = load_detector(cfg["detector"], threads=threads, tiles=int(cfg["tiles"]), score_floor=float(cfg["score_floor"]), device=cfg.get("device"),
-                                grids=cfg.get("grids"), cross_scale=bool(cfg.get("cross_scale", False)))
+                                grids=cfg.get("grids"), cross_scale=bool(cfg.get("cross_scale", False)),
+                                async_requests=int(cfg["async_infer_requests"]) if cfg.get("async_infer_requests") else None)
         except RuntimeError as e:
             return _fail(runner, job, run_id, "DETECT", "MODEL_UNAVAILABLE", str(e))
         with runner.conn.cursor() as cur:
@@ -252,7 +253,8 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
         runner.progress(job, 91, "Describing how each person looks (kit colour, appearance)")
         try:
             from .embed import Embedder
-            embedder = Embedder(cfg.get("appearance_model") or "dinov2_small")
+            embedder = Embedder(cfg.get("appearance_model") or "dinov2_small",
+                                async_requests=int(cfg["async_infer_requests"]) if cfg.get("async_infer_requests") else None)
             embed_runtime = embedder.runtime
         except Exception as e:  # noqa: BLE001 - appearance is optional evidence: kit colours still work without the embedding model
             import logging
@@ -375,7 +377,8 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
         stats = {"sampled_frames": frames, "detections": len(rows), "detections_on_pitch": sum(1 for r in rows if r[8]), "person_tracks": sum(t.label == "PERSON" for t in tracks),
                  "ball_tracks": sum(t.label == "BALL" for t in tracks), "shots": len(shot_ids), "seconds": round(elapsed, 1),
                  "frames_per_second": round(frames / elapsed, 2) if elapsed > 0 else None, "model": det.entry["key"], "tiles": cfg["tiles"], "threads": threads,
-                 "runtime": det.runtime, "retracked_from": reuse, "team_seed": team_info, "follow": follow_stats, "dino_gate": tracker.dino_stats,
+                 "runtime": det.runtime, "async_infer_requests": cfg.get("async_infer_requests"),
+                 "infer_queue": getattr(det, "infer_stats", None), "retracked_from": reuse, "team_seed": team_info, "follow": follow_stats, "dino_gate": tracker.dino_stats,
                  "appearance": appearance_stats, "appearance_runtime": embed_runtime,
                  "shirt_numbers": jersey_stats, "profile": cfg.get("profile"), "grids": cfg.get("grids"), "passes_per_frame": det.passes_per_frame() if hasattr(det, "passes_per_frame") else None,
                  "candidate_tracks_rejected": rejected, "double_boxes_dropped": dropped, "confirmation": confirm, "stabilized": stabilize, "pitch_filter": cfg.get("pitch") or "STRICT", "cross_scale": bool(cfg.get("cross_scale", False))}

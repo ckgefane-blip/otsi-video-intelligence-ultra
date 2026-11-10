@@ -80,9 +80,11 @@ def verified_model_dir(key: str) -> tuple[dict, Path, str]:
 
 
 def load_detector(key: str | None = None, *, threads: int | None = None, tiles: int = 1, score_floor: float = 0.2, device: str | None = None,
-                  grids: list[int] | None = None, cross_scale: bool = False) -> Detector:
+                  grids: list[int] | None = None, cross_scale: bool = False, async_requests: int | None = None) -> Detector:
     """`device`: "torch-cpu" (PyTorch), or an OpenVINO device "CPU" / "GPU" / "NPU". Default: OTSI_VIE_INFERENCE_DEVICE, else the
-    registry's measured choice. If an OpenVINO device cannot be opened the detector falls back to PyTorch on the CPU (logged)."""
+    registry's measured choice. If an OpenVINO device cannot be opened the detector falls back to PyTorch on the CPU (logged).
+    `async_requests`: U.8 — when set, the OpenVINO detector runs crops through an InferQueue with that many requests in flight
+    (0 = the device's default); None (the default) keeps the synchronous call. The PyTorch path ignores it."""
     key = key or registry()["default"]
     entry, d, sha = verified_model_dir(key)
     device = device or os.environ.get("OTSI_VIE_INFERENCE_DEVICE") or registry().get("default_device", "torch-cpu")
@@ -94,7 +96,8 @@ def load_detector(key: str | None = None, *, threads: int | None = None, tiles: 
             for dev in dict.fromkeys([device, "CPU"]):
                 try:
                     from .ov_rtdetr import OvRtDetr
-                    det = OvRtDetr(entry, d, sha, device=dev, threads=threads, tiles=tiles, score_floor=score_floor, grids=grids, cross_scale=cross_scale)
+                    det = OvRtDetr(entry, d, sha, device=dev, threads=threads, tiles=tiles, score_floor=score_floor, grids=grids, cross_scale=cross_scale,
+                                 async_requests=async_requests)
                     det.runtime = f"openvino-{dev}"
                     return det
                 except Exception as e:  # noqa: BLE001 - any device/driver failure: keep working, and say so

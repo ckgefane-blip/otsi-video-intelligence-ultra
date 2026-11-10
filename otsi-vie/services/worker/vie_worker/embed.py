@@ -22,7 +22,7 @@ SIZE = 224
 
 
 class Embedder:
-    def __init__(self, key: str = DEFAULT_KEY, device: str | None = None):
+    def __init__(self, key: str = DEFAULT_KEY, device: str | None = None, async_requests: int | None = None):
         import torch
         from transformers import AutoModel, SiglipVisionModel
         self.entry, d, self.weights_sha256 = verified_model_dir(key)
@@ -34,6 +34,8 @@ class Embedder:
         self.std = np.array(cfg.get("image_std", [0.5, 0.5, 0.5]), np.float32).reshape(1, 3, 1, 1)
         self.runtime = "torch-cpu"
         self.compiled = None
+        self._infer_queue = None
+        self.infer_stats = {"async": False, "submitted": 0, "completed": 0, "num_requests": 0}
         want = device or os.environ.get("OTSI_VIE_INFERENCE_DEVICE") or registry().get("default_device", "CPU")
         for dev in dict.fromkeys([want, "CPU"]):
             if dev not in ("GPU", "CPU"):
@@ -46,6 +48,12 @@ class Embedder:
             except Exception as e:  # noqa: BLE001 - keep working on the next runtime, and say so
                 log.warning("embedding on OpenVINO %s unavailable (%s: %s)", dev, type(e).__name__, e)
                 self.compiled = None
+        # U.8: several crops in flight at once when asked (same InferQueue as the detector); None keeps the
+        # synchronous call, and a queue that cannot be built falls back to it.
+        if self.compiled is not None and async_requests is not None:
+            from .infer_queue import InferQueue
+            self._infer_queue = InferQueue.from_compiled(self.compiled, num_requests=int(async_requests))
+            self.infer_stats = dict(self._infer_queue.stats)
 
     def _compile(self, model_dir: Path, device: str):
         import openvino as ov
@@ -93,7 +101,10 @@ class Embedder:
         out = []
         for i in range(0, len(crops), 32):
             x = self._prep(crops[i:i + 32])
-            if self.compiled is not None:
+            if self._infer_queue is not None:
+                v = np.concatenate(self._infer_queue.run_batch([x[j:j + 1] for j in range(x.shape[0])]))
+                self.infer_stats = dict(self._infer_queue.stats)
+            elif self.compiled is not None:
                 v = self.compiled(x)[0]
             else:
                 import torch
