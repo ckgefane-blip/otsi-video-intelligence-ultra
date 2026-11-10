@@ -129,7 +129,7 @@ function Slider({ label, y, pct, on, onPct, note }: { label: string; y: number; 
 }
 
 export function Inspector() {
-  const { r, draft, setDraft, name, dirty, save, focus, jump, tab, mode, setMode } = useStage();
+  const { r, draft, setDraft, name, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro } = useStage();
   const reel = r?.reel ?? null;
   const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
   const [stopAsk, setStopAsk] = useState(false);
@@ -237,6 +237,10 @@ export function Inspector() {
         <Ic x={2105} y={738} k="tgt" size={30} color="#33a8ff" />
         <T x={2149} y={738} size={20} style={{ maxWidth: u(240), overflow: "hidden", textOverflow: "ellipsis" }}>Lock on confirmed player</T>
         <T x={2519} y={738} size={17} color={reel?.player && !reel.stale ? "#3ee6a8" : "#8ea3bf"} align="right">{reel?.player ? (reel.stale ? "needs refresh" : "locked") : "none"}</T>
+        {reel?.player && (
+          <button type="button" onClick={openProfileIntro} className="absolute" data-profile-intro-open=""
+            style={{ left: u(2086), top: u(634 - 101), fontSize: u(18), color: "#33a8ff" }}>Player Profile Intro ›</button>
+        )}
         {reel?.player && (
           // ADR-045: his other tracks are found on the Analysis page (look-alikes, a person says Him / Not him); Re-detect then takes them in
           <Link href={`/analysis?video=${reel.video_id}&find=${reel.player.player_id}`} className="absolute" data-find-more

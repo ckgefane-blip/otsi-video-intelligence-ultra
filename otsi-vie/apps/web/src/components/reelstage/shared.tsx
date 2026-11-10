@@ -30,6 +30,8 @@ export interface Stage {
   /** preview what: the chosen clip of the source, or the latest render */
   mode: "clip" | "render";
   setMode(m: "clip" | "render"): void;
+  /** show the Player Profile Intro preview again (ADR-130): it opens on its own the first time a reel is opened */
+  openProfileIntro(): void;
 }
 const Ctx = createContext<Stage | null>(null);
 export const StageProvider = ({ value, children }: { value: Stage; children: ReactNode }) => <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -11,6 +11,7 @@ import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { typing } from "@/lib/keymap";
 import { Inspector } from "./Inspector";
+import { ProfileIntroDialog } from "@/components/reels/PlayerProfileIntro";
 import { LeftColumn } from "./LeftColumn";
 import { Moments, Timeline } from "./MomentsTimeline";
 import { PreviewPanel } from "./PreviewPanel";
@@ -26,6 +27,23 @@ function Sections({ r }: { r: ReelState | null }) {
   const [focus, setFocus] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
   const [mode, setMode] = useState<"clip" | "render">("clip");
+  /** ADR-130: the Player Profile Intro is the first step of the flow — it opens on its own the first time a reel is opened
+   *  (once per browser session per reel), and "Continue to Reel" advances past it to the reel steps */
+  const [introOpen, setIntroOpen] = useState(false);
+  const introSeen = useRef<string | null>(null);
+  useEffect(() => {
+    if (!reel?.player || reel.settings.profile_intro === false) return;
+    if (introSeen.current === reel.id) return;
+    introSeen.current = reel.id;
+    let seen = false;
+    try { seen = sessionStorage.getItem(`otsi.profile-intro.seen.${reel.id}`) === "1"; } catch { /* not remembered */ }
+    if (!seen) setIntroOpen(true);
+  }, [reel?.id, reel?.player?.player_id, reel?.settings.profile_intro]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const closeIntro = useCallback(() => {
+    setIntroOpen(false);
+    try { if (reel) sessionStorage.setItem(`otsi.profile-intro.seen.${reel.id}`, "1"); } catch { /* not remembered */ }
+  }, [reel]);
+  const openProfileIntro = useCallback(() => setIntroOpen(true), []);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const version = reel?.version, reelId = reel?.id;
@@ -54,8 +72,8 @@ function Sections({ r }: { r: ReelState | null }) {
       return null;
     }
   }, [reel, draft, name, r]);
-  const value: Stage = useMemo(() => ({ r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode }),
-    [r, draft, name, dirty, save, focus, jump, tab, mode]);   // setDraft / setName / setMode are the stable setters
+  const value: Stage = useMemo(() => ({ r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro }),
+    [r, draft, name, dirty, save, focus, jump, tab, mode, openProfileIntro]);   // setDraft / setName / setMode are the stable setters
   useEffect(() => { if (r?.msg) setNote(null); }, [r?.msg]);   // a newer message replaces "Project saved."
   // the same undo / redo keys as Clip Studio (lib/keymap.ts, Reels scope): they only live on this page, never while typing,
   // and only when there is something to undo or redo, so no request is made for a no-op
@@ -80,6 +98,7 @@ function Sections({ r }: { r: ReelState | null }) {
         <Moments />
         <Timeline />
         <Inspector />
+        {reel?.player && <ProfileIntroDialog playerId={reel.player.player_id} reelId={reel.id} open={introOpen} onContinue={closeIntro} onClose={closeIntro} />}
         {/* owner 2026-11-02: messages sit in the strip above the preview, never on the picture */}
         {msg && <T x={470} y={113} size={17} color={msg.ok ? "#3ee6a8" : "#ff8a8a"} style={{ maxWidth: u(1500) }} as="p">{msg.text}</T>}
         {reel && dirty && <T x={2030} y={113} size={16} color="#f5b82e" align="right">Unsaved changes</T>}

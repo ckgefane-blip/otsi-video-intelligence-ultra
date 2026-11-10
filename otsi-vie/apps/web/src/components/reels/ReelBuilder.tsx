@@ -11,6 +11,7 @@ import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
+import { PlayerProfileIntroPanel } from "./PlayerProfileIntro";
 
 const WRITERS = ["OWNER", "ADMIN", "ANALYST", "EDITOR"];
 const sec = (us: number) => `${(us / 1e6).toFixed(1)} s`;
@@ -100,6 +101,7 @@ export function ReelSteps() {
   if (!reel) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading the reel…</p>;
   const r = reel.latest_render;
   const steps: [string, boolean, string][] = [
+    ["Profile Intro", reel.settings.profile_intro && !!reel.player, reel.settings.profile_intro ? (reel.player ? `opens the reel: ${reel.player.display_name}` : "no player yet") : "off for this reel"],
     ["Player", !!reel.player && !reel.stale, reel.player ? `${reel.player.display_name}${reel.stale ? " — targets need refreshing" : ""}` : "none"],
     ["Clips", reel.clips.length > 0, reel.clips.length ? `${reel.clips.length} clip${reel.clips.length === 1 ? "" : "s"}, ${sec(reel.duration_us)}` : "add a suggested moment"],
     ["Spotlight", true, `dim ${Math.round(reel.settings.dim * 100)} %${reel.settings.ring ? ", ring" : ""}${reel.settings.name_caption ? ", name" : ""}`],
@@ -108,7 +110,7 @@ export function ReelSteps() {
   return (
     <div className="space-y-2">
       <p className="text-sm"><span className="font-semibold" data-reel-name>{reel.name}</span> <span className="text-muted">· <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>source video</Link></span></p>
-      <ol aria-label="Reel steps" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-4 min-[1100px]:grid-cols-1">
+      <ol aria-label="Reel steps" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-5 min-[1100px]:grid-cols-1">
         {steps.map(([n, done, note], i) => (
           <li key={n} data-reel-step={n} data-done={done ? "1" : "0"}
             className={`flex min-w-0 items-start gap-2 rounded-ctl border px-2.5 py-2 text-sm ${done ? "border-ok/40 bg-ok/5" : "border-line/70 bg-raised/40"}`}>
@@ -122,6 +124,16 @@ export function ReelSteps() {
       </ol>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ section 1b: the Player Profile Intro (ADR-130) */
+/** The first step of the Reel Builder flow: the intro preview for the reel's player, "Continue to Reel" advancing to the reel steps.
+ *  Nothing when there is no player, or when the intro is off for this reel (Overlays). */
+export function ReelProfileIntro({ onContinue }: { onContinue?: () => void }) {
+  const { reel } = useReel();
+  if (!reel || !reel.player) return null;
+  if (!reel.settings.profile_intro) return null;
+  return <PlayerProfileIntroPanel playerId={reel.player.player_id} reelId={reel.id} onContinue={onContinue} />;
 }
 
 /* ------------------------------------------------------------------ section 2: aspect presets */
@@ -251,6 +263,10 @@ export function ReelOverlays() {
       <label className="flex items-center gap-2"><input type="checkbox" checked={reel.settings.name_caption} disabled={!canEdit || busy}
         onChange={(e) => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: { name_caption: e.target.checked } } }))} />
         Player name caption{reel.player?.canonical_otsi_id ? " with OTSI Player ID" : ""}</label>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={reel.settings.profile_intro} disabled={!canEdit || busy}
+        onChange={(e) => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: { profile_intro: e.target.checked } } }))} />
+        Player Profile Intro</label>
+      <p className="text-xs text-muted">The 16:9 opening segment with the player&apos;s real profile, at the very beginning of the reel, before the first clip. On by default.</p>
       <p className="text-xs text-muted">Logo and branding overlays need the owner&apos;s approved brand assets (not connected).</p>
     </div>
   );

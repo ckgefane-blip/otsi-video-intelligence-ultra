@@ -82,6 +82,8 @@ export function ReelExtras({ settings, onChange, onClose }: { settings: Spotligh
           note="Each clip's moment written on screen as it starts, e.g. FREE-KICK GOAL, KEY PASS, TACKLE (POSSIBLE). It is the clip's label, as you added it." />
         <Switch on={settings.match_card} label="Match card" onFlip={() => onChange({ ...settings, match_card: !settings.match_card })}
           note="Opens the reel for 3 s: the two clubs, the competition, the date and the venue, from the match record (Matches page). Needs both clubs." />
+        <Switch on={settings.profile_intro} label="Player Profile Intro" onFlip={() => onChange({ ...settings, profile_intro: !settings.profile_intro })}
+          note="The 16:9 opening segment with the selected player's real profile, at the very beginning of the reel, before the first clip (and before the intro video and the match card). On by default; the worker draws it from the render snapshot, never from a guess." />
         <div className="flex flex-col gap-1 rounded-ctl border border-[#12335f] p-3 text-sm">
           <p><span className="font-semibold">Intro:</span> {nameOf(settings.intro_id)} {settings.intro_id && <button type="button" onClick={() => pick("intro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">No intro</button>}</p>
           <p><span className="font-semibold">Outro:</span> {nameOf(settings.outro_id)} {settings.outro_id && <button type="button" onClick={() => pick("outro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">No outro</button>}</p>
