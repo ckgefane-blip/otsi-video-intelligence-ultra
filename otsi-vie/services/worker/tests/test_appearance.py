@@ -312,3 +312,152 @@ def test_the_officials_are_learned_at_the_kickoff_whatever_they_wear():
     # no officials in view: none are invented, and two goalkeepers in two different kits are not taken for officials
     ref, info = ap.build_team_reference(kickoff([75, 0, -3], [20, 0, 0], None, keepers=([30, -40, 20], [50, 60, -10])))
     assert ref is not None and ref.official is None and info["officials"] == 0
+
+
+# ------------------------------------------------------------------ U.5: part-based Re-ID
+GRASS_RGB = (70, 110, 50)
+
+
+def person_crop(head, torso, shorts, socks, h=120, w=60, noise=0, seed=0):
+    """One synthetic person crop: grass behind, head / torso / legs in the U.5 part bounds."""
+    rng = np.random.default_rng(seed)
+    im = np.zeros((h, w, 3), np.uint8)
+    im[:] = GRASS_RGB
+    im[0:int(0.15 * h), :] = head
+    im[int(0.15 * h):int(0.55 * h), int(0.2 * w):int(0.8 * w)] = torso
+    im[int(0.55 * h):int(0.78 * h), int(0.2 * w):int(0.8 * w)] = shorts
+    im[int(0.78 * h):, int(0.2 * w):int(0.8 * w)] = socks
+    if noise:
+        im = np.clip(im.astype(int) + rng.integers(-noise, noise + 1, im.shape), 0, 255).astype(np.uint8)
+    return im
+
+
+WHITE_KIT = (235, 235, 230)
+PLAYER_A = person_crop((60, 40, 25), WHITE_KIT, (20, 20, 25), (230, 230, 230))        # dark hair, white socks
+PLAYER_A2 = person_crop((60, 40, 25), WHITE_KIT, (20, 20, 25), (230, 230, 230), noise=6, seed=1)  # same player, another crop
+PLAYER_B = person_crop((210, 180, 90), WHITE_KIT, (20, 20, 25), (180, 40, 40))      # blond hair, red socks, same white kit
+
+
+def test_whole_crop_cannot_tell_same_kit_players_apart():
+    """U.5 failing case, with only the pre-U.5 signals: the whole-crop kit histogram is identical for the
+    same player and for a different player in the same kit, and the torso Lab distance is 0.0."""
+    a, b = ap.kit_histogram(PLAYER_A).astype(float), ap.kit_histogram(PLAYER_B).astype(float)
+    assert float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b))) > 0.999
+    assert float(np.linalg.norm(ap.jersey_lab(PLAYER_A) - ap.jersey_lab(PLAYER_B))) < 0.5
+
+
+def test_part_crops_split_head_torso_legs_and_mask_grass():
+    parts = ap.part_crops(PLAYER_A)
+    assert set(parts) == {"head", "torso", "legs"} and all(v is not None for v in parts.values())
+    assert parts["head"].shape[0] == 18 and parts["torso"].shape[0] == 48 and parts["legs"].shape[0] == 54
+    # a crop that is all grass except the shirt: head and legs cannot be read, torso can
+    im = np.zeros((120, 60, 3), np.uint8)
+    im[:] = GRASS_RGB
+    im[18:66, 12:48] = WHITE_KIT
+    grassy = ap.part_crops(im)
+    assert grassy["head"] is None and grassy["legs"] is None and grassy["torso"] is not None
+    assert ap.part_crops(np.zeros((10, 4, 3), np.uint8)) == {"head": None, "torso": None, "legs": None}  # too small: unknown
+
+
+def test_part_similarity_separates_same_kit_players():
+    """The U.5 fix for the failing case: head + legs (down-weighted torso) tell A from B, same kit or not."""
+    same = ap.part_similarity(ap.part_colour_vectors(PLAYER_A), ap.part_colour_vectors(PLAYER_A2))
+    diff = ap.part_similarity(ap.part_colour_vectors(PLAYER_A), ap.part_colour_vectors(PLAYER_B))
+    assert same > 0.85 and diff < 0.65 and same - diff > 0.3, (same, diff)   # measured: 0.982 vs 0.588
+    _, detail = ap.part_similarity_detail(ap.part_colour_vectors(PLAYER_A), ap.part_colour_vectors(PLAYER_B))
+    assert detail["torso"] > 0.99 and detail["head"] < 0.65      # the torso agrees (same kit); the head disagrees
+    assert ap.part_similarity(None, ap.part_colour_vectors(PLAYER_B)) is None
+    assert ap.part_similarity({"head": None}, {"legs": np.ones(15, np.float32)}) is None   # no part in common
+
+
+def test_grass_pixels_do_not_move_a_part_vector():
+    """Blueprint §5 acceptance, measured: grass pixels are excluded from the descriptor — recolouring the
+    grass alone changes the part vector by nothing (cosine 1.0 to float precision) and leaves the masked crop
+    identical, because only non-grass pixels are read. Speckling grass OVER the socks still keeps the vector close (0.915):
+    the median moves a little because the pixel mix changes, but no grass pixel ever enters the descriptor."""
+    clean = person_crop((60, 40, 25), WHITE_KIT, (20, 20, 25), (230, 230, 230))
+    recol = clean.copy()
+    legs = recol[66:120]
+    recol[66:120][ap._grass_mask(legs)] = (40, 90, 40)      # same grass, a different green
+    a = ap.part_colour_vectors(clean)["legs"]
+    assert float(a @ ap.part_colour_vectors(recol)["legs"]) > 0.999999   # identical up to float32 rounding
+    assert np.array_equal(ap.part_crops(clean)["legs"], ap.part_crops(recol)["legs"])
+    grassy = clean.copy()
+    grassy[93:120:2, ::2] = GRASS_RGB                       # speckle grass over the socks
+    assert float(a @ ap.part_colour_vectors(grassy)["legs"]) > 0.9
+    # and the masked part crop itself: grass pixels were replaced by the part's median colour, person pixels untouched
+    masked = ap.part_crops(grassy)["legs"]
+    legs = grassy[66:120]
+    grass = ap._grass_mask(legs)
+    fill = np.median(legs[~grass].reshape(-1, 3), axis=0)
+    assert np.all(masked[grass] == fill)
+    assert np.array_equal(masked[~grass], legs[~grass])
+
+
+def test_part_embeddings_use_the_embedder_one_call_per_crop():
+    """embed_parts batches a crop's parts into one embedder call; no embedder means all None."""
+    calls = []
+
+    class _Stub:
+        def __call__(self, crops):
+            calls.append(len(crops))
+            out = []
+            for c in crops:
+                m = c.reshape(-1, 3).mean(0) / 255.0
+                v = np.array([m[0], m[1], m[2], 1.0, 0.0, 0.0, 0.0, 0.0], np.float32)
+                out.append(v / np.linalg.norm(v))
+            return np.stack(out)
+
+    got = ap.embed_parts(PLAYER_A, _Stub())
+    assert calls == [3] and set(got) == {"head", "torso", "legs"}
+    assert all(v is not None and abs(float(np.linalg.norm(v)) - 1.0) < 1e-5 for v in got.values())
+    assert ap.embed_parts(PLAYER_A, None) == {"head": None, "torso": None, "legs": None}
+
+
+def test_describe_part_based_is_off_by_default():
+    """U.5 costs nothing unless enabled: part vectors stay None by default, and are filled when asked."""
+    from vie_worker.tracker import Observation, Track
+
+    def make():
+        obs = [Observation(i, i * 100_000, 0.1, 0.1, 0.05, 0.2, 0.9, 1.0) for i in range(8)]
+        t = Track(number=1, label="PERSON", shot_number=0, observations=obs, hits=len(obs), last_pts_us=obs[-1].pts_us)
+        res = ap.CropReservoir(crops=[(i * 200_000, PLAYER_A) for i in range(4)])
+        return t, {id(t): res}
+
+    t, res = make()
+    off = ap.describe([t], res, None)
+    assert off[0].part_colours is None and off[0].part_embeddings is None
+    t, res = make()
+    on = ap.describe([t], res, None, part_based=True)
+    assert set(on[0].part_colours) == {"head", "torso", "legs"} and on[0].part_embeddings is None  # no embedder: colours only
+
+    class _Stub:
+        def __call__(self, crops):
+            return np.tile(np.array([1.0, 0.0, 0.0, 0.0], np.float32), (len(crops), 1))
+
+    t, res = make()
+    emb = ap.describe([t], res, _Stub(), part_based=True)
+    assert set(emb[0].part_embeddings) == {"head", "torso", "legs"}
+    assert all(v is not None for v in emb[0].part_embeddings.values())
+
+
+def test_propose_links_can_use_part_similarity():
+    """Same-kit crossing: whole-crop embeddings rank the WRONG later track first, part similarity ranks the
+    right one first — and only when use_parts is asked for."""
+    e = lambda v: np.array(v, np.float32) / np.linalg.norm(v)
+    pa = ap.part_colour_vectors(PLAYER_A)
+    pa2 = ap.part_colour_vectors(PLAYER_A2)
+    pb = ap.part_colour_vectors(PLAYER_B)
+
+    def mk(n, t0, t1, emb, parts):
+        return ap.TrackAppearance(n, 0, t0, t1, 6, hist(2), np.zeros(3), e(emb), 0.9, group=0,
+                                  part_colours=parts)
+
+    a = mk(1, 0, 1_000_000, [1, 0, 0], pa)
+    b = mk(2, 3_000_000, 4_000_000, [0.98, 0.2, 0], pb)      # wrong player, closer whole-crop
+    c = mk(3, 3_500_000, 5_000_000, [0.7, 0.7, 0], pa2)      # right player, farther whole-crop
+    plain = {(x["a"], x["b"]) for x in ap.propose_links([a, b, c])}
+    assert plain == {(1, 2)}                                # whole-crop links the wrong player
+    parted = ap.propose_links([a, b, c], use_parts=True)
+    assert {(x["a"], x["b"]) for x in parted} == {(1, 3)}    # parts link the right one
+    assert parted[0]["evidence"]["part_similarity"] > 0.9

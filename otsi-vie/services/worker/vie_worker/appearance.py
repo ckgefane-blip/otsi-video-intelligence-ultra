@@ -15,6 +15,13 @@
              0.70, 93 % of same-person pairs pass but so do 50 % of different-person pairs in similar kits), ranking is what works
              (rank-1 50-91 %, ADR-031): a link is kept only if b is a's BEST later candidate AND a is b's BEST earlier candidate (mutual best)
              and the score is >= MIN_SCORE. At most one suggestion per direction per track. Scores rank; they are not probabilities.
+  parts      U.5 part-based Re-ID: a track is also compared part by part — head / torso / legs separately, grass-masked —
+             because a whole-crop embedding is dominated by the shirt and cannot tell two players in the same kit apart
+             (measured in tools/eval/reid_u5_compare.py). The torso is deliberately down-weighted: same-kit players
+             share it, so it cannot separate them; the head (hair, skin) and legs (socks, boots, skin) can. Part
+             vectors are computed only when a caller enables part_based (describe) / use_parts (propose_links):
+             off by default, zero extra model cost. A part similarity is a cosine, so it plugs straight into the
+             U.2 appearance_fn contract.
 """
 from __future__ import annotations
 
@@ -284,13 +291,17 @@ class TrackAppearance:
     group: int | None = None
     jersey: np.ndarray | None = None
     thumbnail_jpeg: bytes | None = None
+    part_colours: dict | None = None     # U.5: per-part colour vectors (head/torso/legs), grass-masked; None unless part_based
+    part_embeddings: dict | None = None  # U.5: per-part DINOv2 vectors, same keys; None unless part_based and an embedder ran
 
 
-def describe(tracks, reservoirs: dict, embedder) -> list[TrackAppearance]:
-    """tracks: the run's confirmed tracks (vie_worker.tracker.Track); reservoirs: id(track) -> CropReservoir."""
+def describe(tracks, reservoirs: dict, embedder, part_based: bool = False) -> list[TrackAppearance]:
+    """tracks: the run's confirmed tracks (vie_worker.tracker.Track); reservoirs: id(track) -> CropReservoir.
+    part_based (U.5, off by default): also compute per-part vectors — model-free part colours always, per-part
+    DINOv2 embeddings only when an embedder is present. Off costs nothing extra."""
     from PIL import Image
     out: list[TrackAppearance] = []
-    batch, owners = [], []
+    batch, owners, crop_lists = [], [], []
     for t in tracks:
         if t.label != "PERSON":
             continue
@@ -309,10 +320,12 @@ def describe(tracks, reservoirs: dict, embedder) -> list[TrackAppearance]:
             buf = io.BytesIO()
             im.save(buf, "JPEG", quality=85)
             thumb = buf.getvalue()
+        parts = _mean_part_vectors([part_colour_vectors(c) for c in crops]) if part_based else None
         out.append(TrackAppearance(t.number, t.shot_number, t.observations[0].pts_us, t.observations[-1].pts_us, len(crops), kit, rgb, None, None,
-                                   thumbnail_jpeg=thumb, jersey=jersey))
+                                   thumbnail_jpeg=thumb, jersey=jersey, part_colours=parts))
         batch.extend(crops)
         owners.append((len(out) - 1, len(crops)))
+        crop_lists.append(crops)
     if embedder is not None and batch:
         vecs = embedder(batch)
         i = 0
@@ -325,14 +338,19 @@ def describe(tracks, reservoirs: dict, embedder) -> list[TrackAppearance]:
                 half = min(4, n // 2)
                 a, b = v[:half].mean(0), v[-half:].mean(0)
                 out[k].drift = float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+        if part_based:                     # U.5: per-part DINOv2 vectors, one batched embedder call per crop's parts
+            for k, crops in enumerate(crop_lists):
+                out[k].part_embeddings = _mean_part_vectors([embed_parts(c, embedder) for c in crops])
     groups = team_groups({a.number: a.jersey for a in out if a.jersey is not None})
     for a in out:
         a.group = groups.get(a.number)
     return out
 
 
-def propose_links(apps: list[TrackAppearance]) -> list[dict]:
-    """Same-person suggestions between non-overlapping tracks (see module doc)."""
+def propose_links(apps: list[TrackAppearance], use_parts: bool = False) -> list[dict]:
+    """Same-person suggestions between non-overlapping tracks (see module doc). use_parts (U.5, off by
+    default): score appearance by part similarity instead of the whole-crop cosine, where both tracks have
+    part vectors — same-kit players share a shirt, so the whole-crop score cannot separate them."""
     import bisect
     cand = []
     if not any(a.embedding is not None for a in apps):                      # no person seen (or none with a picture): nothing to link
@@ -356,15 +374,25 @@ def propose_links(apps: list[TrackAppearance]) -> list[dict]:
         if not len(idx):
             continue
         app_sim = E[idx] @ ea
+        part_sims = [None] * len(idx)
+        if use_parts:                      # U.5: where both tracks have part vectors, appearance is the part score
+            for n, j in enumerate(idx):
+                ps = part_similarity(_parts_of(a), _parts_of(by_time[j]))
+                if ps is not None:
+                    part_sims[n] = ps
+                    app_sim[n] = ps
         kit_sim = 1 - np.sqrt(np.clip(1 - R[idx] @ ra, 0, None))
         score = 0.75 * np.maximum(0.0, app_sim) + 0.25 * kit_sim
-        for j, sc, ap_, ks in zip(idx, score, app_sim, kit_sim):
+        for j, sc, ap_, ks, ps in zip(idx, score, app_sim, kit_sim, part_sims):
             if sc < MIN_SCORE:
                 continue
             b = by_time[j]
+            ev = {"appearance_cosine": round(float(ap_), 4), "kit_similarity": round(float(ks), 4), "kit_group_a": a.group,
+                  "kit_group_b": b.group}
+            if use_parts and ps is not None:
+                ev["part_similarity"] = round(float(ps), 4)
             cand.append({"a": a.number, "b": b.number, "score": round(min(1.0, float(sc)), 4), "gap_us": int(b.first_us - a.last_us), "crosses_cut": a.shot != b.shot,
-                         "evidence": {"appearance_cosine": round(float(ap_), 4), "kit_similarity": round(float(ks), 4), "kit_group_a": a.group,
-                                      "kit_group_b": b.group}})
+                         "evidence": ev})
     best_after: dict[int, tuple[float, int]] = {}      # a -> its best later candidate
     best_before: dict[int, tuple[float, int]] = {}     # b -> its best earlier candidate
     for c in cand:
@@ -404,6 +432,169 @@ def neighbours(apps: list[TrackAppearance], k: int = 5, block: int = 1024) -> li
                 out.append({"a": emb[lo + r].number, "b": int(nums[c]), "cosine": round(max(-1.0, min(1.0, float(cos[r, c]))), 4),
                             "kit_similarity": round(max(0.0, min(1.0, float(kit[r, c]))), 4), "rank": rank})
     return out
+
+
+# ------------------------------------------------------------------ U.5: part-based Re-ID
+# A whole-crop embedding is dominated by the shirt: two players in the same kit score as alike as two crops
+# of the same player (measured in tools/eval/reid_u5_compare.py: kit-histogram cosine 1.0 both ways, torso Lab
+# distance 0.0). Splitting on shirt colour (U.3) cannot help either — same kit, same colour. What does differ
+# between same-kit players is the head (hair, skin) and the legs (socks, boots, skin). So a track is compared
+# part by part — head / torso / legs separately, grass-masked — and the torso is deliberately down-weighted
+# (0.20 vs 0.40 each for head and legs): it is mostly kit, so it cannot separate same-kit players. A part
+# similarity is a cosine like the whole-crop one, so it plugs straight into the U.2 appearance_fn contract
+# (track, detection) -> cosine | None. Everything here is off unless a caller enables it.
+
+PARTS = ("head", "torso", "legs")
+PART_BOUNDS = {"head": (0.00, 0.15), "torso": (0.15, 0.55), "legs": (0.55, 1.00)}   # fractions of crop height
+PART_WEIGHTS = {"head": 0.40, "torso": 0.20, "legs": 0.40}
+PART_MIN_NON_GRASS = 0.25   # a part needs this share of non-grass pixels to be read at all
+PART_MIN_PX = 8             # and this many rows; smaller is unknown, not guessed
+
+
+def _grass_mask(rgb: np.ndarray) -> np.ndarray:
+    """True where a pixel is grass green: hue 0.17-0.47 with saturation, except vivid lime/yellow (a bright
+    shirt is yellow-green too, but grass is never this bright and saturated) — the same rule jersey_lab uses."""
+    t = rgb.astype(np.float32) / 255
+    mx, mn = t.max(-1), t.min(-1)
+    d = mx - mn + 1e-6
+    sat = np.where(mx > 0, d / (mx + 1e-6), 0)
+    hue = np.where(mx == t[..., 0], ((t[..., 1] - t[..., 2]) / d) % 6,
+                   np.where(mx == t[..., 1], (t[..., 2] - t[..., 0]) / d + 2, (t[..., 0] - t[..., 1]) / d + 4)) / 6
+    vivid = (mx > 0.7) & (sat > 0.45)
+    return ((hue > 0.17) & (hue < 0.47) & (sat > 0.2)) & ~vivid
+
+
+def part_crops(crop: np.ndarray) -> dict[str, np.ndarray | None]:
+    """Each part of one person crop, grass pixels replaced by the part's median non-grass colour (so an
+    embedding sees the person, not the pitch). None for a part that is too small or mostly grass."""
+    h = crop.shape[0]
+    out: dict[str, np.ndarray | None] = {}
+    for part in PARTS:
+        y0 = int(PART_BOUNDS[part][0] * h)
+        y1 = max(y0 + 1, int(PART_BOUNDS[part][1] * h))
+        p = crop[y0:y1]
+        if p.shape[0] < PART_MIN_PX:
+            out[part] = None
+            continue
+        grass = _grass_mask(p)
+        keep = ~grass
+        if keep.mean() < PART_MIN_NON_GRASS:
+            out[part] = None
+            continue
+        fill = np.median(p[keep].reshape(-1, 3), axis=0) if keep.any() else np.zeros(3)
+        masked = p.copy()
+        masked[grass] = fill
+        out[part] = masked
+    return out
+
+
+def _hue_hist(t: np.ndarray) -> np.ndarray:
+    """8-bin hue histogram of RGB pixels (0..1) as fractions of ALL pixels; achromatic pixels fall in no
+    bin. Deliberately NOT normalised to unit length on its own: a part with almost no coloured pixels (black
+    shorts, white socks) must have a near-zero hue component, or a few noise-saturated pixels would dominate
+    it — measured in U.5: with a separately-normalised hue histogram, clean-vs-noisy legs scored 0.77 while
+    noisy-vs-noisy scored 1.00, purely from noise creating saturated pixels."""
+    mx, mn = t.max(1), t.min(1)
+    d = mx - mn + 1e-6
+    sat = np.where(mx > 0, d / (mx + 1e-6), 0)
+    hue = np.where(mx == t[:, 0], ((t[:, 1] - t[:, 2]) / d) % 6,
+                   np.where(mx == t[:, 1], (t[:, 2] - t[:, 0]) / d + 2, (t[:, 0] - t[:, 1]) / d + 4)) / 6
+    hist = np.zeros(8, np.float32)
+    coloured = sat > 0.25
+    np.add.at(hist, np.minimum((hue[coloured] * 8).astype(int), 7), 1)
+    return hist / max(1, len(t))
+
+
+def part_colour_vectors(crop: np.ndarray) -> dict[str, np.ndarray | None]:
+    """Model-free descriptor of each part of one crop: median Lab (scaled) + 8-bin hue histogram + 4-bin
+    lightness histogram over its non-grass pixels, L2-normalised. The lightness histogram matters: a part
+    that is half black shorts and half white socks has the same median Lab as a part that is all grey, but
+    a very different brightness structure. No model, no weights — the measurable U.5 path in this workspace.
+    None per part that cannot be read."""
+    h = crop.shape[0]
+    out: dict[str, np.ndarray | None] = {}
+    for part in PARTS:
+        y0 = int(PART_BOUNDS[part][0] * h)
+        y1 = max(y0 + 1, int(PART_BOUNDS[part][1] * h))
+        p = crop[y0:y1]
+        if p.shape[0] < PART_MIN_PX:
+            out[part] = None
+            continue
+        keep = ~_grass_mask(p)
+        if keep.mean() < PART_MIN_NON_GRASS:
+            out[part] = None
+            continue
+        t = p[keep].reshape(-1, 3).astype(np.float32) / 255
+        lab = np.median(_lab(t), axis=0) / np.array([100.0, 128.0, 128.0])
+        l_hist = np.zeros(4, np.float32)
+        np.add.at(l_hist, np.minimum((_lab(t)[:, 0] / 25).astype(int), 3), 1)
+        l_hist = l_hist / (np.linalg.norm(l_hist) + 1e-9)
+        vec = np.concatenate([lab, _hue_hist(t), l_hist]).astype(np.float32)
+        out[part] = vec / (np.linalg.norm(vec) + 1e-9)
+    return out
+
+
+def embed_parts(crop: np.ndarray, embedder) -> dict[str, np.ndarray | None]:
+    """Per-part DINOv2 vectors for one crop: one batched embedder call over the parts that read (the embedder
+    resizes each part to 224x224, as it does whole crops). None per part that cannot be read, and all None
+    when there is no embedder. The embedder is only ever called when a caller enabled part_based."""
+    parts = part_crops(crop)
+    present = [p for p in PARTS if parts[p] is not None]
+    out: dict[str, np.ndarray | None] = {p: None for p in PARTS}
+    if not present or embedder is None:
+        return out
+    vecs = embedder([parts[p] for p in present])
+    for p, v in zip(present, vecs):
+        out[p] = np.asarray(v, np.float32)
+    return out
+
+
+def _mean_part_vectors(vecs: list[dict]) -> dict | None:
+    """Mean per part over several crops of one track, renormalised; None when no part was ever read."""
+    out: dict = {}
+    for p in PARTS:
+        vs = [v[p] for v in vecs if v.get(p) is not None]
+        if vs:
+            m = np.mean(vs, axis=0)
+            out[p] = (m / (np.linalg.norm(m) + 1e-9)).astype(np.float32)
+    return out or None
+
+
+def _parts_of(app: TrackAppearance):
+    """The part vectors propose_links should use: DINOv2 per-part when present, else the model-free colours."""
+    return app.part_embeddings or app.part_colours
+
+
+def part_similarity(a, b, weights: dict | None = None) -> float | None:
+    """Weighted mean cosine over the parts present in BOTH, or None when no part is shared. A cosine, so it
+    plugs into the U.2 appearance_fn contract. Torso counts least: same-kit players share it."""
+    if not a or not b:
+        return None
+    w = weights or PART_WEIGHTS
+    num = den = 0.0
+    for p in PARTS:
+        va, vb = a.get(p), b.get(p)
+        if va is None or vb is None:
+            continue
+        num += w.get(p, 0.0) * float(np.asarray(va, float) @ np.asarray(vb, float))
+        den += w.get(p, 0.0)
+    return (num / den) if den > 0 else None
+
+
+def part_similarity_detail(a, b, weights: dict | None = None) -> tuple[float | None, dict[str, float]]:
+    """part_similarity plus the per-part cosines, for tests and diagnostics."""
+    if not a or not b:
+        return None, {}
+    w = weights or PART_WEIGHTS
+    detail = {}
+    for p in PARTS:
+        va, vb = a.get(p), b.get(p)
+        if va is None or vb is None:
+            continue
+        detail[p] = float(np.asarray(va, float) @ np.asarray(vb, float))
+    if not detail:
+        return None, {}
+    return sum(w.get(p, 0.0) * c for p, c in detail.items()) / sum(w.get(p, 0.0) for p in detail), detail
 
 
 SPLIT_DISTANCE = 30.0          # Lab distance between the two halves of a track's shirt colour that means two different people

@@ -257,13 +257,16 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
         except Exception as e:  # noqa: BLE001 - appearance is optional evidence: kit colours still work without the embedding model
             import logging
             logging.getLogger("vie_worker.analyze").warning("appearance embeddings unavailable: %s", e)
-        apps = appear.describe(tracks, reservoirs, embedder)
+        # U.5: part-based Re-ID is off unless cfg["part_based_reid"] is set: describe() only computes
+        # part vectors then, and propose_links() only uses them then. part_colours are model-free;
+        # part_embeddings need the embedder at describe time.
+        apps = appear.describe(tracks, reservoirs, embedder, part_based=bool(cfg.get("part_based_reid", False)))
         if team_ref is not None:                       # taught at kickoff: each track's team is the majority of its own per-frame calls (None when unsure)
             by_number = {t.number: t for t in tracks}
             for a in apps:
                 t = by_number.get(a.number)
                 a.group = appear.group_from_votes([o.team for o in t.observations]) if t is not None else None
-        links = appear.propose_links(apps)
+        links = appear.propose_links(apps, use_parts=bool(cfg.get("part_based_reid", False)))
         neighbour_rows = appear.neighbours(apps)
         runner.progress(job, 92, "Reading shirt numbers where players are large enough")
         jersey, ocr_runtime = {}, None
