@@ -73,7 +73,7 @@ VIE-Engine-v2/
 │   ├── database/
 │   │   └── migrations/      # 66 sequential idempotent MySQL migrations (0001–0066)
 │   ├── docs/
-│   │   ├── ADRs/            # 124 Architecture Decision Records (ADR-001 through ADR-124)
+│   │   ├── ADRs/            # 129 Architecture Decision Records (ADR-001 through ADR-129)
 │   │   ├── handover/        # Historical handover reports (HANDOVER_CURRENT.md)
 │   │   └── runbooks/        # Backup/restore and production deployment operational guides
 │   ├── packages/
@@ -184,7 +184,7 @@ A complete template is committed at `.env.example`. Required environment variabl
 cd otsi-vie/apps/web
 node ../../node_modules/.pnpm/vitest@2.1.8_@types+node@22.10.2_jsdom@25.0.1/node_modules/vitest/vitest.mjs run
 ```
-- **Status:** **61/61 test files passed, 242/242 unit tests passing** (0 errors).
+- **Status:** **61/61 test files passed, 242/242 unit tests passing** (0 errors). (`otsi-vie/apps/web/test/` holds 62 files: the 61 test files plus `setup.ts`, the Vitest setup helper — not a test file. The "242 tests" figure is the recorded run result, not re-counted here.)
 
 ### API Test Suite (Vitest)
 ```bash

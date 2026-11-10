@@ -1,6 +1,16 @@
 # OTSI VIE v2 — Owner Rules for Claude Code and Codex
 
-**Applies to:** `D:\OTSI-Workspace\VIE-Engine-v2` and everything within it.
+> **Handoff / ultra addendum — 2026-11-10 (Muse).** These rules were written
+> for the owner's Windows workspace. They now also govern Muse's work in the
+> Linux ultra workspace, `~/workspace/projects/otsi-video-intelligence-ultra`
+> (branch `muse/ultra-main`), where the engine was migrated for
+> ultra-enhancement work. Where this file says
+> `D:\OTSI-Workspace\VIE-Engine-v2`, read the owner's Windows host path; the
+> same rules apply repo-relatively in the ultra workspace. The push rule in
+> §8 is restated below for the handoff/ultra setup — its safety intent is
+> unchanged.
+
+**Applies to:** `D:\OTSI-Workspace\VIE-Engine-v2` and everything within it. It also applies to Muse's ultra workspace, `~/workspace/projects/otsi-video-intelligence-ultra` (branch `muse/ultra-main`).
 **Mission:** Build the **complete greenfield, commercial OTSI Video Intelligence Engine application**, not only a computer-vision engine or demonstration. The deliverable encompasses the 10 approved frontend pages, all connected backend services, a new MySQL database, detection/tracking/identity intelligence, tactical analytics, Reel Builder, Clip Studio, real MP4 rendering, reporting, commercial administration, access control, deployment, and verification.
 
 ## 1. Authority and source-of-truth hierarchy
@@ -11,7 +21,7 @@
 5. When any blueprint SQL, API or model specification is incomplete, contradictory, unsafe or incompatible with MySQL, correct it with a documented engineering decision and test. **Never blindly execute reference SQL as production-ready.** Do not change the owner-approved product scope or visual design without owner approval.
 
 ## 2. Isolated greenfield workspace
-- Work **only** within `D:\OTSI-Workspace\VIE-Engine-v2` for new source code, tests, migrations, assets, manifests, generated outputs and environment templates. Maintain a version-controlled repository here.
+- Work **only** within `D:\OTSI-Workspace\VIE-Engine-v2` (owner's Windows host) or, for Muse's ultra-enhancement work, within `~/workspace/projects/otsi-video-intelligence-ultra` (branch `muse/ultra-main`) for new source code, tests, migrations, assets, manifests, generated outputs and environment templates. Maintain a version-controlled repository here.
 - Do not read from or change other OTSI projects for implementation unless the owner explicitly authorizes access. No automatic imports or links to `otsi-vie-app`, `02-AI-Specifications\Video-Intelligence-Engine`, `_wt-*`, `Production`, the website/plugins, VPN, or other projects.
 - **Never delete or modify existing projects, databases, files or deployments**, including after a backup, without a separate explicit owner instruction for the specific action.
 - Do not configure a connection to an existing OTSI database. Create/use a **new, isolated database** (proposed name `otsi_owner_vie`) only after validating the MySQL/MariaDB server version and permissions. Never DROP, TRUNCATE or overwrite existing databases.
@@ -52,9 +62,9 @@
 6. Surface only actual approval gates or unavoidable blockers to the owner. Communicate briefly and plainly.
 
 ## 8. Owner approvals and exceptions to the workspace rules (2026-10-26)
-These apply ONLY inside `D:\OTSI-Workspace\VIE-Engine-v2`. The workspace file `D:\OTSI-Workspace\CLAUDE.md` is unchanged and still governs every other project. Details: `blueprint/RULES_CONFLICTS.md`.
+These apply ONLY inside `D:\OTSI-Workspace\VIE-Engine-v2` and Muse's ultra workspace (`~/workspace/projects/otsi-video-intelligence-ultra`). The workspace file `D:\OTSI-Workspace\CLAUDE.md` is unchanged and still governs every other project. Details: `blueprint/RULES_CONFLICTS.md`.
 - **Automated testing — approved and required.** The developer runs frontend unit/browser, backend API/integration, MySQL migration/security, CV evaluation, render/MP4 and end-to-end tests throughout development. The owner's manual walkthrough of finished pages is the final acceptance step, not a substitute. This supersedes workspace line 46 ("run no process yourself… the owner does every frontend test") for this project.
-- **Local Git commits — approved.** Commit completed, tested blocks with meaningful messages. **Never push**, publish a repository, change remote branches or deploy to production without the owner's explicit authorization. This narrows workspace line 16 ("ask before … committing") for this project only.
+- **Local Git commits — approved.** Commit completed, tested blocks with meaningful messages. **Never push**, publish a repository, change remote branches or deploy to production without the owner's explicit authorization. Owner decision 2026-11-10: the one exception is Muse's ultra work, which goes to the separate ultra repository `ckgefane-blip/otsi-video-intelligence-ultra` on branch `muse/ultra-main` — and only there. Nothing is pushed to the original Antigravity repository (`awore-otsi/otsi-video-intelligence`), to the live engine at `vie.otsi.cc`, or to any production deployment without the owner's explicit approval. The safety intent of "never push" is unchanged: no push reaches the owner's live product or the original repo on Muse's say-so alone. This narrows workspace line 16 ("ask before … committing") for this project only.
 - **Old-engine rules do not govern this project:** the "Reel Studio" product direction (workspace lines 5–12) and the frozen Blueprint v3.3.1 (workspace lines 25–30) belong to the OLD engine. The OTSI-Owner Developer Handoff governs VIE-Engine-v2.
 - **Hosting database version check — approved read-only** (`SELECT VERSION(), @@version_comment;`) only over an already-authorized connection. Never modify, import into or migrate an existing production database. Without such a connection the check stays recorded as pending.
 - **Canonical OTSI Player ID is fundamental architecture** (owner directive 2026-10-26, ADR-016): one permanent, immutable `OTSI-CCC-YYYY-NNNNNN` per registered player, issued once by the transaction-safe allocator, used consistently by every module, API, overlay, reel, report and export.

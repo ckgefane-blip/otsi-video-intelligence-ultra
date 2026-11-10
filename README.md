@@ -122,7 +122,7 @@ pytest otsi-vie/services/worker/tests
 ## Project Status & Key Documents
 
 - **Handoff & Agent Guide:** [`HANDOFF.md`](./HANDOFF.md)
-- **Architecture Decision Records:** [`otsi-vie/docs/ADRs/`](./otsi-vie/docs/ADRs/) (ADR-001 through ADR-124)
+- **Architecture Decision Records:** [`otsi-vie/docs/ADRs/`](./otsi-vie/docs/ADRs/) (ADR-001 through ADR-129)
 - **Architecture Changelog:** [`blueprint/CHANGELOG.md`](./blueprint/CHANGELOG.md)
 - **Agent Operating Rules:** [`CLAUDE.md`](./CLAUDE.md)
 - **Production Runbook:** [`otsi-vie/docs/runbooks/PRODUCTION_DEPLOYMENT.md`](./otsi-vie/docs/runbooks/PRODUCTION_DEPLOYMENT.md)
