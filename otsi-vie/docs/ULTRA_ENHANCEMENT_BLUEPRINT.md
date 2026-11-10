@@ -246,10 +246,18 @@ work is documentation and process, in `otsi-vie/docs/commercial/` (new):
   with the role that does each step and the evidence that proves it.
   Acceptance: the SOP can be followed for a real pilot match without
   inventing a step.
+  **Done (this branch):** `otsi-vie/docs/commercial/spotlight-sop.md` —
+  intake, both ADR-007 rights/billing gates, processing order, G05–G08
+  quality gates with failure handling, human review (ADR-118/122/124),
+  Spotlight + Scouting Pack in/out, Team Tactical held back, bank-transfer
+  invoicing, retention/GDPR (ADR-112), Phase 2 dry-run checklist.
 - **Unit-cost worksheet:** compute minutes + analyst minutes per match,
   with fields left blank for the owner's measured numbers. No price is
   stated until the measured cost exists. Acceptance: the worksheet has no
   invented numbers in it.
+  **Done (this branch):** `otsi-vie/docs/commercial/unit-cost-worksheet.md`
+  + `unit-cost-worksheet.csv` (same tables with formulas) — all numbers
+  are explicit `[input]` cells; totals follow from the inputs.
 - **Pilot packs:** Single Match Spotlight and Scouting Pack scope sheets;
   Team Tactical is explicitly held back until verified. Acceptance: each
   pack lists what is in, what is out, and what evidence the client gets.

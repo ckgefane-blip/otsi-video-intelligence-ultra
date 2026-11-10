@@ -1,0 +1,38 @@
+Section,Item,Driver,Minutes,Rate_per_hour,Cost,Notes
+INPUTS,Host compute rate G1 (per hour),,,[input],,Owner host cost - no figure in repo
+INPUTS,Analyst rate G2 (per hour),,,[input],,Owner analyst cost
+INPUTS,Currency G3,,,,[input],One currency for the whole sheet
+INPUTS,Margin G4 (e.g. 0.20),,,[input],,Owner decision - applied after unit cost
+INPUTS,Match length M1 (min),,,[input],,Full match duration as ingested
+INPUTS,Resolution M2,,,,[input],Drives DETECT and render minutes
+INPUTS,Frame rate M3 (fps),,,[input],,Drives DETECT minutes
+INPUTS,Players in scope M5,,,[input],,1 for a Single Match Spotlight
+INPUTS,Events in scope M6,,,[input],,Event candidates the analyst reviews
+,,,,,,
+COMPUTE,C1 Ingest,File size / link fetch,,=$E$2,=D12/60*E12,SOP 5.1
+COMPUTE,C2 SHOTS + kickoff scan,M1 + shots,,=$E$2,=D13/60*E13,SOP 5.2
+COMPUTE,C3 DETECT,M1 M2 M3 tiling,,=$E$2,=D14/60*E14,SOP 5.3 - re-time after U.8/U.7 on host
+COMPUTE,C4 TRACK,M1 track count,,=$E$2,=D15/60*E15,SOP 5.4
+COMPUTE,C5 IDENTIFY appearance/Re-ID,M5 crops,,=$E$2,=D16/60*E16,SOP 5.5
+COMPUTE,C6 IDENTIFY jersey OCR,M5 crops,,=$E$2,=D17/60*E17,SOP 5.5
+COMPUTE,C7 Ball tracking,M1,,=$E$2,=D18/60*E18,SOP 5.6
+COMPUTE,C8 Pitch calibration,Shots,,=$E$2,=D19/60*E19,SOP 5.7
+COMPUTE,C9 Events,M1 events,,=$E$2,=D20/60*E20,SOP 5.8
+COMPUTE,C10 Render Spotlight reel,M1 M2 reel length,,=$E$2,=D21/60*E21,SOP 8.4
+COMPUTE,C11 Render extra/re-renders,Re-render count,,=$E$2,=D22/60*E22,SOP 8.4 - re-renders are new renders (ADR-003)
+COMPUTE,C12 Storage (retention period),File sizes + retention days,,,[input - direct cost],Storage is not per-minute; enter match storage cost for its retention period or 0 if unmetered
+COMPUTE,C-TOTAL Per-match compute cost,,, ,=SUM(F12:F23),Sum of C1-C12
+,,,,,,
+ANALYST,A1 Intake + rights confirmation,Client rights check,,=$E$3,=D26/60*E26,SOP 3 and 4
+ANALYST,A2 Ingest check + run monitoring,M1 failures,,=$E$3,=D27/60*E27,SOP 5
+ANALYST,A3 Event review,M6,,=$E$3,=D28/60*E28,SOP 7.1
+ANALYST,A4 Identity + role confirmation,M5,,=$E$3,=D29/60*E29,SOP 7.2
+ANALYST,A5 Evidence audit,Metrics in scope,,=$E$3,=D30/60*E30,SOP 7.3
+ANALYST,A6 Delivery preparation + gate,Pack(s),,=$E$3,=D31/60*E31,SOP 8
+ANALYST,A7 Client communication,Per match,,=$E$3,=D32/60*E32,SOP 7-8
+ANALYST,A-TOTAL Per-match analyst cost,,, ,=SUM(F26:F32),Sum of A1-A7
+,,,,,,
+TOTALS,T1 Per-match unit cost (compute + analyst),,, ,=F24+F33,C-TOTAL + A-TOTAL
+TOTALS,T2 Single Match Spotlight unit cost,, ,,=F35,No Spotlight-only extra identified yet
+TOTALS,T3 Scouting Pack unit cost,, ,,=F35,Report time scales with M5 already in A-TOTAL
+TOTALS,T5 Client price (with margin G4),,, ,=F35*(1+E5),T1 x (1 + margin)
