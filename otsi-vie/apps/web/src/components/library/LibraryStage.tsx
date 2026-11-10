@@ -6,7 +6,7 @@
  */
 import type { Match, Member } from "@otsi-vie/contracts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DesignStage, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
@@ -32,11 +32,11 @@ export function LibraryStage() {
   const router = useRouter(), path = usePathname();
   const folder = sp.get("folder");
   /** opening a folder is part of the address, so Back and a reload keep it */
-  const setFolder = (id: string | null) => {
+  const setFolder = useCallback((id: string | null) => {
     const q = new URLSearchParams(sp.toString());
     if (id) q.set("folder", id); else q.delete("folder");
     router.push(q.size ? `${path}?${q.toString()}` : path);
-  };
+  }, [sp, path, router]);
   // a folder that no longer exists (deleted) closes
   const live = !folder || !all || all.some((a) => a.kind === "Folder" && a.id === folder);
   const shown = useMemo(() => (all ? apply(all, tab, f, desc, live ? folder : null) : []), [all, tab, f, desc, folder, live]);
@@ -63,28 +63,34 @@ export function LibraryStage() {
   const [newFolder, setNewFolder] = useState(false);
   const [browse, setBrowseState] = useState(false);
   useEffect(() => { try { setBrowseState(localStorage.getItem(LEFT_KEY) === "browse"); } catch { /* private window */ } }, []);
-  const setBrowse = (b: boolean) => { setBrowseState(b); try { localStorage.setItem(LEFT_KEY, b ? "browse" : "match"); } catch { /* private window */ } };
+  const setBrowse = useCallback((b: boolean) => { setBrowseState(b); try { localStorage.setItem(LEFT_KEY, b ? "browse" : "match"); } catch { /* private window */ } }, []);
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const say = (t: string) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 3500); };
+  // stable, so the memoised panels below do not re-render on every stage render (e.g. every search keystroke)
+  const say = useCallback((t: string) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 3500); }, []);
+  const openTrash = useCallback(() => setTrash(true), []);
+  const openNewFolder = useCallback(() => setNewFolder(true), []);
+  const closeSelected = useCallback(() => select(null), []);
+  const tree = useMemo(() => (
+    <LibraryTree all={all} folder={live ? folder : null} setFolder={setFolder} tab={tab} setTab={setTab} canWrite={canWrite}
+      openTrash={openTrash} newFolder={openNewFolder} say={say} version={all} />
+  ), [all, folder, live, tab, canWrite, setFolder, setTab, openTrash, openNewFolder, say]);
   // the left panel's team filter is the table's Team filter set to the selected match's home or away club
   const clubLabel = (c: Match["home"]) => c?.short_name ?? c?.name ?? null;
   const teamSide: TeamSide = match && f.team !== "all" ? (f.team === clubLabel(match.home) ? "home" : f.team === clubLabel(match.away) ? "away" : "all") : "all";
-  const setTeamSide = (t: TeamSide) => setF({ ...f, team: t === "all" || !match ? "all" : clubLabel(t === "home" ? match.home : match.away) ?? "all" });
+  const setTeamSide = useCallback((t: TeamSide) => setF({ ...f, team: t === "all" || !match ? "all" : clubLabel(t === "home" ? match.home : match.away) ?? "all" }), [f, match]);
   const analysed = !!asset && (asset.kind === "Reel" || asset.kind === "Export");   // a reel exists only for an analysed video
 
   return (
     <DesignStage page="library">
       <LeftPanel match={match} analysed={analysed} side={side} setSide={setSide} team={teamSide} setTeam={setTeamSide} say={say}
         videoId={asset?.videoId ?? null} reelId={asset && (asset.kind === "Reel" || asset.kind === "Export") ? (asset.raw as { id: string }).id : null}
-        browse={browse} setBrowse={setBrowse}
-        tree={<LibraryTree all={all} folder={live ? folder : null} setFolder={setFolder} tab={tab} setTab={setTab} canWrite={canWrite}
-          openTrash={() => setTrash(true)} newFolder={() => setNewFolder(true)} say={say} version={all} />} />
+        browse={browse} setBrowse={setBrowse} tree={tree} />
       <LibraryMain all={all} shown={shown} tab={tab} setTab={setTab} f={f} setF={setF} desc={desc} setDesc={setDesc} selected={selected} select={select}
         competitions={competitions} teams={teams} reload={load} canWrite={canWrite} members={members} me={me?.user.id ?? null} say={say}
         folder={live ? folder : null} setFolder={setFolder} trash={trash} setTrash={setTrash} newFolder={newFolder} setNewFolder={setNewFolder} />
       {note && <T x={1983} y={466} size={16} color="#ffc66d" align="right"><span role="status">{note}</span></T>}
-      <SelectedItem a={asset} match={match} onClose={() => select(null)} reload={load} canWrite={canWrite} />
+      <SelectedItem a={asset} match={match} onClose={closeSelected} reload={load} canWrite={canWrite} />
     </DesignStage>
   );
 }

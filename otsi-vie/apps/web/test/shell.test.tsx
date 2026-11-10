@@ -84,7 +84,7 @@ describe("keyboard map (A.9)", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.keyDown(window, { key: "?" });
     const d = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
-    expect([...d.querySelectorAll("[data-keymap-scope]")].map((x) => x.getAttribute("data-keymap-scope"))).toEqual(["everywhere", "studio", "analysis", "reels", "reports"]);
+    expect([...d.querySelectorAll("[data-keymap-scope]")].map((x) => x.getAttribute("data-keymap-scope"))).toEqual(["everywhere", "studio", "analysis", "reels", "reports", "library"]);
     fireEvent.change(screen.getByLabelText("Find a shortcut"), { target: { value: "n" } });
     expect([...d.querySelectorAll("kbd")].map((x) => x.textContent)).toEqual(["N"]);
     fireEvent.keyDown(d, { key: "Escape" });

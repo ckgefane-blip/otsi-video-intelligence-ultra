@@ -9,10 +9,11 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { MoreMenu, copyLink, type MoreItem } from "@/components/stage/MoreMenu";
 import { reelActions, renderActions, videoActions } from "@/lib/actions";
+import { typing } from "@/lib/keymap";
 import { api, ApiProblem } from "@/lib/api";
 import { ArchiveDialog } from "@/components/exportstage/ArchiveBundle";
 import type { ArchiveSubjectKind, LibraryFolder, Match, Member, Reel, RemovableKind, RemovalPreview, SavedSearch, TrashEntry } from "@otsi-vie/contracts";
@@ -354,6 +355,72 @@ function assetActions(a: Asset, details: () => void, del: MoreItem, move: MoreIt
   return [...(a.href ? [{ label: "Open", href: a.href }, { label: "Copy link", run: () => copyLink(a.href!) }] : []), ...tail];
 }
 
+/** one card row (memoised: typing in search or opening a dialog re-renders LibraryMain, not every row) */
+const AssetRow = memo(function AssetRow({ a, y, i, sel, on, canWrite, folder, folders, select, setFolder, toggleChecked, setDeleting, setMoving, setArchiving }: {
+  a: Asset; y: number; i: number; sel: boolean; on: boolean; canWrite: boolean; folder: string | null; folders: LibraryFolder[];
+  select: (k: string | null) => void; setFolder: (id: string | null) => void; toggleChecked: (key: string, wasOn: boolean) => void;
+  setDeleting: (t: (DeleteTarget & { key: string }) | null) => void; setMoving: (t: MoveTarget | null) => void;
+  setArchiving: (t: { kind: ArchiveSubjectKind; id: string; title: string } | null) => void;
+}) {
+  const ty = TY[a.kind];
+  const items = useMemo(() => assetActions(a, () => select(a.key),
+    deleteItem(a, canWrite, (t) => setDeleting({ ...t, key: a.key })), moveItem(a, canWrite, setMoving), archiveItem(a, setArchiving),
+    (id) => { select(null); setFolder(id); }),
+    [a, canWrite, select, setFolder, setDeleting, setMoving, setArchiving]);
+  return (
+    <div data-asset={a.kind} data-id={a.id}>
+      {sel && <B x={425} y={y - 44} w={1558} h={91} style={{ background: "#04264a", border: `${u(2.5)} solid #1e90ff`, borderRadius: u(8) }} />}
+      <button type="button" aria-label={a.kind === "Folder" ? `Open the folder ${a.title}` : `${a.title}: ${a.kind}, ${a.status}`} aria-pressed={sel}
+        onClick={() => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(sel ? null : a.key))} className="absolute"
+        style={{ left: u(490), top: u(y - 44 - 101), width: u(1250), height: u(88), padding: 0, border: 0, background: "transparent", cursor: "pointer" }} />
+      <button type="button" role="checkbox" aria-checked={on} aria-label={`Select ${a.title}`} onClick={() => toggleChecked(a.key, on)}
+        className="absolute" style={{ left: u(448), top: u(y - 12 - 101), width: u(26), height: u(26), padding: 0, borderRadius: u(5), border: on ? 0 : `${u(2)} solid #cfe0f5`, background: on ? "#1e90ff" : "transparent", cursor: "pointer" }}>
+        {on && <Ic o={[448, y - 12]} x={461} y={y + 1} k="chk" size={18} />}
+      </button>
+      {a.kind === "Folder" || a.kind === "Project" ? (
+        <>
+          <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none", background: ty[0], border: `${u(1.5)} solid ${ty[1]}` }} />
+          <Ic x={575} y={y} k={a.kind === "Folder" ? "fold" : "grid"} size={34} color={ty[2]} />
+        </>
+      ) : (
+        <>
+          <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none",
+            background: `radial-gradient(ellipse at 40% 70%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a ${30 + i * 6}%,#1d5a28)` }} />
+          <B x={588} y={y + 10} w={56} h={22} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4), pointerEvents: "none" }} />
+          <T x={612} y={y + 21} size={19} weight={600} align="center">{clock(a.durationUs)}</T>
+        </>
+      )}
+      <T x={668} y={y - 14} size={22} weight={700} style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.title}</T>
+      <T x={668} y={y + 19} size={19} color="#9fb3cc" style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.sub}{!folder && a.folderId ? ` · in ${folders.find((x) => x.id === a.folderId)?.name ?? "a folder"}` : ""}</T>
+      <B x={1016} y={y - 20} w={a.kind === "Reel" ? 75 : a.kind === "Project" ? 100 : 91} h={40} style={{ background: ty[0], border: `${u(1.5)} solid ${ty[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
+      <T x={1016 + (a.kind === "Reel" ? 37 : a.kind === "Project" ? 50 : 45)} y={y} size={20} color={ty[2]} align="center">{a.kind}</T>
+      {a.player ? (
+        <>
+          <B x={1150} y={y - 26} w={52} h={52} style={{ borderRadius: "50%", background: "#2b5ff0", border: `${u(2)} solid #6a7a98`, pointerEvents: "none" }} />
+          <T x={1176} y={y} size={18} weight={700} align="center">{initials(a.player)}</T>
+        </>
+      ) : <T x={1176} y={y} size={19} color="#8ea3bf" align="center">—</T>}
+      <T x={1575} y={y - 9} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</T>
+      <T x={1575} y={y + 19} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}</T>
+      <MoreMenu x={1946} y={y} k="hdots" size={26} w={40} h={40} label={`More for ${a.title}`} items={items} />
+    </div>
+  );
+});
+
+/** one row's status and collaboration (section p09-s06, memoised with its row) */
+const AssetStatus = memo(function AssetStatus({ a, y }: { a: Asset; y: number }) {
+  const st = ST[a.status];
+  return (
+    <div role="group" aria-label={`${a.title}: ${a.status}, ${people(a)}`}>
+      <Collaborators a={a} y={y} />
+      <B x={1756} y={y - 20} w={136} h={40} style={{ background: st[0], border: `${u(1.5)} solid ${st[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
+      <B x={1769} y={y - 9} w={20} h={20} style={{ background: st[2], borderRadius: "50%", pointerEvents: "none" }} />
+      <Ic x={1779} y={y + 1} k="chk" size={12} color={st[0]} />
+      <T x={1805} y={y} size={19} color={st[2]}>{a.status}</T>
+    </div>
+  );
+});
+
 export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, selected, select, competitions, teams, reload, canWrite, members, me, say, folder, setFolder, trash, setTrash, newFolder, setNewFolder }: {
   all: Asset[] | null | undefined; shown: Asset[]; tab: number; setTab: (i: number) => void; f: Filters; setF: (f: Filters) => void; desc: boolean; setDesc: (d: boolean) => void;
   selected: string | null; select: (k: string | null) => void; competitions: string[]; teams: string[]; reload: () => Promise<void>; canWrite: boolean;
@@ -364,7 +431,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
   /** A.14: the Trash and New folder dialogs, opened here or from the left tree */
   trash: boolean; setTrash: (o: boolean) => void; newFolder: boolean; setNewFolder: (o: boolean) => void;
 }) {
-  const creators = members.filter((m) => (all ?? []).some((a) => a.createdBy === m.user_id));
+  const creators = useMemo(() => members.filter((m) => (all ?? []).some((a) => a.createdBy === m.user_id)), [members, all]);
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -377,24 +444,37 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
   // B.12 (ADR-088): card / table view, the table's facts, bulk actions on the checked rows
   const [view, setView] = useLibraryView();
   const facts = useLibraryFacts(all);
-  const picked = (all ?? []).filter((a) => checked.has(a.key));
-  const movable = picked.flatMap((a) => { const k = ITEM_KIND[a.kind], id = a.kind === "Export" ? a.renderId : a.id; return k && id ? [{ kind: k as string, id }] : []; });
+  const picked = useMemo(() => (all ?? []).filter((a) => checked.has(a.key)), [all, checked]);
+  const movable = useMemo(() => picked.flatMap((a) => { const k = ITEM_KIND[a.kind], id = a.kind === "Export" ? a.renderId : a.id; return k && id ? [{ kind: k as string, id }] : []; }), [picked]);
+  const toggleChecked = useCallback((key: string, wasOn: boolean) => setChecked((prev) => { const n = new Set(prev); if (wasOn) n.delete(key); else n.add(key); return n; }), []);
   const bulkMove = () => !canWrite ? say("Your role can view the Library but not move") : !movable.length ? say("None of the selected items can go in a folder")
     : setMoving({ ...movable[0]!, title: `${movable.length} items`, from: null, more: movable.slice(1) });
   const bulkCsv = () => {
     const url = URL.createObjectURL(new Blob([rowsCsv(picked, all ?? [], facts)], { type: "text/csv;charset=utf-8" }));
     const el = document.createElement("a"); el.href = url; el.download = "library-selection.csv"; el.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const folders = (all ?? []).filter((x) => x.kind === "Folder").map((x) => x.raw as LibraryFolder);
-  const openFolder = folders.find((x) => x.id === folder) ?? null;
+  const folders = useMemo(() => (all ?? []).filter((x) => x.kind === "Folder").map((x) => x.raw as LibraryFolder), [all]);
+  const openFolder = useMemo(() => folders.find((x) => x.id === folder) ?? null, [folders, folder]);
   const loadSaved = () => api<SavedSearch[]>("/v1/saved-searches").then(setSaved, () => setSaved([]));
   useEffect(() => { void loadSaved(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setPage(0); }, [tab, f, desc]);
+  // [ / ] move between the asset tabs (lib/keymap.ts, Library scope): only here, never while typing or with a dialog open
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || creating || menu || deleting || moving || archiving || trash || newFolder) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "]") setTab(Math.min(TABS.length - 1, tab + 1));
+      else if (e.key === "[") setTab(Math.max(0, tab - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab, setTab, creating, menu, deleting, moving, archiving, trash, newFolder]);
   const saveSearch = (name: string) => void api("/v1/saved-searches", { method: "POST", json: { name, query: { tab, f } } }).then(loadSaved, () => undefined);
   const dropSearch = (id: string) => void api(`/v1/saved-searches/${id}`, { method: "DELETE" }).then(loadSaved, () => undefined);
   const open = (sv: SavedSearch) => { const q = sv.query as { tab?: number; f?: Filters }; setTab(q.tab ?? 0); setF({ ...NO_FILTERS, ...(q.f ?? {}) }); };
-  const count = (i: number) => { const k = TABS[i]![2], sh = TABS[i]![1] === "Shared With Me"; return (all ?? []).filter((a) => (folder === null || a.folderId === folder) && (k === null || k.includes(a.kind)) && (!sh || !!a.project?.shared_with_me)).length; };
-  const rows = shown.slice(page * 10, page * 10 + 10);
+  // the tab counts, once per list — not once per tab per render: the tabs re-render on every search keystroke
+  const counts = useMemo(() => TABS.map(([, , k], i) => { const sh = TABS[i]![1] === "Shared With Me"; return (all ?? []).filter((a) => (folder === null || a.folderId === folder) && (k === null || k.includes(a.kind)) && (!sh || !!a.project?.shared_with_me)).length; }), [all, folder]);
+  const rows = useMemo(() => shown.slice(page * 10, page * 10 + 10), [shown, page]);
   const pages = Math.max(1, Math.ceil(shown.length / 10));
   const filtered = JSON.stringify(f) !== JSON.stringify(NO_FILTERS);
   const allChecked = rows.length > 0 && rows.every((a) => checked.has(a.key));
@@ -403,6 +483,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
     try { await api("/v1/projects", { method: "POST", json: { name, ...(desc2.trim() ? { description: desc2.trim() } : {}) } }); setCreating(false); setName(""); setDesc2(""); await reload(); }
     catch (x) { setErr(x instanceof ApiProblem ? x.message : "The project could not be created."); }
   };
+  const onRow = useCallback((a: Asset) => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(a.key === selected ? null : a.key)), [select, setFolder, selected]);
   const ai = TAB_GEO[tab]!, nextIcon = TAB_GEO[tab + 1]?.[0] ?? 1984;
 
   return (
@@ -444,7 +525,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         <B x={ai[0] - 29} y={240} w={nextIcon - ai[0] - 12} h={60} style={{ background: "#0a2b55", borderBottom: `${u(3)} solid #1e90ff`, borderRadius: `${u(8)} ${u(8)} 0 0` }} />
         <div role="tablist" aria-label="Asset types">
           {TABS.map(([icon, label], i) => {
-            const [ix, tx, cx, cw] = TAB_GEO[i]!, on = tab === i, n = count(i), w = Math.max(cw, 14 + String(n).length * 11);
+            const [ix, tx, cx, cw] = TAB_GEO[i]!, on = tab === i, n = counts[i]!, w = Math.max(cw, 14 + String(n).length * 11);
             return (
               <button key={label} type="button" role="tab" aria-selected={on} aria-label={`${label}: ${n}`} onClick={() => setTab(i)} className="absolute"
                 style={{ left: u(ix - 20), top: u(244 - 101), width: u((cx ? cx + w : tx + label.length * 11) - ix + 24), height: u(50), border: 0, padding: 0, background: "transparent", cursor: "pointer", color: "inherit", font: "inherit" }}>
@@ -521,7 +602,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         </div>
         {view === "table" && all ? (
           <LibraryTable rows={rows} all={all} facts={facts} checked={checked} setChecked={setChecked} selected={selected}
-            onRow={(a) => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(a.key === selected ? null : a.key))} />
+            onRow={onRow} />
         ) : (<>
         <button type="button" role="checkbox" aria-checked={allChecked} aria-label="Select all rows on this page"
           onClick={() => !rows.length ? say("There are no rows on this page") : setChecked(allChecked ? new Set() : new Set(rows.map((a) => a.key)))} className="absolute"
@@ -536,50 +617,20 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
           <Ic o={[1650, 502]} x={1662} y={514} k="sort" size={22} color="#33a8ff" />
         </button>
         {Y.slice(0, 9).map((y) => <B key={y} x={427} y={y + 45} w={1554} h={1} style={{ background: "#10294a" }} />)}
+        {all === undefined && (
+          <T x={1204} y={587} size={20} color="#8ea3bf" align="center"><span role="status">Loading the Library…</span></T>
+        )}
+        {all === null && (
+          <button type="button" onClick={() => void reload()} className="absolute" aria-label="Try loading the Library again"
+            style={{ left: u(1144), top: u(620 - 101), width: u(120), height: u(36), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(20), fontFamily: "inherit", cursor: "pointer" }}>Try again</button>
+        )}
         {all !== undefined && shown.length === 0 && (
           <T x={1204} y={587} size={20} color="#8ea3bf" align="center">{all === null ? "The library could not be loaded" : openFolder && !openFolder.item_count ? "This folder is empty. Put items in it with their ⋯ menu › Move to folder." : (all.length === 0 ? "No assets yet — new projects, reels, reports and exports will appear here" : "No asset matches these filters")}</T>
         )}
-        {rows.map((a, i) => {
-          const y = Y[i]!, sel = a.key === selected, ty = TY[a.kind], on = checked.has(a.key);
-          return (
-            <div key={a.key} data-asset={a.kind} data-id={a.id}>
-              {sel && <B x={425} y={y - 44} w={1558} h={91} style={{ background: "#04264a", border: `${u(2.5)} solid #1e90ff`, borderRadius: u(8) }} />}
-              <button type="button" aria-label={a.kind === "Folder" ? `Open the folder ${a.title}` : `${a.title}: ${a.kind}, ${a.status}`} aria-pressed={sel}
-                onClick={() => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(sel ? null : a.key))} className="absolute"
-                style={{ left: u(490), top: u(y - 44 - 101), width: u(1250), height: u(88), padding: 0, border: 0, background: "transparent", cursor: "pointer" }} />
-              <button type="button" role="checkbox" aria-checked={on} aria-label={`Select ${a.title}`} onClick={() => { const n = new Set(checked); if (on) n.delete(a.key); else n.add(a.key); setChecked(n); }}
-                className="absolute" style={{ left: u(448), top: u(y - 12 - 101), width: u(26), height: u(26), padding: 0, borderRadius: u(5), border: on ? 0 : `${u(2)} solid #cfe0f5`, background: on ? "#1e90ff" : "transparent", cursor: "pointer" }}>
-                {on && <Ic o={[448, y - 12]} x={461} y={y + 1} k="chk" size={18} />}
-              </button>
-              {a.kind === "Folder" || a.kind === "Project" ? (
-                <>
-                  <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none", background: ty[0], border: `${u(1.5)} solid ${ty[1]}` }} />
-                  <Ic x={575} y={y} k={a.kind === "Folder" ? "fold" : "grid"} size={34} color={ty[2]} />
-                </>
-              ) : (
-                <>
-                  <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none",
-                    background: `radial-gradient(ellipse at 40% 70%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a ${30 + i * 6}%,#1d5a28)` }} />
-                  <B x={588} y={y + 10} w={56} h={22} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4), pointerEvents: "none" }} />
-                  <T x={612} y={y + 21} size={19} weight={600} align="center">{clock(a.durationUs)}</T>
-                </>
-              )}
-              <T x={668} y={y - 14} size={22} weight={700} style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.title}</T>
-              <T x={668} y={y + 19} size={19} color="#9fb3cc" style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.sub}{!folder && a.folderId ? ` · in ${folders.find((x) => x.id === a.folderId)?.name ?? "a folder"}` : ""}</T>
-              <B x={1016} y={y - 20} w={a.kind === "Reel" ? 75 : a.kind === "Project" ? 100 : 91} h={40} style={{ background: ty[0], border: `${u(1.5)} solid ${ty[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
-              <T x={1016 + (a.kind === "Reel" ? 37 : a.kind === "Project" ? 50 : 45)} y={y} size={20} color={ty[2]} align="center">{a.kind}</T>
-              {a.player ? (
-                <>
-                  <B x={1150} y={y - 26} w={52} h={52} style={{ borderRadius: "50%", background: "#2b5ff0", border: `${u(2)} solid #6a7a98`, pointerEvents: "none" }} />
-                  <T x={1176} y={y} size={18} weight={700} align="center">{initials(a.player)}</T>
-                </>
-              ) : <T x={1176} y={y} size={19} color="#8ea3bf" align="center">—</T>}
-              <T x={1575} y={y - 9} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</T>
-              <T x={1575} y={y + 19} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}</T>
-              <MoreMenu x={1946} y={y} k="hdots" size={26} w={40} h={40} label={`More for ${a.title}`} items={assetActions(a, () => select(a.key), deleteItem(a, canWrite, (t) => setDeleting({ ...t, key: a.key })), moveItem(a, canWrite, setMoving), archiveItem(a, setArchiving), (id) => { select(null); setFolder(id); })} />
-            </div>
-          );
-        })}
+        {rows.map((a, i) => (
+          <AssetRow key={a.key} a={a} y={Y[i]!} i={i} sel={a.key === selected} on={checked.has(a.key)} canWrite={canWrite} folder={folder} folders={folders}
+            select={select} setFolder={setFolder} toggleChecked={toggleChecked} setDeleting={setDeleting} setMoving={setMoving} setArchiving={setArchiving} />
+        ))}
         </>)}
         {checked.size > 0 && (
           <div role="toolbar" aria-label="Selected items" data-bulk-bar className="absolute" style={{ left: u(440), top: u(1384 - 101), height: u(36), display: "flex", alignItems: "center", gap: u(14),
@@ -600,18 +651,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
       </section>
 
       <section aria-label="Status and collaboration indicators" data-section="p09-s06">
-        {view === "cards" && rows.map((a, i) => {
-          const y = Y[i]!, st = ST[a.status];
-          return (
-            <div key={a.key} role="group" aria-label={`${a.title}: ${a.status}, ${people(a)}`}>
-              <Collaborators a={a} y={y} />
-              <B x={1756} y={y - 20} w={136} h={40} style={{ background: st[0], border: `${u(1.5)} solid ${st[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
-              <B x={1769} y={y - 9} w={20} h={20} style={{ background: st[2], borderRadius: "50%", pointerEvents: "none" }} />
-              <Ic x={1779} y={y + 1} k="chk" size={12} color={st[0]} />
-              <T x={1805} y={y} size={19} color={st[2]}>{a.status}</T>
-            </div>
-          );
-        })}
+        {view === "cards" && rows.map((a, i) => <AssetStatus key={a.key} a={a} y={Y[i]!} />)}
       </section>
 
       <Dialog.Root open={creating} onOpenChange={setCreating}>

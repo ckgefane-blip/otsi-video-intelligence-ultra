@@ -26,12 +26,13 @@ describe("keyboard map", () => {
     expect(scopeOf("/reels")).toBe("reels");
     expect(scopeOf("/reports")).toBe("reports");
     expect(scopeOf("/reports/players/abc")).toBe("reports");
+    expect(scopeOf("/library")).toBe("library");
     expect(scopeOf("/dashboard")).toBeNull();
-    expect(keymapFor("/studio").map((g) => [g.scope, g.here])).toEqual([["studio", true], ["everywhere", false], ["analysis", false], ["reels", false], ["reports", false]]);
-    expect(keymapFor("/analysis").map((g) => g.scope)).toEqual(["analysis", "everywhere", "studio", "reels", "reports"]);
-    expect(keymapFor("/reels").map((g) => g.scope)).toEqual(["reels", "everywhere", "studio", "analysis", "reports"]);
-    expect(keymapFor("/reports").map((g) => g.scope)).toEqual(["reports", "everywhere", "studio", "analysis", "reels"]);
-    expect(keymapFor("/library").map((g) => g.scope)).toEqual(["everywhere", "studio", "analysis", "reels", "reports"]);
+    expect(keymapFor("/studio").map((g) => [g.scope, g.here])).toEqual([["studio", true], ["everywhere", false], ["analysis", false], ["reels", false], ["reports", false], ["library", false]]);
+    expect(keymapFor("/analysis").map((g) => g.scope)).toEqual(["analysis", "everywhere", "studio", "reels", "reports", "library"]);
+    expect(keymapFor("/reels").map((g) => g.scope)).toEqual(["reels", "everywhere", "studio", "analysis", "reports", "library"]);
+    expect(keymapFor("/reports").map((g) => g.scope)).toEqual(["reports", "everywhere", "studio", "analysis", "reels", "library"]);
+    expect(keymapFor("/library").map((g) => g.scope)).toEqual(["library", "everywhere", "studio", "analysis", "reels", "reports"]);
     expect(keymapFor("/x").flatMap((g) => g.rows)).toHaveLength(KEYMAP.length);
   });
 

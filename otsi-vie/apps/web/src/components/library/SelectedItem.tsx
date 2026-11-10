@@ -16,7 +16,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { PERMISSION_NAMES, type LibraryFolder, type Match, type Member, type Playback, type Project, type Reel } from "@otsi-vie/contracts";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { MediaInfoDialog } from "@/components/media/MediaInfoDialog";
@@ -40,7 +40,7 @@ function Action({ x, y, icon, ix, tx, label, onClick, why, primary, say }: { x: 
   );
 }
 
-export function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset | null; match: Match | null; onClose: () => void; reload: () => Promise<void>; canWrite: boolean }) {
+export const SelectedItem = memo(function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset | null; match: Match | null; onClose: () => void; reload: () => Promise<void>; canWrite: boolean }) {
   const [play, setPlay] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [naming, setNaming] = useState(false);
@@ -50,7 +50,10 @@ export function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset
   useEffect(() => { setPlay(null); setNote(null); }, [a?.key]);
   const [members, setMembers] = useState<Member[] | null>(null);
   useEffect(() => { void api<Member[]>("/v1/members").then(setMembers, () => setMembers(null)); }, []);
-  const flash = (t: string) => { setNote(t); setTimeout(() => setNote(null), 2500); };
+  // the note's timer is tracked and cleared on unmount, so it never fires into a removed panel
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+  const flash = (t: string) => { setNote(t); if (flashTimer.current) clearTimeout(flashTimer.current); flashTimer.current = setTimeout(() => setNote(null), 2500); };
   const reel = a?.kind === "Reel" || a?.kind === "Export" ? (a.raw as Reel) : null;
   const renderId = a?.renderId ?? (reel?.last_good_render?.has_output ? reel.last_good_render.id : null);
   const videoId = a?.videoId ?? null;
@@ -215,4 +218,4 @@ export function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset
       </Dialog.Root>
     </>
   );
-}
+});

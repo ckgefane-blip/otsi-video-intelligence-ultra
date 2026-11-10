@@ -6,12 +6,13 @@
  *   Analysis     CentreVideo: playback, J K L, frames; WhoIsThis: N, the next possible moment of the reel's player
  *   Reel Builder ReelStage: undo / redo
  *   Player Reports ReportStage: [ / ] move between report sections
+ *   Library LibraryMain: [ / ] move between asset tabs
  */
-export type KeyScope = "everywhere" | "studio" | "analysis" | "reels" | "reports";
+export type KeyScope = "everywhere" | "studio" | "analysis" | "reels" | "reports" | "library";
 export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" | "Compare" }
 export interface KeyRow extends Shortcut { scope: KeyScope }
 
-export const SCOPE_LABEL: Record<KeyScope, string> = { everywhere: "Everywhere", studio: "Clip Studio", analysis: "Analysis", reels: "Reel Builder", reports: "Player Reports" };
+export const SCOPE_LABEL: Record<KeyScope, string> = { everywhere: "Everywhere", studio: "Clip Studio", analysis: "Analysis", reels: "Reel Builder", reports: "Player Reports", library: "Library" };
 
 const JKL: Shortcut[] = [
   { keys: "J", does: "Pause and go back one second (press again to go further)", group: "Play" },
@@ -65,12 +66,18 @@ export const REPORTS_KEYS: Shortcut[] = [
   { keys: "[ / ]", does: "Previous / next report section", group: "App" },
 ];
 
+/** Library: move between the asset tabs (the same tabs the tab buttons open) */
+export const LIBRARY_KEYS: Shortcut[] = [
+  { keys: "[ / ]", does: "Previous / next asset tab", group: "App" },
+];
+
 export const KEYMAP: KeyRow[] = [
   ...EVERYWHERE_KEYS.map((k) => ({ ...k, scope: "everywhere" as const })),
   ...STUDIO_KEYS.map((k) => ({ ...k, scope: "studio" as const })),
   ...ANALYSIS_KEYS.map((k) => ({ ...k, scope: "analysis" as const })),
   ...REELS_KEYS.map((k) => ({ ...k, scope: "reels" as const })),
   ...REPORTS_KEYS.map((k) => ({ ...k, scope: "reports" as const })),
+  ...LIBRARY_KEYS.map((k) => ({ ...k, scope: "library" as const })),
 ];
 
 /** the page's own keys, if it has any */
@@ -79,13 +86,14 @@ export function scopeOf(pathname: string): KeyScope | null {
   if (pathname.startsWith("/analysis")) return "analysis";
   if (pathname.startsWith("/reels")) return "reels";
   if (pathname.startsWith("/reports")) return "reports";
+  if (pathname.startsWith("/library")) return "library";
   return null;
 }
 
 /** the map in the order shown: this page's keys, then everywhere, then the other pages'; filtered by a key or by words */
 export function keymapFor(pathname: string, q = ""): { scope: KeyScope; here: boolean; rows: KeyRow[] }[] {
   const here = scopeOf(pathname), n = q.trim().toLowerCase();
-  const order: KeyScope[] = [...(here ? [here] : []), "everywhere", ...(["studio", "analysis", "reels", "reports"] as const).filter((s) => s !== here)];
+  const order: KeyScope[] = [...(here ? [here] : []), "everywhere", ...(["studio", "analysis", "reels", "reports", "library"] as const).filter((s) => s !== here)];
   const hit = (r: KeyRow) => {
     if (!n) return true;
     if (n.length === 1) return r.keys.toLowerCase().split(/[^a-z0-9?[\]←→]+/).includes(n) || r.keys === q.trim();   // one letter: that key

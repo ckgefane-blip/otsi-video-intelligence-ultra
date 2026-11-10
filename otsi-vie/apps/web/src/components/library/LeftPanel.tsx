@@ -14,7 +14,7 @@
  */
 import type { Match, MatchEvents, MatchPeriods } from "@otsi-vie/contracts";
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { memo, useEffect, useState, type ReactNode } from "react";
 import { KIND, marksOf, type Kind } from "@/components/workspace/TimelinePanel";
 import { api } from "@/lib/api";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
@@ -70,7 +70,7 @@ function EventCounts({ videoId, span, rangeLabel }: { videoId: string | null; sp
   );
 }
 
-export function LeftPanel({ match, analysed, side, setSide, team, setTeam, say, videoId, reelId, browse, setBrowse, tree }: {
+export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSide, team, setTeam, say, videoId, reelId, browse, setBrowse, tree }: {
   match: Match | null; analysed: boolean; side: number; setSide: (i: number) => void; team: TeamSide; setTeam: (t: TeamSide) => void;
   say: (t: string) => void; videoId: string | null; reelId: string | null;
   /** A.14: the panel shows the Library tree (true) or the selected asset's match (false, the approved panel) */
@@ -256,4 +256,4 @@ export function LeftPanel({ match, analysed, side, setSide, team, setTeam, say, 
       )}
     </aside>
   );
-}
+});

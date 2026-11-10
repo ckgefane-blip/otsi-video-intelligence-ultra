@@ -9,7 +9,7 @@
  * Only what is recorded; counts come from the same list the table shows.
  */
 import type { LibraryFolder, TrashEntry } from "@otsi-vie/contracts";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { u } from "@/components/stage/DesignStage";
 import { TABS, type Asset } from "./useLibrary";
@@ -47,7 +47,7 @@ function Item({ on, label, n, onClick, icon, data }: { on: boolean; label: strin
   );
 }
 
-export function LibraryTree({ all, folder, setFolder, tab, setTab, canWrite, openTrash, newFolder, say, version }: {
+export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, tab, setTab, canWrite, openTrash, newFolder, say, version }: {
   all: Asset[] | null | undefined; folder: string | null; setFolder: (id: string | null) => void; tab: number; setTab: (i: number) => void;
   canWrite: boolean; openTrash: () => void; newFolder: () => void; say: (t: string) => void;
   /** changes when the Library is reloaded, so the Trash count is read again */
@@ -85,4 +85,4 @@ export function LibraryTree({ all, folder, setFolder, tab, setTab, canWrite, ope
       <SmartBinsTree head={head} row={row} count={count} />
     </nav>
   );
-}
+});

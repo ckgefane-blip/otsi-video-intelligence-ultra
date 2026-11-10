@@ -10,7 +10,7 @@
  * Rows share the card view's selection (checkboxes) and bulk actions, and its click (select the row; a folder opens).
  */
 import { deviceOf, evidenceLine, EXPORT_PROFILES, PROFILE_LABEL, rightsLine, type LibraryFacts, type Reel, type Video, type VideoFacts } from "@otsi-vie/contracts";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { u } from "@/components/stage/DesignStage";
 import type { Asset } from "./useLibrary";
@@ -60,7 +60,7 @@ export function videoOfMatchMap(all: Asset[]): Map<string, string> {
 const th: React.CSSProperties = { position: "sticky", top: 0, background: "#06162d", textAlign: "left", fontWeight: 600, color: "#cfe0f5", padding: `${u(10)} ${u(10)}`, fontSize: u(18), whiteSpace: "nowrap", zIndex: 1 };
 const td: React.CSSProperties = { padding: `${u(10)} ${u(10)}`, fontSize: u(18), color: "#d6e4f7", borderTop: `${u(1)} solid #10294a`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: u(260) };
 
-export function LibraryTable({ rows, all, facts, checked, setChecked, selected, onRow }: {
+export const LibraryTable = memo(function LibraryTable({ rows, all, facts, checked, setChecked, selected, onRow }: {
   rows: Asset[]; all: Asset[]; facts: Map<string, VideoFacts> | null; checked: Set<string>; setChecked: (s: Set<string>) => void; selected: string | null; onRow: (a: Asset) => void;
 }) {
   const vm = useMemo(() => videoOfMatchMap(all), [all]);
@@ -98,7 +98,7 @@ export function LibraryTable({ rows, all, facts, checked, setChecked, selected, 
       </table>
     </div>
   );
-}
+});
 
 /** the selected rows as a CSV (the same columns), for the person to keep */
 export function rowsCsv(rows: Asset[], all: Asset[], facts: Map<string, VideoFacts> | null): string {
