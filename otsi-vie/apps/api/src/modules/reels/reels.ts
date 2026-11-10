@@ -1,7 +1,9 @@
 /**
  * Reel Builder (Blocks 10-11, ADR-032): a person makes a player's highlight reel by clicking; the engine suggests and renders.
  *
- *   POST   /v1/reels                         create a reel for a CONFIRMED player of a video (targets pin the exact identity decisions)
+ *   POST   /v1/reels                         create a reel for a CONFIRMED player of a video (targets pin the exact identity decisions);
+ *                                           source ALL_MATCHES: one player, ALL his matches (ADR-131) — video_id absent, length_s 90/180/300
+ *   GET    /v1/players/:id/cross-match-moments   the player's best moments across all his matches (ADR-131; in cross-match.ts)
  *   GET    /v1/reels?video_id=               the organization's reels (of one video)
  *   GET    /v1/reels/:id                     reel: player, targets (current or stale), clips, latest render
  *   PATCH  /v1/reels/:id                     name, aspect, spotlight settings (optimistic concurrency: version)
@@ -32,8 +34,8 @@
  */
 import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Injectable, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import {
-  AddClipRequest, AssembleRequest, ClipFx, ReviewComment, SetClipFxRequest, CandidatesRequest, CandidatesResponse, buildCandidates, type AssembledClip, CreateReelRequest, CreateRenderRequest, MomentEvent, Reel, ReelMoment, ReelPath, RenderJob, ReorderClipsRequest, SetClipEffectRequest, SetTransitionRequest, SpotlightSettings,
-  BoundarySuggestion, suggestBoundary, UpdateClipRequest, UpdateReelRequest, clipOutputUs, slotUs, BatchRenderRequest, BatchRenderResult, Preflight, preflightChecks, outputAspect, uniqueOutputs, SetAllTransitionsRequest, transitionsForAll, normaliseEffect, type ClipEffect, EXPORT_PROFILES, ExportProfile, isRejected, momentCoverage, MomentWindowRequest, SwapClipRequest,
+  AddClipRequest, AssembleRequest, BEST_MOMENTS_RULE_VERSION, ClipFx, ReviewComment, SetClipFxRequest, CandidatesRequest, CandidatesResponse, buildCandidates, type AssembledClip, CreateReelRequest, CreateRenderRequest, CrossMatchMomentWindowRequest, CrossMatchSelection, crossMatchClipLabel, selectCrossMatchMoments, Reel, ReelMoment, ReelPath, RenderJob, ReorderClipsRequest, SetClipEffectRequest, SetTransitionRequest, SpotlightSettings,
+  BoundarySuggestion, suggestBoundary, UpdateClipRequest, UpdateReelRequest, clipOutputUs, slotUs, BatchRenderRequest, BatchRenderResult, Preflight, preflightChecks, outputAspect, uniqueOutputs, SetAllTransitionsRequest, transitionsForAll, normaliseEffect, type ClipEffect, EXPORT_PROFILES, ExportProfile, isRejected, momentCoverage, SwapClipRequest,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
 import { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -46,6 +48,7 @@ import { notHidden } from "../../core/access";
 import { Db, Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 import { AnalysisService } from "../analysis/analysis";
+import { CrossMatchService, EVENT_SCORE, eventLabel, eventMomentsForVideo } from "./cross-match";
 import { ProfileIntroService } from "../profileintro/profileintro";
 import { BrandService, rightsOk } from "./brand";
 import { matchWindows, within } from "../analysis/match-time";
@@ -76,30 +79,8 @@ const SPELL_AFTER_US = 3_000_000;
  * (owner 2026-11-02: "Chinazom Godwin visible ... I have no clue what that means") */
 export const VISIBLE_LABEL = "On camera, no action found";
 const isVisibleLabel = (l: string | null) => !!l && (l === VISIBLE_LABEL || / visible \d+(\.\d)? s$/.test(l));   // and the older wording
-/** what each kind of event is worth in the ranking; the order of `events` in a moment follows it */
-const EVENT_SCORE: Record<MomentEvent, number> = { GOAL: 10, FREE_KICK_GOAL: 11, PENALTY_GOAL: 10, SHOT: 5, KEY_PASS: 4, PENALTY: 4, FREE_KICK: 3, CORNER: 3, TACKLE: 3, INTERCEPTION: 3, BALL_WON: 3,
-  SET_PIECE: 2, THROW_IN: 1, GOAL_KICK: 1, KICK_OFF: 1, PRESSURE_REGAIN: 3, PRESSURE: 2, PASS: 2, PASS_RECEIVED: 1 };
-const EVENT_WORDS: Record<MomentEvent, [string, string]> = {
-  GOAL: ["goal", "goals"], FREE_KICK_GOAL: ["free-kick goal", "free-kick goals"], PENALTY_GOAL: ["penalty goal", "penalty goals"],
-  SHOT: ["shot", "shots"], KEY_PASS: ["key pass", "key passes"], TACKLE: ["tackle (possible)", "tackles (possible)"],
-  INTERCEPTION: ["interception (possible)", "interceptions (possible)"], PENALTY: ["penalty", "penalties"], FREE_KICK: ["free kick", "free kicks"],
-  CORNER: ["corner", "corners"], THROW_IN: ["throw-in", "throw-ins"], GOAL_KICK: ["goal kick", "goal kicks"], KICK_OFF: ["kick-off", "kick-offs"],
-  SET_PIECE: ["set piece", "set pieces"], BALL_WON: ["ball won", "balls won"], PRESSURE_REGAIN: ["pressure, ball won back", "pressures, ball won back"],
-  PRESSURE: ["pressure", "pressures"], PASS: ["pass", "passes"], PASS_RECEIVED: ["pass received", "passes received"],
-};
-
-/** ADR-048: the taker's moment for each kind of set piece */
-const SET_PIECE_MOMENT: Record<string, MomentEvent> = { PENALTY: "PENALTY", FREE_KICK: "FREE_KICK", CORNER: "CORNER", THROW_IN: "THROW_IN", GOAL_KICK: "GOAL_KICK", KICK_OFF: "KICK_OFF" };
-
-/** "Ball won + 2 passes": what happened in a moment, best first */
-export function eventLabel(events: MomentEvent[]): string {
-  const n = new Map<MomentEvent, number>();
-  for (const e of events) n.set(e, (n.get(e) ?? 0) + 1);
-  const words = [...n].sort((x, y) => EVENT_SCORE[y[0]] - EVENT_SCORE[x[0]]).map(([e, k]) => (k === 1 ? EVENT_WORDS[e][0] : `${k} ${EVENT_WORDS[e][1]}`));
-  const s = words.join(" + ");
-  return s[0]!.toUpperCase() + s.slice(1);
-}
-
+// EVENT_SCORE, EVENT_WORDS and eventLabel live in ./cross-match now (the per-video eventMoments moved there with them);
+// this file keeps the reel-based wrapper over it, for the existing single-match moments endpoint.
 function json<T>(v: unknown): T | null {
   if (v === null || v === undefined) return null;
   return (typeof v === "string" ? JSON.parse(v) : v) as T;
@@ -114,7 +95,18 @@ export interface BlockClipRow { in_pts_us: number; out_pts_us: number; label: st
 @Injectable()
 export class ReelsService {
   constructor(private readonly db: Db, @Inject(AnalysisService) private readonly analysis: AnalysisService, @Inject(BrandService) private readonly brand: BrandService,
-              @Inject(ProfileIntroService) private readonly intro: ProfileIntroService) {}
+              @Inject(ProfileIntroService) private readonly intro: ProfileIntroService,
+              @Inject(CrossMatchService) private readonly crossMatch: CrossMatchService) {}
+
+  /** ADR-131: a reel's length cap in microseconds — a cross-match reel's chosen length, else 10 minutes as today. */
+  private capUs(r: RowDataPacket): number {
+    return r.source === "ALL_MATCHES" ? Number(r.cross_match_length_s ?? 180) * 1_000_000 : MAX_REEL_US;
+  }
+  private capWords(r: RowDataPacket): string {
+    if (r.source !== "ALL_MATCHES") return "10 minutes";
+    const s = Number(r.cross_match_length_s ?? 180);
+    return s === 90 ? "90 seconds" : s === 180 ? "3 minutes" : "5 minutes";
+  }
 
   /** ADR-044: what the overlays can show — the video's match (team names, competition), the halves (a clock only when a person confirmed
    * them) and the player's club in the match roster. Nothing here is measured from the picture, and the score is never shown. */
@@ -175,23 +167,65 @@ export class ReelsService {
   }
 
   async create(body: CreateReelRequest, p: Principal): Promise<Reel> {
-    const v = await this.db.one<RowDataPacket>("SELECT project_id, title FROM video_sources WHERE id = ? AND organization_id = ? AND removed_at IS NULL", [body.video_id, p.organizationId]);
+    if (body.source === "ALL_MATCHES") return this.createCrossMatch(body, p);
+    // the contract's superRefine requires video_id for MATCH; this narrows it for the compiler
+    const videoId = body.video_id;
+    if (!videoId) throw new ApiError(422, "INVALID_REQUEST", "video_id is required for a single-match reel.");
+    const v = await this.db.one<RowDataPacket>("SELECT project_id, title FROM video_sources WHERE id = ? AND organization_id = ? AND removed_at IS NULL", [videoId, p.organizationId]);
     if (!v) throw notFound("Video");
     const player = await this.db.one<RowDataPacket>(
       "SELECT display_name, own_state, created_by_organization_id FROM v_player_identity WHERE player_id = ?", [body.player_id]);
     if (!player || (player.own_state === "PROVISIONAL" && player.created_by_organization_id !== p.organizationId)) throw notFound("Player");
-    const { runId, targets } = await this.confirmedTargets(body.video_id, body.player_id, p);
+    const { runId, targets } = await this.confirmedTargets(videoId, body.player_id, p);
     if (targets.length === 0) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "Confirm the player on at least one track of this video first; a reel only follows confirmed identities.");
     const id = uuidv7();
     await this.db.tx(async (c) => {
       await c.query(`INSERT INTO reel_projects (id, organization_id, project_id, video_id, player_id, run_id, name, created_by, settings)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, p.organizationId, v.project_id, body.video_id, body.player_id, runId, body.name ?? `${player.display_name} — highlights`, p.userId, JSON.stringify(SpotlightSettings.parse({}))]);
+        [id, p.organizationId, v.project_id, videoId, body.player_id, runId, body.name ?? `${player.display_name} — highlights`, p.userId, JSON.stringify(SpotlightSettings.parse({}))]);
       for (const t of targets) {
         await c.query("INSERT INTO reel_targets (reel_id, track_id, player_id, identity_decision_id) VALUES (?, ?, ?, ?)", [id, t.trackId, body.player_id, t.decisionId]);
       }
       await recordChange(c, userActor(p), {
-        action: "reel.created", entityType: "reel", entityId: id, after: { video_id: body.video_id, player_id: body.player_id, targets: targets.length },
+        action: "reel.created", entityType: "reel", entityId: id, after: { video_id: videoId, player_id: body.player_id, targets: targets.length },
+        event: { eventType: "reel.created", payload: { reel_id: id } },
+      });
+    });
+    return this.get(id, p);
+  }
+
+  /** ADR-131: a cross-match reel — one player, ALL his matches. Targets pin his confirmed tracks in every video; the selection's
+   *  chosen clips go in, in tier order, each with its real source video and its match + minute + reason label; the Player Profile
+   *  Intro opens it exactly as a single-match reel (settings default profile_intro true). Fewer than 3 eligible moments: build
+   *  with what's there, no filler. The reel lives in the project of his most recent analysed video. */
+  private async createCrossMatch(body: CreateReelRequest, p: Principal): Promise<Reel> {
+    const identity = await this.crossMatch.requireRegisteredPlayer(body.player_id, p);
+    const videos = await this.crossMatch.confirmedVideos(body.player_id, p);
+    if (!videos.length) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "Confirm the player on at least one track of one video first; a cross-match reel only follows confirmed identities.");
+    const lengthS = body.length_s ?? 180;
+    const selection = selectCrossMatchMoments(await this.crossMatch.gatherCandidates(videos, body.player_id, p), lengthS);
+    const targets = videos.reduce((n, v) => n + v.trackIds.length, 0);
+    const id = uuidv7();
+    const latest = videos[videos.length - 1]!;
+    await this.db.tx(async (c) => {
+      await c.query(`INSERT INTO reel_projects (id, organization_id, project_id, video_id, player_id, run_id, name, created_by, settings, source, cross_match_length_s, best_moments_rule_version)
+                     VALUES (?, ?, ?, NULL, ?, NULL, ?, ?, ?, 'ALL_MATCHES', ?, ?)`,
+        [id, p.organizationId, latest.project_id, body.player_id, body.name ?? `${identity.display_name} — best moments (all matches)`, p.userId,
+         JSON.stringify(SpotlightSettings.parse({})), lengthS, BEST_MOMENTS_RULE_VERSION]);
+      for (const v of videos) {
+        for (const t of v.targets) {
+          await c.query("INSERT INTO reel_targets (reel_id, track_id, player_id, identity_decision_id) VALUES (?, ?, ?, ?)",
+            [id, t.trackId, body.player_id, t.decisionId]);
+        }
+      }
+      for (const [i, m] of selection.selected.entries()) {
+        await c.query("INSERT INTO reel_clips (id, reel_id, source_video_id, in_pts_us, out_pts_us, sequence_index, origin, label) VALUES (?, ?, ?, ?, ?, ?, 'SUGGESTED', ?)",
+          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, i, crossMatchClipLabel(m, m.reason)]);
+      }
+      await recordChange(c, userActor(p), {
+        action: "reel.created", entityType: "reel", entityId: id,
+        after: { source: "ALL_MATCHES", player_id: body.player_id, videos: videos.length, targets, length_s: lengthS,
+          best_moments_rule_version: BEST_MOMENTS_RULE_VERSION, clips: selection.selected.length },
         event: { eventType: "reel.created", payload: { reel_id: id } },
       });
     });
@@ -214,7 +248,7 @@ export class ReelsService {
          FROM reel_targets rt JOIN tracks t ON t.id = rt.track_id LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id
         WHERE rt.reel_id = ? ORDER BY t.first_pts_us`, [id]);
     const clips = await this.db.rows<RowDataPacket>(
-      "SELECT id, sequence_index, in_pts_us, out_pts_us, origin, label, effect_kind, effect_at_us, effect_hold_ms, playback_speed, clip_fx FROM reel_clips WHERE reel_id = ? ORDER BY sequence_index", [id]);
+      "SELECT id, sequence_index, source_video_id, in_pts_us, out_pts_us, origin, label, effect_kind, effect_at_us, effect_hold_ms, playback_speed, clip_fx FROM reel_clips WHERE reel_id = ? ORDER BY sequence_index", [id]);
     const render = await this.db.one<RowDataPacket>("SELECT id FROM render_jobs WHERE reel_id = ? AND organization_id = ? AND removed_at IS NULL ORDER BY created_at DESC LIMIT 1", [id, p.organizationId]);
     const goods = await this.db.rows<RowDataPacket>("SELECT id FROM render_jobs WHERE reel_id = ? AND organization_id = ? AND state = 'SUCCEEDED' AND removed_at IS NULL ORDER BY completed_at DESC LIMIT 5", [id, p.organizationId]);
     const latest = render ? await this.render(render.id as string, p) : null;
@@ -238,16 +272,22 @@ export class ReelsService {
       formats.push({ render_id: m.id, profile, aspect, width: m.width === null ? null : Number(m.width), height: m.height === null ? null : Number(m.height),
         completed_at: m.completed_at ? new Date(m.completed_at).toISOString() : null });
     }
-    const clipList = clips.map((c) => ({ id: c.id, sequence_index: Number(c.sequence_index), in_pts_us: Number(c.in_pts_us), out_pts_us: Number(c.out_pts_us), origin: c.origin, label: c.label,
+    const clipList = clips.map((c) => ({ id: c.id, sequence_index: Number(c.sequence_index), source_video_id: c.source_video_id as string, in_pts_us: Number(c.in_pts_us), out_pts_us: Number(c.out_pts_us), origin: c.origin, label: c.label,
       effect: effectOf(c), fx: fxOf(c) }));
     const firstClip = clipList[0]?.id;
     const transitions = (await this.transitionRows(id)).filter((t) => t.clip_id !== firstClip);
-    const facts = await this.overlayFacts(r.video_id as string, (r.player_id as string | null) ?? null, p);
+    // ADR-131: a cross-match reel has no single match — no match card, no team sheet of one match. player_roster is null, and the
+    // web's existing fallback (PreviewPanel: player_roster ?? profile.latest_team) shows his latest team instead; player_club
+    // likewise falls back to it.
+    const profile = player ? await playerProfile(this.db, player.player_id as string, p.organizationId) : null;
+    const facts = r.source === "ALL_MATCHES" ? null : await this.overlayFacts(r.video_id as string, (r.player_id as string | null) ?? null, p);
     return Reel.parse({
-      match: facts.match, player_club: facts.player_club, player_roster: facts.roster,
-      id: r.id, name: r.name, status: r.status, version: Number(r.version), video_id: r.video_id, run_id: r.run_id,
+      match: facts?.match ?? null, player_club: facts?.player_club ?? profile?.latest_team?.team ?? null, player_roster: facts?.roster ?? null,
+      id: r.id, name: r.name, status: r.status, version: Number(r.version), video_id: r.video_id ?? null,
+      source: r.source ?? "MATCH", cross_match_length_s: r.cross_match_length_s ?? null, best_moments_rule_version: r.best_moments_rule_version ?? null,
+      run_id: r.run_id,
       player: player ? { player_id: player.player_id, display_name: player.display_name, canonical_otsi_id: player.canonical_otsi_id,
-        profile: (await playerProfile(this.db, player.player_id as string, p.organizationId)) ?? undefined } : null,
+        profile: profile ?? undefined } : null,
       aspect: r.aspect, settings: SpotlightSettings.parse(json<Record<string, unknown>>(r.settings) ?? {}),
       targets: targets.map((t) => ({ track_id: t.track_id, track_number: Number(t.internal_track_number), first_pts_us: Number(t.first_pts_us), last_pts_us: Number(t.last_pts_us), decision_current: !!Number(t.current) })),
       stale: targets.some((t) => !Number(t.current)), clips: clipList, transitions,
@@ -345,6 +385,8 @@ export class ReelsService {
     await this.db.tx(async (c) => {
       const before = await snapshot(c, id);
       const r = await this.reelRow(id, p, c, true);
+      if (r.source === "ALL_MATCHES")
+        throw new ApiError(409, "CROSS_MATCH_SINGLE_VIDEO_ONLY", "A saved block holds clips of one video: a cross-match reel's clips each come from their own video (ADR-131).");
       const [cur] = await c.query<RowDataPacket[]>(
         "SELECT id, in_pts_us, out_pts_us, effect_kind, effect_at_us, effect_hold_ms, playback_speed, clip_fx FROM reel_clips WHERE reel_id = ? ORDER BY sequence_index FOR UPDATE", [id]);
       const len = (k: RowDataPacket | BlockClipRow) => slotUs({ in_pts_us: Number(k.in_pts_us), out_pts_us: Number(k.out_pts_us), effect: effectOf(k as RowDataPacket), fx: fxOf(k as RowDataPacket) });
@@ -373,9 +415,10 @@ export class ReelsService {
     await this.db.tx(async (c) => {
       const r = await this.reelRow(id, p, c, true);
       const name = `${String(r.name).slice(0, 240)} (copy)`;
-      await c.query(`INSERT INTO reel_projects (id, organization_id, project_id, video_id, player_id, run_id, name, created_by, status, aspect, settings)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?)`,
-        [copy, p.organizationId, r.project_id, r.video_id, r.player_id, r.run_id, name, p.userId, r.aspect, typeof r.settings === "string" ? r.settings : JSON.stringify(r.settings ?? {})]);
+      await c.query(`INSERT INTO reel_projects (id, organization_id, project_id, video_id, player_id, run_id, name, created_by, status, aspect, settings, source, cross_match_length_s, best_moments_rule_version)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?)`,
+        [copy, p.organizationId, r.project_id, r.video_id, r.player_id, r.run_id, name, p.userId, r.aspect, typeof r.settings === "string" ? r.settings : JSON.stringify(r.settings ?? {}),
+         r.source ?? "MATCH", r.cross_match_length_s ?? null, r.best_moments_rule_version ?? null]);
       await c.query("INSERT INTO reel_targets (reel_id, track_id, player_id, identity_decision_id) SELECT ?, track_id, player_id, identity_decision_id FROM reel_targets WHERE reel_id = ?", [copy, id]);
       const [clips] = await c.query<RowDataPacket[]>("SELECT * FROM reel_clips WHERE reel_id = ? ORDER BY sequence_index", [id]);
       const newId = new Map<string, string>();
@@ -417,6 +460,18 @@ export class ReelsService {
   async refreshTargets(id: string, p: Principal): Promise<Reel> {
     const r = await this.reelRow(id, p);
     if (!r.player_id) throw new ApiError(409, "NO_PLAYER", "This reel has no player.");
+    if (r.source === "ALL_MATCHES") {
+      // ADR-131: re-pin his confirmed tracks across every video again (run_id stays NULL: there is no single run)
+      const videos = await this.crossMatch.confirmedVideos(r.player_id as string, p);
+      const all = videos.flatMap((v) => v.targets);
+      if (!all.length) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "The player is no longer confirmed on any track of any video.");
+      await this.db.tx(async (c) => {
+        await c.query("DELETE FROM reel_targets WHERE reel_id = ?", [id]);
+        for (const t of all) await c.query("INSERT INTO reel_targets (reel_id, track_id, player_id, identity_decision_id) VALUES (?, ?, ?, ?)", [id, t.trackId, r.player_id, t.decisionId]);
+        await recordChange(c, userActor(p), { action: "reel.targets_refreshed", entityType: "reel", entityId: id, after: { source: "ALL_MATCHES", videos: videos.length, targets: all.length } });
+      });
+      return this.get(id, p);
+    }
     const { runId, targets } = await this.confirmedTargets(r.video_id as string, r.player_id as string, p);
     if (targets.length === 0) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "The player is no longer confirmed on any track of this video.");
     await this.db.tx(async (c) => {
@@ -428,77 +483,14 @@ export class ReelsService {
     return this.get(id, p);
   }
 
-  /** The player's events (ADR-043) on the reel's current targets, from the video's latest finished ball track, in match time: each from
-   * 4 s before to 3 s after, events closer than a second joined (up to 20 s), ranked by what he did. */
-  private async eventMoments(reel: Reel, tracks: string[], dur: number, p: Principal): Promise<{ a: number; b: number; events: MomentEvent[]; tracks: Set<number>; key: number }[]> {
-    const bt = await this.db.one<RowDataPacket>(
-      "SELECT id FROM ball_tracks WHERE video_id = ? AND organization_id = ? AND status = 'SUCCEEDED' ORDER BY created_at DESC LIMIT 1", [reel.video_id, p.organizationId]);
-    if (!bt) return [];
-    const mt = await matchWindows(this.db, reel.video_id);
-    const ph = tracks.map(() => "?").join(",");
-    const rows = await this.db.rows<RowDataPacket>(
-      `SELECT e.event_type, e.start_pts_us, e.end_pts_us, e.primary_track_id, e.secondary_track_id, JSON_EXTRACT(e.features, '$.key') AS is_key,
-              JSON_EXTRACT(e.features, '$.regain') AS regain, JSON_UNQUOTE(JSON_EXTRACT(e.features, '$.kind')) AS sp_kind,
-              JSON_UNQUOTE(JSON_EXTRACT(e.features, '$.set_piece')) AS g_sp, JSON_UNQUOTE(JSON_EXTRACT(e.features, '$.set_piece_taker')) AS g_sp_taker
-         FROM event_candidates e
-        WHERE e.ball_track_id = ? AND e.event_type IN ('PASS', 'POSSESSION_CHANGE', 'PRESSURE', 'SHOT', 'TACKLE', 'INTERCEPTION', 'SET_PIECE', 'GOAL')
-          AND (e.primary_track_id IN (${ph}) OR e.secondary_track_id IN (${ph})) AND NOT EXISTS (SELECT 1 FROM event_decisions ed WHERE ed.event_id = e.id AND ed.decision = 'REJECT' AND ed.decided_at = (SELECT MAX(ed2.decided_at) FROM event_decisions ed2 WHERE ed2.event_id = e.id)) ORDER BY e.start_pts_us`, [bt.id, ...tracks, ...tracks]);
-    // the rule's possible kind of a ball won (ADR-041): its row has the same start, the winner first
-    const how = new Map(rows.filter((r) => r.event_type === "TACKLE" || r.event_type === "INTERCEPTION")
-      .map((r) => [`${r.start_pts_us}|${r.primary_track_id}`, r.event_type as "TACKLE" | "INTERCEPTION"]));
-    const yes = (x: unknown) => x === true || x === "true" || x === 1;
-    const number = new Map(reel.targets.map((t) => [t.track_id, t.track_number]));
-    const out: { a: number; b: number; events: MomentEvent[]; tracks: Set<number>; at: [MomentEvent, number][]; key: number }[] = [];
-    for (const r of rows) {
-      // a set piece's moment is its restart (the dead ball before it can be long): from 2 s before the kick
-      const e = Number(r.end_pts_us), s = r.event_type === "SET_PIECE" ? Math.max(Number(r.start_pts_us), e - 2_000_000) : Number(r.start_pts_us);
-      const mine = tracks.includes(r.primary_track_id), his = tracks.includes(r.secondary_track_id);
-      if (r.event_type !== "GOAL" && !within(mt, s)) continue;            // a goal (the scoreboard changed) counts whatever the clock
-      // what he did: the passer, the receiver, the one who won the ball, the presser, the shooter (losing the ball is not his highlight)
-      const kind: MomentEvent | null = r.event_type === "PASS" ? (mine ? (yes(r.is_key) ? "KEY_PASS" : "PASS") : "PASS_RECEIVED")
-        : r.event_type === "POSSESSION_CHANGE" ? (his ? (how.get(`${r.start_pts_us}|${r.secondary_track_id}`) ?? "BALL_WON") : null)
-        : r.event_type === "TACKLE" || r.event_type === "INTERCEPTION" ? null
-        : r.event_type === "SET_PIECE" ? (mine ? (SET_PIECE_MOMENT[r.sp_kind as string] ?? "SET_PIECE") : null)
-        : r.event_type === "PRESSURE" ? (mine ? (yes(r.regain) ? "PRESSURE_REGAIN" : "PRESSURE") : null)
-        // ADR-049: the possible scorer (last on the ball before the scoreboard changed); he took the free kick / penalty just before: that kind of goal
-        : r.event_type === "GOAL" ? (mine ? (r.g_sp_taker === r.primary_track_id && r.g_sp === "FREE_KICK" ? "FREE_KICK_GOAL"
-          : r.g_sp_taker === r.primary_track_id && r.g_sp === "PENALTY" ? "PENALTY_GOAL" : "GOAL") : null)
-        : mine ? "SHOT" : null;
-      if (!kind) continue;
-      // a goal's own span is already the attack and the celebration
-      const a = Math.max(0, r.event_type === "GOAL" ? s : s - EVENT_BEFORE_US), b = Math.min(dur, r.event_type === "GOAL" ? e : e + EVENT_AFTER_US);
-      if (a >= b) continue;                                                      // outside the video
-      const t = number.get(mine ? r.primary_track_id : r.secondary_track_id);
-      // E4 (ADR-067): when the event itself happens: the kick of a set piece, the middle of a goal's span, else its start
-      const at = Math.min(b, Math.max(a, r.event_type === "SET_PIECE" ? e : r.event_type === "GOAL" ? (s + e) / 2 : Number(r.start_pts_us)));
-      const last = out[out.length - 1];
-      if (last && a - last.b <= EVENT_JOIN_US && b - last.a <= EVENT_MAX_US) {
-        last.b = Math.max(last.b, b); last.events.push(kind); last.at.push([kind, at]); if (t !== undefined) last.tracks.add(t);
-      } else out.push({ a, b, events: [kind], tracks: new Set(t === undefined ? [] : [t]), at: [[kind, at]], key: at });
-    }
-    // his own spells on the ball: a moment that ends while he has it runs on until he has played it
-    const spells = await this.db.rows<RowDataPacket>(
-      `SELECT start_pts_us, end_pts_us FROM event_candidates WHERE ball_track_id = ? AND event_type = 'POSSESSION' AND primary_track_id IN (${ph})
-        ORDER BY start_pts_us`, [bt.id, ...tracks]);
-    for (const m of out) {
-      for (const sp of spells) {
-        const sa = Number(sp.start_pts_us), sb = Number(sp.end_pts_us);
-        if (sa > m.b) break;
-        if (sb + SPELL_AFTER_US > m.b && sa <= m.b) m.b = Math.min(dur, m.a + EVENT_MAX_US, Math.max(m.b, sb + SPELL_AFTER_US));
-      }
-    }
-    for (let i = out.length - 1; i > 0; i--) {                                 // a moment that now reaches the next one joins it
-      const p0 = out[i - 1]!, p1 = out[i]!;
-      if (p1.a - p0.b <= EVENT_JOIN_US && p1.b - p0.a <= EVENT_MAX_US) { p0.b = Math.max(p0.b, p1.b); p0.events.push(...p1.events); p0.at.push(...p1.at); p1.tracks.forEach((t) => p0.tracks.add(t)); out.splice(i, 1); }
-    }
-    for (const m of out) {
-      m.events.sort((x, y) => EVENT_SCORE[y] - EVENT_SCORE[x]);
-      // the key time: his best event's; for a goal, his shot inside it when there is one (the goal's span runs on to the celebration)
-      const best = [...m.at].sort((x, y) => EVENT_SCORE[y[0]] - EVENT_SCORE[x[0]] || x[1] - y[1])[0]!;
-      const shot = best[0].endsWith("GOAL") ? m.at.filter(([k]) => k === "SHOT").sort((x, y) => y[1] - x[1])[0] : undefined;
-      m.key = Math.round((shot ?? best)[1]);
-    }
-    return out;
+  /** The player's events (ADR-043) on the reel's current targets, from the video's latest finished ball track, in match time.
+   *  The per-video form lives in ./cross-match (eventMomentsForVideo); this is the reel-based wrapper over it, for the existing
+   *  single-match moments endpoint — its ranking and behaviour are unchanged. A cross-match reel never comes here (its moments
+   *  are the cross-match selection). */
+  private async eventMoments(reel: Reel, tracks: string[], dur: number, p: Principal) {
+    if (!reel.video_id) return [];
+    const numbers = new Map(reel.targets.map((t) => [t.track_id, t.track_number]));
+    return eventMomentsForVideo(this.db, reel.video_id, tracks, numbers, dur, p.organizationId);
   }
 
   /** Suggested moments: the player's events, ranked (best first, then earliest); then the visible stretches of the player on the reel's
@@ -507,6 +499,12 @@ export class ReelsService {
    *  Nothing when a target is stale. max_interp_s follows the renderer's lock_rules(lock, auto_track=False). */
   async path(id: string, p: Principal): Promise<ReelPath> {
     const r = await this.reelRow(id, p);
+    if (r.source === "ALL_MATCHES") {
+      // ADR-131: one video's path cannot represent a reel spanning all his matches — an empty path, not stale (the reel's
+      // targets are still its own); Build B fetches paths per clip video another way.
+      const lock = Math.min(1, Math.max(0, SpotlightSettings.parse(json<Record<string, unknown>>(r.settings) ?? {}).lock));
+      return { stale: false, max_interp_s: Math.max(Math.round((0.3 + 0.6 * lock) * 1000) / 1000, 0.6), points: [] };
+    }
     const targets = await this.db.rows<RowDataPacket>(
       `SELECT rt.track_id, (ci.decision_id = rt.identity_decision_id AND ci.state = 'CONFIRMED' AND ci.player_id = rt.player_id) AS current
          FROM reel_targets rt LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id WHERE rt.reel_id = ?`, [id]);
@@ -532,6 +530,9 @@ export class ReelsService {
 
   async moments(id: string, p: Principal): Promise<ReelMoment[]> {
     const reel = await this.get(id, p);
+    if (reel.source === "ALL_MATCHES")
+      throw new ApiError(409, "CROSS_MATCH_USE_SELECTION", "This reel spans all matches: its moments are the cross-match selection, not single-match suggestions.");
+
     const current = reel.targets.filter((t) => t.decision_current);
     if (current.length === 0) return [];
     const v = await this.db.one<RowDataPacket>("SELECT duration_us FROM video_sources WHERE id = ?", [reel.video_id]);
@@ -571,9 +572,18 @@ export class ReelsService {
     return [...out.filter((m) => !m.rejected), ...out.filter((m) => m.rejected)];       // rejected ones last, still listed
   }
 
+  /** ADR-131: the cross-match selection for a reel — the player's selection at the reel's stored length, with rejections applied
+   *  and in_reel marked from the reel's clips. Single-match reels never come here (their moments are ReelMoment[]). */
+  async crossMatchMoments(id: string, p: Principal): Promise<CrossMatchSelection> {
+    const reel = await this.get(id, p);
+    return this.crossMatch.selectionForReel(reel, p);
+  }
+
   /** B.25 (ADR-100): for each clip, where its ends would hold his events (Inferred); nothing is changed: a person applies one with a trim */
   async boundarySuggestions(id: string, p: Principal): Promise<BoundarySuggestion[]> {
     const reel = await this.get(id, p);
+    if (reel.source === "ALL_MATCHES")
+      throw new ApiError(409, "CROSS_MATCH_SINGLE_VIDEO_ONLY", "Boundary suggestions hold one clip's ends against one video's events: a cross-match reel spans all his matches.");
     if (!reel.clips.length) return [];
     const ms = (await this.moments(id, p)).filter((m) => m.kind === "EVENT" && !m.rejected);
     if (!ms.length) return [];
@@ -593,6 +603,9 @@ export class ReelsService {
 
   /** E4 (ADR-067): draft reels from the player's moments; nothing is changed */
   async candidates(id: string, body: CandidatesRequest, p: Principal): Promise<CandidatesResponse> {
+    const r = await this.reelRow(id, p);
+    if (r.source === "ALL_MATCHES")
+      throw new ApiError(409, "CROSS_MATCH_SINGLE_VIDEO_ONLY", "Draft reels are built from one match's moments: a cross-match reel spans all his matches.");
     const ms = (await this.moments(id, p)).filter((m) => !m.rejected);         // B.15: never a moment a person rejected
     return CandidatesResponse.parse({ candidates: buildCandidates(ms, body.target_s * 1e6, body.theme), moments: ms.length,
       available_us: ms.reduce((s, m) => s + (m.out_pts_us - m.in_pts_us), 0) });
@@ -610,8 +623,11 @@ export class ReelsService {
   /** E4: the reel's clips replaced by assembled ones (a draft or a template's filled slots), with their speed effects; one change, audited */
   async replaceClips(id: string, clips: AssembledClip[], p: Principal, action: string, after: Record<string, unknown>, replace: boolean, version?: number): Promise<Reel> {
     if (!clips.length) throw new ApiError(422, "NOTHING_TO_ADD", "There is no moment of his to put in the reel.");
+    const r0 = await this.reelRow(id, p);
+    if (r0.source === "ALL_MATCHES")
+      throw new ApiError(409, "CROSS_MATCH_SINGLE_VIDEO_ONLY", "A draft or template fills one match's clips: a cross-match reel's clips each come from their own video.");
     const total = clips.reduce((s, c) => s + clipOutputUs(c), 0);
-    if (total > MAX_REEL_US) throw new ApiError(422, "REEL_TOO_LONG", "A reel can be at most 10 minutes.");
+    if (total > this.capUs(r0)) throw new ApiError(422, "REEL_TOO_LONG", `A reel can be at most ${this.capWords(r0)}.`);
     await this.db.tx(async (c) => {
       const before = await snapshot(c, id);                       // B.1 (ADR-081): the edit history
       const r = await this.reelRow(id, p, c, true);
@@ -632,24 +648,42 @@ export class ReelsService {
     return this.get(id, p);
   }
 
-  private async checkClip(reelId: string, inUs: number, outUs: number, p: Principal, exceptClip?: string) {
+  /** A clip fits: at most 60 s, inside its video, and the reel stays within its length cap (ADR-131: a cross-match reel's chosen
+   *  length, else 10 minutes as today). Returns the reel and the clip's video: the reel's video for a single-match reel, the
+   *  given (or the clip's own) source video for a cross-match reel. */
+  private async checkClip(reelId: string, inUs: number, outUs: number, p: Principal, exceptClip?: string, sourceVideoId?: string) {
     const reel = await this.reelRow(reelId, p);
     if (outUs - inUs > MAX_CLIP_US) throw new ApiError(422, "CLIP_TOO_LONG", "A clip can be at most 60 seconds.");
-    const v = await this.db.one<RowDataPacket>("SELECT duration_us FROM video_sources WHERE id = ?", [reel.video_id]);
+    let videoId: string | null = reel.source === "ALL_MATCHES" ? (sourceVideoId ?? null) : (reel.video_id as string);
+    if (reel.source === "ALL_MATCHES" && exceptClip && !videoId) {
+      const clip = await this.db.one<RowDataPacket>("SELECT source_video_id FROM reel_clips WHERE id = ? AND reel_id = ?", [exceptClip, reelId]);
+      videoId = (clip?.source_video_id as string | undefined) ?? null;
+    }
+    if (!videoId) throw new ApiError(422, "NO_SOURCE_VIDEO", "Give source_video_id: this reel spans all matches, so a clip needs its video.");
+    const v = await this.db.one<RowDataPacket>("SELECT duration_us FROM video_sources WHERE id = ? AND organization_id = ? AND removed_at IS NULL", [videoId, p.organizationId]);
+    if (!v) throw notFound("Video");
     if (v?.duration_us && outUs > Number(v.duration_us) + 100_000) throw new ApiError(422, "CLIP_OUTSIDE_VIDEO", "The clip ends after the video does.");
     const total = await this.db.one<RowDataPacket>("SELECT COALESCE(SUM(out_pts_us - in_pts_us), 0) AS d FROM reel_clips WHERE reel_id = ? AND id <> ?", [reelId, exceptClip ?? ""]);
-    if (Number(total?.d ?? 0) + (outUs - inUs) > MAX_REEL_US) throw new ApiError(422, "REEL_TOO_LONG", "A reel can be at most 10 minutes.");
-    return reel;
+    if (Number(total?.d ?? 0) + (outUs - inUs) > this.capUs(reel)) throw new ApiError(422, "REEL_TOO_LONG", `A reel can be at most ${this.capWords(reel)}.`);
+    return { reel, videoId };
   }
 
   async addClip(id: string, body: AddClipRequest, p: Principal): Promise<Reel> {
-    const reel = await this.checkClip(id, body.in_pts_us, body.out_pts_us, p);
+    const { reel, videoId } = await this.checkClip(id, body.in_pts_us, body.out_pts_us, p, undefined, body.source_video_id);
+    if (reel.source === "ALL_MATCHES") {
+      // ADR-131: a hand-added clip must be of a video where the player has confirmed tracks (else the spotlight has nobody to follow)
+      if (body.source_video_id && body.source_video_id !== videoId) throw new ApiError(422, "VIDEO_MISMATCH", "That source_video_id is not this clip's video.");
+      const { targets } = await this.crossMatch.confirmedTargets(videoId, reel.player_id as string, p);
+      if (!targets.length) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "The player has no confirmed track in that video: a cross-match clip needs one.");
+    } else if (body.source_video_id && body.source_video_id !== videoId) {
+      throw new ApiError(422, "VIDEO_MISMATCH", "That source_video_id is not this reel's video.");
+    }
     await this.db.tx(async (c) => {
       const before = await snapshot(c, id);                       // B.1 (ADR-081): the edit history
       const [m] = await c.query<RowDataPacket[]>("SELECT COALESCE(MAX(sequence_index), -1) + 1 AS n FROM reel_clips WHERE reel_id = ? FOR UPDATE", [id]);
       const clipId = uuidv7();
       await c.query("INSERT INTO reel_clips (id, reel_id, source_video_id, in_pts_us, out_pts_us, sequence_index, origin, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [clipId, id, reel.video_id, body.in_pts_us, body.out_pts_us, m[0]!.n, body.origin, body.label]);
+        [clipId, id, videoId, body.in_pts_us, body.out_pts_us, m[0]!.n, body.origin, body.label]);
       await c.query("UPDATE reel_projects SET status = 'DRAFT' WHERE id = ?", [id]);
       await recordChange(c, userActor(p), { action: "reel.clip_added", entityType: "reel", entityId: id, after: { clip_id: clipId, in_pts_us: body.in_pts_us, out_pts_us: body.out_pts_us } });
       await recordEdit(c, p, id, "reel.clip_added", "Added a clip", before);
@@ -683,7 +717,8 @@ export class ReelsService {
       const a = Number(clip.in_pts_us), b = Number(clip.out_pts_us);
       if (e.at_us !== null && (e.at_us <= a || e.at_us >= b)) throw new ApiError(422, "EFFECT_OUTSIDE_CLIP", "The key moment must be inside the clip: move the playhead onto it.");
       const total = rows.reduce((s, r) => s + clipOutputUs(r.id === clipId ? { in_pts_us: a, out_pts_us: b, effect: e } : { in_pts_us: Number(r.in_pts_us), out_pts_us: Number(r.out_pts_us), effect: effectOf(r) }), 0);
-      if (total > MAX_REEL_US) throw new ApiError(422, "REEL_TOO_LONG", "With this effect the reel would be longer than 10 minutes.");
+      const rr = await this.reelRow(id, p, c, true);
+      if (total > this.capUs(rr)) throw new ApiError(422, "REEL_TOO_LONG", `With this effect the reel would be longer than ${this.capWords(rr)}.`);
       await c.query("UPDATE reel_clips SET effect_kind = ?, effect_at_us = ?, effect_hold_ms = ?, playback_speed = ? WHERE id = ?", [e.kind, e.at_us, e.hold_ms, e.speed, clipId]);
       await recordChange(c, userActor(p), { action: "reel.clip_effect_set", entityType: "reel", entityId: id, before: { clip_id: clipId, effect: effectOf(clip) }, after: { clip_id: clipId, effect: e } });
       await recordEdit(c, p, id, "reel.clip_effect_set", e.kind === "NONE" ? "Removed a speed effect" : `Speed effect: ${e.kind === "SLOW" ? "slow motion" : e.kind === "FREEZE" ? "freeze frame" : "hero ramp"}`, before);
@@ -707,7 +742,8 @@ export class ReelsService {
         const [all] = await c.query<RowDataPacket[]>(
           "SELECT id, in_pts_us, out_pts_us, effect_kind, effect_at_us, effect_hold_ms, playback_speed, clip_fx FROM reel_clips WHERE reel_id = ?", [id]);
         const total = all.reduce((s, r) => s + slotUs({ in_pts_us: Number(r.in_pts_us), out_pts_us: Number(r.out_pts_us), effect: effectOf(r), fx: r.id === clipId ? body : fxOf(r) }), 0);
-        if (total > MAX_REEL_US) throw new ApiError(422, "REEL_TOO_LONG", "With this gap the reel would be longer than 10 minutes.");
+        const rr = await this.reelRow(id, p, c, true);
+        if (total > this.capUs(rr)) throw new ApiError(422, "REEL_TOO_LONG", `With this gap the reel would be longer than ${this.capWords(rr)}.`);
       }
       const empty = !body.zoom.length && !body.drawings.length && !body.gap_ms && !body.gain_db;
       const fx = { zoom: [...body.zoom].sort((x, y) => x.at_ms - y.at_ms), drawings: [...body.drawings].sort((x, y) => x.at_ms - y.at_ms), gap_ms: body.gap_ms, gain_db: body.gain_db };
@@ -760,9 +796,20 @@ export class ReelsService {
     return this.get(id, p);
   }
 
-  /** B.15: "Not this one" for a suggested moment of this reel, and undoing it */
-  async rejectMoment(id: string, body: MomentWindowRequest, p: Principal): Promise<ReelMoment[]> {
-    await this.reelRow(id, p);
+  /** B.15: "Not this one" for a suggested moment of this reel, and undoing it. ADR-131: for a cross-match reel the rejection is
+   *  per video (video_id required — rejecting a moment in one match never rejects the same window in another). */
+  async rejectMoment(id: string, body: CrossMatchMomentWindowRequest, p: Principal): Promise<ReelMoment[] | CrossMatchSelection> {
+    const r = await this.reelRow(id, p);
+    if (r.source === "ALL_MATCHES") {
+      if (!body.video_id) throw new ApiError(422, "VIDEO_REQUIRED", "Give video_id: this reel spans all matches, so a rejection is per video.");
+      await this.db.tx(async (c) => {
+        await c.query("INSERT INTO reel_moment_rejections (reel_id, video_id, in_pts_us, out_pts_us, rejected_by) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE out_pts_us = VALUES(out_pts_us)",
+          [id, body.video_id, body.in_pts_us, body.out_pts_us, p.userId]);
+        await recordChange(c, userActor(p), { action: "reel.moment_rejected", entityType: "reel", entityId: id, after: { ...body } });
+      });
+      return this.crossMatchMoments(id, p);
+    }
+    if (body.video_id && body.video_id !== r.video_id) throw new ApiError(422, "VIDEO_MISMATCH", "That video_id is not this reel's video.");
     await this.db.tx(async (c) => {
       await c.query("INSERT INTO reel_moment_rejections (reel_id, in_pts_us, out_pts_us, rejected_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE out_pts_us = VALUES(out_pts_us)",
         [id, body.in_pts_us, body.out_pts_us, p.userId]);
@@ -770,8 +817,19 @@ export class ReelsService {
     });
     return this.moments(id, p);
   }
-  async restoreMoment(id: string, body: MomentWindowRequest, p: Principal): Promise<ReelMoment[]> {
-    await this.reelRow(id, p);
+  async restoreMoment(id: string, body: CrossMatchMomentWindowRequest, p: Principal): Promise<ReelMoment[] | CrossMatchSelection> {
+    const r = await this.reelRow(id, p);
+    if (r.source === "ALL_MATCHES") {
+      if (!body.video_id) throw new ApiError(422, "VIDEO_REQUIRED", "Give video_id: this reel spans all matches, so a rejection is per video.");
+      await this.db.tx(async (c) => {
+        // every rejected window of that video that rejects this moment
+        await c.query("DELETE FROM reel_moment_rejections WHERE reel_id = ? AND video_id = ? AND LEAST(out_pts_us, ?) - GREATEST(in_pts_us, ?) >= ?",
+          [id, body.video_id, body.out_pts_us, body.in_pts_us, (body.out_pts_us - body.in_pts_us) / 2]);
+        await recordChange(c, userActor(p), { action: "reel.moment_restored", entityType: "reel", entityId: id, after: { ...body } });
+      });
+      return this.crossMatchMoments(id, p);
+    }
+    if (body.video_id && body.video_id !== r.video_id) throw new ApiError(422, "VIDEO_MISMATCH", "That video_id is not this reel's video.");
     await this.db.tx(async (c) => {
       // every rejected window that rejects this moment
       await c.query("DELETE FROM reel_moment_rejections WHERE reel_id = ? AND LEAST(out_pts_us, ?) - GREATEST(in_pts_us, ?) >= ?",
@@ -784,6 +842,7 @@ export class ReelsService {
   /** Add every suggested moment that is not in the reel yet, in match order, as long as the reel stays within 10 minutes */
   async addAllMoments(id: string, p: Principal): Promise<Reel> {
     const reel = await this.reelRow(id, p);
+    if (reel.source === "ALL_MATCHES") return this.addAllCrossMatchMoments(id, p, reel);
     const ms = (await this.moments(id, p)).filter((m) => !m.in_reel && !m.rejected).sort((x, y) => x.in_pts_us - y.in_pts_us);
     await this.db.tx(async (c) => {
       const before = await snapshot(c, id);                       // B.1 (ADR-081): the edit history
@@ -798,6 +857,30 @@ export class ReelsService {
       }
       await c.query("UPDATE reel_projects SET status = 'DRAFT' WHERE id = ?", [id]);
       await recordChange(c, userActor(p), { action: "reel.moments_added", entityType: "reel", entityId: id, after: { added, skipped: ms.length - added } });
+      await recordEdit(c, p, id, "reel.moments_added", "Added the suggested moments", before);
+    });
+    return this.get(id, p);
+  }
+
+  /** ADR-131: add every SELECTED cross-match moment not yet in the reel, in tier order, never past the reel's length cap
+   *  (a moment that does not fit is skipped, as single-match add-moments does — a shorter later one may still fit). */
+  private async addAllCrossMatchMoments(id: string, p: Principal, reel: RowDataPacket): Promise<Reel> {
+    const sel = await this.crossMatchMoments(id, p);
+    const capUs = this.capUs(reel);
+    const ms = sel.selected.filter((m) => !m.in_reel);
+    await this.db.tx(async (c) => {
+      const before = await snapshot(c, id);                       // B.1 (ADR-081): the edit history
+      const [t] = await c.query<RowDataPacket[]>("SELECT COALESCE(SUM(out_pts_us - in_pts_us), 0) AS d, COALESCE(MAX(sequence_index), -1) + 1 AS n FROM reel_clips WHERE reel_id = ? FOR UPDATE", [id]);
+      let total = Number(t[0]!.d), n = Number(t[0]!.n), added = 0;
+      for (const m of ms) {
+        const d = m.out_pts_us - m.in_pts_us;
+        if (d > MAX_CLIP_US || total + d > capUs) continue;
+        await c.query("INSERT INTO reel_clips (id, reel_id, source_video_id, in_pts_us, out_pts_us, sequence_index, origin, label) VALUES (?, ?, ?, ?, ?, ?, 'SUGGESTED', ?)",
+          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, n++, crossMatchClipLabel(m, m.reason)]);
+        total += d; added++;
+      }
+      await c.query("UPDATE reel_projects SET status = 'DRAFT' WHERE id = ?", [id]);
+      await recordChange(c, userActor(p), { action: "reel.moments_added", entityType: "reel", entityId: id, after: { source: "ALL_MATCHES", added, skipped: ms.length - added } });
       await recordEdit(c, p, id, "reel.moments_added", "Added the suggested moments", before);
     });
     return this.get(id, p);
@@ -892,23 +975,29 @@ export class ReelsService {
     // ADR-130: the Player Profile Intro, fixed with the render (the worker draws it from this snapshot's profile_intro, never
     // from a guess; the key is profile_intro because `profile` already means the export profile in this snapshot)
     const profile = await this.intro.snapshotForRender(reel, p);
-    const facts = await this.overlayFacts(reel.video_id, reel.player?.player_id ?? null, p);
+    // ADR-131: a cross-match reel has no single match — the match card cannot represent ten matches, so the overlay's match facts
+    // are null (Build B decides what the worker draws in their place); the club, number and position fall back to his latest team,
+    // the same fallback the web uses. The intro (profile_intro) opens it exactly as a single-match reel.
+    const latestTeam = reel.player?.profile?.latest_team ?? null;
+    const facts = reel.video_id ? await this.overlayFacts(reel.video_id, reel.player?.player_id ?? null, p) : null;
     // ADR-044: everything the overlays draw, fixed with the render (the worker reads nothing else for them)
-    const overlay = { title: reel.name, home: facts.short?.home ?? null, away: facts.short?.away ?? null, competition: facts.match?.competition ?? null,
-      periods: facts.periods, player_club: facts.player_club, competition_logo_key: logos.competition_logo_id ?? null, custom_logo_key: logos.custom_logo_id ?? null,
-      home_name: facts.match?.home ?? null, away_name: facts.match?.away ?? null, date: facts.card?.date ?? null, venue: facts.card?.venue ?? null,
+    const overlay = { title: reel.name, home: facts?.short?.home ?? null, away: facts?.short?.away ?? null, competition: facts?.match?.competition ?? null,
+      periods: facts?.periods ?? null, player_club: facts?.player_club ?? latestTeam?.team ?? null, competition_logo_key: logos.competition_logo_id ?? null, custom_logo_key: logos.custom_logo_id ?? null,
+      home_name: facts?.match?.home ?? null, away_name: facts?.match?.away ?? null, date: facts?.card?.date ?? null, venue: facts?.card?.venue ?? null,
       // E2 (ADR-065): the strap's shirt number and position, from the match's team sheet as a person recorded it (none when not on it)
-      player_number: facts.roster?.jersey_number ?? null, player_position: facts.roster?.position ?? null };
+      player_number: facts?.roster?.jersey_number ?? latestTeam?.jersey_number ?? null, player_position: facts?.roster?.position ?? latestTeam?.position ?? null };
     // ADR-047: the music under the reel, fixed with the render (its file and loudness; the match sound under it)
     const music = logos.music_id ? { key: logos.music_id, volume: reel.settings.music_volume, match_volume: reel.settings.match_volume } : null;
     // ADR-050: the intro / outro files; each clip's label is its event tag
     const intro = logos.intro_id ? { key: logos.intro_id } : null, outro = logos.outro_id ? { key: logos.outro_id } : null;
     const snapshot = { codec: body.codec, bitrate_mbps: prof.bitrate_mbps ?? body.bitrate_mbps, reel_version: reel.version, aspect, settings: reel.settings, overlay, music, intro, outro, profile_intro: profile,
+      // ADR-131: a cross-match reel's selection rule, fixed with the render (the worker stamps it into the manifest in Build B)
+      ...(reel.source === "ALL_MATCHES" ? { selection: { rule: "best-moments", version: BEST_MOMENTS_RULE_VERSION, length_s: reel.cross_match_length_s } } : {}),
       // E3 (ADR-066): the export profile, and the sound's loudness target (EBU R128, integrated) and whether the music dips under the match
       // B.20 (ADR-095): the reel's own loudness target, when a person chose one, for every file
       // B.22 (ADR-097): this file's own loudness when the export chose one
       profile: body.profile, audio: { lufs: body.loudness_lufs ?? reel.settings.loudness_lufs ?? prof.lufs, true_peak_db: -1.5, duck_music: reel.settings.duck_music },
-      clips: reel.clips.map((c) => ({ id: c.id, in_pts_us: c.in_pts_us, out_pts_us: c.out_pts_us, label: isVisibleLabel(c.label) ? null : c.label, effect: c.effect, fx: c.fx })),
+      clips: reel.clips.map((c) => ({ id: c.id, source_video_id: c.source_video_id, in_pts_us: c.in_pts_us, out_pts_us: c.out_pts_us, label: isVisibleLabel(c.label) ? null : c.label, effect: c.effect, fx: c.fx })),
       // ADR-055: the transition into each clip after the first (kind, length); the worker draws it over that clip's start
       transitions: reel.transitions.map((t) => ({ clip_id: t.clip_id, kind: t.kind, duration_us: t.duration_ms * 1000 })) };
     const manifestHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
@@ -1026,8 +1115,11 @@ export class ReelsController {
   }
 
   @Get("reels/:reelId/moments")
-  moments(@Param("reelId") id: string, @CurrentPrincipal() p: Principal) {
-    return this.reels.moments(uuidParam(id, "Reel"), p);
+  async moments(@Param("reelId") id: string, @CurrentPrincipal() p: Principal) {
+    // ADR-131: a cross-match reel's moments are its selection (selected + not selected with reasons); a single-match reel's
+    // are the ranked suggestions, as today.
+    const reel = await this.reels.get(uuidParam(id, "Reel"), p);
+    return reel.source === "ALL_MATCHES" ? this.reels.crossMatchMoments(uuidParam(id, "Reel"), p) : this.reels.moments(uuidParam(id, "Reel"), p);
   }
 
   @Patch("reels/:reelId/clips/:clipId/fx")
@@ -1116,14 +1208,14 @@ export class ReelsController {
   @Roles(...PROJECT_WRITERS)
   @HttpCode(200)
   rejectMoment(@Param("reelId") id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
-    return this.reels.rejectMoment(uuidParam(id, "Reel"), MomentWindowRequest.parse(body), p);
+    return this.reels.rejectMoment(uuidParam(id, "Reel"), CrossMatchMomentWindowRequest.parse(body), p);
   }
 
   @Post("reels/:reelId/moments/restore")
   @Roles(...PROJECT_WRITERS)
   @HttpCode(200)
   restoreMoment(@Param("reelId") id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
-    return this.reels.restoreMoment(uuidParam(id, "Reel"), MomentWindowRequest.parse(body), p);
+    return this.reels.restoreMoment(uuidParam(id, "Reel"), CrossMatchMomentWindowRequest.parse(body), p);
   }
 
   @Delete("reels/:reelId/clips/:clipId")

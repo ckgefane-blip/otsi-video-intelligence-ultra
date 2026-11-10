@@ -62,6 +62,8 @@ export const CROSS_MATCH_REASON_WORDS: Record<MomentEvent, string> = {
 export const CROSS_MATCH_NOT_SELECTED_REASONS = [
   "not a best moment", "sprint below 85% of match top speed", "top speed not measured", "duplicate moment",
   "per-match cap reached", "overlaps a selected moment", "length cap reached", "moments cap reached",
+  /** a person said "Not this one" for this reel (the API adds it when it applies the reel's rejections) */
+  "rejected for this reel",
 ] as const;
 export type CrossMatchNotSelectedReason = (typeof CROSS_MATCH_NOT_SELECTED_REASONS)[number];
 
@@ -96,6 +98,8 @@ export type CrossMatchCandidate = z.infer<typeof CrossMatchCandidate>;
 export const CrossMatchSelectedMoment = CrossMatchCandidate.extend({
   tier: CrossMatchTier,
   reason: z.string(),
+  /** ADR-131: the moment's clip is already in this reel (false for the player-level selection, which belongs to no reel) */
+  in_reel: z.boolean().default(false),
 });
 export type CrossMatchSelectedMoment = z.infer<typeof CrossMatchSelectedMoment>;
 
@@ -198,7 +202,7 @@ export function selectCrossMatchMoments(candidates: CrossMatchCandidate[], lengt
     }
     const d = c.out_pts_us - c.in_pts_us;
     if (totalUs + d > lengthUs) { ended = "length cap reached"; notSelected.push({ candidate: c, reason: ended }); continue; }
-    selected.push({ ...c, tier: cls.tier, reason: cls.reason });
+    selected.push({ ...c, tier: cls.tier, reason: cls.reason, in_reel: false });
     perMatch.set(c.video_id, (perMatch.get(c.video_id) ?? 0) + 1);
     totalUs += d;
   }

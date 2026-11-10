@@ -94,8 +94,8 @@ afterAll(async () => { await app?.close(); await root?.end(); await rm(dir, { re
 describe("companions (pure)", () => {
   const ev = (kind: string, us: number, o: Partial<PlayerEvent> = {}) => ({ id: uuidv7(), video_id: "v", video_title: "V", kind, start_us: us, end_us: us + 500_000, evidence: "ball rule", key: false,
     how: null, set_piece: null, regain: null, partner_player_id: null, partner_name: null, ...o }) as PlayerEvent;
-  const reel = { name: "R, one", video_id: "v", clips: [{ id: "c2", sequence_index: 1, in_pts_us: 10e6, out_pts_us: 12e6, origin: "MANUAL" as const, label: null, effect: NO_EFFECT, fx: NO_FX },
-    { id: "c1", sequence_index: 0, in_pts_us: 1e6, out_pts_us: 5e6, origin: "SUGGESTED" as const, label: null, effect: NO_EFFECT, fx: NO_FX }] };
+  const reel = { name: "R, one", video_id: "v", clips: [{ id: "c2", sequence_index: 1, source_video_id: "v", in_pts_us: 10e6, out_pts_us: 12e6, origin: "MANUAL" as const, label: null, effect: NO_EFFECT, fx: NO_FX },
+    { id: "c1", sequence_index: 0, source_video_id: "v", in_pts_us: 1e6, out_pts_us: 5e6, origin: "SUGGESTED" as const, label: null, effect: NO_EFFECT, fx: NO_FX }] };
   it("events fall into the clips they happen in, in clip order; the CSV quotes and defuses formulas", () => {
     const evs = [ev("PASS", 2e6, { key: true, partner_name: "=HYPERLINK(x)" }), ev("SHOT", 11e6), ev("PASS", 30e6), ev("PASS", 2e6, { video_id: "other" })];
     const g = eventsInClips(reel, evs);
