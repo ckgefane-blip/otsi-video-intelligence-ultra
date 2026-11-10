@@ -53,8 +53,10 @@ function Thumb({ m, a, o, y }: { m: RecentMatch | undefined; a: number; o: [numb
 
 export function RecentMatches() {
   const [list, setList] = useState<RecentMatch[] | null | undefined>(undefined);   // undefined = loading, null = could not read
-  useEffect(() => { void api<RecentMatch[]>("/v1/overview/recent-matches").then(setList, () => setList(null)); }, []);
-  const empty = list !== undefined && (list === null || list.length === 0);
+  const [reload, setReload] = useState(0);
+  useEffect(() => { void api<RecentMatch[]>("/v1/overview/recent-matches").then(setList, () => setList(null)); }, [reload]);
+  const failed = list === null;
+  const empty = list !== undefined && !failed && list.length === 0;
 
   return (
     <section aria-label="Recent matches" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
@@ -70,7 +72,7 @@ export function RecentMatches() {
       {ROWS.map((y, i) => {
         const m = list?.[i];
         const o: [number, number] = [55, y - 39];
-        const first = empty && i === 0;
+        const first = (empty || failed) && i === 0;
         const body = (
           <>
             <Thumb m={m} a={25 + i * 8} o={o} y={y} />
@@ -78,16 +80,24 @@ export function RecentMatches() {
             <T o={o} x={195} y={y + 22} size={19} weight={600} align="center" as="span">{m ? clock(m.duration_us) : "—"}</T>
             <B o={o} x={250} y={y - 20} w={40} h={40} style={{ background: "#e8eef8", borderRadius: "50%", opacity: 0.9 }} />
             <T o={o} x={319} y={y - 14} size={21} weight={600} as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? title(m) : first ? "No matches analysed yet" : "—"}
+              {m ? title(m) : failed ? "Couldn't load recent matches" : first ? "No matches analysed yet" : "—"}
             </T>
             <T o={o} x={319} y={y + 16} size={18} color="#b9cbe2" as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? subtitle(m) : first ? "Uploaded matches will be listed here" : "—"}
+              {m ? subtitle(m) : failed ? "Tap to try again" : first ? "Uploaded matches will be listed here" : "—"}
             </T>
             <T o={o} x={737} y={y} size={26} weight={700} align="center" as="span">{m ? score(m) : "—"}</T>
             <Ic o={o} x={791} y={y} k="gt" size={20} color="#cfe0f5" />
           </>
         );
         const box = { left: u(55), top: u(y - 39 - 101), width: u(758), height: u(80), background: "#06142a", borderRadius: u(6), ["--bc" as string]: "#10294a" };
+        // a failed read used to wear the empty state's words; now the first row says so and retries the read
+        if (failed && i === 0) {
+          return (
+            <button key={y} type="button" className={`${s.cta} ${s.framed}`} style={{ ...box, padding: 0, cursor: "pointer", textAlign: "left" }}
+              onClick={() => { setList(undefined); setReload((r) => r + 1); }}
+              aria-label="Recent matches could not be read. Retry">{body}</button>
+          );
+        }
         return m ? (
           <Link key={y} href={`/videos/${m.video_id}/analyze`} className={`${s.cta} ${s.framed}`} style={box}
             aria-label={`${title(m)}, ${subtitle(m)}: open in the Analysis workspace`}>{body}</Link>

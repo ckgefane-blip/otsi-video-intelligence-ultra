@@ -8,7 +8,7 @@
  * once its frame is ready. Nobody confirmed yet: the reference's empty illustration.
  */
 import type { HeroMoment, Playback } from "@otsi-vie/contracts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { B, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { HeroMetrics } from "./HeroMetrics";
@@ -39,7 +39,8 @@ function layout(s: Shot) {
 
 function Picture({ s, shown, onReady }: { s: Shot; shown: boolean; onReady: () => void }) {
   const ref = useRef<HTMLVideoElement>(null);
-  const { w, h, left, top } = layout(s);
+  // the close-up crop depends only on this shot: derive it once, not on every re-render of the rotating hero
+  const { w, h, left, top } = useMemo(() => layout(s), [s]);
   return (
     <div aria-hidden className="absolute" style={{ inset: 0, opacity: shown ? 1 : 0, transition: "opacity .9s ease" }}>
       <div className="absolute" style={{ left: u(left), top: u(top), width: u(w), height: u(h) }}>
@@ -69,7 +70,8 @@ export function HeroLive() {
   const [cur, setCur] = useState<Shot | null | undefined>(undefined);      // undefined = loading, null = nobody confirmed yet
   const [next, setNext] = useState<Shot | null>(null);
   const curRef = useRef<Shot | null | undefined>(undefined);
-  curRef.current = cur;
+  // the loader reads the current shot: keep the ref in step in an effect, never as a side effect of rendering
+  useEffect(() => { curRef.current = cur; }, [cur]);
 
   useEffect(() => {
     let live = true;
@@ -87,7 +89,10 @@ export function HeroLive() {
     };
     void load();
     const t = setInterval(() => void load(), ROTATE_MS);
-    return () => { live = false; clearInterval(t); };
+    // coming back to a tab that was hidden: refresh at once instead of waiting out the rest of the rotation interval
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { live = false; clearInterval(t); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
 
   const swap = () => { if (next) { setCur(next); setNext(null); } };

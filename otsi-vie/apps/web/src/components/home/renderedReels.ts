@@ -1,7 +1,8 @@
 "use client";
 /**
  * The organization's reels that have a finished render with a file (GET /v1/reels), newest render first. Shared by Home's Featured Reel
- * (Section 03) and Sample Reels (Section 07), so the page asks once.
+ * (Section 03) and Sample Reels (Section 07), so the page asks once. A failed read is not the empty state: the hook reports null, and
+ * reloadRenderedReels() re-reads them (the page's retry), instead of the person reloading the tab.
  */
 import type { Reel } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
@@ -19,14 +20,28 @@ function load(): Promise<Reel[]> {
   return pending;
 }
 
+/** re-read the reels (a failed read is retried from the page, not by reloading the tab) */
+const reloadListeners = new Set<() => void>();
+export function reloadRenderedReels() {
+  pending = null;
+  reloadListeners.forEach((fn) => fn());
+}
+
 /** undefined while loading, null when the reels could not be read */
 export function useRenderedReels(): Reel[] | null | undefined {
   const [reels, setReels] = useState<Reel[] | null | undefined>(undefined);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick((t) => t + 1);
+    reloadListeners.add(bump);
+    return () => { reloadListeners.delete(bump); };
+  }, []);
   useEffect(() => {
     let live = true;
+    setReels(undefined);
     void load().then((r) => { if (live) setReels(r); }, () => { if (live) setReels(null); });
     return () => { live = false; };
-  }, []);
+  }, [tick]);
   return reels;
 }
 

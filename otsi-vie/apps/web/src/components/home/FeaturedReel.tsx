@@ -7,13 +7,14 @@
  * rendered file), and views / likes stay "—". With no rendered reel the chips keep the design's empty values ("No tags", "—").
  * Play streams the rendered MP4 through the signed media gateway (GET /v1/renders/:id/playback); Share copies the reel's in-app link;
  * the three-dots menu (MoreMenu) opens the reel in each editor, exports, downloads the MP4 or copies its link. With no rendered reel: "No featured reel".
+ * A failed read is not that empty state: it says the reels could not be read, and the subtitle retries the read (reloadRenderedReels).
  */
 import type { Reel } from "@otsi-vie/contracts";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { B, Ic, T, u } from "@/components/stage/DesignStage";
 import { MoreMenu } from "@/components/stage/MoreMenu";
 import { reelActions } from "@/lib/actions";
-import { mmss, playback as fetchPlayback, Playback, reelSeconds, useRenderedReels } from "./renderedReels";
+import { mmss, playback as fetchPlayback, Playback, reelSeconds, reloadRenderedReels, useRenderedReels } from "./renderedReels";
 
 /** the rendered file's video codec as the render was configured (H.264 / AV1 / VP9) */
 const codec = (r: Reel) => String((r.last_good_render?.config as { codec?: string } | undefined)?.codec ?? "—").toUpperCase().replace("H264", "H.264");
@@ -25,11 +26,14 @@ const iconButton = { position: "absolute" as const, padding: 0, border: 0, backg
 export function FeaturedReel() {
   const reels = useRenderedReels();
   const reel = reels === undefined ? undefined : (reels?.[0] ?? null);        // undefined = loading
+  const failed = reels === null;                                               // a failed read, not "no featured reel"
   const [play, setPlay] = useState<Playback | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playback = async (): Promise<Playback> => play ?? await fetchPlayback(reel!);
-  const flash = (t: string) => { setNote(t); setTimeout(() => setNote(null), 2000); };
+  const flash = (t: string) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 2000); };
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const result = (reel?.last_good_render?.result ?? {}) as { height?: number };
   const seconds = reel ? reelSeconds(reel) : 0;
 
@@ -59,11 +63,20 @@ export function FeaturedReel() {
           </button>
 
           <T x={2025} y={381} size={32} weight={700} style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
-            {reel ? (reel.player?.display_name ?? reel.name) : reel === null ? "No featured reel" : ""}
+            {reel ? (reel.player?.display_name ?? reel.name) : failed ? "Couldn't load reels" : reel === null ? "No featured reel" : ""}
           </T>
-          <T x={2025} y={414} size={25} color="#e3eefb" style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
-            {reel ? reel.name : reel === null ? "Published reels appear here" : ""}
-          </T>
+          {failed ? (
+            <button type="button" onClick={() => reloadRenderedReels()} aria-label="Reels could not be read. Retry"
+              style={{ position: "absolute", left: u(2025), top: u(414 - 101), transform: "translateY(-50%)", padding: 0, border: 0,
+                background: "transparent", color: "#33a8ff", fontSize: u(25), fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              Couldn't load reels — tap to retry
+            </button>
+          ) : (
+            <T x={2025} y={414} size={25} color="#e3eefb" style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
+              {reel ? reel.name : reel === null ? "Published reels appear here" : ""}
+            </T>
+          )}
           <B x={2417} y={395} w={74} h={34} style={{ background: "rgba(0,10,25,.85)", borderRadius: u(6) }} />
           <T x={2454} y={412} size={22} weight={600} align="center">{reel ? mmss(seconds) : "—"}</T>
         </>
