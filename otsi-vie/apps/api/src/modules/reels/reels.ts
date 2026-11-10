@@ -498,28 +498,40 @@ export class ReelsService {
    * current targets that no event moment covers: observations closer than 1.5 s merged, padded 1 s, split above 12 s. */
   /** E1 (ADR-064): the confirmed player's positions inside the reel's clip windows (half a second either side), for the live preview.
    *  Nothing when a target is stale. max_interp_s follows the renderer's lock_rules(lock, auto_track=False). */
-  async path(id: string, p: Principal): Promise<ReelPath> {
+  /** E1 (ADR-064): the confirmed player's positions inside the reel's clip windows (half a second either side), for the live preview.
+   *  Nothing when a target is stale. max_interp_s follows the renderer's lock_rules(lock, auto_track=False).
+   *  ADR-131 Build B: `?video_id=` asks for one clip video of a cross-match reel — the preview fetches the path per clip, because one
+   *  video's path cannot represent a reel spanning all his matches. Without it a cross-match reel still returns an empty path (not
+   *  stale). A video that holds none of the reel's clips is a 404, never another video's positions. */
+  async path(id: string, p: Principal, videoId?: string): Promise<ReelPath> {
     const r = await this.reelRow(id, p);
+    const lock = Math.min(1, Math.max(0, SpotlightSettings.parse(json<Record<string, unknown>>(r.settings) ?? {}).lock));
+    const max_interp_s = Math.max(Math.round((0.3 + 0.6 * lock) * 1000) / 1000, 0.6);
     if (r.source === "ALL_MATCHES") {
-      // ADR-131: one video's path cannot represent a reel spanning all his matches — an empty path, not stale (the reel's
-      // targets are still its own); Build B fetches paths per clip video another way.
-      const lock = Math.min(1, Math.max(0, SpotlightSettings.parse(json<Record<string, unknown>>(r.settings) ?? {}).lock));
-      return { stale: false, max_interp_s: Math.max(Math.round((0.3 + 0.6 * lock) * 1000) / 1000, 0.6), points: [] };
+      if (!videoId) return { stale: false, max_interp_s, points: [] };
+      const inReel = await this.db.one<RowDataPacket>("SELECT 1 AS ok FROM reel_clips WHERE reel_id = ? AND source_video_id = ?", [id, videoId]);
+      if (!inReel) throw notFound("Video");
+      return this.pathForVideo(id, videoId, max_interp_s);
     }
+    return this.pathForVideo(id, r.video_id as string, max_interp_s);
+  }
+
+  /** The path for one video: the reel's targets' observations inside that video's clip windows. Shared by the single-match path
+   *  and by the per-clip-video path of a cross-match reel (Build B); for a single-match reel every clip is that video's, so the
+   *  result is byte-identical to before. */
+  private async pathForVideo(id: string, videoId: string, max_interp_s: number): Promise<ReelPath> {
     const targets = await this.db.rows<RowDataPacket>(
       `SELECT rt.track_id, (ci.decision_id = rt.identity_decision_id AND ci.state = 'CONFIRMED' AND ci.player_id = rt.player_id) AS current
          FROM reel_targets rt LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id WHERE rt.reel_id = ?`, [id]);
-    const lock = Math.min(1, Math.max(0, SpotlightSettings.parse(json<Record<string, unknown>>(r.settings) ?? {}).lock));
-    const max_interp_s = Math.max(Math.round((0.3 + 0.6 * lock) * 1000) / 1000, 0.6);
     const stale = targets.some((t) => !Number(t.current));
-    const clips = await this.db.rows<RowDataPacket>("SELECT in_pts_us, out_pts_us FROM reel_clips WHERE reel_id = ?", [id]);
+    const clips = await this.db.rows<RowDataPacket>("SELECT in_pts_us, out_pts_us FROM reel_clips WHERE reel_id = ? AND source_video_id = ?", [id, videoId]);
     if (stale || !targets.length || !clips.length) return { stale, max_interp_s, points: [] };
     const ids = targets.map((t) => t.track_id as string);
     const rows = await this.db.rows<RowDataPacket>(
       `SELECT o.pts_us, o.bbox_x, o.bbox_y, o.bbox_w, o.bbox_h, o.observation_state FROM track_observations o
         WHERE o.video_id = ? AND o.track_id IN (${ids.map(() => "?").join(",")}) AND (${clips.map(() => "o.pts_us BETWEEN ? AND ?").join(" OR ")})
         ORDER BY o.pts_us`,
-      [r.video_id, ...ids, ...clips.flatMap((c) => [Number(c.in_pts_us) - 500_000, Number(c.out_pts_us) + 500_000])]);
+      [videoId, ...ids, ...clips.flatMap((c) => [Number(c.in_pts_us) - 500_000, Number(c.out_pts_us) + 500_000])]);
     const points: ReelPath["points"] = [];
     for (const o of rows) {                                            // one position per instant (two targets never overlap in time; be safe)
       const t = Number(o.pts_us);
@@ -1111,8 +1123,8 @@ export class ReelsController {
   }
 
   @Get("reels/:reelId/path")
-  path(@Param("reelId") id: string, @CurrentPrincipal() p: Principal) {
-    return this.reels.path(uuidParam(id, "Reel"), p);
+  path(@Param("reelId") id: string, @Query("video_id") videoId: string | undefined, @CurrentPrincipal() p: Principal) {
+    return this.reels.path(uuidParam(id, "Reel"), p, videoId === undefined ? undefined : uuidParam(videoId, "Video"));
   }
 
   @Get("reels/:reelId/boundary-suggestions")

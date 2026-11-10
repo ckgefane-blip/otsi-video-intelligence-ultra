@@ -41,6 +41,8 @@ from ..tracker import Tracker
 from . import encoders as enc
 from . import look as lk
 from . import transitions as trn
+from .cross_match import (cross_match_manifest_fields, detector_config_for_run,
+                          distinct_video_ids_in_clip_order, group_clips_by_video, plan_clip_sources, show_match_card)
 from .overlays import CARD_S, END_S, PROFILE_S, Overlays
 from .text import draw_text, text_size
 from .validate import validate
@@ -585,13 +587,25 @@ def _output_geometry(w: int, h: int, aspect: str) -> tuple[int, int, int]:
 
 def _audio(src: str, clips: list[dict], t_v0: float, work: Path, tail_s: float = 0.0, fps=Fraction(25)) -> str | None:
     """The clips' match audio, joined; `tail_s` seconds of silence after them (under the end screen). E2 (ADR-065): each stretch of a clip
-    is cut to exactly its reel frames: slowed with atempo (the pitch kept), silent while the picture is frozen."""
-    info = ff.ffprobe_json(src, "-show_streams")
-    if not any(s.get("codec_type") == "audio" for s in info.get("streams", [])):
+    is cut to exactly its reel frames: slowed with atempo (the pitch kept), silent while the picture is frozen. One source for the whole
+    reel (the headless render and every single-match reel); a cross-match reel uses _audio_for_clips instead."""
+    return _audio_for_clips([(src, t_v0)] * len(clips), clips, work, tail_s, fps)
+
+
+def _audio_for_clips(clip_sources: list[tuple[str, float]], clips: list[dict], work: Path, tail_s: float = 0.0, fps=Fraction(25)) -> str | None:
+    """The clips' match audio, joined — ADR-131 Build B: each clip's sound comes from its own source file (its own first-frame time),
+    not one file for the whole reel. A clip whose source has no audio stream is silence of its length; None when no clip has sound.
+    With one source for every clip this builds the same filter graph _audio always did (input 0 for every clip)."""
+    has_audio: dict[str, bool] = {}
+    for src, _ in clip_sources:
+        if src not in has_audio:
+            info = ff.ffprobe_json(src, "-show_streams")
+            has_audio[src] = any(s.get("codec_type") == "audio" for s in info.get("streams", []))
+    if not any(has_audio.values()):
         return None
     fmt = "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo"
-    parts, n = [], 0
-    for c in clips:
+    parts, n, inputs, index_of = [], 0, [], {}
+    for c, (src, t_v0) in zip(clips, clip_sources):
         g = gap_frames(c, fps)
         if g > 0:                                              # B.19: silence under the spacer before the clip
             parts.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={g / float(fps):.6f},{fmt}[a{n}]")
@@ -602,10 +616,14 @@ def _audio(src: str, clips: list[dict], t_v0: float, work: Path, tail_s: float =
             if k <= 0:
                 continue
             d = k / float(fps)
-            if hold > 0 or gain is None:                       # a freeze, or a clip a person muted (B.20): silence of its length
+            if hold > 0 or gain is None or not has_audio[src]:  # a freeze, a muted clip (B.20), or a source with no sound: silence
                 parts.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={d:.6f},{fmt}[a{n}]")
             else:
-                parts.append(f"[0:a:0]atrim=start={t_v0 + a / 1e6:.6f}:end={t_v0 + b / 1e6:.6f},asetpts=PTS-STARTPTS,aresample=48000,{_atempo(speed)}{vol}{fmt},"
+                if src not in index_of:
+                    index_of[src] = len(inputs)
+                    inputs.append(src)
+                i = index_of[src]
+                parts.append(f"[{i}:a:0]atrim=start={t_v0 + a / 1e6:.6f}:end={t_v0 + b / 1e6:.6f},asetpts=PTS-STARTPTS,aresample=48000,{_atempo(speed)}{vol}{fmt},"
                              f"apad,atrim=duration={d:.6f}[a{n}]")
             n += 1
     if tail_s > 0:
@@ -613,7 +631,10 @@ def _audio(src: str, clips: list[dict], t_v0: float, work: Path, tail_s: float =
         n += 1
     graph = ";".join(parts) + ";" + "".join(f"[a{i}]" for i in range(n)) + f"concat=n={n}:v=0:a=1[a]"
     out = work / "audio.wav"
-    r = ff.run(["-v", "error", "-y", "-nostdin", "-copyts", "-i", src, "-filter_complex", graph, "-map", "[a]", "-ac", "2", "-c:a", "pcm_s16le", str(out)], timeout=1800)
+    args = ["-v", "error", "-y", "-nostdin", "-copyts"]
+    for src in inputs:
+        args += ["-i", src]
+    r = ff.run([*args, "-filter_complex", graph, "-map", "[a]", "-ac", "2", "-c:a", "pcm_s16le", str(out)], timeout=1800)
     return str(out) if r.returncode == 0 and out.exists() else None
 
 
@@ -718,10 +739,11 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     store = LocalStore(os.environ["OTSI_VIE_STORAGE_DIR"])
     org, render_id = job.organization_id, job.payload["render_id"]
     with runner.conn.cursor() as cur:
-        cur.execute("""SELECT j.state, j.config, j.reel_id, r.video_id, r.player_id, r.version, r.project_id, a.object_key, v.duration_us,
+        cur.execute("""SELECT j.state, j.config, j.reel_id, r.video_id, r.source, r.cross_match_length_s, r.best_moments_rule_version,
+                              r.player_id, r.version, r.project_id, a.object_key, v.duration_us,
                               pi.display_name, pi.canonical_otsi_id
                          FROM render_jobs j JOIN reel_projects r ON r.id = j.reel_id AND r.organization_id = j.organization_id
-                         JOIN video_sources v ON v.id = r.video_id AND v.organization_id = r.organization_id
+                         LEFT JOIN video_sources v ON v.id = r.video_id AND v.organization_id = r.organization_id
                          LEFT JOIN assets a ON a.id = v.source_asset_id
                          LEFT JOIN v_player_identity pi ON pi.player_id = r.player_id
                         WHERE j.id = %s AND j.organization_id = %s""", (render_id, org))
@@ -731,7 +753,14 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     if row["state"] in ("SUCCEEDED", "CANCELLED"):
         return {"render_id": render_id, "note": f"already {row['state'].lower()}"}
     cfg = json.loads(row["config"]) if isinstance(row["config"], str) else row["config"]
-    reel_id, src = row["reel_id"], store.path(row["object_key"])
+    # ADR-131 Build B: a cross-match reel has no single video — its clips each carry their own source_video_id, resolved below.
+    # A single-match reel still has exactly one source, as before (the LEFT JOIN above only stops a cross-match reel, whose
+    # video_id is NULL, from finding no row at all).
+    is_cross_match = row["source"] == "ALL_MATCHES"
+    if not is_cross_match and not row["video_id"]:
+        raise JobError("NOT_FOUND", "The render no longer exists.")
+    reel_id = row["reel_id"]
+    src = None if is_cross_match else store.path(row["object_key"])
     with runner.conn.cursor() as cur:
         cur.execute("""SELECT rt.track_id, rt.identity_decision_id, (ci.decision_id = rt.identity_decision_id AND ci.state = 'CONFIRMED' AND ci.player_id = rt.player_id) AS current
                          FROM reel_targets rt LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id WHERE rt.reel_id = %s""", (reel_id,))
@@ -745,13 +774,39 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
             cur.execute("UPDATE render_jobs SET state = 'RUNNING', started_at = CURRENT_TIMESTAMP(6), attempt_count = attempt_count + 1 WHERE id = %s", (render_id,))
 
     t_start = time.monotonic()
-    info = ff.ffprobe_json(src, "-show_streams")
+    clips = cfg["clips"]
+    # ADR-131 Build B: each clip's source file, from its own video (video_sources -> source_asset_id -> assets object_key, the same
+    # join as the single-video path, per distinct video). A snapshot clip with no source video, a video with no source asset, or a
+    # source file that is not on disk refuses the render with CLIP_SOURCE_MISSING — never a silent wrong render. An old single-match
+    # snapshot whose clips carry no source_video_id falls back to the reel's video, as before.
+    clip_video_ids = [c.get("source_video_id") or row["video_id"] for c in clips]
+    clips = [dict(c, source_video_id=v) for c, v in zip(clips, clip_video_ids)]
+    if is_cross_match or any(c["source_video_id"] != row["video_id"] for c in clips):
+        with runner.conn.cursor() as cur:
+            cur.execute(f"""SELECT v.id, a.object_key FROM video_sources v LEFT JOIN assets a ON a.id = v.source_asset_id
+                            WHERE v.organization_id = %s AND v.id IN ({",".join(["%s"] * len(set(clip_video_ids)))})""",
+                        (org, *set(clip_video_ids)))
+            keys = {r["id"]: r["object_key"] for r in cur.fetchall()}
+        plan, missing = plan_clip_sources(clips, keys)
+        missing += [p["clip_id"] for p in plan if not os.path.exists(store.path(p["object_key"]))]
+        if missing:
+            return _fail(runner, job, render_id, reel_id, "CLIP_SOURCE_MISSING",
+                         f"A clip's source video could not be found (clip {', '.join(missing[:3])}); the reel cannot be rendered.")
+        clip_srcs = [store.path(p["object_key"]) for p in plan]
+    else:
+        clip_srcs = [src] * len(clips)
+    t0_by_video: dict[str, float] = {}
+    for vid, s in zip(clip_video_ids, clip_srcs):
+        t0_by_video.setdefault(vid, ff.first_frame_time(s, "v:0") or 0.0)
+    # the anchor: the FIRST clip's video sets the output geometry and frame rate (cross_match.anchor_video_id in the planning
+    # module); every clip is decoded from its own source at that geometry — the compositor already normalises every frame to the
+    # output size
+    anchor_src = clip_srcs[0]
+    info = ff.ffprobe_json(anchor_src, "-show_streams")
     v = ff.main_video(info)
     sw, sh = int(v["width"]), int(v["height"])
     fps = ff.rate(v.get("avg_frame_rate")) or ff.rate(v.get("r_frame_rate")) or Fraction(25)
     frame_us = 1e6 / float(fps)
-    t_v0 = ff.first_frame_time(src, "v:0") or 0.0
-    clips = cfg["clips"]
     # ADR-055: the transition into each clip after the first; the clip before it runs on past its out point (its handle) for that long
     into = {t["clip_id"]: t for t in (cfg.get("transitions") or []) if t.get("kind") in trn.KINDS}
     trans = [None] + [into.get(c["id"]) for c in clips[1:]]
@@ -766,30 +821,52 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     auto_track = bool(settings.get("auto_track", True))
     max_interp, tol = lock_rules(float(settings.get("lock", 0.5)), auto_track)
 
-    # 2: the player's path in every clip
-    with runner.conn.cursor() as cur:
-        cur.execute(f"""SELECT o.pts_us, o.bbox_x, o.bbox_y, o.bbox_w, o.bbox_h FROM track_observations o
-                         WHERE o.video_id = %s AND o.track_id IN ({",".join(["%s"] * len(targets))}) ORDER BY o.pts_us""",
-                    (row["video_id"], *[t["track_id"] for t in targets]))
-        obs = cur.fetchall()
+    # 2: the player's path in every clip — ADR-131 Build B: the observations are queried per clip video (a cross-match reel's targets
+    # span every video), the dense re-analysis runs against that clip's own source file, and the detector config comes from that clip's
+    # video's latest SUCCEEDED pipeline run — except the reel's own video, which keeps the run the reel was built on, exactly as
+    # before. A video with no run falls back to the existing defaults (detector_config_for_run); the render never fails for a
+    # missing run config. Detectors are loaded once per distinct config, not once per clip.
     with runner.conn.cursor() as cur:
         cur.execute("SELECT config FROM pipeline_runs r JOIN reel_projects p ON p.run_id = r.id WHERE p.id = %s", (reel_id,))
         rc = cur.fetchone()
-    run_cfg = (json.loads(rc["config"]) if isinstance(rc["config"], str) else rc["config"]) if rc else {}
-    det = load_detector(run_cfg.get("detector"), tiles=int(run_cfg.get("tiles", 2)), score_floor=float(run_cfg.get("score_floor", 0.2)))
+    reel_run_cfg = (json.loads(rc["config"]) if isinstance(rc["config"], str) else rc["config"]) if rc else {}
+    obs_by_video: dict[str, list] = {}
+    run_cfg_by_video: dict[str, dict] = {}
+    for vid, _vclips in group_clips_by_video(clips):
+        with runner.conn.cursor() as cur:
+            cur.execute(f"""SELECT o.pts_us, o.bbox_x, o.bbox_y, o.bbox_w, o.bbox_h FROM track_observations o
+                             WHERE o.video_id = %s AND o.track_id IN ({",".join(["%s"] * len(targets))}) ORDER BY o.pts_us""",
+                        (vid, *[t["track_id"] for t in targets]))
+            obs_by_video[vid] = cur.fetchall()
+        if vid == row["video_id"]:
+            run_cfg_by_video[vid] = reel_run_cfg
+        else:
+            with runner.conn.cursor() as cur:
+                cur.execute("SELECT config FROM pipeline_runs WHERE video_id = %s AND organization_id = %s AND status = 'SUCCEEDED' ORDER BY finished_at DESC, created_at DESC LIMIT 1",
+                            (vid, org))
+                rc = cur.fetchone()
+            run_cfg_by_video[vid] = (json.loads(rc["config"]) if isinstance(rc["config"], str) else rc["config"]) if rc else {}
+    detectors: dict[tuple, object] = {}
     paths, clip_meta = [], []
     for i, c in enumerate(clips):
         runner.progress(job, 2 + 50 * i / len(clips), f"Following the player in clip {i + 1} of {len(clips)}")
+        vid = clip_video_ids[i]
+        det_key, det_tiles, det_floor, det_from = detector_config_for_run(run_cfg_by_video[vid])
+        det_cfg = (det_key, det_tiles, det_floor)
+        if det_cfg not in detectors:
+            detectors[det_cfg] = load_detector(det_key, tiles=det_tiles, score_floor=det_floor)
+        det = detectors[det_cfg]
         out_us = int(c["out_pts_us"]) + handle_us[i]                  # with the handle a transition after this clip shows
         anchors = [PathPoint(int(o["pts_us"]), (float(o["bbox_x"]), float(o["bbox_y"]), float(o["bbox_w"]), float(o["bbox_h"])), "analysis")
-                   for o in obs if c["in_pts_us"] - 500_000 <= int(o["pts_us"]) <= out_us + 500_000]
+                   for o in obs_by_video[vid] if c["in_pts_us"] - 500_000 <= int(o["pts_us"]) <= out_us + 500_000]
         if auto_track:
-            path, how = target_path(src, int(c["in_pts_us"]), out_us, anchors, det, max_interp_s=max_interp, on_path_bh=tol,
+            path, how = target_path(clip_srcs[i], int(c["in_pts_us"]), out_us, anchors, det, max_interp_s=max_interp, on_path_bh=tol,
                                     tick=lambda: runner.still_mine(job))
         else:                                                  # Auto Track off: the analysis's own positions only (ADR-044)
             path, how = sorted(anchors, key=lambda a: a.pts_us), {"anchors": len(anchors), "auto_track": False}
         paths.append(path)
-        clip_meta.append({"clip_id": c["id"], "in_pts_us": c["in_pts_us"], "out_pts_us": c["out_pts_us"], "effect": c.get("effect") or {"kind": "NONE"},
+        clip_meta.append({"clip_id": c["id"], "source_video_id": vid, "detector": det_from,
+                          "in_pts_us": c["in_pts_us"], "out_pts_us": c["out_pts_us"], "effect": c.get("effect") or {"kind": "NONE"},
                           "frames": clip_frames(c, fps), **{k: v for k, v in how.items() if v is not None}})
 
     # 3 + 4: composite every source frame and encode
@@ -800,7 +877,9 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     profile = profile if isinstance(profile, dict) else None
     over = Overlays(ow, oh, settings, cfg.get("overlay") or {}, row["display_name"], row["canonical_otsi_id"], store.path, profile_intro=profile)
     end_n = int(round(END_S * float(fps))) if over.end_screen else 0
-    card_n = int(round(CARD_S * float(fps))) if over.match_card else 0
+    # ADR-131 Build B: a cross-match reel has no single match, so it never gets a match card (card_n = 0). The overlay's own
+    # match_card is already false without match facts; this makes the skip explicit rather than incidental.
+    card_n = int(round(CARD_S * float(fps))) if show_match_card(is_cross_match, over.match_card) else 0
     profile_n = int(round(PROFILE_S * float(fps))) if over.profile_intro else 0
     # ADR-050: the intro / outro videos a person chose (their rights were checked when the render was queued)
     inserts = {}
@@ -893,7 +972,7 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
             made, last = 0, None
             tn, kind, before = trans_n[i], (trans[i] or {}).get("kind"), handle
             handle = []
-            dec = iter(ff.decode_sampled(src, None, start_us=int(c["in_pts_us"]), end_us=int(c["out_pts_us"]), seek=True, width=sw, height=sh, vf=look_vf))
+            dec = iter(ff.decode_sampled(clip_srcs[i], None, start_us=int(c["in_pts_us"]), end_us=int(c["out_pts_us"]), seek=True, width=sw, height=sh, vf=look_vf))
             cur, nxt, shown = next(dec, None), None, None
             nxt = next(dec, None) if cur is not None else None
             for t_src, _held in plan:
@@ -916,7 +995,7 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
                 yield last
             n_next = trans_n[i + 1] if i + 1 < len(clips) else 0
             if n_next and last is not None:                    # the handle: this clip's picture past its out point, the transition's first half
-                for f in ff.decode_sampled(src, None, start_us=int(c["out_pts_us"]) + int(frame_us // 2), end_us=int(c["out_pts_us"]) + handle_us[i] + int(frame_us),
+                for f in ff.decode_sampled(clip_srcs[i], None, start_us=int(c["out_pts_us"]) + int(frame_us // 2), end_us=int(c["out_pts_us"]) + handle_us[i] + int(frame_us),
                                            seek=True, width=sw, height=sh, vf=look_vf):
                     if len(handle) >= n_next:
                         break
@@ -940,7 +1019,7 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
         backend = enc.choose(codec)
     except ff.FFmpegError as e:
         return _fail(runner, job, render_id, reel_id, "NO_ENCODER", str(e))
-    audio = _audio(src, clips, t_v0, work, end_n / float(fps), fps)
+    audio = _audio_for_clips([(s, t0_by_video[v]) for s, v in zip(clip_srcs, clip_video_ids)], clips, work, end_n / float(fps), fps)
     reel_s = sum(gap_frames(c, fps) + clip_frames(c, fps) for c in clips) / float(fps)     # E2: with speed effects; B.19: and spacers
     music = cfg.get("music")
     if music:                                                  # ADR-047: the music a person chose (its rights were checked when queued)
@@ -987,10 +1066,16 @@ def handle_render(runner: JobRunner, job: Job) -> dict:
     totals = {k: sum(c[k] for c in counts) for k in ("DETECTED", "INTERPOLATED", "MISSING")}
     manifest = {
         "render_id": render_id, "reel_id": reel_id, "reel_version": cfg.get("reel_version"), "video_id": row["video_id"], "player_id": row["player_id"],
+        # ADR-131 Build B: source ALL_MATCHES, the rule version + length, and every distinct source video in clip order; the single
+        # video_id above is null for a cross-match reel. A single-match manifest gains none of these fields.
+        "source": row["source"],
+        **cross_match_manifest_fields(is_cross_match, distinct_video_ids_in_clip_order(clips),
+                                      row["cross_match_length_s"], row["best_moments_rule_version"]),
         "pinned_identity_decisions": [t["identity_decision_id"] for t in targets],
         "clips": [{**m, "spotlight_frames": c} for m, c in zip(clip_meta, counts)], "spotlight_frames": totals,
         "rules": {"dense_fps": DENSE_FPS if auto_track else None, "auto_track": auto_track, "target_lock": settings.get("lock", 0.5),
-                  "max_interpolation_s": max_interp, "on_path_body_heights": tol, "missing_means": "no spotlight drawn"},
+                  "max_interpolation_s": max_interp, "on_path_body_heights": tol, "missing_means": "no spotlight drawn",
+                  "best_moments_rule_version": row["best_moments_rule_version"] if is_cross_match else None},
         "overlays": {**over.summary(), "facts": {k: v for k, v in (cfg.get("overlay") or {}).items() if not k.endswith("_key")}},
         "music": {"volume": music.get("volume"), "match_volume": music.get("match_volume")} if music else None,
         "inserts": {k: {"frames": v[1]} for k, v in inserts.items()},

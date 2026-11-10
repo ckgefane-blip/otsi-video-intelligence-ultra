@@ -175,6 +175,19 @@ describe("cross-match reels (ADR-131)", () => {
     expect((await call(a, "GET", `/v1/reels/${reel.id}/boundary-suggestions`)).body.code).toBe("CROSS_MATCH_SINGLE_VIDEO_ONLY");
   });
 
+  it("path per clip video: one video's positions, empty without a video, 404 for a video outside the reel", async () => {
+    const s = await seedTwoMatches(a);
+    const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: s.player })).body;
+    expect((await call(a, "GET", `/v1/reels/${reel.id}/path`)).body).toMatchObject({ stale: false, points: [] });
+    // v1's clips are the chain 5–18 s and the sprint 38–46.5 s: the seeded positions inside them (±0.5 s) are 5, 6, 41–44 s
+    const p1 = (await call(a, "GET", `/v1/reels/${reel.id}/path?video_id=${s.v1.video}`)).body;
+    expect(p1).toMatchObject({ stale: false, max_interp_s: 0.6 });
+    expect(p1.points.map((p: { pts_us: number }) => p.pts_us)).toEqual([5_000_000, 6_000_000, 41_000_000, 42_000_000, 43_000_000, 44_000_000]);
+    // v2's clip is the shot 397–403.5 s, and no position of him was seeded there: an empty path, not another video's
+    expect((await call(a, "GET", `/v1/reels/${reel.id}/path?video_id=${s.v2.video}`)).body).toMatchObject({ stale: false, points: [] });
+    expect((await call(a, "GET", `/v1/reels/${reel.id}/path?video_id=${uuidv7()}`)).body.code).toBe("NOT_FOUND");
+  });
+
   it("rejects and restores per video, and adds the selected moments back", async () => {
     const s = await seedTwoMatches(a);
     const reel = (await call(a, "POST", "/v1/reels", { source: "ALL_MATCHES", player_id: s.player })).body;
