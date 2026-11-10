@@ -34,7 +34,7 @@
  */
 import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Injectable, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import {
-  AddClipRequest, AssembleRequest, BEST_MOMENTS_RULE_VERSION, ClipFx, ReviewComment, SetClipFxRequest, CandidatesRequest, CandidatesResponse, buildCandidates, type AssembledClip, CreateReelRequest, CreateRenderRequest, CrossMatchMomentWindowRequest, CrossMatchSelection, crossMatchClipLabel, selectCrossMatchMoments, Reel, ReelMoment, ReelPath, RenderJob, ReorderClipsRequest, SetClipEffectRequest, SetTransitionRequest, SpotlightSettings,
+  AddClipRequest, AssembleRequest, BEST_MOMENTS_RULE_VERSION, ClipFx, ReviewComment, SetClipFxRequest, CandidatesRequest, CandidatesResponse, buildCandidates, type AssembledClip, CreateReelRequest, CreateRenderRequest, CrossMatchLength, CrossMatchMomentWindowRequest, CrossMatchSelection, crossMatchClipLabel, selectCrossMatchMoments, Reel, ReelMoment, ReelPath, RenderJob, ReorderClipsRequest, SetClipEffectRequest, SetTransitionRequest, SpotlightSettings,
   BoundarySuggestion, suggestBoundary, UpdateClipRequest, UpdateReelRequest, clipOutputUs, slotUs, BatchRenderRequest, BatchRenderResult, Preflight, preflightChecks, outputAspect, uniqueOutputs, SetAllTransitionsRequest, transitionsForAll, normaliseEffect, type ClipEffect, EXPORT_PROFILES, ExportProfile, isRejected, momentCoverage, SwapClipRequest,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
@@ -203,7 +203,8 @@ export class ReelsService {
     const videos = await this.crossMatch.confirmedVideos(body.player_id, p);
     if (!videos.length) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "Confirm the player on at least one track of one video first; a cross-match reel only follows confirmed identities.");
     const lengthS = body.length_s ?? 180;
-    const selection = selectCrossMatchMoments(await this.crossMatch.gatherCandidates(videos, body.player_id, p), lengthS);
+    const selection = selectCrossMatchMoments(await this.crossMatch.gatherCandidates(videos, body.player_id, p), lengthS,
+      await this.crossMatch.positionGroup(body.player_id, p));
     const targets = videos.reduce((n, v) => n + v.trackIds.length, 0);
     const id = uuidv7();
     const latest = videos[videos.length - 1]!;
@@ -220,7 +221,7 @@ export class ReelsService {
       }
       for (const [i, m] of selection.selected.entries()) {
         await c.query("INSERT INTO reel_clips (id, reel_id, source_video_id, in_pts_us, out_pts_us, sequence_index, origin, label) VALUES (?, ?, ?, ?, ?, ?, 'SUGGESTED', ?)",
-          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, i, crossMatchClipLabel(m, m.reason)]);
+          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, i, crossMatchClipLabel(m, m.tier, m.reason)]);
       }
       await recordChange(c, userActor(p), {
         action: "reel.created", entityType: "reel", entityId: id,
@@ -675,6 +676,11 @@ export class ReelsService {
       if (body.source_video_id && body.source_video_id !== videoId) throw new ApiError(422, "VIDEO_MISMATCH", "That source_video_id is not this clip's video.");
       const { targets } = await this.crossMatch.confirmedTargets(videoId, reel.player_id as string, p);
       if (!targets.length) throw new ApiError(409, "NO_CONFIRMED_TRACKS", "The player has no confirmed track in that video: a cross-match clip needs one.");
+      // ADR-131 v2.1: a hand-added clip must be one of his best moments, and must not break the per-match cap (Tier S immune)
+      const existing = await this.db.rows<RowDataPacket>("SELECT in_pts_us, out_pts_us FROM reel_clips WHERE reel_id = ? AND source_video_id = ?", [id, videoId]);
+      await this.crossMatch.checkPin(reel.player_id as string, videoId, body.in_pts_us, body.out_pts_us,
+        existing.map((cl) => ({ in_pts_us: Number(cl.in_pts_us), out_pts_us: Number(cl.out_pts_us) })),
+        (reel.cross_match_length_s ?? 180) as CrossMatchLength, p);
     } else if (body.source_video_id && body.source_video_id !== videoId) {
       throw new ApiError(422, "VIDEO_MISMATCH", "That source_video_id is not this reel's video.");
     }
@@ -876,7 +882,7 @@ export class ReelsService {
         const d = m.out_pts_us - m.in_pts_us;
         if (d > MAX_CLIP_US || total + d > capUs) continue;
         await c.query("INSERT INTO reel_clips (id, reel_id, source_video_id, in_pts_us, out_pts_us, sequence_index, origin, label) VALUES (?, ?, ?, ?, ?, ?, 'SUGGESTED', ?)",
-          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, n++, crossMatchClipLabel(m, m.reason)]);
+          [uuidv7(), id, m.video_id, m.in_pts_us, m.out_pts_us, n++, crossMatchClipLabel(m, m.tier, m.reason)]);
         total += d; added++;
       }
       await c.query("UPDATE reel_projects SET status = 'DRAFT' WHERE id = ?", [id]);

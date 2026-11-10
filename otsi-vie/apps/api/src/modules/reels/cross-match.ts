@@ -5,17 +5,19 @@
  *
  * Gathering uses confirmed tracks only, per video (the same rule as single-match moments): a video where he has no confirmed
  * track, or no SUCCEEDED ball track, contributes nothing. Event moments come from the per-video form of the reel builder's
- * eventMoments (moved here, unchanged apart from the pass length it now carries); sprint moments come from his measured
- * positions (positionsOf + movementOf — a sprint Run becomes a candidate window, padded like an event moment). Only measured
- * moments count (ADR-124); the tier rule itself is the pure contracts function (selectCrossMatchMoments).
+ * eventMoments (moved here, unchanged apart from the pass length and the per-event spans it now carries); sprint moments come
+ * from his measured positions (positionsOf + movementOf — a sprint Run becomes a candidate window, 3.0 s before it to 2.5 s
+ * after it, clamped 4–12 s like an event moment, ADR-131 v2.1). Only measured moments count (ADR-124); the tier rule itself
+ * is the pure contracts function (selectCrossMatchMoments).
  *
  * The match minute is computed only when the video's match halves are CONFIRMED (ADR-044), clamped to 45 / 90 like a broadcast
  * clock (stoppage time is not modelled: a moment in first-half stoppage reads 45'); otherwise the label uses media time.
  */
 import { Controller, Get, Inject, Injectable, Param, Query, UseGuards } from "@nestjs/common";
 import {
-  CrossMatchCandidate, CrossMatchLength, CrossMatchSelection, isRejected, MomentEvent, movementOf,
-  selectCrossMatchMoments, type Reel,
+  CROSS_MATCH_PER_MATCH_CAPS, CrossMatchCandidate, CrossMatchLength, CrossMatchSelection, CrossMatchTier, crossMatchChainLabel,
+  crossMatchClipWindow, isRejected, MomentEvent, movementOf, POSITION_LINES, PositionGroup, selectCrossMatchMoments,
+  tierOfCandidate, type Reel,
 } from "@otsi-vie/contracts";
 import { RowDataPacket } from "mysql2/promise";
 import { AuthGuard, CurrentPrincipal, Principal } from "../../core/auth";
@@ -23,7 +25,7 @@ import { Db } from "../../core/db";
 import { ApiError } from "../../core/problem";
 import { HeatZonesService } from "../analysis/heat";
 import { matchWindows, within } from "../analysis/match-time";
-import { PlayersService } from "../players/players.service";
+import { PlayersService, playerProfile } from "../players/players.service";
 import { uuidParam } from "../players/players.controller";
 import { videoNotHidden } from "../../core/access";
 
@@ -62,6 +64,10 @@ export interface VideoEventMoment {
   a: number; b: number; events: MomentEvent[]; tracks: Set<number>; key: number;
   /** the longest pass in the moment, metres (null when it holds no pass, or the length was not measured) */
   pass_length_m: number | null;
+  /** ADR-131 v2.1: each event's own span (start/end from its row), in TIME order — `events` is score-ordered, so the chain
+   *  label and the cross-match window are built from these spans, never from `a`/`b` (whose 4 s / 5 s buffers plus the
+   *  possession-spell extension are single-match timing, not cross-match timing) */
+  spans: { event: MomentEvent; start_us: number; end_us: number }[];
 }
 
 /**
@@ -89,7 +95,7 @@ export async function eventMomentsForVideo(db: Db, videoId: string, tracks: stri
   const how = new Map(rows.filter((r) => r.event_type === "TACKLE" || r.event_type === "INTERCEPTION")
     .map((r) => [`${r.start_pts_us}|${r.primary_track_id}`, r.event_type as "TACKLE" | "INTERCEPTION"]));
   const yes = (x: unknown) => x === true || x === "true" || x === 1;
-  const out: { a: number; b: number; events: MomentEvent[]; tracks: Set<number>; at: [MomentEvent, number][]; key: number; pass_length_m: number | null }[] = [];
+  const out: { a: number; b: number; events: MomentEvent[]; tracks: Set<number>; at: [MomentEvent, number][]; key: number; pass_length_m: number | null; spans: { event: MomentEvent; start_us: number; end_us: number }[] }[] = [];
   for (const r of rows) {
     // a set piece's moment is its restart (the dead ball before it can be long): from 2 s before the kick
     const e = Number(r.end_pts_us), s = r.event_type === "SET_PIECE" ? Math.max(Number(r.start_pts_us), e - 2_000_000) : Number(r.start_pts_us);
@@ -116,9 +122,11 @@ export async function eventMomentsForVideo(db: Db, videoId: string, tracks: stri
     const len = kind === "PASS" && r.length_m !== null && r.length_m !== undefined && r.length_m !== "null" ? Number(r.length_m) : null;
     const last = out[out.length - 1];
     if (last && a - last.b <= EVENT_JOIN_US && b - last.a <= EVENT_MAX_US) {
-      last.b = Math.max(last.b, b); last.events.push(kind); last.at.push([kind, at]); if (t !== undefined) last.tracks.add(t);
+      last.b = Math.max(last.b, b); last.events.push(kind); last.at.push([kind, at]); last.spans.push({ event: kind, start_us: s, end_us: e });
+      if (t !== undefined) last.tracks.add(t);
       if (len !== null) last.pass_length_m = Math.max(last.pass_length_m ?? 0, len);
-    } else out.push({ a, b, events: [kind], tracks: new Set(t === undefined ? [] : [t]), at: [[kind, at]], key: at, pass_length_m: len });
+    } else out.push({ a, b, events: [kind], tracks: new Set(t === undefined ? [] : [t]), at: [[kind, at]], key: at, pass_length_m: len,
+      spans: [{ event: kind, start_us: s, end_us: e }] });
   }
   // his own spells on the ball: a moment that ends while he has it runs on until he has played it
   const spells = await db.rows<RowDataPacket>(
@@ -134,7 +142,7 @@ export async function eventMomentsForVideo(db: Db, videoId: string, tracks: stri
   for (let i = out.length - 1; i > 0; i--) {                                 // a moment that now reaches the next one joins it
     const p0 = out[i - 1]!, p1 = out[i]!;
     if (p1.a - p0.b <= EVENT_JOIN_US && p1.b - p0.a <= EVENT_MAX_US) {
-      p0.b = Math.max(p0.b, p1.b); p0.events.push(...p1.events); p0.at.push(...p1.at); p1.tracks.forEach((t) => p0.tracks.add(t));
+      p0.b = Math.max(p0.b, p1.b); p0.events.push(...p1.events); p0.at.push(...p1.at); p0.spans.push(...p1.spans); p1.tracks.forEach((t) => p0.tracks.add(t));
       if (p1.pass_length_m !== null) p0.pass_length_m = Math.max(p0.pass_length_m ?? 0, p1.pass_length_m);
       out.splice(i, 1);
     }
@@ -266,30 +274,90 @@ export class CrossMatchService {
       const base = { video_id: v.video_id, video_title: v.title, home: facts.home, away: facts.away, competition: facts.competition,
         kickoff_at: facts.kickoff_at, opponent: facts.opponent };
       for (const m of await eventMomentsForVideo(this.db, v.video_id, v.trackIds, v.trackNumbers, dur, p.organizationId)) {
-        out.push(CrossMatchCandidate.parse({ ...base, match_minute: this.matchMinute(facts, m.key), in_pts_us: Math.round(m.a), out_pts_us: Math.round(m.b),
-          key_at_us: m.key, events: m.events, pass_length_m: m.pass_length_m, sprint: null, label: eventLabel(m.events), dedupe_key: m.events[0] ?? "NONE" }));
+        // ADR-131 v2.1: the cross-match window is built from the moment's own event spans (3.0 s before the first event's
+        // start, 2.5 s after the last event's end, clamped 4–12 s) — never from the moment's `a`/`b`, whose 4 s / 5 s buffers
+        // plus the possession-spell extension are single-match timing. A merged group IS the chain: its label is the sequence
+        // in time order, from the spans.
+        const first = m.spans[0]!, lastSpan = m.spans[m.spans.length - 1]!;
+        const w = crossMatchClipWindow(first.start_us, lastSpan.end_us, dur);
+        const isChain = m.spans.length >= 2;
+        out.push(CrossMatchCandidate.parse({ ...base, match_minute: this.matchMinute(facts, m.key), in_pts_us: w.in_pts_us, out_pts_us: w.out_pts_us,
+          key_at_us: m.key, events: m.events, pass_length_m: m.pass_length_m, sprint: null, label: eventLabel(m.events), dedupe_key: m.events[0] ?? "NONE",
+          is_chain: isChain, sequence_label: isChain ? crossMatchChainLabel(m.spans.map((s) => s.event), m.pass_length_m) : null }));
       }
       // sprint moments: his measured runs (positionsOf + movementOf — only where the pitch was calibrated), each a candidate
-      // window from the run, padded like an event moment; the tier rule checks it against his top speed in this match
+      // window from the run, 3.0 s before it to 2.5 s after it, clamped 4–12 s like an event moment; the tier rule checks it
+      // against his top speed in this match
       const { points, seen } = await this.heat.positionsOf(v.video_id, v.trackIds);
       const movement = movementOf(points, seen);
       for (const run of movement.runs.filter((r) => r.sprint)) {
-        const a = Math.max(0, run.start_us - EVENT_BEFORE_US), b = Math.min(dur, run.end_us + EVENT_AFTER_US);
-        if (a >= b) continue;
+        const w = crossMatchClipWindow(run.start_us, run.end_us, dur);
+        if (w.in_pts_us >= w.out_pts_us) continue;
         const top = Math.round(run.top_kmh * 10) / 10;
-        out.push(CrossMatchCandidate.parse({ ...base, match_minute: this.matchMinute(facts, run.start_us), in_pts_us: a, out_pts_us: b,
+        out.push(CrossMatchCandidate.parse({ ...base, match_minute: this.matchMinute(facts, run.start_us), in_pts_us: w.in_pts_us, out_pts_us: w.out_pts_us,
           key_at_us: run.start_us, events: [], pass_length_m: null, sprint: { top_kmh: top, match_top_speed_kmh: movement.top_speed_kmh },
-          label: `Sprint — ${top} km/h`, dedupe_key: "SPRINT" }));
+          label: `Sprint — ${top} km/h`, dedupe_key: "SPRINT", is_chain: false, sequence_label: null }));
       }
     }
     return out;
+  }
+
+  /** His line (GK / DEF / MID / FWD) for the position promotion (ADR-131 §5, v2.1): the same way playerreport.ts does it
+   *  (lineOf) — the latest team sheet's position first, then the Players list's recorded usual position, confirmed roles
+   *  only; null when neither is recorded, and then no promotion applies. */
+  async positionGroup(playerId: string, p: Principal): Promise<PositionGroup | null> {
+    const profile = await playerProfile(this.db, playerId, p.organizationId);
+    if (profile?.latest_team?.role_confirmed && profile.latest_team.position) {
+      const l = POSITION_LINES[profile.latest_team.position.trim().toUpperCase()];
+      if (l) return l;
+    }
+    if (profile?.role_confirmed && profile.position) {
+      const l = POSITION_LINES[profile.position.trim().toUpperCase()];
+      if (l) return l;
+    }
+    return null;
+  }
+
+  /** ADR-131 v2.1: a hand-added clip on a cross-match reel must be a best moment. Its window must hold the decisive touch
+   *  (key_at_us) of a tier-assigned candidate of that video — a VISIBLE stretch, a set piece, a plain short pass or any other
+   *  ineligible moment has no tier-assigned candidate, so it is refused with INELIGIBLE_MOMENT (409). The per-match cap is
+   *  enforced too (Tier S immune, as in the selection): an existing clip of the video counts against it unless it is itself
+   *  a Tier S moment; an existing clip matching no tier-assigned candidate counts, conservatively. The length cap is already
+   *  enforced by checkClip before this runs. Single-match addClip never comes here. */
+  async checkPin(playerId: string, videoId: string, inUs: number, outUs: number,
+      existing: { in_pts_us: number; out_pts_us: number }[], lengthS: CrossMatchLength, p: Principal): Promise<void> {
+    const group = await this.positionGroup(playerId, p);
+    const videos = await this.confirmedVideos(playerId, p);
+    const video = videos.find((v) => v.video_id === videoId);
+    const candidates = video ? await this.gatherCandidates([video], playerId, p) : [];
+    const rank: Record<CrossMatchTier, number> = { S: 0, A: 1, B: 2, C: 3 };
+    const tierIn = (a: number, b: number): CrossMatchTier | null => {
+      let best: CrossMatchTier | null = null;
+      for (const c of candidates) {
+        if (c.key_at_us < a || c.key_at_us > b) continue;
+        const cls = tierOfCandidate(c, group);
+        if (cls.tier && (best === null || rank[cls.tier] < rank[best])) best = cls.tier;
+      }
+      return best;
+    };
+    const tier = tierIn(inUs, outUs);
+    if (!tier)
+      throw new ApiError(409, "INELIGIBLE_MOMENT", "That clip is not one of his best moments: a cross-match clip must hold the decisive touch of a tier-assigned moment (a goal, a shot, a key pass, a tackle, a sprint) — not a visible stretch, a set piece or a plain pass.");
+    if (tier !== "S") {
+      const cap = CROSS_MATCH_PER_MATCH_CAPS[lengthS];
+      let nonS = 0;
+      for (const cl of existing) if (tierIn(cl.in_pts_us, cl.out_pts_us) !== "S") nonS++;
+      if (nonS >= cap)
+        throw new ApiError(409, "PER_MATCH_CAP_REACHED", `That match already has ${cap} moments in this ${lengthS}-second reel (Tier S excepted): a cross-match reel shows breadth across matches.`);
+    }
   }
 
   /** The selection for a player: registered, >= 1 confirmed track, else 409 (do not return another player's moments). */
   async selection(playerId: string, lengthS: CrossMatchLength, p: Principal): Promise<CrossMatchSelection> {
     await this.requireRegisteredPlayer(playerId, p);
     const candidates = await this.gather(playerId, p);
-    return CrossMatchSelection.parse({ player_id: playerId, ...selectCrossMatchMoments(candidates, lengthS) });
+    const group = await this.positionGroup(playerId, p);
+    return CrossMatchSelection.parse({ player_id: playerId, ...selectCrossMatchMoments(candidates, lengthS, group) });
   }
 
   /**
@@ -311,7 +379,7 @@ export class CrossMatchService {
       const windows = rejections.filter((w) => w.video_id === c.video_id);
       if (isRejected(windows, c.in_pts_us, c.out_pts_us)) rejected.push(c); else kept.push(c);
     }
-    const sel = selectCrossMatchMoments(kept, lengthS);
+    const sel = selectCrossMatchMoments(kept, lengthS, await this.positionGroup(reel.player.player_id, p));
     const inReel = (c: CrossMatchCandidate) => reel.clips.some((cl) => cl.source_video_id === c.video_id && cl.in_pts_us < c.out_pts_us && cl.out_pts_us > c.in_pts_us);
     return CrossMatchSelection.parse({
       player_id: reel.player.player_id,
