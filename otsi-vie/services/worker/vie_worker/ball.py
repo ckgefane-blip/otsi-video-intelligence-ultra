@@ -12,11 +12,15 @@ ball). One frame cannot tell them apart - the ball often scores no higher than a
                           earns FEET_PENALTY less, so a free-moving candidate nearby wins
   3  tracklets            the same object reported twice in a frame (two boxes a few pixels apart) kept once, the stronger; then
                           candidates in nearby frames joined by a constant-velocity prediction, within a ball's reach
+                          (U.9: when a tracklet is in flight, by its parabolic arc - `ball_flight` - instead, so the ball is not lost
+                          to a boot sitting near the tangent when frames are missed or the sample rate is low)
   4  one path per shot    the best chain of tracklets through the shot (dynamic programming): each tracklet earns its scores, each gap
                           costs, a jump must be physically reachable in the gap; after a long gap the path may restart anywhere. Where two
                           tracklets overlap in time (a boot's and the ball's, side by side) the chain may hand over: the later one is used
                           from the first frame after the earlier one ends. Tracklets are cut into PIECE_FRAMES pieces first, so a chain can
                           keep the part of a tracklet that followed the ball and leave where it drifted onto something else
+                          (U.9: a piece that continues a flight must lie on the flight's parabola, else the join is a restart, not the
+                          same flight; and a piece that is itself a flight earns FLIGHT_BONUS - a gravity-consistent arc is ball evidence)
   5  output               frames on the path are DETECTED (a real detection); short gaps between two path points of one chain are
                           INFERRED (straight line, at most INFER_MAX_GAP_US); everything else is UNKNOWN - unknown beats wrong
 
@@ -29,6 +33,8 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import Callable
+
+from .ball_flight import FLIGHT_BONUS, FLIGHT_LINK_TOL, Flight, deviation, flight_of
 
 STATIC_CELL = 0.004            # picture widths: about 5 px at 1280
 STATIC_MIN_FRAMES = 30         # a spot printed on the picture recurs in this many frames ...
@@ -81,6 +87,7 @@ class Cand:
 class Tracklet:
     shot: int
     points: list[Cand] = field(default_factory=list)
+    flight: Flight | None = None    # U.9: the fitted parabola of these points, when they are a flight (else None)
 
     @property
     def start(self) -> int: return self.points[0].pts_us
@@ -92,6 +99,12 @@ class Tracklet:
         return weight(self.points)
 
     def predict(self, pts_us: int, aspect: float) -> tuple[float, float]:
+        """Where the tracklet will be at pts_us: on its parabolic arc when it is in flight (U.9), else the straight-line
+        extrapolation of its last two points. A smooth arc is nearly straight between 6 fps samples, so the parabola matters
+        when frames are missed or the sample rate is low: there the tangent has drifted far from the arc, and a boot sitting
+        near the tangent would win the association instead of the ball."""
+        if self.flight is not None:
+            return self.flight.predict(pts_us)
         a = self.points[-1]
         if len(self.points) < 2:
             return a.x, a.y
@@ -209,8 +222,12 @@ def _size_ok(c: Cand, boxes: list[tuple[float, float, float, float]], tallest_px
     return c.w_px <= (BALL_MAX_OF_PERSON * tallest_px if tallest_px else cap_default)
 
 
-def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float) -> list[Tracklet]:
-    """Step 3: greedy constant-velocity linking inside each shot; every candidate belongs to exactly one tracklet."""
+def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
+              use_flight: bool = False) -> list[Tracklet]:
+    """Step 3: greedy constant-velocity linking inside each shot; every candidate belongs to exactly one tracklet.
+    `use_flight` (U.9, off by default): a tracklet that is in flight predicts from its parabola (see Tracklet.predict),
+    refitted as it grows; a tracklet whose points stop fitting a flight (a kick, a bounce, a roll) falls back to the
+    straight line on its own - the fit fails its own checks, so nothing is forced."""
     done: list[Tracklet] = []
     live: list[Tracklet] = []
     for pts in sorted(frames):
@@ -235,16 +252,23 @@ def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: f
                 continue
             used_c.add(ci); used_t.add(ti)
             live[ti].points.append(frames[pts][ci])
+            if use_flight:
+                live[ti].flight = flight_of(live[ti].points, aspect)
         for ci, c in enumerate(frames[pts]):
             if ci not in used_c:
                 live.append(Tracklet(shot, [c]))
     return done + live
 
 
-def best_paths(tracks: list[Tracklet], step_us: float, aspect: float) -> list[tuple[Tracklet, bool]]:
+def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight: bool = False) -> list[tuple[Tracklet, bool]]:
     """Step 4: per shot, the chain of tracklets with the highest total. Returns the chosen tracklets in time order, each with whether it
-    continues the previous one physically (True) or starts after a restart (False)."""
+    continues the previous one physically (True) or starts after a restart (False).
+    `use_flight` (U.9, off by default): a piece that is itself a flight earns FLIGHT_BONUS (a gravity-consistent arc is ball
+    evidence - boots and players do not fly), and a join out of a flight piece is a physical continuation only when the new
+    piece's first point lies on that flight's parabola; anything else (a kick, a bounce, a boot at the landing spot) is a
+    restart, so no INFERRED positions are invented across it."""
     pieces = [Tracklet(t.shot, t.points[k:k + PIECE_FRAMES]) for t in tracks for k in range(0, len(t.points), PIECE_FRAMES)]
+    flights = {id(p): flight_of(p.points, aspect) for p in pieces} if use_flight else {}
     useful = [t for t in pieces if (len(t.points) > 1 or t.points[0].score >= SINGLE_MIN_SCORE)
               and not (all(q.at_feet for q in t.points) and sum(q.score for q in t.points) / len(t.points) < FEET_MIN_MEAN)]
     by_shot: dict[int, list[Tracklet]] = defaultdict(list)
@@ -256,7 +280,7 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float) -> list[tu
         best = [0.0] * len(ts)
         back: list[tuple[int, bool, int] | None] = [None] * len(ts)              # (previous tracklet, physically linked, first point used here)
         for i, t in enumerate(ts):
-            w = t.weight()
+            w = t.weight() + (FLIGHT_BONUS if flights.get(id(t)) is not None else 0.0)
             best[i], back[i] = w, None
             for j in range(i):
                 s = ts[j]
@@ -269,8 +293,14 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float) -> list[tu
                 part = t.points[cut:]
                 a, b = part[0], s.points[-1]
                 gap = a.pts_us - s.end
-                wp = w if cut == 0 else weight(part)
-                if gap <= JUMP_MAX_US and dist(a.x, a.y, b.x, b.y, aspect) <= JUMP_SPEED * gap / 1e6 + JUMP_SLACK:
+                wp = w if cut == 0 else weight(part) + (FLIGHT_BONUS if use_flight and flight_of(part, aspect) is not None else 0.0)
+                continues_flight = True
+                if use_flight:
+                    f = flights.get(id(s))
+                    if f is not None and deviation(f, a.pts_us, a.x, a.y, aspect) > FLIGHT_LINK_TOL:
+                        continues_flight = False   # the new piece is not on the old flight's arc: a kick, a bounce, or
+                                                   # another object - a restart, never the same flight
+                if continues_flight and gap <= JUMP_MAX_US and dist(a.x, a.y, b.x, b.y, aspect) <= JUMP_SPEED * gap / 1e6 + JUMP_SLACK:
                     missed = max(0, round(gap / step_us) - 1)
                     v, linked = best[j] + wp - GAP_COST * missed + (STEP_BONUS if missed == 0 else 0.0), True
                 else:
@@ -295,11 +325,14 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float) -> list[tu
     return chosen
 
 
-def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float) -> list[BallPoint]:
-    """Steps 3-5 on already plausible candidates: the ball's DETECTED and INFERRED positions; frames not returned are UNKNOWN."""
+def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
+                use_flight: bool = False) -> list[BallPoint]:
+    """Steps 3-5 on already plausible candidates: the ball's DETECTED and INFERRED positions; frames not returned are UNKNOWN.
+    `use_flight` (U.9, off by default): parabolic flight prediction in the tracklets and flight-continuity joins plus a flight
+    bonus in the path search (see `best_paths`); without it, behaviour is exactly as before."""
     out: list[BallPoint] = []
     prev: tuple[Cand, float] | None = None
-    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect), step_us, aspect):
+    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight), step_us, aspect, use_flight):
         w = t.weight()
         conf = w / (w + 3.0) if len(t.points) > 1 else min(0.5, t.points[0].score)     # more consistent evidence, closer to 1
         pts = t.points
