@@ -137,7 +137,8 @@ export function tierOfCandidate(c: CrossMatchCandidate): { tier: CrossMatchTier;
   let best: { tier: CrossMatchTier; reason: string } | null = null;
   for (const e of c.events) {
     if (e === "PASS" && (c.pass_length_m === null || c.pass_length_m < CROSS_MATCH_LONG_PASS_M)) continue;
-    const tier = TIER_OF_EVENT[e];
+    // PASS is tier C only as a long pass (checked above); every other event takes its tier from the map
+    const tier = e === "PASS" ? "C" : TIER_OF_EVENT[e];
     if (!tier) continue;
     if (!best || TIER_RANK[tier] < TIER_RANK[best.tier]) best = { tier, reason: CROSS_MATCH_REASON_WORDS[e] };
   }
