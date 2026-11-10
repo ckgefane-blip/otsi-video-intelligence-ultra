@@ -7,6 +7,8 @@ describe("keyboard map", () => {
     for (const list of [EVERYWHERE_KEYS, STUDIO_KEYS, ANALYSIS_KEYS]) expect(new Set(list.map((s) => s.keys)).size).toBe(list.length);
     const has = (list: { keys: string }[], k: string) => list.some((s) => s.keys === k);
     for (const k of ["J", "K", "L", "I / O", "S", "C", "M"]) expect(has(STUDIO_KEYS, k)).toBe(true);
+    // dual timeline snapshot-and-swap (Blueprint §2.3): B snapshots Cut B, Shift+B applies it
+    for (const k of ["B", "Shift + B"]) expect(has(STUDIO_KEYS, k)).toBe(true);
     for (const k of ["J", "K", "L", "N", "Space"]) expect(has(ANALYSIS_KEYS, k)).toBe(true);
     for (const k of ["Ctrl + K", "?"]) expect(has(EVERYWHERE_KEYS, k)).toBe(true);
     // L is play now; no single key does two things on one page

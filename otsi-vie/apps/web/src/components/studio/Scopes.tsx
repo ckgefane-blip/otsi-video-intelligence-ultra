@@ -27,6 +27,10 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
   const [mode, setMode] = useState<ScopeMode>("waveform");
   const [channel, setChannel] = useState<ScopeChannel>("luma");
   const [audioMeter, setAudioMeter] = useState<AudioMeterData>({ peakDb: -60, rmsDb: -60, clip: false });
+  // F3: the meter ticks every 100 ms; the canvas loop reads it through this ref so the loop is not torn down
+  // and restarted on every tick (it was, with audioMeter in the effect's deps, dropping a frame each time)
+  const audioMeterRef = useRef(audioMeter);
+  useEffect(() => { audioMeterRef.current = audioMeter; });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -158,8 +162,8 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
           ctx.fillRect(px, py, 1.5, 1.5);
         }
       } else if (mode === "audio") {
-        // Draw audio dB scale and meters
-        const { peakDb, rmsDb, clip } = audioMeter;
+        // Draw audio dB scale and meters (from the ref: the meter ticks without restarting this loop)
+        const { peakDb, rmsDb, clip } = audioMeterRef.current;
         const dbToY = (db: number) => {
           const clamped = Math.max(-60, Math.min(0, db));
           return H - 15 - ((clamped + 60) / 60) * (H - 30);
@@ -211,7 +215,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
       dead = true;
       cancelAnimationFrame(animId);
     };
-  }, [mode, channel, videoRef, audioMeter]);
+  }, [mode, channel, videoRef]);
 
   // Audio analysis when playing
   useEffect(() => {

@@ -17,7 +17,7 @@
  * start / end of the clip under the playhead to the playhead. Each clip's top line is green when the last rendered file has it as it is.
  */
 import { TRANSITION_DEFAULT_MS, beatSnapTargets, beatsUsable, clipOutputUs, effectActive, reelBeats, strapStartUs, type BeatGrid, type BeatGridView, type TransitionKind } from "@otsi-vie/contracts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
@@ -107,18 +107,20 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   const X = (t: number) => O + (t - start) * scale;
   const head = st.total ? X(st.playhead) : 336;
   const selected = st.items.find((p) => p.clip.id === r?.selectedClip) ?? null;
-  const rendered = st.reel ? renderedState(st.reel) : null;            // E1: is each clip in the last rendered file as it is now?
+  // the playhead moves every frame while playing, so these derivations are memoised on what they actually read:
+  // st.items is memoised on the reel in useStudio, so they hold still while only the playhead moves
+  const rendered = useMemo(() => (st.reel ? renderedState(st.reel) : null), [st.reel]);   // E1: is each clip in the last rendered file as it is now?
   const under = locate(st.items, st.playhead);
-  const missing = (r?.moments ?? []).filter((m) => !m.in_reel && !m.rejected);   // B.15: never one a person rejected
-  const lanes = laneItems(st);
+  const missing = useMemo(() => (r?.moments ?? []).filter((m) => !m.in_reel && !m.rejected), [r?.moments]);   // B.15: never one a person rejected
+  const lanes = useMemo(() => laneItems(st), [st.reel, st.items, st.total, st.brand]);
   const set = st.reel?.settings;
   /** markers and notes in reel time (a note inside a clip's source in/out, wherever that clip sits in the reel) */
-  const marks = st.notes.flatMap((n) => {
+  const marks = useMemo(() => st.notes.flatMap((n) => {
     const at = n.at_pts_us;
     if (at === null) return [];
     return st.items.filter((p) => at >= p.clip.in_pts_us && at <= p.clip.out_pts_us)
       .map((p) => ({ key: `${n.id}-${p.clip.id}`, t: p.start + at - p.clip.in_pts_us, body: n.body }));
-  });
+  }), [st.notes, st.items]);
   const addMarker = () => {
     if (!under || !st.reel) return;
     void st.addNote("Marker", Math.round(under.src))

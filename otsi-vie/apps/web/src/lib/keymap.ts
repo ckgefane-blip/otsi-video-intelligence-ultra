@@ -2,11 +2,11 @@
  * v3 Phase A.9 (S14, ADR-071): the keyboard map, one table for the whole app. The "?" map (components/shell/KeyboardMap.tsx) lists it,
  * the current page first, and the tests check it; each key is handled where its tool lives:
  *   Everywhere   Ctrl/Cmd + K (CommandPalette), ? (KeyboardMap)
- *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing; StudioHeader: undo / redo
+ *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing; StudioHeader: undo / redo; DualTimeline: snapshot / apply Cut B
  *   Analysis     CentreVideo: playback, J K L, frames; WhoIsThis: N, the next possible moment of the reel's player
  */
 export type KeyScope = "everywhere" | "studio" | "analysis";
-export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" }
+export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" | "Compare" }
 export interface KeyRow extends Shortcut { scope: KeyScope }
 
 export const SCOPE_LABEL: Record<KeyScope, string> = { everywhere: "Everywhere", studio: "Clip Studio", analysis: "Analysis" };
@@ -36,6 +36,8 @@ export const STUDIO_KEYS: Shortcut[] = [
   { keys: "Ctrl + Z", does: "Undo", group: "Edit" },
   { keys: "Ctrl + Shift + Z or Ctrl + Y", does: "Redo", group: "Edit" },
   { keys: "M", does: "Add a marker at the playhead", group: "Mark" },
+  { keys: "B", does: "Snapshot the active cut as Cut B (dual timeline)", group: "Compare" },
+  { keys: "Shift + B", does: "Apply Cut B to the active reel (dual timeline)", group: "Compare" },
   { keys: "I / O", does: "Mark the in / out of a previewed Media Bin moment", group: "Mark" },
   { keys: "Alt + X", does: "Clear the in / out marks", group: "Mark" },
   { keys: "A / D / R", does: "Draw an arrow / line / circle on the preview", group: "Draw" },

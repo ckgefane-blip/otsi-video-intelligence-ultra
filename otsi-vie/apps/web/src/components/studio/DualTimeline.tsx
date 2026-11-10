@@ -20,6 +20,7 @@ import {
 } from "@otsi-vie/contracts";
 import React, { useEffect, useMemo, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
+import { typing } from "@/lib/keymap";
 import { tc, type Ui } from "./kit";
 import type { Studio } from "./useStudio";
 
@@ -86,6 +87,20 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
     ui.say("Captured current timeline as reference Cut B");
   };
 
+  // Blueprint §2.3: snapshot-and-swap keyboard control — B snapshots the active cut as Cut B, Shift+B applies Cut B.
+  // The panel is only mounted while dual comparison is open, so the keys cannot fire elsewhere in the studio.
+  // No dep array, like the other studio key handlers: the closures stay fresh and the listener is re-registered each render.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key !== "b" && e.key !== "B") return;
+      e.preventDefault();
+      if (e.shiftKey) handleApplyCutB(); else handleCaptureReference();
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  });
+
   return (
     <section
       data-dual-timeline=""
@@ -129,6 +144,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
           <button
             type="button"
             onClick={handleCaptureReference}
+            title="Snapshot the active cut as Cut B (B)"
             className="rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 text-xs font-medium text-[#cfe8ff] hover:bg-[#123566]"
           >
             Snapshot Cut
@@ -140,7 +156,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             data-dual-swap=""
             onClick={handleApplyCutB}
             className="rounded bg-[#1e90ff] px-3 py-1 text-xs font-semibold text-white hover:bg-[#33a8ff]"
-            title="Restore reference Cut B into the active reel timeline"
+            title="Restore reference Cut B into the active reel timeline (Shift+B)"
           >
             Apply Cut B
           </button>

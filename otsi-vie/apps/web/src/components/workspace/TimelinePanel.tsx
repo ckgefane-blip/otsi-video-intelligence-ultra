@@ -15,7 +15,7 @@
  * the run). A row selects its track and jumps to where it first appears; clicking a lane seeks. The playhead crosses all lanes.
  * Team shapes need calibrated pitch positions, so those rows are listed and disabled.
  */
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { MatchEvents, Observation } from "@otsi-vie/contracts";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { Box } from "@/components/tactics/kit";
@@ -160,14 +160,26 @@ export function TimelinePanel({ s }: { s: Shared }) {
   }, [strip, dw]);
   const per = ws?.periods;
   const [lo, hi] = dur && per ? per.window(dur) : [0, dur ?? 0];
-  const x = (us: number) => X0 + (hi > lo ? Math.min(1, Math.max(0, (us - lo) / (hi - lo))) : 0) * (X1 - X0);
-  const usAt = (clientX: number, el: Element) => { const r = el.getBoundingClientRect(); return lo + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (hi - lo); };
+  // stable across playhead moves, so the memoised PeriodBar below does not re-render on every tick
+  const x = useCallback((us: number) => X0 + (hi > lo ? Math.min(1, Math.max(0, (us - lo) / (hi - lo))) : 0) * (X1 - X0), [lo, hi, X1]);
+  const usAt = useCallback((clientX: number, el: Element) => { const r = el.getBoundingClientRect(); return lo + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (hi - lo); }, [lo, hi]);
   const finished = !!ws?.run;
   const ev = ws?.events.data ?? null;
   const marks = useMemo(() => marksOf(ev), [ev]);
   const [filter, setFilter] = useState<Kind | null>(null);                     // null: All Events
   // the marks shown: one kind, or all of them (a key pass is a pass: shown once, in its own colour)
   const shown = useMemo(() => (filter ? marks[filter] : allMarks(marks)), [marks, filter]);
+  // the marks inside the window shown: memoised so the lane does not re-filter them on every playhead move
+  const visibleMarks = useMemo(() => shown.filter((m) => m.at >= lo && m.at <= hi), [shown, lo, hi]);
+  // stepping through the events shown, one by one: memoised, so the three scans do not run on every playhead move
+  const nav = useMemo(() => {
+    const lead = (m: Mark) => KIND[m.kind].lead;                                 // start playing a moment before it
+    // the latest event the playhead has reached (two a few seconds apart: the second, once the video is at it)
+    const at = shown.findLastIndex((m) => t >= m.at - lead(m) - 300_000 && t <= m.end + 3_000_000);
+    const next = shown.findIndex((m) => m.at - lead(m) > t + 300_000);
+    const prev = [...shown].reverse().find((m) => m.at - lead(m) < t - 1_000_000 && shown.indexOf(m) !== at);
+    return { at, next, prev, cur: at >= 0 ? shown[at]! : null };
+  }, [shown, t]);
   // watch an event: a moment before it, with the player who did it (the passer, the winner, the presser, the shooter) selected
   const watch = (m: Mark) => {
     if (!ws) return;
@@ -225,7 +237,7 @@ export function TimelinePanel({ s }: { s: Shared }) {
         ))}
       </div>
       {[0, 1, 2, 3, 4, 5, 6].map((i) => <T key={i} x={X0 + i * ((X1 - X0 - 50) / 6)} y={1018} size={17} color="#cfdcf0">{dur ? clock(lo + ((hi - lo) * i) / 6) : "—"}</T>)}
-      {dur && per?.shown.first && <PeriodBar per={per} x={x} usAt={usAt} canEdit={!!ws?.canWrite} X1={X1} />}
+      {dur && per?.shown.first && <PeriodBarMemo per={per} x={x} usAt={usAt} canEdit={!!ws?.canWrite} X1={X1} />}
       {mode === "players" && empty && <T x={1200 + dw / 2} y={1180} size={18} color="#8ea3bf" align="center">{ws?.video ? (finished ? (ws.tracks ? "No people tracks for this team" : "Reading the tracks…") : "No tracks yet — run AI processing to populate presence lanes") : "No tracks yet — run AI processing to populate presence lanes"}</T>}
 
       {mode === "engine" && <EngineLanes s={s} x={x} lo={lo} hi={hi} spans={spans} selectedLabel={selRow ? String(selRow.track_number) : null} lanes={lanes} setMarkers={setMarkers} X0={X0} X1={X1} />}
@@ -254,7 +266,7 @@ export function TimelinePanel({ s }: { s: Shared }) {
       ))}
       </>}
       {/* events: a mark each, just above the lanes; the selected player's in white */}
-      {dur && ws && shown.filter((m) => m.at >= lo && m.at <= hi).map((m) => {
+      {dur && ws && visibleMarks.map((m) => {
         const mine = !!selectedId && m.tracks.includes(selectedId);
         return (
           <button key={m.id} type="button" data-event={m.kind} data-pass={m.kind === "Ball Won" || m.kind === "Shots" ? undefined : m.id} aria-label={`${cap(KIND[m.kind].noun)} at ${clock(m.at)}`}
@@ -287,17 +299,12 @@ export function TimelinePanel({ s }: { s: Shared }) {
       <T x={700} y={1309} size={15} color="#8ea3bf" style={{ width: u(X1 - 700), whiteSpace: "normal", lineHeight: 1.3 }}>{eventsLine(ev)}</T>
       {/* step through the events shown one by one: over a whole match their marks are closer than a pixel apart */}
       {ws && shown.length > 0 && (() => {
-        const lead = (m: Mark) => KIND[m.kind].lead;                                 // start playing a moment before it
-        // the latest event the playhead has reached (two a few seconds apart: the second, once the video is at it)
-        const at = shown.findLastIndex((m) => t >= m.at - lead(m) - 300_000 && t <= m.end + 3_000_000);
-        const next = shown.findIndex((m) => m.at - lead(m) > t + 300_000);
-        const prev = [...shown].reverse().find((m) => m.at - lead(m) < t - 1_000_000 && shown.indexOf(m) !== at);
         const noun = filter ? KIND[filter].noun : "event", plural = filter ? KIND[filter].plural : "events";
+        const { at, next, prev, cur } = nav;
         const btn = (x: number, w: number, label: string, target: Mark | undefined, text: string) => (
           <Hit x={x} y={1358} w={w} h={34} label={label} {...(target ? { onClick: () => watch(target) } : { reason: `No more ${plural} this way` })}
             style={{ border: `${u(1.5)} solid #2f7a3e`, borderRadius: u(6), background: "#0f2e1a", color: "#d8f5cf", fontSize: u(16), display: "flex", alignItems: "center", justifyContent: "center", opacity: target ? 1 : 0.4 }}>{text}</Hit>
         );
-        const cur = at >= 0 ? shown[at]! : null;
         return (
           <div data-pass-nav data-event-nav>
             {btn(700, 200, `Previous ${noun}`, prev, `‹ Previous ${noun}`)}
@@ -308,6 +315,10 @@ export function TimelinePanel({ s }: { s: Shared }) {
           </div>
         );
       })()}
+      {/* no events of the kind shown (events loaded, and a run exists): name it instead of leaving the nav area blank */}
+      {ws && shown.length === 0 && finished && ev && (
+        <T x={920} y={1375} size={16} color="#8ea3bf">{filter ? `No ${KIND[filter].plural} in this match` : "No events found in this match yet"}</T>
+      )}
     </section>
   );
 }
@@ -344,3 +355,6 @@ function PeriodBar({ per, x, usAt, canEdit, X1 }: { per: PeriodsState; x: (us: n
     </div>
   );
 }
+
+// memoised: the bar only re-renders when its props change, not on every playhead move (x/usAt are useCallback'd above)
+const PeriodBarMemo = memo(PeriodBar);
