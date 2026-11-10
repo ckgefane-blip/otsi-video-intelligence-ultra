@@ -26,7 +26,9 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
     let live = true;
     setPf(null); setFailed(false); setRights(undefined);
     api<Preflight>(`/v1/reels/${reel.id}/preflight`).then((x) => live && setPf(x), () => live && setFailed(true));
-    api<VideoRights>(`/v1/videos/${reel.video_id}/rights`).then((x) => live && setRights(x), () => live && setRights(null));
+    // ADR-131: a cross-match reel has no single video, so there is no one video's rights to check here — the share row stays
+    // hidden (rights stay undefined) rather than inventing a video.
+    if (reel.video_id) api<VideoRights>(`/v1/videos/${reel.video_id}/rights`).then((x) => live && setRights(x), () => live && setRights(null));
     return () => { live = false; };
   }, [open, reel.id, reel.version, reel.video_id]);
   const share = rights === undefined ? null : shareCheck(rights);
@@ -70,7 +72,7 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
               )}
             </ul>
           )}
-          <DeclareRightsDialog videoId={reel.video_id} name="this reel's video" open={declare} onOpenChange={setDeclare} onDone={(r) => setRights(r)} />
+          {reel.video_id && <DeclareRightsDialog videoId={reel.video_id} name="this reel's video" open={declare} onOpenChange={setDeclare} onDone={(r) => setRights(r)} />}
           <div className="flex justify-end gap-2">
             <Dialog.Close className="rounded border border-line px-3 py-1.5">Cancel</Dialog.Close>
             <button type="button" data-start-export disabled={!pf || blocked || toStart === 0} onClick={onStart}

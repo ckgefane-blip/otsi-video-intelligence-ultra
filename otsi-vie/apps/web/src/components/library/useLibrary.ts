@@ -45,7 +45,8 @@ function assets(reels: Reel[], matches: Match[], projects: Project[], videos: Vi
   const vidProject = new Map(videos.map((v) => [v.id, byProject.get(v.project_id) ?? null]));
   const out: Omit<Asset, "project">[] = [];
   for (const r of reels) {
-    const m = byMatch.get(vidMatch.get(r.video_id) ?? "") ?? null;
+    // ADR-131: a cross-match reel has no single video, so it has no single match — the Library row shows no match, not another video's.
+    const m = r.video_id ? byMatch.get(vidMatch.get(r.video_id) ?? "") ?? null : null;
     const good = r.last_good_render ?? null, rendered = !!good?.has_output;
     const res = (good?.result ?? {}) as { height?: number; width?: number; duration_s?: number; bytes?: number };
     const base = { videoId: r.video_id, matchId: m?.id ?? null, competition: m?.competition ?? null, teams: m ? [club(m, "home"), club(m, "away")].filter(Boolean) as string[] : [],

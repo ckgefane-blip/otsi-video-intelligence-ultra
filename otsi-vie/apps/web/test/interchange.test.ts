@@ -33,6 +33,7 @@ const baseReel: Reel = {
   name: "Chinazom Godwin — Highlights #1!",
   status: "DRAFT",
   version: 3,
+  source: "MATCH",
   video_id: VIDEO_ID,
   run_id: RUN_ID,
   player: {
@@ -71,6 +72,7 @@ const baseReel: Reel = {
   clips: [
     {
       id: CLIP_1,
+      source_video_id: VIDEO_ID,
       sequence_index: 0,
       in_pts_us: 2_000_000,
       out_pts_us: 6_000_000,
@@ -81,6 +83,7 @@ const baseReel: Reel = {
     },
     {
       id: CLIP_2,
+      source_video_id: VIDEO_ID,
       sequence_index: 1,
       in_pts_us: 10_000_000,
       out_pts_us: 14_000_000,
@@ -91,6 +94,7 @@ const baseReel: Reel = {
     },
     {
       id: CLIP_3,
+      source_video_id: VIDEO_ID,
       sequence_index: 2,
       in_pts_us: 20_000_000,
       out_pts_us: 23_000_000,

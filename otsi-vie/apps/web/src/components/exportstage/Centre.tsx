@@ -224,7 +224,9 @@ const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: numb
     api<PlayerEvents>(`/v1/players/${pid}/events`).then((x) => live && setEvents(x), () => live && setEvents(null));
     return () => { live = false; };
   }, [pid]);
-  const acts = useMemo(() => (e.reel && events ? actionClips(e.reel.video_id, all, events.items) : null), [e.reel, events, all]);
+  // ADR-131: a cross-match reel has no single video, so the single-video action filter cannot apply — the filter stays off
+  // (unknown beats wrong), as it does when no event of his was recorded in the video.
+  const acts = useMemo(() => (e.reel && events && e.reel.video_id ? actionClips(e.reel.video_id, all, events.items) : null), [e.reel, events, all]);
   const shown = useMemo(() => all.map((c, i) => ({ c, i, at: allOffs[i]! })).filter((x) => !(hide && acts) || acts.has(x.c.id)), [all, allOffs, acts, hide]);
   const clips = useMemo(() => shown.map((x) => x.c), [shown]), offs = useMemo(() => shown.map((x) => x.at), [shown]);
   const hidden = all.length - clips.length;
