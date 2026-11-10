@@ -11,11 +11,12 @@
  * span the clips; the reel keeps each clip's match audio (no music is connected). Empty lanes keep the reference's wording.
  * E4 (ADR-067): "Build a draft" opens DraftDialog: a length, a theme and a frame give up to three draft reels; one is used, then Edit in Clip Studio.
  */
-import { slotUs, momentBadge, ZOOM_STEPS, zoomOffset, type MomentEvent, type Reel, type ReelMoment } from "@otsi-vie/contracts";
+import { slotUs, momentBadge, ZOOM_STEPS, zoomOffset, type MomentEvent, type Reel, type ReelClip, type ReelMoment } from "@otsi-vie/contracts";
 import Link from "next/link";
-import { type DragEvent, useEffect, useRef, useState } from "react";
+import { type DragEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import type { ReelState } from "@/components/reels/ReelBuilder";
 import { Hit } from "@/components/workspace/shared";
 import { DraftDialog } from "./DraftDialog";
 import { WhoQueue } from "./WhoQueue";
@@ -63,6 +64,7 @@ const startDrag = (e: DragEvent, d: Drag, label: string) => {
 export function Moments() {
   const { r, focus } = useStage();
   const reel = r?.reel ?? null, moments = r?.moments ?? [];
+  const loading = r?.moments === null;   // still reading: "no suggestions yet" would be a lie about an empty result
   const scroller = useRef<HTMLDivElement | null>(null);
   const canAdd = !!r?.canEdit && !r.busy && !!reel;
   const slots = Math.max(5, moments.length);
@@ -103,7 +105,7 @@ export function Moments() {
     <section id="p06-moments" aria-label="Suggested key moments" data-section="p06-s06" data-moments={String(moments.length)}>
       <P x={445} y={872} w={1593} h={258} style={focus === "p06-moments" ? { borderColor: "#33a8ff" } : undefined} />
       <Ic x={477} y={905} k="star" size={30} color="#33a8ff" />
-      <T x={505} y={905} size={25} weight={600} as="h2">{`Suggested Key Moments (${moments.length})`}</T>
+      <T x={505} y={905} size={25} weight={600} as="h2">{loading ? "Suggested Key Moments…" : `Suggested Key Moments (${moments.length})`}</T>
       {reel?.player && (
         // ADR-046: moments count only events on his named tracks; "Is this him?" on the unnamed players of the events brings more
         <button type="button" onClick={() => setWho(true)} className="absolute" data-who-link title="Players elsewhere in the match who look like him: say if it is him, here"
@@ -120,7 +122,7 @@ export function Moments() {
       <DraftDialog r={r} open={draft} onOpenChange={setDraft} />
       {([["↶", "Undo", 1250, 40, !!h?.can_undo, h?.undo_label ? `Undo: ${h.undo_label}` : "Nothing to undo", () => r?.undo()],
          ["↷", "Redo", 1296, 40, !!h?.can_redo, h?.redo_label ? `Redo: ${h.redo_label}` : "Nothing to redo", () => r?.redo()]] as const).map(([g, l, x, w, on, tip, go]) => (
-        <button key={l} type="button" aria-label={tip} data-reel-undo={l} disabled={!canHist || !on} onClick={go} title={tip}
+        <button key={l} type="button" aria-label={tip} data-reel-undo={l} disabled={!canHist || !on} onClick={go} title={l === "Undo" ? `${tip} (Ctrl+Z)` : `${tip} (Ctrl+Shift+Z)`}
           className="absolute" style={{ left: u(x), top: u(887 - 101), width: u(w), height: u(36), fontSize: u(22), fontWeight: 700, color: "#fff", background: "#0a2447",
             border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canHist && on ? "pointer" : "default", opacity: canHist && on ? 1 : 0.45 }}>{g}</button>
       ))}
@@ -154,9 +156,9 @@ export function Moments() {
                     <b style={{ color: b.word === "Possible" ? "#f5b82e" : "#3ee6a8" }}>{b.word}</b><span style={{ color: "#cfe0f5" }}>{cov === null ? "· not measured" : `· seen ${cov}%`}</span></B>;
                 })()}
                 <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{m ? `${Math.round((m.out_pts_us - m.in_pts_us) / 1e6)}s` : "—"}</B>
-                <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m ? m.label : first ? "No suggestions yet" : "—"}</T>
+                <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m ? m.label : first ? (loading ? "Loading suggestions…" : "No suggestions yet") : "—"}</T>
                 <T o={[0, 939]} x={x + 15} y={1105} size={19} color="#b9cbe2" style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {m ? detail(m) : first ? "Run AI processing first" : "—"}</T>
+                  {m ? detail(m) : first ? (loading ? "The engine's suggestions are loading" : "Run AI processing first") : "—"}</T>
                 {m && (
                   <button type="button" aria-label={m.in_reel ? `Select the clip of moment ${i + 1}` : `Add moment ${i + 1} to the reel`} aria-pressed={m.in_reel}
                     disabled={!m.in_reel && !canAdd} title={!m.in_reel && !canAdd ? "You cannot edit this reel" : "Click to add, or drag into the timeline"} onClick={() => add(i)}
@@ -176,10 +178,32 @@ export function Moments() {
           })}
         </div>
       </div>
-      {reel && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">The player is not visible on any confirmed track yet</T>}
+      {reel && loading && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">Loading suggestions…</T>}
+      {reel && !loading && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">The player is not visible on any confirmed track yet</T>}
     </section>
   );
 }
+
+/** the selected clip's trim bar (memoised: typing in its in/out fields re-renders only this bar, not the whole timeline) */
+const ClipEditor = memo(function ClipEditor({ sel, idx, total, edit, setEdit, canEdit, reel, r, move }: {
+  sel: ReelClip; idx: number; total: number; edit: { a: string; b: string }; setEdit: (e: { a: string; b: string }) => void;
+  canEdit: boolean; reel: Reel | null; r: ReelState | null; move: (d: number) => void;
+}) {
+  return (
+    <div aria-label="Edit the selected clip" className="absolute" style={{ left: u(1290), top: u(1154 - 101), width: u(560), height: u(42), display: "flex", alignItems: "center", gap: u(8),
+      padding: `0 ${u(10)}`, boxSizing: "border-box", background: "#071a33", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6), fontSize: u(17), zIndex: 3 }}>
+      <span style={{ fontWeight: 700 }}>Clip {idx + 1}</span>
+      <label>in <input value={edit.a} disabled={!canEdit} aria-label={`Clip ${idx + 1} in (s)`} onChange={(e) => setEdit({ ...edit, a: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
+      <label>out <input value={edit.b} disabled={!canEdit} aria-label={`Clip ${idx + 1} out (s)`} onChange={(e) => setEdit({ ...edit, b: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
+      <button type="button" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(edit.a) * 1e6), out_pts_us: Math.round(Number(edit.b) * 1e6) } }), "Clip trimmed.")}
+        style={{ color: "#33a8ff", cursor: "pointer" }}>Trim</button>
+      <button type="button" aria-label="Move earlier" disabled={!canEdit || idx === 0} onClick={() => move(-1)} style={{ cursor: "pointer" }}>◀</button>
+      <button type="button" aria-label="Move later" disabled={!canEdit || idx === total - 1} onClick={() => move(1)} style={{ cursor: "pointer" }}>▶</button>
+      <button type="button" aria-label="Remove clip" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "DELETE" }), "Clip removed.")} style={{ color: "#ff8a8a", cursor: "pointer" }}>Remove</button>
+      <button type="button" aria-label="Close the clip editor" onClick={() => r?.setSelectedClip(null)} style={{ marginLeft: "auto", cursor: "pointer" }}>✕</button>
+    </div>
+  );
+});
 
 export function Timeline() {
   const { r } = useStage();
@@ -233,12 +257,12 @@ export function Timeline() {
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [zoom, maxOff]);
-  const move = (d: number) => {
+  const move = useCallback((d: number) => {
     if (!reel || !r || idx < 0) return;
     const ids = clips.map((c) => c.id);
     [ids[idx], ids[idx + d]] = [ids[idx + d]!, ids[idx]!];
     r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }));
-  };
+  }, [reel, r, idx, clips]);
 
   // drag and drop: where it lands is the gap nearest the pointer (before the first clip whose middle is to its right)
   const section = useRef<HTMLElement | null>(null);
@@ -368,20 +392,7 @@ export function Timeline() {
 
       {dropAt !== null && <B x={lineX} y={1197} w={4} h={64} data-drop-line="" style={{ background: "#fff", borderRadius: u(2), boxShadow: "0 0 8px #33a8ff", zIndex: 2, pointerEvents: "none" }} />}
 
-      {sel && (
-        <div aria-label="Edit the selected clip" className="absolute" style={{ left: u(1290), top: u(1154 - 101), width: u(560), height: u(42), display: "flex", alignItems: "center", gap: u(8),
-          padding: `0 ${u(10)}`, boxSizing: "border-box", background: "#071a33", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6), fontSize: u(17), zIndex: 3 }}>
-          <span style={{ fontWeight: 700 }}>Clip {idx + 1}</span>
-          <label>in <input value={edit.a} disabled={!canEdit} aria-label={`Clip ${idx + 1} in (s)`} onChange={(e) => setEdit({ ...edit, a: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
-          <label>out <input value={edit.b} disabled={!canEdit} aria-label={`Clip ${idx + 1} out (s)`} onChange={(e) => setEdit({ ...edit, b: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
-          <button type="button" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(edit.a) * 1e6), out_pts_us: Math.round(Number(edit.b) * 1e6) } }), "Clip trimmed.")}
-            style={{ color: "#33a8ff", cursor: "pointer" }}>Trim</button>
-          <button type="button" aria-label="Move earlier" disabled={!canEdit || idx === 0} onClick={() => move(-1)} style={{ cursor: "pointer" }}>◀</button>
-          <button type="button" aria-label="Move later" disabled={!canEdit || idx === clips.length - 1} onClick={() => move(1)} style={{ cursor: "pointer" }}>▶</button>
-          <button type="button" aria-label="Remove clip" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "DELETE" }), "Clip removed.")} style={{ color: "#ff8a8a", cursor: "pointer" }}>Remove</button>
-          <button type="button" aria-label="Close the clip editor" onClick={() => r?.setSelectedClip(null)} style={{ marginLeft: "auto", cursor: "pointer" }}>✕</button>
-        </div>
-      )}
+      {sel && <ClipEditor sel={sel} idx={idx} total={clips.length} edit={edit} setEdit={setEdit} canEdit={canEdit} reel={reel} r={r} move={move} />}
     </section>
   );
 }

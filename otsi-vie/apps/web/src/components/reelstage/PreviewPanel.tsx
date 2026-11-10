@@ -11,7 +11,7 @@
 import type { Match, Playback, Reel, TrackSummary, Video } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { Sel } from "@/components/tactics/kit";
@@ -28,6 +28,50 @@ const glyph = { fill: "none" } as const;
 const shade = { textShadow: "0 1px 3px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.6)" } as const;   // readable on bright grass without a dark box
 const CARD_SCALE = 0.66;
 const slot = { fontSize: u(24), fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", whiteSpace: "nowrap" } as const;
+const score = (n: number | null | undefined) => (n === null || n === undefined ? "—" : String(n));
+
+/** the player card (memoised: it does not change while the preview plays, so the per-timeupdate re-render does not rebuild it) */
+const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, pos, foot, age, playerId, targetTrackId }: {
+  name: string; jersey: string | number; team: string; nationality: string; pos: string; foot: string; age: string | number;
+  playerId: string | null; targetTrackId: string | null;
+}) {
+  return (
+    <div aria-label="Player card" className="absolute" style={{ inset: 0, transform: `scale(${CARD_SCALE})`, transformOrigin: `${u(452 - SCENE.x)} ${u(136 - SCENE.y)}`, pointerEvents: "none" }}>
+      <B o={[SCENE.x, SCENE.y]} x={452} y={136} w={640} h={150} style={{ background: "rgba(3,10,24,.3)", borderRadius: u(10) }} />
+      <B o={[SCENE.x, SCENE.y]} x={464} y={147} w={129} h={127} style={{ opacity: 0.85, borderRadius: u(8), border: `${u(1.5)} solid #8ec4ef`, background: "linear-gradient(135deg,#9fd0f5,#3a6fa8)", overflow: "hidden" }}>
+        {targetTrackId && <Thumb track={{ track_id: targetTrackId, has_thumbnail: true } as TrackSummary} w={129} h={127} />}
+      </B>
+      <T o={[SCENE.x, SCENE.y]} x={618} y={170} size={36} weight={700} as="h2" style={{ ...shade, maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{name}</T>
+      <B o={[SCENE.x, SCENE.y]} x={966} y={147} w={56} h={42} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(26), display: "flex", alignItems: "center", justifyContent: "center" }}>{jersey}</B>
+      {playerId && <Link href={`/players?player=${playerId}`} aria-label="Edit the player's profile" title="Edit his profile on the Players list (nationality, foot, birth date)"
+        className="absolute" style={{ pointerEvents: "auto", left: u(1034 - 447), top: u(147 - 127), width: u(44), height: u(42), borderRadius: u(6), border: `${u(1.5)} solid #33a8ff`, color: "#33a8ff",
+          fontSize: u(22), display: "flex", alignItems: "center", justifyContent: "center" }}>✎</Link>}
+      <B o={[SCENE.x, SCENE.y]} x={620} y={201} w={26} h={26} style={{ borderRadius: "50%", background: "#6cc4ff" }} />
+      <T o={[SCENE.x, SCENE.y]} x={659} y={214} size={22} style={{ ...shade, maxWidth: u(160), overflow: "hidden", textOverflow: "ellipsis" }}>{team}</T>
+      <T o={[SCENE.x, SCENE.y]} x={827} y={214} size={22} color="#8ea3bf">|</T>
+      <B o={[SCENE.x, SCENE.y]} x={856} y={203} w={22} h={22} style={{ background: "#3a5a88" }} />
+      <T o={[SCENE.x, SCENE.y]} x={891} y={214} size={22} style={{ ...shade, maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis" }}>{nationality}</T>
+      <T o={[SCENE.x, SCENE.y]} x={618} y={256} size={20} color="#e3ecf8" style={{ ...shade, maxWidth: u(250), overflow: "hidden", textOverflow: "ellipsis" }}>{pos}</T>
+      <T o={[SCENE.x, SCENE.y]} x={875} y={256} size={20} color="#e3ecf8" style={shade}>{`Foot ${foot}  |  Age ${age}`}</T>
+    </div>
+  );
+});
+
+/** the scoreboard (memoised: the linked match does not change while the preview plays) */
+const Scoreboard = memo(function Scoreboard({ match }: { match: Match | null }) {
+  return (
+    <>
+      <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6) }} />
+      <Ic o={[SCENE.x, SCENE.y]} x={1660} y={176} k="ball" size={34} />
+      {/* owner 2026-11-02 ("letters overlapping"): each code and score has its own fixed slot, so no name runs into a score box */}
+      <B o={[SCENE.x, SCENE.y]} x={1684} y={153} w={90} h={45} style={slot}>{teamCode(match?.home?.name, match?.home?.short_name)}</B>
+      <B o={[SCENE.x, SCENE.y]} x={1776} y={153} w={62} h={45} style={{ ...slot, background: "#0a2bd0", fontSize: u(26) }}>{score(match?.home_score)}</B>
+      <B o={[SCENE.x, SCENE.y]} x={1842} y={153} w={98} h={45} style={slot}>{teamCode(match?.away?.name, match?.away?.short_name)}</B>
+      <B o={[SCENE.x, SCENE.y]} x={1942} y={153} w={70} h={45} style={{ ...slot, background: "#1e5bff", fontSize: u(26), borderRadius: `0 ${u(6)} ${u(6)} 0` }}>{score(match?.away_score)}</B>
+    </>
+  );
+});
+
 
 export function PreviewPanel() {
   const { r, mode, setMode, draft } = useStage();
@@ -36,6 +80,7 @@ export function PreviewPanel() {
   const [video, setVideo] = useState<Video | null>(null);
   const [match, setMatch] = useState<Match | null>(null);
   const [list, setList] = useState<Reel[] | null>(null);
+  const [listFailed, setListFailed] = useState(false);
   const [src, setSrc] = useState<{ url: string; kind: "render" | "source" } | null>(null);
   const [t, setT] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -53,7 +98,9 @@ export function PreviewPanel() {
   const kind = mode === "render" && renderId ? "render" : "source";
 
   // without a reel id the page opens the reel worked on last (the list is newest first); the list stays as the way to pick another one
-  useEffect(() => { if (!reel) { void api<Reel[]>("/v1/reels").then((l) => { setList(l); if (l[0] && !r) router.replace(`/reels/${l[0].id}`); }, () => setList([])); } }, [reel]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // a failed read is named as one, with a retry: an empty list means "no reels yet", not "could not load them"
+  const loadList = useCallback(() => { setListFailed(false); void api<Reel[]>("/v1/reels").then((l) => { setList(l); if (l[0] && !r) router.replace(`/reels/${l[0].id}`); }, () => setListFailed(true)); }, [r, router]);
+  useEffect(() => { if (!reel) loadList(); }, [reel, loadList]);
   useEffect(() => {
     setVideo(null); setMatch(null);
     if (reel) void api<Video>(`/v1/videos/${reel.video_id}`).then(setVideo, () => undefined);
@@ -99,13 +146,14 @@ export function PreviewPanel() {
   const code_ = sheet?.position ?? prof?.position ?? null;                  // his position in this match, else his usual one
   const pos = code_ ? POSITION_NAMES[code_] ?? code_ : "—";
   const target = reel?.targets[0] ?? null;
-  const score = (n: number | null | undefined) => (n === null || n === undefined ? "—" : String(n));
   const ready = !!src;
   const hasClip = !!clip;
   const playPause = () => { const v = ref.current; if (!v) return; if (v.paused) { if (src?.kind === "source" && v.currentTime * 1e6 >= outUs - 50_000) v.currentTime = inUs / 1e6; void v.play(); } else v.pause(); };
   const message = !reel ? null : !src ? "No preview yet: the playback copy is not available." : kind === "source" && !hasClip ? "Add a moment to start building the reel" : null;
   const look = draft ?? reel?.settings ?? DEFAULTS;
-  const spotNote = reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock) : null;
+  // the coverage is recomputed from the path on every render; the preview re-renders on every video timeupdate, so derive it once per clip/path/look
+  const spotNote = useMemo(() => (reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock) : null),
+    [reel, path, clip, look.lock, src?.kind, message]);
 
   return (
     <section aria-label="Cinematic spotlight preview" data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"}>
@@ -128,7 +176,7 @@ export function PreviewPanel() {
           fontSize: u(17), color: spotNote.seen === 0 ? "#f5b82e" : "#dbe8f8", pointerEvents: "none" }}>{spotNote.text}</div>}
         {!reel && (
           <div className="absolute" style={{ left: u(1020 - SCENE.x), top: u(360 - SCENE.y), width: u(520), textAlign: "center", fontSize: u(22), color: "#dbe8f8" }}>
-            {list === null ? "Loading reels…" : list.length === 0 ? (
+            {listFailed ? (<>Reels could not be loaded. <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>Try again</button></>) : list === null ? "Loading reels…" : list.length === 0 ? (
               <>No reel yet. In the Analysis workspace, confirm who a player is, then choose &quot;Create highlight reel&quot;.</>
             ) : (
               <>
@@ -147,34 +195,12 @@ export function PreviewPanel() {
         )}
         {message && <T o={[SCENE.x, SCENE.y]} x={1242} y={500} size={24} color="#dbe8f8" align="center">{message}</T>}
 
-        {/* player card; owner 2026-11-02: smaller (two thirds, from its top-left corner) so it covers less of the picture */}
-        <div aria-label="Player card" className="absolute" style={{ inset: 0, transform: `scale(${CARD_SCALE})`, transformOrigin: `${u(452 - SCENE.x)} ${u(136 - SCENE.y)}`, pointerEvents: "none" }}>
-        <B o={[SCENE.x, SCENE.y]} x={452} y={136} w={640} h={150} style={{ background: "rgba(3,10,24,.3)", borderRadius: u(10) }} />   {/* owner 2026-11-02: light, so players behind it stay visible */}
-        <B o={[SCENE.x, SCENE.y]} x={464} y={147} w={129} h={127} style={{ opacity: 0.85, borderRadius: u(8), border: `${u(1.5)} solid #8ec4ef`, background: "linear-gradient(135deg,#9fd0f5,#3a6fa8)", overflow: "hidden" }}>
-          {target && player && <Thumb track={{ track_id: target.track_id, has_thumbnail: true } as TrackSummary} w={129} h={127} />}
-        </B>
-        <T o={[SCENE.x, SCENE.y]} x={618} y={170} size={36} weight={700} as="h2" style={{ ...shade, maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{player?.display_name ?? "No player selected"}</T>
-        <B o={[SCENE.x, SCENE.y]} x={966} y={147} w={56} h={42} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(26), display: "flex", alignItems: "center", justifyContent: "center" }}>{sheet?.jersey_number ?? "—"}</B>
-        {player && <Link href={`/players?player=${player.player_id}`} aria-label="Edit the player's profile" title="Edit his profile on the Players list (nationality, foot, birth date)"
-          className="absolute" style={{ pointerEvents: "auto", left: u(1034 - 447), top: u(147 - 127), width: u(44), height: u(42), borderRadius: u(6), border: `${u(1.5)} solid #33a8ff`, color: "#33a8ff",
-            fontSize: u(22), display: "flex", alignItems: "center", justifyContent: "center" }}>✎</Link>}
-        <B o={[SCENE.x, SCENE.y]} x={620} y={201} w={26} h={26} style={{ borderRadius: "50%", background: "#6cc4ff" }} />
-        <T o={[SCENE.x, SCENE.y]} x={659} y={214} size={22} style={{ ...shade, maxWidth: u(160), overflow: "hidden", textOverflow: "ellipsis" }}>{sheet?.team ?? "Team —"}</T>
-        <T o={[SCENE.x, SCENE.y]} x={827} y={214} size={22} color="#8ea3bf">|</T>
-        <B o={[SCENE.x, SCENE.y]} x={856} y={203} w={22} h={22} style={{ background: "#3a5a88" }} />
-        <T o={[SCENE.x, SCENE.y]} x={891} y={214} size={22} style={{ ...shade, maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis" }}>{prof?.nationality?.name ?? "Nationality —"}</T>
-        <T o={[SCENE.x, SCENE.y]} x={618} y={256} size={20} color="#e3ecf8" style={{ ...shade, maxWidth: u(250), overflow: "hidden", textOverflow: "ellipsis" }}>{pos === "—" ? "Position —" : pos}</T>
-        <T o={[SCENE.x, SCENE.y]} x={875} y={256} size={20} color="#e3ecf8" style={shade}>{`Foot ${prof?.preferred_foot ? FOOT_NAMES[prof.preferred_foot] : "—"}  |  Age ${prof?.age ?? "—"}`}</T>
-        </div>
+        <PlayerCard name={player?.display_name ?? "No player selected"} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? "Team —"}
+          nationality={prof?.nationality?.name ?? "Nationality —"} pos={pos === "—" ? "Position —" : pos}
+          foot={prof?.preferred_foot ? FOOT_NAMES[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
+          playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
 
-        {/* scoreboard: the linked match's recorded teams and score */}
-        <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6) }} />
-        {/* owner 2026-11-02 ("letters overlapping"): each code and score has its own fixed slot, so no name runs into a score box */}
-        <Ic o={[SCENE.x, SCENE.y]} x={1660} y={176} k="ball" size={34} />
-        <B o={[SCENE.x, SCENE.y]} x={1684} y={153} w={90} h={45} style={slot}>{teamCode(match?.home?.name, match?.home?.short_name)}</B>
-        <B o={[SCENE.x, SCENE.y]} x={1776} y={153} w={62} h={45} style={{ ...slot, background: "#0a2bd0", fontSize: u(26) }}>{score(match?.home_score)}</B>
-        <B o={[SCENE.x, SCENE.y]} x={1842} y={153} w={98} h={45} style={slot}>{teamCode(match?.away?.name, match?.away?.short_name)}</B>
-        <B o={[SCENE.x, SCENE.y]} x={1942} y={153} w={70} h={45} style={{ ...slot, background: "#1e5bff", fontSize: u(26), borderRadius: `0 ${u(6)} ${u(6)} 0` }}>{score(match?.away_score)}</B>
+        <Scoreboard match={match} />
         {fs.on && <FullscreenBar playing={playing} onPlay={playPause} now={Math.max(0, t - span.a)} total={len > 1 ? len : 0} onSeek={seekTo}
           muted={muted} onMute={() => setMuted((m) => !m)} onExit={fs.exit} />}
       </dialog>

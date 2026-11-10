@@ -9,7 +9,7 @@
  * dark. Where he was not seen, nothing is drawn (unknown beats wrong).
  */
 import type { Reel, ReelClip, ReelPath, SpotlightSettings } from "@otsi-vie/contracts";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { B, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { CROP_LOOKAHEAD_US, SpotlightPreview, boxAt, fitRect, smoothPath, strengthAt, visibleRuns } from "@/components/studio/spotlight";
@@ -141,10 +141,11 @@ export function spotlightNote(reel: Reel, path: ReelPath | null, clip: ReelClip 
     : `Live spotlight · approximate · player seen in ${pct}% of this clip${dp < pct ? ` (${dp}% detected, the rest bridged)` : ""}`, seen: cov.seen };
 }
 
-/** on the seek bar (the plan's coverage bar): solid where he was detected, hatched where a gap is bridged (interpolated), empty where unseen */
-export function CoverageBar({ path, clip, lock }: { path: ReelPath | null; clip: ReelClip | null; lock: number }) {
-  if (!path || !clip) return null;
-  const cov = clipCoverage(path.points, clip.in_pts_us, clip.out_pts_us, maxInterpFor(lock));
+/** on the seek bar (the plan's coverage bar): solid where he was detected, hatched where a gap is bridged (interpolated), empty where unseen.
+ * Memoised: the coverage is recomputed from the path on every render, and the preview re-renders on every video timeupdate. */
+export const CoverageBar = memo(function CoverageBar({ path, clip, lock }: { path: ReelPath | null; clip: ReelClip | null; lock: number }) {
+  const cov = useMemo(() => (path && clip ? clipCoverage(path.points, clip.in_pts_us, clip.out_pts_us, maxInterpFor(lock)) : null), [path, clip, lock]);
+  if (!cov) return null;
   const pct = Math.round(cov.seen * 100), dp = Math.round(cov.detected * 100);
   return (
     <B x={836} y={829} w={777} h={7} data-coverage={pct} data-detected={dp} aria-label={`Player detected in ${dp}% of this clip (solid), bridged in ${pct - dp}% (hatched), not seen in ${100 - pct}% (empty)`}
@@ -153,4 +154,4 @@ export function CoverageBar({ path, clip, lock }: { path: ReelPath | null; clip:
         background: k === "D" ? "#3ee6a8" : "repeating-linear-gradient(135deg,#3ee6a8 0 2px,transparent 2px 5px)" }} />)}
     </B>
   );
-}
+});

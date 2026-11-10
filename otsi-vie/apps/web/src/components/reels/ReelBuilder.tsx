@@ -8,7 +8,7 @@
 import { clipOutputUs, slotUs, type Playback, type Reel, type ReelHistory, type ReelMoment, type RenderJob, type SpotlightSettings } from "@otsi-vie/contracts";
 import { ArrowDown, ArrowUp, CheckCircle2, CircleDashed, Download, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
 
@@ -70,23 +70,26 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
     const t = setInterval(() => void reload(), 2000);
     return () => clearInterval(t);
   }, [rendering, reload]);
-  const run: Ctx["run"] = (f, ok) => {
+  const run: Ctx["run"] = useCallback((f, ok) => {
     setBusy(true); setMsg(null);
     void f().then(async (r) => { if (r) setReel(r); const got = await load(); if (ok) setMsg({ ok: true, text: typeof ok === "string" ? ok : ok(got?.[0] ?? null, got?.[1] ?? null) }); },
       (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "That did not work." })).finally(() => setBusy(false));
-  };
-  const value: Ctx = {
+  }, [load]);
+  const undo = useCallback((toEditId?: string) => {
+    const what = toEditId ? history?.entries.find((e) => e.id === toEditId)?.label : history?.undo_label;
+    run(() => api<Reel>(`/v1/reels/${reelId}/history/undo`, { method: "POST", json: toEditId ? { to_edit_id: toEditId } : {} }),
+      toEditId ? `Back to before: ${what ?? "that change"}` : `Undone: ${what ?? "the last change"}`);
+  }, [history, reelId, run]);
+  const redo = useCallback(() => {
+    const what = history?.redo_label;
+    run(() => api<Reel>(`/v1/reels/${reelId}/history/redo`, { method: "POST" }), `Redone: ${what ?? "the change"}`);
+  }, [history, reelId, run]);
+  // the value is memoised so a state change that does not touch it (a message clearing, a selection) does not re-render every
+  // consumer — the provider also feeds Clip Studio, and its sections re-render on every context change
+  const value: Ctx = useMemo(() => ({
     reel, moments, error, canEdit: !!organization && WRITERS.includes(organization.role), busy, msg, reload, selectedClip, setSelectedClip, run, history,
-    undo(toEditId) {
-      const what = toEditId ? history?.entries.find((e) => e.id === toEditId)?.label : history?.undo_label;
-      run(() => api<Reel>(`/v1/reels/${reelId}/history/undo`, { method: "POST", json: toEditId ? { to_edit_id: toEditId } : {} }),
-        toEditId ? `Back to before: ${what ?? "that change"}` : `Undone: ${what ?? "the last change"}`);
-    },
-    redo() {
-      const what = history?.redo_label;
-      run(() => api<Reel>(`/v1/reels/${reelId}/history/redo`, { method: "POST" }), `Redone: ${what ?? "the change"}`);
-    },
-  };
+    undo, redo,
+  }), [reel, moments, error, organization, busy, msg, reload, selectedClip, run, history, undo, redo]);
   return <ReelCtx.Provider value={value}>{children}</ReelCtx.Provider>;
 }
 
@@ -370,7 +373,11 @@ export function RenderPanel() {
 /* ------------------------------------------------------------------ the reels index (no reel selected) */
 export function ReelList() {
   const [reels, setReels] = useState<Reel[] | null>(null);
-  useEffect(() => { void api<Reel[]>("/v1/reels").then(setReels, () => setReels([])); }, []);
+  const [failed, setFailed] = useState(false);
+  // a failed read is named as one: an empty list means "no reels yet", not "could not load them"
+  const load = useCallback(() => { setFailed(false); void api<Reel[]>("/v1/reels").then((l) => setReels(l), () => setFailed(true)); }, []);
+  useEffect(() => { void load(); }, [load]);
+  if (failed && !reels) return <p className="text-sm text-muted">Reels could not be loaded. <button type="button" onClick={() => void load()} className="text-primary underline">Try again</button></p>;
   if (!reels) return <p className="text-sm text-muted">Loading reels…</p>;
   if (reels.length === 0) return <p className="text-sm text-muted">No reels yet. In the Analysis Workspace, confirm who a player is, then choose &quot;Create highlight reel&quot;.</p>;
   return (

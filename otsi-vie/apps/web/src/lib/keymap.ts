@@ -4,12 +4,13 @@
  *   Everywhere   Ctrl/Cmd + K (CommandPalette), ? (KeyboardMap)
  *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing; StudioHeader: undo / redo; DualTimeline: snapshot / apply Cut B
  *   Analysis     CentreVideo: playback, J K L, frames; WhoIsThis: N, the next possible moment of the reel's player
+ *   Reel Builder ReelStage: undo / redo
  */
-export type KeyScope = "everywhere" | "studio" | "analysis";
+export type KeyScope = "everywhere" | "studio" | "analysis" | "reels";
 export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" | "Compare" }
 export interface KeyRow extends Shortcut { scope: KeyScope }
 
-export const SCOPE_LABEL: Record<KeyScope, string> = { everywhere: "Everywhere", studio: "Clip Studio", analysis: "Analysis" };
+export const SCOPE_LABEL: Record<KeyScope, string> = { everywhere: "Everywhere", studio: "Clip Studio", analysis: "Analysis", reels: "Reel Builder" };
 
 const JKL: Shortcut[] = [
   { keys: "J", does: "Pause and go back one second (press again to go further)", group: "Play" },
@@ -52,23 +53,31 @@ export const ANALYSIS_KEYS: Shortcut[] = [
   { keys: "N", does: "\"Is this him?\": the next possible moment of the reel's player (same as Can't tell)", group: "Name" },
 ];
 
+/** Reel Builder: the same undo / redo keys as Clip Studio, for the reel's own History (the Undo / Redo buttons in Suggested Key Moments) */
+export const REELS_KEYS: Shortcut[] = [
+  { keys: "Ctrl + Z", does: "Undo the last change to this reel", group: "Edit" },
+  { keys: "Ctrl + Shift + Z or Ctrl + Y", does: "Redo the last undone change", group: "Edit" },
+];
+
 export const KEYMAP: KeyRow[] = [
   ...EVERYWHERE_KEYS.map((k) => ({ ...k, scope: "everywhere" as const })),
   ...STUDIO_KEYS.map((k) => ({ ...k, scope: "studio" as const })),
   ...ANALYSIS_KEYS.map((k) => ({ ...k, scope: "analysis" as const })),
+  ...REELS_KEYS.map((k) => ({ ...k, scope: "reels" as const })),
 ];
 
 /** the page's own keys, if it has any */
 export function scopeOf(pathname: string): KeyScope | null {
   if (pathname.startsWith("/studio")) return "studio";
   if (pathname.startsWith("/analysis")) return "analysis";
+  if (pathname.startsWith("/reels")) return "reels";
   return null;
 }
 
 /** the map in the order shown: this page's keys, then everywhere, then the other pages'; filtered by a key or by words */
 export function keymapFor(pathname: string, q = ""): { scope: KeyScope; here: boolean; rows: KeyRow[] }[] {
   const here = scopeOf(pathname), n = q.trim().toLowerCase();
-  const order: KeyScope[] = [...(here ? [here] : []), "everywhere", ...(["studio", "analysis"] as const).filter((s) => s !== here)];
+  const order: KeyScope[] = [...(here ? [here] : []), "everywhere", ...(["studio", "analysis", "reels"] as const).filter((s) => s !== here)];
   const hit = (r: KeyRow) => {
     if (!n) return true;
     if (n.length === 1) return r.keys.toLowerCase().split(/[^a-z0-9?[\]←→]+/).includes(n) || r.keys === q.trim();   // one letter: that key

@@ -5,10 +5,11 @@
  * and the organization's reels to open. The page keeps a draft of the name and spotlight look that Save Project / Generate Reel send.
  */
 import type { Reel, SpotlightSettings } from "@otsi-vie/contracts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { typing } from "@/lib/keymap";
 import { Inspector } from "./Inspector";
 import { LeftColumn } from "./LeftColumn";
 import { Moments, Timeline } from "./MomentsTimeline";
@@ -53,8 +54,23 @@ function Sections({ r }: { r: ReelState | null }) {
       return null;
     }
   }, [reel, draft, name, r]);
-  const value: Stage = { r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode };
+  const value: Stage = useMemo(() => ({ r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode }),
+    [r, draft, name, dirty, save, focus, jump, tab, mode]);   // setDraft / setName / setMode are the stable setters
   useEffect(() => { if (r?.msg) setNote(null); }, [r?.msg]);   // a newer message replaces "Project saved."
+  // the same undo / redo keys as Clip Studio (lib/keymap.ts, Reels scope): they only live on this page, never while typing,
+  // and only when there is something to undo or redo, so no request is made for a no-op
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e)) return;
+      const k = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (k === "z" || k === "y")) {
+        e.preventDefault();
+        if (k === "y" || e.shiftKey) { if (r?.history?.can_redo) r.redo(); } else if (r?.history?.can_undo) r.undo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [r]);
   const msg = note ?? r?.msg ?? (r?.error ? { ok: false, text: r.error } : null);
   return (
     <DesignStage page="reels" background="#000913">
