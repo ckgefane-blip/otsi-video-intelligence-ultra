@@ -174,8 +174,9 @@ def handle_track_ball(runner: JobRunner, job: Job) -> dict:
     use_flight = bool(config.get("ball_flight"))       # U.9: parabolic flight separation, off by default (run config "ball_flight": true)
     use_handover = bool(config.get("ball_handover"))   # U.10: bounce/rolling handover + glued-boot penalty, off by default (run config "ball_handover": true)
     use_identity = bool(config.get("ball_identity"))   # U.11: tracklet-level identity rule at crossings, off by default (run config "ball_identity": true)
+    use_veto = bool(config.get("ball_veto"))           # U.12: identity veto at crossings, off by default (run config "ball_veto": true)
     points = ball.follow_ball(kept, shot_of, step_us, width_px / height_px, use_flight=use_flight, use_handover=use_handover,
-                              use_identity=use_identity)
+                              use_identity=use_identity, use_veto=use_veto)
     runner.progress(job, 78, "Finding possession and passes")
     people = load_people(runner.conn, str(row["video_id"]), str(row["run_id"]), {p.pts_us for p in points})
     events, held = possession.analyse(points, people, shot_of, width_px / height_px, pitch_at)
@@ -185,7 +186,7 @@ def handle_track_ball(runner: JobRunner, job: Job) -> dict:
     detected = sum(p.state == "DETECTED" for p in points)
     metrics = {"frames": len(frames), "detected": detected, "inferred": len(points) - detected, "unknown": max(0, len(frames) - len(points)),
                "candidates": sum(len(v) for v in frames.values()), "candidates_from": source, "removed": removed, "step_us": round(step_us),
-               "ball_flight": use_flight, "ball_handover": use_handover, "ball_identity": use_identity,
+               "ball_flight": use_flight, "ball_handover": use_handover, "ball_identity": use_identity, "ball_veto": use_veto,
                "possession": held, "against_marks": {k: v for k, v in ball.evaluate(points, marks, step_us, width_px, height_px).items() if k != "errors_px"}}
     with tx(runner.conn) as cur:
         cur.execute("SELECT claim_token FROM worker_jobs WHERE id = %s FOR UPDATE", (job.id,))

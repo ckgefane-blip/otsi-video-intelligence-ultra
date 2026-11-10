@@ -19,6 +19,11 @@ ball). One frame cannot tell them apart - the ball often scores no higher than a
                           to it than the ball's new position is. `use_identity` re-pairs that frame's assignments by each tracklet's
                           own identity - its motion model plus its score pattern - when the re-pairing clearly wins, and declines
                           otherwise; it never changes which candidates are used, only which tracklet gets which)
+                          (U.12: when only one candidate exists in a frame there is no second assignment to re-pair - the ball's
+                          tracklet takes the boot while the ball is hidden, or the ball-born tracklet takes the boot whose candidate
+                          the ball's was dropped as a duplicate of. `use_veto` refuses that assignment when another live tracklet
+                          that got no candidate fits it clearly better by identity cost, and hands it to that tracklet instead;
+                          on ambiguous evidence the greedy assignment stands, and the veto can never fragment a tracklet)
   4  one path per shot    the best chain of tracklets through the shot (dynamic programming): each tracklet earns its scores, each gap
                           costs, a jump must be physically reachable in the gap; after a long gap the path may restart anywhere. Where two
                           tracklets overlap in time (a boot's and the ball's, side by side) the chain may hand over: the later one is used
@@ -108,6 +113,16 @@ IDENTITY_SCORE_CAP = 0.005   # U.11, picture widths: the most the score pattern 
                              # 0.0031 on motion alone), but it can never override a clear motion verdict - a motion difference
                              # above ~0.007 beats any score evidence. Scores overlap in reality (the ball often scores no
                              # higher than a boot), so a large score term would be a guess, not evidence.
+VETO_MARGIN = 0.002          # U.12, picture widths: the identity veto fires only when another live tracklet fits a candidate
+                             # better than the tracklet the greedy pass gave it to by at least this much (in identity cost).
+                             # Measured on the scene-V lone-candidate steals: the catchable steals are won by 0.0023-0.0029
+                             # (seeds 1 and 4 at k=12, flight on; 0.0026-0.0029 flight off on seeds 1, 3 and 4), while the
+                             # largest advantage an unassigned tracklet ever holds over a *correct* assignment is 0.0011
+                             # (seed 1, k=18: the one-point ball-born tracklet's cost for the boot candidate, its motion
+                             # term 0 by the U.11 one-point rule, against the boot tracklet's 0.0046). 0.002 sits between
+                             # the two - the same value as IDENTITY_MARGIN, but its own constant: a different mechanism
+                             # (refusing an assignment, not re-pairing one) with its own measurement basis. A tuning
+                             # constant, to calibrate on labelled Sukhum crossings.
 
 
 @dataclass(frozen=True)
@@ -260,6 +275,91 @@ def _resolve_identities(assigned: list[tuple[int, int]], live: list[Tracklet], c
     return [(ti, by_t[ti]) for ti, _ in assigned]
 
 
+def _veto_assignment(assigned: list[tuple[int, int]], live: list[Tracklet], cands: list[Cand], pts: int,
+                     aspect: float, step_us: float) -> list[tuple[int, int]]:
+    """U.12: the identity veto. `_resolve_identities` can only re-pair candidates that two tracklets were
+    both given; it is powerless when only one candidate exists in a frame - the lone-candidate steal
+    (scene V: at k=12 the ball is hidden and only the boot exists, so the ball's tracklet takes the boot;
+    at k=18 the ball's candidate is dropped as a duplicate of the boot beside it, so again only the boot
+    exists and the ball-born tracklet takes it). There is no second assignment to re-pair, so the veto
+    judges the assignment itself: for each greedy assignment, if another live tracklet that got no
+    candidate this frame fits that candidate clearly better - by at least VETO_MARGIN in identity cost -
+    the assignment is refused and the candidate is handed to the better-fitting tracklet instead.
+
+    The veto changes which candidates get used by live tracklets (unlike U.11, which never did), so it
+    is deliberately narrow:
+
+    * the challenger must have a motion model of its own - at least two points, so its prediction is an
+      extrapolation, not its own position. A one-point tracklet's motion term is 0 by the U.11 rule
+      (it has no velocity to extrapolate), so without this it would win every veto by default, not by
+      evidence: on a busy scene it takes candidates off established tracklets whose predictions carry
+      ordinary jitter (measured on the linear-ball guardrail: 13 of the 14 transfers a one-point
+      challenger would make go to a newborn tracklet, and one seed loses 5 right frames to unknown).
+      The challenger is therefore only heard when it has a history to judge the candidate by; a
+      one-point tracklet keeps whatever the greedy pass gave it, and the veto declines - unknown
+      beats wrong;
+    * the challenger must actually fit the candidate, not merely fit it less badly than a tracklet
+      whose prediction is far away: its prediction must lie within TRACK_SLACK (the detection-jitter
+      allowance) of the candidate. On the scene-V steals the rightful owner's prediction sits
+      0.003-0.005 from the candidate; on the linear-ball guardrail the one transfer a mature
+      challenger would still make has it 0.042 away, both predictions far off, and taking it costs a
+      ball frame to unknown. The veto is a stricter-than-greedy rule - it overturns the greedy
+      assignment - so it only fires where the challenger is where the candidate is, up to jitter.
+      TRACK_SLACK is stricter than the greedy reachability tolerance, so this also subsumes it: a
+      tracklet never takes a candidate it could not have reached;
+    * it only fires on a clear win (at least VETO_MARGIN), never on a tie or a close call - when the
+      evidence is ambiguous the greedy assignment stands, unknown beats wrong;
+    * it is a single pass over the assignments as they stand: a tracklet that receives a transferred
+      candidate is no longer unassigned, and a tracklet that loses one is not reconsidered as a
+      recipient for another candidate in the same frame - no chains, no loops, and at most one
+      transfer per assignment, so the pass always terminates;
+    * handing the candidate to the better-fitting tracklet (rather than refusing it outright) is what
+      keeps the tracklets whole: refusing outright would leave the candidate to start a new tracklet
+      and split the rightful owner's track in two. The veto therefore cannot fragment a tracklet - it
+      only ever moves a candidate between two live tracklets, and the tracklet that loses one simply
+      misses a frame (within TRACK_MAX_MISS) and carries on.
+
+    The costs are computed from the tracklets' points before this frame, as in `_resolve_identities` -
+    the rule judges each tracklet by the identity it had coming into the crossing, not by the candidate
+    it is about to take. The veto is independent of the identity rule: it also settles the steal with
+    `use_identity` off, and it runs after the re-pairing, so it judges the final assignment."""
+    by_t = dict(assigned)
+    assigned_t = {ti for ti, _ in assigned}
+    unassigned = [tj for tj in range(len(live)) if tj not in assigned_t]
+    if not unassigned or not assigned:
+        return assigned
+
+    cost = {(ti, ci): identity_cost(live[ti], cands[ci], aspect)
+            for ti in list(by_t) + unassigned for ci in by_t.values()}
+    out: list[tuple[int, int]] = []
+    for ti, ci in assigned:
+        c = cands[ci]
+        best: tuple[float, int] | None = None          # (identity cost, tracklet) of the best unassigned fit
+        for tj in unassigned:
+            if len(live[tj].points) < 2:
+                continue            # a one-point tracklet has no motion model: its motion term is 0 by the
+                                    # U.11 rule, so it would win every veto by default, not by evidence
+            motion = dist(c.x, c.y, *live[tj].predict(pts, aspect), aspect)
+            if motion > TRACK_SLACK:
+                continue            # the challenger must actually fit the candidate (within detection
+                                    # jitter), not merely fit it less badly than a tracklet whose
+                                    # prediction is far away. TRACK_SLACK is stricter than the greedy
+                                    # reachability tolerance, so this also subsumes it: a tracklet
+                                    # never takes a candidate it could not have reached
+            cc = cost[(tj, ci)]
+            if best is None or cc < best[0]:
+                best = (cc, tj)
+        if best is not None and best[0] + VETO_MARGIN < cost[(ti, ci)]:
+            tj = best[1]
+            del by_t[ti]
+            by_t[tj] = ci
+            unassigned.remove(tj)                       # it has a candidate now; it cannot take another
+            out.append((tj, ci))
+        else:
+            out.append((ti, ci))
+    return out
+
+
 @dataclass(frozen=True)
 class BallPoint:
     pts_us: int
@@ -381,13 +481,17 @@ def _size_ok(c: Cand, boxes: list[tuple[float, float, float, float]], tallest_px
 
 
 def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
-              use_flight: bool = False, use_identity: bool = False) -> list[Tracklet]:
+              use_flight: bool = False, use_identity: bool = False, use_veto: bool = False) -> list[Tracklet]:
     """Step 3: greedy constant-velocity linking inside each shot; every candidate belongs to exactly one tracklet.
     `use_flight` (U.9, off by default): a tracklet that is in flight predicts from its parabola (see Tracklet.predict),
     refitted as it grows; a tracklet whose points stop fitting a flight (a kick, a bounce, a roll) falls back to the
     straight line on its own - the fit fails its own checks, so nothing is forced.
     `use_identity` (U.11, off by default): after the greedy pairing of a frame, re-pair it by each tracklet's own
-    identity (see `_resolve_identities`) when the re-pairing clearly wins; without it, behaviour is exactly as before."""
+    identity (see `_resolve_identities`) when the re-pairing clearly wins; without it, behaviour is exactly as before.
+    `use_veto` (U.12, off by default): after the re-pairing, refuse an assignment when another live tracklet that
+    got no candidate fits it clearly better by identity cost (see `_veto_assignment`), and hand the candidate to
+    that tracklet; without it, behaviour is exactly as before. The veto is independent of the identity rule: it
+    also settles the lone-candidate steal with `use_identity` off."""
     done: list[Tracklet] = []
     live: list[Tracklet] = []
     for pts in sorted(frames):
@@ -415,6 +519,8 @@ def tracklets(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: f
             assigned.append((ti, ci))
         if use_identity:
             assigned = _resolve_identities(assigned, live, frames[pts], pts, aspect, step_us)
+        if use_veto:
+            assigned = _veto_assignment(assigned, live, frames[pts], pts, aspect, step_us)
         for ti, ci in assigned:
             live[ti].points.append(frames[pts][ci])
             if use_flight:
@@ -517,7 +623,8 @@ def best_paths(tracks: list[Tracklet], step_us: float, aspect: float, use_flight
 
 
 def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us: float, aspect: float,
-                use_flight: bool = False, use_handover: bool = False, use_identity: bool = False) -> list[BallPoint]:
+                use_flight: bool = False, use_handover: bool = False, use_identity: bool = False,
+                use_veto: bool = False) -> list[BallPoint]:
     """Steps 3-5 on already plausible candidates: the ball's DETECTED and INFERRED positions; frames not returned are UNKNOWN.
     `use_flight` (U.9, off by default): parabolic flight prediction in the tracklets and flight-continuity joins plus a flight
     bonus in the path search (see `best_paths`); without it, behaviour is exactly as before.
@@ -525,10 +632,14 @@ def follow_ball(frames: dict[int, list[Cand]], shot_of: dict[int, int], step_us:
     flight landed carries the ball across the bounce (HANDOVER_BONUS, linked), and a piece from a tracklet glued to one
     player's feet for its whole life pays GLUE_PENALTY; without it, behaviour is exactly as before.
     `use_identity` (U.11, off by default): tracklet-level identity rule at crossings in the association (see
-    `tracklets` / `_resolve_identities`); without it, behaviour is exactly as before."""
+    `tracklets` / `_resolve_identities`); without it, behaviour is exactly as before.
+    `use_veto` (U.12, off by default): identity veto at crossings in the association (see `tracklets` /
+    `_veto_assignment`) - a lone candidate is refused to the tracklet the greedy pass gave it to when another live
+    tracklet fits it clearly better; without it, behaviour is exactly as before."""
     out: list[BallPoint] = []
     prev: tuple[Cand, float] | None = None
-    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight, use_identity=use_identity),
+    for t, linked in best_paths(tracklets(frames, shot_of, step_us, aspect, use_flight, use_identity=use_identity,
+                                          use_veto=use_veto),
                                step_us, aspect, use_flight, use_handover=use_handover):
         w = t.weight()
         conf = w / (w + 3.0) if len(t.points) > 1 else min(0.5, t.points[0].score)     # more consistent evidence, closer to 1
