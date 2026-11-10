@@ -1,0 +1,5 @@
+$ python3 -m compileall -q services/worker
+(cwd otsi-vie)
+
+
+exit=0

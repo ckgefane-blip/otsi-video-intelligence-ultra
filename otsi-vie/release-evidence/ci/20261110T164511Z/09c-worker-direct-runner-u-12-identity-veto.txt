@@ -1,0 +1,19 @@
+$ python3 /home/hatch/workspace/u12-runner/run_u12_tests.py
+(cwd otsi-vie/services/worker)
+
+PASS test_ball_u12::test_veto_also_settles_the_steal_without_the_flight
+PASS test_ball_u12::test_veto_cannot_settle_the_steal_when_the_thief_fits_better
+PASS test_ball_u12::test_veto_constant_is_the_documented_tuning_value
+PASS test_ball_u12::test_veto_declines_when_the_better_fit_is_outside_detection_jitter
+PASS test_ball_u12::test_veto_declines_when_the_evidence_is_ambiguous
+PASS test_ball_u12::test_veto_does_not_fragment_a_tracklet
+PASS test_ball_u12::test_veto_does_not_listen_to_a_one_point_challenger
+PASS test_ball_u12::test_veto_hands_a_lone_candidate_to_the_tracklet_that_fits_it_clearly_better
+PASS test_ball_u12::test_veto_is_off_by_default
+PASS test_ball_u12::test_veto_leaves_the_linear_ball_guardrail_unchanged
+PASS test_ball_u12::test_veto_leaves_the_long_arc_and_short_scenes_unchanged
+PASS test_ball_u12::test_veto_removes_the_lone_candidate_steal
+PASS test_ball_u12::test_veto_works_without_the_identity_rule
+TOTAL 13 passed, 0 failed
+
+exit=0

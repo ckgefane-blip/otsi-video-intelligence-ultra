@@ -1,0 +1,132 @@
+$ /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/apps/web/node_modules/.bin/vitest run
+(cwd otsi-vie/apps/web)
+
+
+ RUN  v2.1.8 /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/apps/web
+
+ ✓ test/crossMatch.test.ts (24 tests) 32ms
+ ✓ test/adminConsole.test.tsx (6 tests) 2096ms
+   ✓ AdminConsole (v3 Phase D.3, ADR-111) > loads dashboard and switches across tabs for OWNER 919ms
+   ✓ AdminConsole (v3 Phase D.3, ADR-111) > updates concurrency caps on apply 308ms
+   ✓ AdminConsole (v3 Phase D.3, ADR-111) > renders retention & privacy tab, saves policy and purges expired trash 473ms
+ ✓ test/playerProfileIntro.test.tsx (20 tests) 2309ms
+ ✓ test/interchange.test.ts (3 tests) 24ms
+ ✓ test/assembly.test.ts (8 tests) 68ms
+ ✓ test/processing-model.test.ts (7 tests) 97ms
+ ✓ test/crossMatchBuilder.test.tsx (10 tests) 5501ms
+   ✓ Cross-match source choice > creates a new all-matches reel at 5 minutes and opens it, leaving the original reel alone 1812ms
+   ✓ Cross-match source choice > a cross-match reel shows its length and rule as a read-only summary 563ms
+   ✓ Cross-match moments view > shows tiers, the chain's sequence label, match + minute, and the left-out reasons 605ms
+   ✓ Cross-match moments view > hides Build a draft and Is this him?, and Add all counts only the selected moments not yet in the reel 414ms
+   ✓ Cross-match moments view > pins a selected moment by hand through addClip with its source video 496ms
+   ✓ Cross-match moments view > never reads a single video for a cross-match reel 379ms
+   ✓ Cross-match preview > switches source video per clip: the clip's video, playback and path — and shows the clip's match scoreboard 311ms
+   ✓ Cross-match preview > in render mode shows an All matches note instead of a single match's scoreboard 492ms
+   ✓ Cross-match Profile Intro > opens for a cross-match reel exactly as for a single-match reel, from the player's data 326ms
+ ✓ test/shell.test.tsx (7 tests) 2082ms
+   ✓ theme toggle > switches theme and remembers it 304ms
+   ✓ command palette > opens with Ctrl+K: the role's commands and the pages; filters them and navigates with Enter 401ms
+   ✓ command palette > asks the API from 2 letters and opens a hit on its page 484ms
+   ✓ command palette > says when the search cannot be reached; pages still work 405ms
+ ✓ test/look.test.ts (8 tests) 81ms
+ ✓ test/playerTools.test.tsx (6 tests) 684ms
+   ✓ Snapshot dialog > lists the video's snapshots and asks for one at the playhead with the chosen overlays 429ms
+ ✓ test/profileCard.test.tsx (4 tests) 781ms
+   ✓ analysis profile card > choosing a profile sets Stabilize to match; Recommended keeps it 473ms
+ ✓ test/libraryTree.test.tsx (4 tests) 498ms
+   ✓ Library tree > opens the whole Library, a folder, Shared With Me and the Trash; says the Trash count 323ms
+ ✓ test/archive.test.ts (3 tests) 8ms
+ ✓ test/spotlight.test.ts (6 tests) 82ms
+ ✓ test/rightsDialog.test.tsx (4 tests) 1081ms
+   ✓ rights block > the page's answers: saved only when every question is answered and confirmed 540ms
+   ✓ rights block > a video without rights: they are recorded on it, and a refusal is shown 323ms
+ ✓ test/keymap.test.ts (4 tests) 11ms
+ ✓ test/libraryTable.test.tsx (2 tests) 501ms
+   ✓ Library table (B.12) > selects rows, opens one on click, and lists the selection as CSV 403ms
+ ✓ test/reelKeys.test.tsx (3 tests) 2573ms
+   ✓ Reel Builder undo / redo keys > Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo 1569ms
+   ✓ Reel Builder undo / redo keys > does nothing while typing in a field 501ms
+   ✓ Reel Builder undo / redo keys > does nothing when there is nothing to undo or redo 502ms
+ ✓ test/propertiesCard.test.tsx (2 tests) 580ms
+   ✓ Properties card > shows the track, the identity with who confirmed it and why, replaced decisions, evidence and links; a link selects that track 577ms
+ ✓ test/mediaInfo.test.tsx (3 tests) 894ms
+   ✓ media info panel > the dialog reads the video's media info when opened, and shows a refusal 624ms
+ ✓ test/retime.test.ts (4 tests) 66ms
+ ✓ test/exportKeys.test.tsx (5 tests) 3505ms
+   ✓ Export tab keys > ] moves to the next tab and [ back to the previous one 1312ms
+   ✓ Export tab keys > does nothing at the first tab, and nothing while typing in a field 587ms
+   ✓ Export failed reels read > names the failed queue read and retries it, instead of showing no jobs 435ms
+   ✓ Export failed reels read > names the failed picker read and retries it, instead of showing no reels 670ms
+   ✓ Export failed reels read > still says there are no reels when the read succeeds with an empty list 499ms
+ ✓ test/pages.test.ts (28 tests) 29ms
+ ✓ test/notificationBell.test.tsx (3 tests) 812ms
+   ✓ notifications bell > shows the new count; opening lists them with their pages and marks them read 601ms
+ ✓ test/scopes.test.ts (7 tests) 11ms
+ ✓ test/smartSearch.test.ts (4 tests) 11ms
+ ✓ test/formationsPanel.test.tsx (1 test) 889ms
+   ✓ ShapePanels Formation display & confirmation (ADR-123) > renders inferred formation, stability, defensive line height, and confirms formation 888ms
+ ✓ test/uiMode.test.tsx (4 tests) 276ms
+ ✓ test/dualTimeline.test.ts (5 tests) 6ms
+ ✓ test/orgTemplates.test.ts (4 tests) 7ms
+ ✓ test/confirmRender.test.tsx (3 tests) 401ms
+   ✓ ConfirmRender > shows the summary and the measured estimate; nothing starts until Start render 395ms
+ ✓ test/beats.test.ts (4 tests) 5ms
+ ✓ test/reportKeys.test.tsx (2 tests) 2107ms
+   ✓ Player Reports section keys > ] moves to the next section and [ back to the previous one 1497ms
+   ✓ Player Reports section keys > does nothing at the first section, and nothing while typing in a field 608ms
+ ✓ test/evidenceRules.test.tsx (2 tests) 435ms
+ ✓ test/playersList.test.tsx (1 test) 498ms
+   ✓ PlayersList role confirmation (ADR-122) > renders players with confirmed/provisional role badges and filters by confirmed role 491ms
+ ✓ test/historyDialog.test.tsx (3 tests) 579ms
+   ✓ History panel > lists every change newest first, with undone ones marked, and names what Undo and Redo will do 301ms
+ ✓ test/pressingPanel.test.tsx (1 test) 311ms
+   ✓ PressingPanel (v3 Phase E.7, ADR-121) > renders live pressing metrics, pitch points, and triggers seek on click 309ms
+ ✓ test/liveSpotlight.test.tsx (3 tests) 183ms
+ ✓ test/studioEditing.test.ts (5 tests) 10ms
+ ✓ test/workContext.test.ts (4 tests) 8ms
+ ✓ test/ball.test.ts (3 tests) 10ms
+ ✓ test/dualTimelineKeys.test.tsx (3 tests) 195ms
+ ✓ test/exportPresets.test.ts (3 tests) 8ms
+ ✓ test/exportReview.test.ts (4 tests) 6ms
+ ✓ test/reframe.test.ts (5 tests) 7ms
+ ✓ test/boundarySuggest.test.ts (5 tests) 7ms
+ ✓ test/commands.test.ts (4 tests) 7ms
+ ✓ test/spacer.test.ts (3 tests) 13ms
+ ✓ test/libraryKeys.test.tsx (2 tests) 978ms
+   ✓ Library keys > [ / ] move between the asset tabs and stop at the ends 778ms
+ ✓ test/reelList.test.tsx (3 tests) 183ms
+ ✓ test/reportDesign.test.ts (4 tests) 7ms
+ ✓ test/impactNote.test.tsx (2 tests) 475ms
+ ✓ test/assistant.test.tsx (2 tests) 524ms
+   ✓ previews a guide command and waits for explicit approval before navigation 517ms
+ ✓ test/periods.test.ts (3 tests) 9ms
+ ✓ test/identity.test.ts (3 tests) 5ms
+ ✓ test/movement.test.ts (3 tests) 9ms
+ ✓ test/evidence.test.ts (4 tests) 5ms
+ ✓ test/tactics-teams.test.ts (2 tests) 4ms
+ ✓ test/transitionsMarkers.test.ts (2 tests) 62ms
+ ✓ test/trim-marks.test.ts (2 tests) 7ms
+ ✓ test/studio-timeline.test.ts (2 tests) 5ms
+ ✓ test/tacticsLink.test.ts (3 tests) 8ms
+ ✓ test/jobs.test.ts (3 tests) 5ms
+ ✓ test/momentReview.test.ts (3 tests) 4ms
+ ✓ test/reelEditing.test.ts (3 tests) 6ms
+ ✓ test/columns.test.ts (4 tests) 4ms
+ ✓ test/current-video.test.ts (1 test) 4ms
+ ✓ test/devMode.test.ts (2 tests) 6ms
+ ✓ test/team.test.ts (2 tests) 5ms
+ ✓ test/safe-next.test.ts (2 tests) 3ms
+
+ Test Files  70 passed (70)
+      Tests  314 passed (314)
+   Start at  16:46:00
+   Duration  72.79s (transform 8.47s, setup 26.15s, collect 28.39s, tests 32.70s, environment 81.81s, prepare 14.86s)
+
+stderr | test/crossMatchBuilder.test.tsx > Cross-match preview > in render mode shows an All matches note instead of a single match's scoreboard
+An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+
+stderr | test/reportKeys.test.tsx > Player Reports section keys > ] moves to the next section and [ back to the previous one
+Removing a style property during rerender (borderColor) when a conflicting property is set (borderLeft) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.
+
+
+exit=0

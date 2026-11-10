@@ -1,0 +1,5 @@
+$ /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/packages/contracts/node_modules/.bin/tsc -p tsconfig.json
+(cwd otsi-vie/packages/contracts)
+
+
+exit=0

@@ -1,0 +1,14 @@
+$ python3 /home/hatch/workspace/u11-runner/run_u11_tests.py
+(cwd otsi-vie/services/worker)
+
+PASS test_ball_u11::test_a_single_point_tracklet_has_no_motion_evidence
+PASS test_ball_u11::test_identity_constants_are_the_documented_tuning_values
+PASS test_ball_u11::test_identity_rule_declines_when_the_evidence_is_ambiguous
+PASS test_ball_u11::test_identity_rule_does_not_break_the_long_arc_scene
+PASS test_ball_u11::test_identity_rule_fires_when_motion_models_disagree
+PASS test_ball_u11::test_identity_rule_is_off_by_default
+PASS test_ball_u11::test_identity_rule_keeps_identities_through_the_bounce_crossing
+PASS test_ball_u11::test_identity_rule_settles_the_crossing_without_the_flight
+TOTAL 8 passed, 0 failed
+
+exit=0

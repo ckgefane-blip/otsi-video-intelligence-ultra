@@ -1,0 +1,4 @@
+NOT RUN
+(cwd otsi-vie)
+
+not run here — needs MySQL 8.4 on 127.0.0.1:3507 (owner's Windows host) (api vitest suite needs the test database)

@@ -1,0 +1,12 @@
+$ /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/apps/api/node_modules/.bin/tsc -p tsconfig.json --noEmit
+(cwd otsi-vie/apps/api)
+
+src/modules/analysis/pressing.ts(323,25): error TS2304: Cannot find name 'sliceFor'.
+src/modules/exports/exports.ts(211,46): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+test/events.api.test.ts(238,26): error TS2345: Argument of type '(r: { action: string; }) => string' is not assignable to parameter of type '(value: RowDataPacket, index: number, array: RowDataPacket[]) => string'.
+  Types of parameters 'r' and 'value' are incompatible.
+    Property 'action' is missing in type 'RowDataPacket' but required in type '{ action: string; }'.
+test/load.api.test.ts(78,12): error TS2532: Object is possibly 'undefined'.
+
+exit=2

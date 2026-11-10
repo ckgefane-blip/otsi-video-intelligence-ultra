@@ -1,0 +1,18 @@
+$ /home/hatch/workspace/profile-intro-runner/venv/bin/python /home/hatch/workspace/cross-match-render-runner/run_cross_match_render_tests.py
+(cwd otsi-vie/services/worker)
+
+PASS test_anchor_is_the_first_clips_video
+PASS test_audio_is_none_when_no_clip_has_sound
+PASS test_audio_join_takes_each_clips_own_source
+PASS test_audio_single_source_builds_the_old_single_input_graph
+PASS test_detector_config_falls_back_to_defaults_without_a_run
+PASS test_distinct_videos_in_clip_order
+PASS test_group_clips_by_video_keeps_clip_order
+PASS test_manifest_fields_only_for_cross_match
+PASS test_match_card_is_skipped_for_cross_match_reels
+PASS test_plan_clip_sources_names_the_missing_ones
+PASS test_plan_clip_sources_resolves_every_clip
+
+11 passed, 0 failed
+
+exit=0

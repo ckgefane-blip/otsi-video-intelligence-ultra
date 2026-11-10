@@ -1,0 +1,6 @@
+$ python3 -I tools/web/extract_page_specs.py --check
+(cwd otsi-vie)
+
+page specs up to date
+
+exit=0

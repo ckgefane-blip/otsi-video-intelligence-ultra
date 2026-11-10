@@ -1,0 +1,6 @@
+$ /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/apps/web/node_modules/.bin/tsc -p tsconfig.json --noEmit
+(cwd otsi-vie/apps/web)
+
+test/formationsPanel.test.tsx(70,48): error TS2353: Object literal may only specify known properties, and 'assigned_by' does not exist in type '{ club_name: string | null; club_id: string | null; assignment_id: string; }'.
+
+exit=1

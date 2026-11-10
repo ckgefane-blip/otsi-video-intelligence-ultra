@@ -1,0 +1,12 @@
+$ python3 -I tools/licenses/dependency_licenses.py --check
+(cwd otsi-vie)
+
+462 packages: {'permissive': 454, 'review': 8, 'blocked': 0}; unreviewed non-permissive: 6
+  OPEN npm:@img/sharp-libvips-linux-x64@1.0.4 [LGPL-3.0-or-later] -> review
+  OPEN npm:@img/sharp-libvips-linuxmusl-x64@1.0.4 [LGPL-3.0-or-later] -> review
+  OPEN pypi:chardet@5.2.0 [LGPL] -> review
+  OPEN pypi:decorator@5.1.1 [new BSD License] -> review
+  OPEN pypi:matplotlib@3.6.3 [PSF] -> review
+  OPEN pypi:python-dateutil@2.8.2 [Dual License] -> review
+
+exit=1

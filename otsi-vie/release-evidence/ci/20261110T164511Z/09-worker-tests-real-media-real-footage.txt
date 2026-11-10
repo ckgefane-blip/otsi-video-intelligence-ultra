@@ -1,0 +1,4 @@
+NOT RUN
+(cwd otsi-vie/services/worker)
+
+not run here — full pytest worker suite needs MySQL 3507, verified model weights and real footage (see direct-runner subsets 09a-09e)

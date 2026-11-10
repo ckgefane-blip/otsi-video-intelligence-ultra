@@ -1,0 +1,4 @@
+NOT RUN
+(cwd otsi-vie)
+
+not run here — needs the full local stack (API + test DB) on the owner's Windows host

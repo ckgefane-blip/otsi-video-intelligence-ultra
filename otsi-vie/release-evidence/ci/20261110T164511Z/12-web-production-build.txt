@@ -1,0 +1,59 @@
+$ /home/hatch/workspace/projects/otsi-video-intelligence-ultra/otsi-vie/apps/web/node_modules/.bin/next build
+(cwd otsi-vie/apps/web)
+
+   ▲ Next.js 15.1.3
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/25) ...
+   Generating static pages (6/25) 
+   Generating static pages (12/25) 
+   Generating static pages (18/25) 
+ ✓ Generating static pages (25/25)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /_not-found                          156 B           106 kB
+├ ○ /analysis                            39.6 kB         303 kB
+├ ○ /apple-icon.png                      0 B                0 B
+├ ○ /dashboard                           14.2 kB         209 kB
+├ ○ /exports                             28.4 kB         256 kB
+├ ○ /icon.png                            0 B                0 B
+├ ○ /invite                              3.49 kB         185 kB
+├ ○ /library                             34.6 kB         250 kB
+├ ○ /login                               3.96 kB         110 kB
+├ ○ /manifest.webmanifest                0 B                0 B
+├ ○ /matches                             156 B           106 kB
+├ ○ /players                             301 B           191 kB
+├ ○ /processing                          21.9 kB         264 kB
+├ ○ /reels                               169 B           260 kB
+├ ƒ /reels/[reelId]                      169 B           260 kB
+├ ○ /reports                             161 B           231 kB
+├ ƒ /reports/players/[playerRef]         162 B           231 kB
+├ ƒ /s/[token]                           2.44 kB         108 kB
+├ ○ /settings/admin                      13.4 kB         119 kB
+├ ○ /settings/security                   5.05 kB         111 kB
+├ ○ /settings/team                       4.8 kB          186 kB
+├ ○ /studio                              50.2 kB         269 kB
+├ ○ /tactics                             9.25 kB         260 kB
+├ ○ /upload                              26 kB           241 kB
+├ ƒ /videos/[videoId]/analyze            825 B           237 kB
+├ ƒ /videos/[videoId]/processing         1.76 kB         192 kB
+├ ƒ /videos/[videoId]/tactics            156 B           106 kB
+└ ○ /welcome                             5.83 kB         111 kB
++ First Load JS shared by all            106 kB
+  ├ chunks/969-fe3a169193d0ad47.js       50.7 kB
+  ├ chunks/dd866eb1-3758a2b5e0b65a24.js  53 kB
+  └ other shared chunks (total)          1.94 kB
+
+
+ƒ Middleware                             32.1 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+exit=0
