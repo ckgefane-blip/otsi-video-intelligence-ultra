@@ -58,6 +58,10 @@ export const SpotlightSettings = z.object({
   /** ADR-050: a video uploaded with a rights declaration, played before the first clip / after the last; null = none */
   intro_id: z.string().uuid().nullable().default(null),
   outro_id: z.string().uuid().nullable().default(null),
+  /** ADR-130: the Player Profile Intro — the generated 16:9 opening segment with the selected player's real profile, placed at the
+   *  very beginning of the reel, before the first football clip (and before the intro video and the match card). On by default: the
+   *  intro is automatic; a person turns it off here. The worker draws it from the render snapshot's `profile`, never from a guess. */
+  profile_intro: z.boolean().default(true),
   /** E3 (ADR-066): how fast a 9:16 / 1:1 frame follows the player: 0 = calm, 1 = quick */
   reframe_speed: z.number().min(0).max(1).default(0.5),
   /** E3 (ADR-066): the music dips while the match sound is loud (crowd, whistle, commentary) */

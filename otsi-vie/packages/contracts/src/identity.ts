@@ -67,9 +67,44 @@ export const PlayerProfile = z.object({
   role_confirmed_by_name: z.string().nullable().optional(),
   /** his entry on this organization's latest match team sheet (team, shirt number, position), as recorded there; null = on none */
   latest_team: z.object({ team: z.string(), jersey_number: z.number().int().nullable(), position: z.string().nullable(), role_confirmed: z.boolean().optional() }).nullable(),
+  /** the extra profile a person entered for the Player Profile Intro (ADR-130); null = nothing entered yet. Every field is user-entered:
+   *  the intro marks it so, and nothing here is ever filled from a guess. */
+  details: z.lazy(() => PlayerProfileDetails).nullable().default(null),
   editable: z.boolean(),
 });
 export type PlayerProfile = z.infer<typeof PlayerProfile>;
+
+/**
+ * The extra player profile for the Player Profile Intro (ADR-130, migration 0067): the fields the reference layout shows that the
+ * engine does not measure — height and weight, a photo, strengths, a summary, the current club and league, and the international
+ * career. All of it is USER_ENTERED: a person typed it, it is shown as such, and a field left empty stays empty ("Not measured" /
+ * "Unconfirmed" in the intro), never filled from the reference image or a guess. One row per player (`player_profile_details`).
+ * The photo is an asset (`assets.kind = 'PLAYER_PHOTO'`); `photo_url` is a short-lived signed read URL, null when there is no photo.
+ */
+export const PlayerProfileDetails = z.object({
+  height_cm: z.number().int().min(100).max(250).nullable(),
+  weight_kg: z.number().min(30).max(200).nullable(),
+  /** the photo asset's id; null = no photo entered */
+  photo_asset_id: z.string().uuid().nullable(),
+  photo_url: z.string().nullable(),
+  /** his strengths, in the order the person wrote them; at most 6, each at most 60 characters */
+  strengths: z.array(z.string().trim().min(1).max(60)).max(6),
+  /** his summary, in the person's words; at most 600 characters */
+  summary: z.string().trim().max(600).nullable(),
+  /** the current club as the person entered it; used only where no match team sheet names one (the team sheet is shown first) */
+  club_name: z.string().trim().max(255).nullable(),
+  /** the league his club plays in, as the person entered it */
+  league: z.string().trim().max(255).nullable(),
+  /** his international career, as the person entered it; caps and goals null = not entered (never 0 by default: 0 caps is a fact) */
+  international_country_code: z.string().nullable(),
+  international_country_name: z.string().nullable(),
+  international_caps: z.number().int().min(0).nullable(),
+  international_goals: z.number().int().min(0).nullable(),
+  /** who entered it last, and when (provenance: user-entered, never engine output) */
+  updated_by_name: z.string().nullable(),
+  updated_at: z.string().nullable(),
+});
+export type PlayerProfileDetails = z.infer<typeof PlayerProfileDetails>;
 
 /** A row of the Players list: who, and what is recorded about him */
 export const PlayerListEntry = z.object({
@@ -89,6 +124,21 @@ export const UpdatePlayerProfileRequest = z.object({
   confirm_role: z.boolean().optional(),
 });
 export type UpdatePlayerProfileRequest = z.infer<typeof UpdatePlayerProfileRequest>;
+
+/** The extra profile for the Player Profile Intro (ADR-130): a field left out is unchanged; null clears it. Every value is user-entered
+ *  (provenance USER_ENTERED); the API never fills one from a guess, and the intro shows unentered fields as unentered. */
+export const UpdatePlayerProfileDetailsRequest = z.object({
+  height_cm: z.number().int().min(100).max(250).nullable().optional(),
+  weight_kg: z.number().min(30).max(200).nullable().optional(),
+  strengths: z.array(z.string().trim().min(1).max(60)).max(6).nullable().optional(),
+  summary: z.string().trim().max(600).nullable().optional(),
+  club_name: z.string().trim().max(255).nullable().optional(),
+  league: z.string().trim().max(255).nullable().optional(),
+  international_country_code: CountryCode.nullable().optional(),
+  international_caps: z.number().int().min(0).nullable().optional(),
+  international_goals: z.number().int().min(0).nullable().optional(),
+});
+export type UpdatePlayerProfileDetailsRequest = z.infer<typeof UpdatePlayerProfileDetailsRequest>;
 
 export const Country = z.object({ code: z.string(), name: z.string() });
 export type Country = z.infer<typeof Country>;
