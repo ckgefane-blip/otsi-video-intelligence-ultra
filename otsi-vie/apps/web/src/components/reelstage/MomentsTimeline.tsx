@@ -11,7 +11,7 @@
  * span the clips; the reel keeps each clip's match audio (no music is connected). Empty lanes keep the reference's wording.
  * E4 (ADR-067): "Build a draft" opens DraftDialog: a length, a theme and a frame give up to three draft reels; one is used, then Edit in Clip Studio.
  */
-import { slotUs, momentBadge, ZOOM_STEPS, zoomOffset, type MomentEvent, type Reel, type ReelClip, type ReelMoment } from "@otsi-vie/contracts";
+import { slotUs, momentBadge, ZOOM_STEPS, zoomOffset, type CrossMatchCandidate, type MomentEvent, type Reel, type ReelClip, type ReelMoment } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { type DragEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
@@ -63,11 +63,21 @@ const startDrag = (e: DragEvent, d: Drag, label: string) => {
 
 export function Moments() {
   const { r, focus } = useStage();
-  const reel = r?.reel ?? null, moments = r?.moments ?? [];
-  const loading = r?.moments === null;   // still reading: "no suggestions yet" would be a lie about an empty result
+  const reel = r?.reel ?? null;
+  // ADR-131: a cross-match reel's moments are the best-moments selection (selected + left out with reasons), not the ranked
+  // single-match suggestions — the selection comes from the provider's crossMatch, and `moments` stays empty for it
+  const isCross = reel?.source === "ALL_MATCHES";
+  const cross = r?.crossMatch ?? null;
+  const moments = isCross ? [] : (r?.moments ?? []);
+  const loading = isCross ? cross === null : r?.moments === null;   // still reading: "no suggestions yet" would be a lie about an empty result
+  const crossItems = isCross && cross ? [
+    ...cross.selected.map((m) => ({ key: `${m.video_id}:${m.in_pts_us}`, m, tier: m.tier as string, reason: m.reason, notSelected: null as string | null, inReel: m.in_reel })),
+    ...cross.not_selected.map(({ candidate: m, reason }) => ({ key: `${m.video_id}:${m.in_pts_us}:out`, m, tier: null as string | null, reason: m.sequence_label ?? m.label, notSelected: reason, inReel: false })),
+  ] : [];
+  const crossTotal = (cross?.selected.length ?? 0) + (cross?.not_selected.length ?? 0);
   const scroller = useRef<HTMLDivElement | null>(null);
   const canAdd = !!r?.canEdit && !r.busy && !!reel;
-  const slots = Math.max(5, moments.length);
+  const slots = Math.max(5, isCross ? crossItems.length : moments.length);
   const stride = 319.5;
   const add = (i: number) => {
     const m = moments[i];
@@ -75,7 +85,7 @@ export function Moments() {
     if (m.in_reel) { const c = reel.clips.find((x) => x.in_pts_us === m.in_pts_us); if (c) r.setSelectedClip(c.id); return; }
     r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), "Clip added.");
   };
-  const left = moments.filter((m) => !m.in_reel && !m.rejected).length;
+  const left = isCross ? (cross?.selected.filter((m) => !m.in_reel).length ?? 0) : moments.filter((m) => !m.in_reel && !m.rejected).length;
   // B.15 (ADR-091): reject / restore a suggestion, swap the selected clip for it, move its clip earlier or later, "Is this him?" here
   const [who, setWho] = useState(false);
   const sel = reel?.clips.find((c) => c.id === r?.selectedClip) ?? null;
@@ -93,6 +103,25 @@ export function Moments() {
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
     r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), `Moved to position ${j + 1}.`);
   };
+  // ADR-131: the cross-match actions — pin = addClip (the API guards eligibility and the per-match cap, Tier S immune),
+  // remove = clip delete, reject / restore per video (a rejection in one match never rejects the same window in another)
+  const clipOfCross = (m: CrossMatchCandidate) => reel?.clips.find((c) => c.source_video_id === m.video_id && c.in_pts_us < m.out_pts_us && c.out_pts_us > m.in_pts_us) ?? null;
+  const crossWin = (m: CrossMatchCandidate) => ({ in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us });
+  const crossMatchOf = (m: CrossMatchCandidate) => [m.home, m.away].filter(Boolean).join(" vs ") || m.video_title;
+  const crossWhenOf = (m: CrossMatchCandidate) => (m.match_minute !== null ? `${m.match_minute}'` : mmss(m.key_at_us));
+  const crossAdd = (m: CrossMatchCandidate) => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST",
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label, source_video_id: m.video_id } }), "Clip added.");
+  const crossReject = (m: CrossMatchCandidate) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST",
+    json: { ...crossWin(m), video_id: m.video_id } }); }, "Left out of this reel: it is listed last; Restore brings it back.");
+  const crossRestore = (m: CrossMatchCandidate) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST",
+    json: { ...crossWin(m), video_id: m.video_id } }); }, "Suggestion restored.");
+  const crossSwap = (m: CrossMatchCandidate) => { const c = sel; if (!reel || !c || !r) return;
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}/swap`, { method: "POST", json: { ...crossWin(m), label: m.label } }), "Clip swapped."); };
+  const crossMove = (m: CrossMatchCandidate, d: -1 | 1) => { const c = clipOfCross(m); if (!reel || !c || !r) return;
+    const ids = reel.clips.map((x) => x.id), i = ids.indexOf(c.id), j = i + d;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), `Moved to position ${j + 1}.`); };
   const mini = (x: number, label: string, glyph: string, act: (() => void) | null, why: string, data: string, w = 40) => (
     <button key={data} type="button" aria-label={label} title={act ? label : why} data-moment-act={data} disabled={!act} onClick={act ?? undefined}
       className="absolute" style={{ left: u(x), top: u(990 - 939), width: u(w), height: u(30), fontSize: u(17), fontWeight: 700, color: "#fff", background: "rgba(0,10,25,.85)",
@@ -102,23 +131,23 @@ export function Moments() {
   const [hist, setHist] = useState(false);                             // B.1 (ADR-081): Undo, Redo and the reel's History
   const h = r?.history ?? null, canHist = !!r?.canEdit && !r?.busy;
   return (
-    <section id="p06-moments" aria-label="Suggested key moments" data-section="p06-s06" data-moments={String(moments.length)}>
+    <section id="p06-moments" aria-label={isCross ? "Best moments across all matches" : "Suggested key moments"} data-section="p06-s06" data-moments={String(isCross ? crossTotal : moments.length)}>
       <P x={445} y={872} w={1593} h={258} style={focus === "p06-moments" ? { borderColor: "#33a8ff" } : undefined} />
       <Ic x={477} y={905} k="star" size={30} color="#33a8ff" />
-      <T x={505} y={905} size={25} weight={600} as="h2">{loading ? "Suggested Key Moments…" : `Suggested Key Moments (${moments.length})`}</T>
-      {reel?.player && (
+      <T x={505} y={905} size={25} weight={600} as="h2">{loading ? (isCross ? "Best Moments — All Matches…" : "Suggested Key Moments…") : isCross ? `Best Moments — All Matches (${crossTotal})` : `Suggested Key Moments (${moments.length})`}</T>
+      {reel?.player && !isCross && (
         // ADR-046: moments count only events on his named tracks; "Is this him?" on the unnamed players of the events brings more
         <button type="button" onClick={() => setWho(true)} className="absolute" data-who-link title="Players elsewhere in the match who look like him: say if it is him, here"
           style={{ left: u(1450), width: u(350), textAlign: "right", top: u(892 - 101), fontSize: u(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>More moments of him: Is this him? ›</button>
       )}
       {reel && r && <WhoQueue r={r} reel={reel} open={who} onOpenChange={setWho} />}
-      <button type="button" data-add-all disabled={!canAdd || left === 0} title={left ? "Add every moment not yet in the reel, in match order (the reel stays within 10 minutes)" : "Every moment is in the reel"}
+      <button type="button" data-add-all disabled={!canAdd || left === 0} title={left ? (isCross ? "Add every selected moment not yet in the reel (the reel stays within its length)" : "Add every moment not yet in the reel, in match order (the reel stays within 10 minutes)") : "Every moment is in the reel"}
         onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), "Moments added.")}
         className="absolute" style={{ left: u(900), top: u(887 - 101), height: u(36), padding: `0 ${u(14)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
           background: "#0b5cb0", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canAdd && left ? "pointer" : "default", opacity: canAdd && left ? 1 : 0.45 }}>{`+ Add all (${left})`}</button>
-      <button type="button" data-build-draft disabled={!reel} onClick={() => setDraft(true)} title="Let the engine build draft reels from his moments: choose a length and what it is about"
+      {!isCross && <button type="button" data-build-draft disabled={!reel} onClick={() => setDraft(true)} title="Let the engine build draft reels from his moments: choose a length and what it is about"
         className="absolute" style={{ left: u(1075), top: u(887 - 101), height: u(36), padding: `0 ${u(14)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
-          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>✦ Build a draft</button>
+          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>✦ Build a draft</button>}
       <DraftDialog r={r} open={draft} onOpenChange={setDraft} />
       {([["↶", "Undo", 1250, 40, !!h?.can_undo, h?.undo_label ? `Undo: ${h.undo_label}` : "Nothing to undo", () => r?.undo()],
          ["↷", "Redo", 1296, 40, !!h?.can_redo, h?.redo_label ? `Redo: ${h.redo_label}` : "Nothing to redo", () => r?.redo()]] as const).map(([g, l, x, w, on, tip, go]) => (
@@ -130,12 +159,39 @@ export function Moments() {
         className="absolute" style={{ left: u(1342), top: u(887 - 101), height: u(36), padding: `0 ${u(12)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
           background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>History</button>
       <HistoryDialog r={r} open={hist} onOpenChange={setHist} />
-      <Hit x={1830} y={890} w={210} h={40} label="View all moments" {...(moments.length > 5 ? { onClick: () => { const el = scroller.current; if (el) el.scrollTo({ left: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 ? 0 : el.scrollLeft + 5 * stride * (el.clientWidth / (5 * stride)), behavior: "smooth" }); } } : { reason: moments.length ? "All moments are shown" : "No moments yet" })} />
+      <Hit x={1830} y={890} w={210} h={40} label="View all moments" {...((isCross ? crossItems.length : moments.length) > 5 ? { onClick: () => { const el = scroller.current; if (el) el.scrollTo({ left: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 ? 0 : el.scrollLeft + 5 * stride * (el.clientWidth / (5 * stride)), behavior: "smooth" }); } } : { reason: (isCross ? crossItems.length : moments.length) ? "All moments are shown" : "No moments yet" })} />
       <T x={1846} y={910} size={19} color="#33a8ff">View All Moments</T>
       <Ic x={2012} y={910} k="fwd" size={18} color="#33a8ff" />
-      <div ref={scroller} role="list" aria-label="Suggested moments" className="absolute" style={{ left: u(455), top: u(939 - 101), width: u(1575), height: u(190), overflowX: moments.length > 5 ? "auto" : "hidden", overflowY: "hidden" }}>
+      <div ref={scroller} role="list" aria-label={isCross ? "Best moments across all matches" : "Suggested moments"} className="absolute" style={{ left: u(455), top: u(939 - 101), width: u(1575), height: u(190), overflowX: (isCross ? crossItems.length : moments.length) > 5 ? "auto" : "hidden", overflowY: "hidden" }}>
         <div style={{ position: "relative", width: u(slots * stride), height: u(185) }}>
-          {Array.from({ length: slots }, (_, i) => {
+          {isCross ? crossItems.map((it, i) => { const m = it.m, x = i * stride;
+            const c = clipOfCross(m), inR = it.inReel || c !== null, tagCol = it.tier ? ({ S: "#a066ff", A: "#19d3ff", B: "#19e6c0", C: "#ffb21a" } as Record<string, string>)[it.tier] ?? "#cfe0f5" : "#8b95a5";
+            return (
+              <div key={it.key} role="listitem" data-moment={m.in_pts_us} data-cross-tier={it.tier ?? ""} data-not-selected={it.notSelected ?? undefined} style={it.notSelected ? { opacity: 0.75 } : undefined}>
+                <B o={[0, 939]} x={x} y={939} w={298} h={185} style={{ background: "#06182f", border: `${u(1.5)} solid ${inR ? "#1e90ff" : "#12335f"}`, borderRadius: u(10), boxSizing: "border-box" }} />
+                <B o={[0, 939]} x={x + 4} y={941} w={290} h={116} style={{ borderRadius: u(8), background: "radial-gradient(ellipse at 50% 30%,#2a6fb8,#0b2a52 70%)" }} />
+                <B o={[0, 939]} x={x + 14} y={950} w={36} h={34} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(20), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</B>
+                {inR && <Ic o={[0, 939]} x={x + 270} y={967} k="chk" size={26} color="#3ee6a8" />}
+                <B o={[0, 939]} x={x + 58} y={950} w={130} h={30} data-cross-tier-label={it.tier ?? "left-out"}
+                  style={{ background: "rgba(0,10,25,.8)", border: `${u(1.5)} solid ${tagCol}`, color: tagCol, borderRadius: u(6), fontSize: u(17), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.tier ? `Tier ${it.tier}` : "Left out"}</B>
+                <B o={[0, 939]} x={x + 14} y={1027} w={200} h={26} data-cross-reason={it.notSelected ?? it.reason} aria-label={it.notSelected ? `Left out: ${it.notSelected}` : it.reason}
+                  style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(16), display: "flex", alignItems: "center", gap: u(6), padding: `0 ${u(8)}`, whiteSpace: "nowrap", overflow: "hidden" }}>
+                  <span style={{ color: "#cfe0f5", overflow: "hidden", textOverflow: "ellipsis" }}>{it.notSelected ?? it.reason}</span></B>
+                <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{`${Math.round((m.out_pts_us - m.in_pts_us) / 1e6)}s`}</B>
+                <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</T>
+                <T o={[0, 939]} x={x + 15} y={1105} size={19} color="#b9cbe2" style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {`${crossMatchOf(m)}${m.competition ? ` · ${m.competition}` : ""} · ${crossWhenOf(m)}`}</T>
+                <button type="button" aria-label={inR ? `Select the clip of moment ${i + 1}` : `Add moment ${i + 1} to the reel`} aria-pressed={inR}
+                  disabled={!inR && !canAdd} title={!inR && !canAdd ? "You cannot edit this reel" : "Click to add it to the reel"} onClick={() => { const cc = clipOfCross(m); if (cc) r?.setSelectedClip(cc.id); else crossAdd(m); }}
+                  className="absolute" style={{ left: u(x), top: 0, width: u(298), height: u(185), padding: 0, border: 0, background: "transparent", cursor: canAdd ? "pointer" : "default" }} />
+                {canAdd && (it.notSelected === "rejected for this reel" ? mini(x + 200, "Restore this suggestion", "Restore", () => crossRestore(m), "", "restore", 90)
+                  : inR ? (() => { const cc = clipOfCross(m), at = cc && reel ? reel.clips.indexOf(cc) : -1, n = reel?.clips.length ?? 0;
+                    return [mini(x + 200, "Move its clip earlier in the reel", "◀", at > 0 ? () => crossMove(m, -1) : null, "Already first", "earlier"),
+                      mini(x + 244, "Move its clip later in the reel", "▶", at >= 0 && at < n - 1 ? () => crossMove(m, 1) : null, "Already last", "later")]; })()
+                  : [mini(x + 200, "Not this one: leave it out of this reel", "✕", () => crossReject(m), "", "reject"),
+                    mini(x + 244, sel ? `Swap clip ${selIndex + 1} for this moment` : "Swap: select a clip in the timeline first", "⇄", sel ? () => crossSwap(m) : null, "Select a clip in the timeline first, then swap it for this moment", "swap")])}
+              </div>
+            ); }) : Array.from({ length: slots }, (_, i) => {
             const m = moments[i], x = i * stride;
             const first = i === 0 && moments.length === 0;
             return (
@@ -178,8 +234,9 @@ export function Moments() {
           })}
         </div>
       </div>
-      {reel && loading && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">Loading suggestions…</T>}
-      {reel && !loading && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">The player is not visible on any confirmed track yet</T>}
+      {reel && loading && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">{isCross ? "Loading best moments…" : "Loading suggestions…"}</T>}
+      {reel && !loading && !isCross && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">The player is not visible on any confirmed track yet</T>}
+      {reel && !loading && isCross && crossItems.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">No best moments yet: no measured moment in any of his matches — nothing is filled in</T>}
     </section>
   );
 }

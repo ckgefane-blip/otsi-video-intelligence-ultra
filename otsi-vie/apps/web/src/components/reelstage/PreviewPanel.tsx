@@ -57,6 +57,15 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
   );
 });
 
+/** a cross-match reel in render mode has no single match to score: the rendered reel carries a per-clip event tag instead */
+const AllMatchesNote = memo(function AllMatchesNote() {
+  return (
+    <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6), display: "flex", alignItems: "center", justifyContent: "center", fontSize: u(20), color: "#cfe0f5" }}>
+      All matches
+    </B>
+  );
+});
+
 /** the scoreboard (memoised: the linked match does not change while the preview plays) */
 const Scoreboard = memo(function Scoreboard({ match }: { match: Match | null }) {
   return (
@@ -88,12 +97,15 @@ export function PreviewPanel() {
   const [playing, setPlaying] = useState(false);
   const ref = useRef<HTMLVideoElement | null>(null);
   const fs = usePlayerFullscreen();                                    // ADR-079: the shared full screen
-  const path = useReelPath(reel);                                     // B.14 (ADR-090): the live spotlight and coverage
-
   const clips = reel?.clips ?? [];
   const sel = r?.selectedClip ?? null;
   const clipIndex = Math.max(0, clips.findIndex((c) => c.id === sel));
   const clip = clips[clipIndex] ?? null;
+  // ADR-131: the clip's own video — a cross-match clip's source_video_id, else the reel's single video. The preview (playback,
+  // video, match, spotlight path) follows the selected clip, so stepping clips steps videos too
+  const isCross = reel?.source === "ALL_MATCHES";
+  const clipVideoId = clip?.source_video_id ?? reel?.video_id ?? null;
+  const path = useReelPath(reel, isCross ? clipVideoId : undefined);  // B.14 (ADR-090): the live spotlight and coverage
   const renderId = reel?.last_good_render?.has_output ? reel.last_good_render.id : null;   // the last finished file, even while a new render runs
   const kind = mode === "render" && renderId ? "render" : "source";
 
@@ -103,8 +115,8 @@ export function PreviewPanel() {
   useEffect(() => { if (!reel) loadList(); }, [reel, loadList]);
   useEffect(() => {
     setVideo(null); setMatch(null);
-    if (reel) void api<Video>(`/v1/videos/${reel.video_id}`).then(setVideo, () => undefined);
-  }, [reel?.video_id]);   // eslint-disable-line react-hooks/exhaustive-deps
+    if (clipVideoId) void api<Video>(`/v1/videos/${clipVideoId}`).then(setVideo, () => undefined);
+  }, [clipVideoId]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setMatch(null);
     if (video?.match_id) void api<Match>(`/v1/matches/${video.match_id}`).then(setMatch, () => undefined);
@@ -113,8 +125,9 @@ export function PreviewPanel() {
     setSrc(null);
     if (!reel) return;
     if (kind === "render" && renderId) void api<{ url: string }>(`/v1/renders/${renderId}/playback`).then((p) => setSrc({ url: p.url, kind: "render" }), () => setSrc(null));
-    else void api<Playback>(`/v1/videos/${reel.video_id}/playback`).then((p) => setSrc(p.url ? { url: p.url, kind: "source" } : null), () => setSrc(null));
-  }, [reel?.id, reel?.video_id, kind, renderId]);   // eslint-disable-line react-hooks/exhaustive-deps
+    else if (clipVideoId) void api<Playback>(`/v1/videos/${clipVideoId}/playback`).then((p) => setSrc(p.url ? { url: p.url, kind: "source" } : null), () => setSrc(null));
+    else setSrc(null);
+  }, [reel?.id, clipVideoId, kind, renderId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // source footage: start at the clip's in point and stop at its out point
   const inUs = clip?.in_pts_us ?? 0, outUs = clip?.out_pts_us ?? 0;
@@ -200,7 +213,7 @@ export function PreviewPanel() {
           foot={prof?.preferred_foot ? FOOT_NAMES[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
           playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
 
-        <Scoreboard match={match} />
+        {isCross && kind === "render" ? <AllMatchesNote /> : <Scoreboard match={match} />}
         {fs.on && <FullscreenBar playing={playing} onPlay={playPause} now={Math.max(0, t - span.a)} total={len > 1 ? len : 0} onSeek={seekTo}
           muted={muted} onMute={() => setMuted((m) => !m)} onExit={fs.exit} />}
       </dialog>

@@ -149,7 +149,7 @@ export function Inspector() {
   const canEdit = !!r?.canEdit && !r.busy && !!reel;
   const flip = (k: Toggle) => setDraft({ ...set, [k]: !set[k] });
   const logo = (f: LogoField) => (set[f] ? setDraft({ ...set, [f]: null }) : setPicker(f));
-  const scoreReason = !reel?.match ? "Link this video to a match first: the team names come from the match" : undefined;
+  const scoreReason = !reel?.match ? (reel?.source === "ALL_MATCHES" ? "A reel across all matches has no single match to show" : "Link this video to a match first: the team names come from the match") : undefined;
   /** one switch row: real when `onClick` is given, otherwise disabled with the reason */
   const row = (l: string, y: number, icon: string, on: boolean, act: (() => void) | undefined, reason: string | undefined, data: Record<string, string>) => (
     <div key={l} {...data}>
@@ -241,8 +241,9 @@ export function Inspector() {
           <button type="button" onClick={openProfileIntro} className="absolute" data-profile-intro-open=""
             style={{ left: u(2086), top: u(634 - 101), fontSize: u(18), color: "#33a8ff" }}>Player Profile Intro ›</button>
         )}
-        {reel?.player && (
+        {reel?.player && reel.video_id && (
           // ADR-045: his other tracks are found on the Analysis page (look-alikes, a person says Him / Not him); Re-detect then takes them in
+          // ADR-131: a cross-match reel has no single video to look in — the link is hidden for it
           <Link href={`/analysis?video=${reel.video_id}&find=${reel.player.player_id}`} className="absolute" data-find-more
             style={{ left: u(2299), width: u(220), textAlign: "right", top: u(634 - 101), fontSize: u(18), color: "#33a8ff" }}>Find more of him ›</Link>
         )}
@@ -266,7 +267,7 @@ export function Inspector() {
             row("Animated Lower Third", 1042, "pl", set.lower_third, on("lower_third"), editable(), { "data-overlay": "Animated Lower Third" }),
           ];
         })()}
-        <T x={2154} y={1067} size={13} color="#8ea3bf" style={{ maxWidth: u(370), whiteSpace: "normal", lineHeight: 1.2 }}>{!reel?.match ? "Score & Time needs the video linked to a match." : reel.match.clock === "CONFIRMED"
+        <T x={2154} y={1067} size={13} color="#8ea3bf" style={{ maxWidth: u(370), whiteSpace: "normal", lineHeight: 1.2 }}>{!reel?.match ? (reel?.source === "ALL_MATCHES" ? "Score & Time: a reel across all matches has no single match to show." : "Score & Time needs the video linked to a match.") : reel.match.clock === "CONFIRMED"
           ? "Score & Time: team names and match clock (score not measured)." : "Score & Time: team names; confirm the halves on Analysis for the clock."}</T>
       </section>
 

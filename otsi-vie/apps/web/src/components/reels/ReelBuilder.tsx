@@ -5,9 +5,10 @@
  * player is visible) and renders (dense re-analysis of the clip windows, spotlight, MP4 on the Intel GPU, validation). Nothing here is
  * pre-filled: an empty reel stays empty until the user adds a clip.
  */
-import { clipOutputUs, slotUs, type Playback, type Reel, type ReelHistory, type ReelMoment, type RenderJob, type SpotlightSettings } from "@otsi-vie/contracts";
+import { clipOutputUs, slotUs, type CrossMatchCandidate, type CrossMatchSelection, type Playback, type Reel, type ReelHistory, type ReelMoment, type RenderJob, type SpotlightSettings } from "@otsi-vie/contracts";
 import { ArrowDown, ArrowUp, CheckCircle2, CircleDashed, Download, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
@@ -19,6 +20,8 @@ const sec = (us: number) => `${(us / 1e6).toFixed(1)} s`;
 interface Ctx {
   reel: Reel | null;
   moments: ReelMoment[] | null;
+  /** ADR-131: the best-moments selection (selected + not selected with reasons) for a cross-match reel; null for a single-match reel */
+  crossMatch: CrossMatchSelection | null;
   error: string | null;
   canEdit: boolean;
   busy: boolean;
@@ -47,6 +50,7 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
   const { organization } = useAuth();
   const [reel, setReel] = useState<Reel | null>(null);
   const [moments, setMoments] = useState<ReelMoment[] | null>(null);
+  const [crossMatch, setCrossMatch] = useState<CrossMatchSelection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -54,9 +58,18 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
   const [history, setHistory] = useState<ReelHistory | null>(null);
   const load = useCallback(async (): Promise<[Reel, ReelMoment[]] | null> => {
     try {
-      const [r, m, h] = await Promise.all([api<Reel>(`/v1/reels/${reelId}`), api<ReelMoment[]>(`/v1/reels/${reelId}/moments`),
+      // the reel first: which moments endpoint to read depends on its source (a cross-match reel's /moments is the selection,
+      // not the ranked suggestions — reading it as ReelMoment[] would show the selection as nothing at all)
+      const [r, h] = await Promise.all([api<Reel>(`/v1/reels/${reelId}`),
         api<ReelHistory>(`/v1/reels/${reelId}/history`).catch(() => null)]);
-      setReel(r); setMoments(m); setHistory(h); setError(null);
+      setReel(r); setHistory(h);
+      if (r.source === "ALL_MATCHES") {
+        const sel = await api<CrossMatchSelection>(`/v1/reels/${reelId}/moments`);
+        setCrossMatch(sel); setMoments(null); setError(null);
+        return [r, []];
+      }
+      const m = await api<ReelMoment[]>(`/v1/reels/${reelId}/moments`);
+      setMoments(m); setCrossMatch(null); setError(null);
       return [r, m];
     } catch (x) {
       setError(x instanceof ApiProblem ? x.message : "The reel could not be loaded.");
@@ -88,9 +101,9 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
   // the value is memoised so a state change that does not touch it (a message clearing, a selection) does not re-render every
   // consumer — the provider also feeds Clip Studio, and its sections re-render on every context change
   const value: Ctx = useMemo(() => ({
-    reel, moments, error, canEdit: !!organization && WRITERS.includes(organization.role), busy, msg, reload, selectedClip, setSelectedClip, run, history,
+    reel, moments, crossMatch, error, canEdit: !!organization && WRITERS.includes(organization.role), busy, msg, reload, selectedClip, setSelectedClip, run, history,
     undo, redo,
-  }), [reel, moments, error, organization, busy, msg, reload, selectedClip, run, history, undo, redo]);
+  }), [reel, moments, crossMatch, error, organization, busy, msg, reload, selectedClip, run, history, undo, redo]);
   return <ReelCtx.Provider value={value}>{children}</ReelCtx.Provider>;
 }
 
@@ -109,7 +122,9 @@ export function ReelSteps() {
   ];
   return (
     <div className="space-y-2">
-      <p className="text-sm"><span className="font-semibold" data-reel-name>{reel.name}</span> <span className="text-muted">· <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>source video</Link></span></p>
+      <p className="text-sm"><span className="font-semibold" data-reel-name>{reel.name}</span> <span className="text-muted">· {reel.video_id
+        ? <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>source video</Link>
+        : "All matches"}</span></p>
       <ol aria-label="Reel steps" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-5 min-[1100px]:grid-cols-1">
         {steps.map(([n, done, note], i) => (
           <li key={n} data-reel-step={n} data-done={done ? "1" : "0"}
@@ -177,15 +192,19 @@ export function ReelPreview() {
   const [src, setSrc] = useState<{ url: string; kind: "render" | "source" } | null>(null);
   const ref = useRef<HTMLVideoElement | null>(null);
   const clip = reel?.clips.find((c) => c.id === selectedClip) ?? reel?.clips[0] ?? null;
+  // ADR-131: the clip's own video — a cross-match clip's source_video_id, else the reel's single video; null when there is no clip
+  const clipVideoId = clip?.source_video_id ?? reel?.video_id ?? null;
   const renderId = reel?.last_good_render?.has_output ? reel.last_good_render.id : null;
   useEffect(() => {
     if (!reel) return;
     if (renderId && !selectedClip) {
       void api<{ url: string }>(`/v1/renders/${renderId}/playback`).then((p) => setSrc({ url: p.url, kind: "render" }), () => setSrc(null));
+    } else if (clipVideoId) {
+      void api<Playback>(`/v1/videos/${clipVideoId}/playback`).then((p) => setSrc(p.url ? { url: p.url, kind: "source" } : null), () => setSrc(null));
     } else {
-      void api<Playback>(`/v1/videos/${reel.video_id}/playback`).then((p) => setSrc(p.url ? { url: p.url, kind: "source" } : null), () => setSrc(null));
+      setSrc(null);
     }
-  }, [reel?.id, renderId, selectedClip]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reel?.id, renderId, selectedClip, clipVideoId]);  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const v = ref.current;
     if (v && src?.kind === "source" && clip) { const go = () => { v.currentTime = clip.in_pts_us / 1e6; }; if (v.readyState >= 1) go(); else v.addEventListener("loadedmetadata", go, { once: true }); }
@@ -275,6 +294,9 @@ export function ReelOverlays() {
 /* ------------------------------------------------------------------ section 8: suggested moments */
 export function MomentCarousel() {
   const { reel, moments, canEdit, run, busy } = useReel();
+  // ADR-131: a cross-match reel's moments are the best-moments selection (selected + not selected with reasons), not the
+  // single-match suggestions — the carousel below shows that selection instead
+  if (reel?.source === "ALL_MATCHES") return <CrossMatchMomentCarousel />;
   if (!reel || !moments) return <p className="text-sm text-muted">Loading suggestions…</p>;
   if (moments.length === 0) return <p className="text-sm text-muted">No moments: the player is not visible on any confirmed track.</p>;
   return (
@@ -293,6 +315,176 @@ export function MomentCarousel() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ section 8b: the cross-match selection (ADR-131) */
+/** Media time as m:ss, for a moment whose match minute is not known (halves not CONFIRMED — never invented). */
+const crossMmss = (us: number) => `${Math.floor(us / 6e7)}:${String(Math.floor(us / 1e6) % 60).padStart(2, "0")}`;
+/** "Dynamo vs Ercakhu", or the video title when the teams are not known. */
+const crossMatchOf = (m: CrossMatchCandidate) => [m.home, m.away].filter(Boolean).join(" vs ") || m.video_title;
+const crossWhenOf = (m: CrossMatchCandidate) => (m.match_minute !== null ? `${m.match_minute}'` : crossMmss(m.key_at_us));
+const TIER_COLOUR: Record<string, string> = { S: "#a066ff", A: "#19d3ff", B: "#19e6c0", C: "#ffb21a" };
+
+/** The best-moments selection for a cross-match reel: the selected moments (tier badge, match, minute, reason — a chain shows its
+ *  sequence label), each pinnable or removable by hand, and the moments left out with their reason, each swappable in by hand (pin =
+ *  addClip, which the API guards for eligibility and the per-match cap; remove = clip delete; reject / restore per video).
+ *  Nothing here invents a moment: fewer than 3 eligible moments builds with what's there, no filler. */
+export function CrossMatchMomentCarousel() {
+  const { reel, crossMatch, canEdit, run, busy } = useReel();
+  if (!reel || reel.source !== "ALL_MATCHES") return null;
+  if (!crossMatch) return <p className="text-sm text-muted">Loading best moments…</p>;
+  const lenLabel = crossMatch.length_s === 90 ? "90 s" : crossMatch.length_s === 300 ? "5 min" : "3 min";
+  const clipOf = (m: CrossMatchCandidate) => reel.clips.find((c) => c.source_video_id === m.video_id && c.in_pts_us < m.out_pts_us && c.out_pts_us > m.in_pts_us) ?? null;
+  const add = (m: CrossMatchCandidate, label: string) => run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST",
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label, source_video_id: m.video_id } }), "Clip added.");
+  const remove = (m: CrossMatchCandidate) => { const c = clipOf(m); if (c) run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "DELETE" }), "Clip removed."); };
+  const reject = (m: CrossMatchCandidate) => run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST",
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, "Left out of this reel: it is listed last; Restore brings it back.");
+  const restore = (m: CrossMatchCandidate) => run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST",
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, "Suggestion restored.");
+  const left = crossMatch.selected.filter((m) => !m.in_reel).length;
+  const detail = (m: CrossMatchCandidate, reason: string) => `${crossMatchOf(m)}${m.competition ? ` · ${m.competition}` : ""} · ${crossWhenOf(m)} · ${reason}`;
+  // `inReel` is passed in: a selected moment carries it, a left-out one is in the reel only if a clip of it was pinned by hand
+  const item = (m: CrossMatchCandidate, tier: string | null, reason: string, key: string, notSelectedReason: string | null, inReel: boolean) => (
+    <li key={key} data-cross-moment={m.in_pts_us} data-tier={tier ?? ""} data-not-selected={notSelectedReason ?? undefined}
+      className="flex w-64 shrink-0 flex-col rounded-ctl border border-line/70 bg-raised/40 p-2 text-xs">
+      <p className="flex items-center gap-1.5 font-medium">
+        {tier && <span style={{ color: TIER_COLOUR[tier] ?? "#cfe0f5" }}>Tier {tier}</span>}
+        {notSelectedReason && <span className="text-muted">Left out: {notSelectedReason}</span>}
+      </p>
+      <p className="font-medium">{m.label}</p>
+      <p className="mb-1.5 text-muted">{detail(m, reason)}</p>
+      <span className="mt-auto flex flex-wrap gap-1">
+        {notSelectedReason === "rejected for this reel"
+          ? <button type="button" disabled={!canEdit || busy} onClick={() => restore(m)}
+            className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">Restore</button>
+          : inReel ? <>
+            <span className="inline-flex items-center gap-1 rounded border border-ok/40 px-2 py-0.5 text-ok">In the reel</span>
+            <button type="button" disabled={!canEdit || busy} onClick={() => remove(m)}
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-danger/60 disabled:opacity-50"><Trash2 className="h-3 w-3" />Remove</button>
+          </> : <>
+            <button type="button" disabled={!canEdit || busy} onClick={() => add(m, m.label)}
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50"><Plus className="h-3 w-3" />Add to reel</button>
+            <button type="button" disabled={!canEdit || busy} onClick={() => reject(m)}
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">Not this one</button>
+          </>}
+      </span>
+    </li>
+  );
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-muted" data-cross-match-summary>
+        Best moments across all matches · {lenLabel} · rule v{crossMatch.rule_version} · {crossMatch.selected.length} selected
+        {crossMatch.not_selected.length ? `, ${crossMatch.not_selected.length} left out` : ""} · {crossMatch.total_s} s of clips.
+        A goal always beats a key pass; inside a tier, chains first, then one moment from each match before a second from any.
+      </p>
+      {crossMatch.selected.length === 0 && crossMatch.not_selected.length === 0 && (
+        <p className="text-sm text-muted">No best moments yet: no measured moment in any of his matches. Nothing is filled in.</p>
+      )}
+      {left > 0 && (
+        <button type="button" disabled={!canEdit || busy} data-add-all-cross
+          onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), "Moments added.")}
+          className="inline-flex items-center gap-1 rounded border border-line px-2 py-1 text-xs hover:border-primary/60 disabled:opacity-50">
+          <Plus className="h-3 w-3" />Add all selected ({left})
+        </button>
+      )}
+      {crossMatch.selected.length > 0 && (
+        <ul aria-label="Selected best moments" className="flex gap-2 overflow-x-auto pb-1">
+          {crossMatch.selected.map((m) => item(m, m.tier, m.reason, `${m.video_id}:${m.in_pts_us}`, null, m.in_reel))}
+        </ul>
+      )}
+      {crossMatch.not_selected.length > 0 && (
+        <>
+          <p className="pt-1 text-xs font-medium text-muted">Left out — and why (add one in by hand to swap it in)</p>
+          <ul aria-label="Moments left out" className="flex gap-2 overflow-x-auto pb-1">
+            {crossMatch.not_selected.map(({ candidate: m, reason }) => item(m, null, m.sequence_label ?? m.label, `${m.video_id}:${m.in_pts_us}:out`, reason, clipOf(m) !== null))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ section 8c: which matches does this reel cover (ADR-131) */
+/** "This match" (the reel as it is) vs "All matches" (a NEW cross-match reel for the same player — the original reel is untouched),
+ *  with the length picker (90 s / 3 min / 5 min, default 3 min, fixed options only). For a cross-match reel this is a read-only
+ *  summary: the length and the rule version were fixed when the reel was made. Nothing here changes the reel being looked at. */
+export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
+  const { reel, canEdit, busy } = useReel();
+  const router = useRouter();
+  const [mode, setMode] = useState<"MATCH" | "ALL_MATCHES">("MATCH");
+  const [lengthS, setLengthS] = useState<90 | 180 | 300>(180);
+  const [creating, setCreating] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (!reel) return null;
+  if (reel.source === "ALL_MATCHES") {
+    const len = reel.cross_match_length_s === 90 ? "90 s" : reel.cross_match_length_s === 300 ? "5 min" : "3 min";
+    return <p className="text-sm" data-reel-source="ALL_MATCHES">All matches · {len} · best moments rule v{reel.best_moments_rule_version ?? "2.1"}</p>;
+  }
+  if (!reel.player) return null;
+  const player = reel.player;
+  const create = async () => {
+    setCreating(true); setErr(null);
+    try {
+      const created = await api<{ id: string }>("/v1/reels", { method: "POST",
+        json: { source: "ALL_MATCHES", length_s: lengthS, player_id: player.player_id } });
+      router.push(`/reels/${created.id}`);
+    } catch (x) { setErr(x instanceof ApiProblem ? x.message : "That did not work."); } finally { setCreating(false); }
+  };
+  // compact: one row for a fixed-pixel panel — a select (this match, or all matches at a fixed length) + Create. The read-only
+  // summary for a cross-match reel is the same as the stacked version's (returned above).
+  if (compact) {
+    const chosen = mode === "ALL_MATCHES" ? String(lengthS) : "MATCH";
+    return (
+      <div className="flex items-center gap-2" data-reel-source="MATCH">
+        <select aria-label="Which matches" value={chosen} disabled={busy || creating}
+          onChange={(e) => { const v = e.target.value; if (v === "MATCH") setMode("MATCH"); else { setMode("ALL_MATCHES"); setLengthS(Number(v) as 90 | 180 | 300); } }}
+          className="min-w-0 flex-1 rounded-ctl border border-line bg-raised/40 px-2 py-1.5 text-sm text-white">
+          <option value="MATCH">This match</option>
+          <option value="90">All matches — 90 s</option>
+          <option value="180">All matches — 3 min</option>
+          <option value="300">All matches — 5 min</option>
+        </select>
+        <button type="button" disabled={mode !== "ALL_MATCHES" || !canEdit || busy || creating} onClick={() => void create()}
+          className="shrink-0 rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">Create</button>
+        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+      </div>
+    );
+  }
+  const radio = (m: "MATCH" | "ALL_MATCHES", label: string) => (
+    <button key={m} type="button" role="radio" aria-checked={mode === m} disabled={busy || creating} onClick={() => setMode(m)}
+      className={`rounded-ctl border px-2.5 py-1.5 text-sm font-medium ${mode === m ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
+      {label}
+    </button>
+  );
+  return (
+    <div className="space-y-2 text-sm" data-reel-source="MATCH">
+      <p className="font-medium">Which matches?</p>
+      <div role="radiogroup" aria-label="Which matches" className="flex gap-1.5">
+        {radio("MATCH", "This match")}{radio("ALL_MATCHES", "All matches")}
+      </div>
+      {mode === "ALL_MATCHES" && (
+        <>
+          <div role="radiogroup" aria-label="Reel length" className="flex gap-1.5">
+            {([90, 180, 300] as const).map((s) => (
+              <button key={s} type="button" role="radio" aria-checked={lengthS === s} disabled={busy || creating} onClick={() => setLengthS(s)}
+                className={`rounded-ctl border px-2.5 py-1.5 text-sm font-medium ${lengthS === s ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
+                {s === 90 ? "90 s" : s === 180 ? "3 min" : "5 min"}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted">One reel of {player.display_name}&apos;s best moments from all his matches — best first, up to {lengthS === 90 ? "90 seconds" : lengthS === 180 ? "3 minutes" : "5 minutes"}.
+            The reel you are looking at stays exactly as it is.</p>
+          <button type="button" disabled={!canEdit || busy || creating} onClick={() => void create()}
+            className="inline-flex items-center gap-1 rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Create all-matches reel
+          </button>
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+        </>
+      )}
+      {mode === "MATCH" && <p className="text-xs text-muted">This match is the reel you are looking at. All matches makes a new reel of his best moments from every match.</p>}
     </div>
   );
 }

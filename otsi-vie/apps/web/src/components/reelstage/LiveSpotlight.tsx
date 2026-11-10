@@ -67,17 +67,21 @@ export function clipCoverage(points: ReelPath["points"], inUs: number, outUs: nu
   return { seen: Math.min(1, total(seenRuns) / len), detected: Math.min(1, total(detRuns) / len), parts };
 }
 
-/** the confirmed player's analysis positions in the reel's clips, fetched again when the reel changes */
-export function useReelPath(reel: Reel | null): ReelPath | null {
+/** the confirmed player's analysis positions in the reel's clips, fetched again when the reel changes.
+ *  ADR-131: a cross-match reel's path is per clip video — pass that video's id and the API returns its clip-window path;
+ *  without it the API returns an empty path (as before). When the path comes back empty the spotlight simply does not draw
+ *  (LiveSpotlight's `live` is false) — the clip still plays, without a spotlight, rather than failing the preview. */
+export function useReelPath(reel: Reel | null, videoId?: string | null): ReelPath | null {
   const [path, setPath] = useState<ReelPath | null>(null);
   const id = reel?.id, version = reel?.version;
   useEffect(() => {
     setPath(null);
     if (!id) return;
     let live = true;
-    void api<ReelPath>(`/v1/reels/${id}/path`).then((x) => { if (live) setPath(x); }, () => undefined);
+    const url = videoId ? `/v1/reels/${id}/path?video_id=${videoId}` : `/v1/reels/${id}/path`;
+    void api<ReelPath>(url).then((x) => { if (live) setPath(x); }, () => undefined);
     return () => { live = false; };
-  }, [id, version]);
+  }, [id, version, videoId]);
   return path;
 }
 

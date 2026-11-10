@@ -5,7 +5,8 @@
  * The four steps reflect the reel's real state (a player a person confirmed, clips added, the render result); a step is only marked done
  * when it is. Clicking a step jumps to its panel. Aspect ratio and the title are real, saved with the reel. Music opens the music picker
  * (ADR-047: uploaded with a rights declaration, mixed under the reel). Description has no place in the reel yet, so it is disabled with its
- * reason; Duration is automatic (the clips' total).
+ * reason; Duration is automatic (the clips' total). Matches (ADR-131) chooses which matches the reel covers: this match, or a new
+ * all-matches reel — the Description box is shorter to make room for the row.
  */
 import { REEL_STEP_KEY, type Reel, type ReelAspectT } from "@otsi-vie/contracts";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Hit } from "@/components/workspace/shared";
 import { api } from "@/lib/api";
 import { MusicPicker, useMusic } from "./MusicPicker";
+import { ReelSourceChoice } from "@/components/reels/ReelBuilder";
 import { input, secs, useStage } from "./shared";
 import { notBuilt } from "@/lib/devMode";
 
@@ -101,21 +103,27 @@ export function LeftColumn() {
           className="absolute" style={{ left: u(38), top: u(1066 - 101), width: u(363), height: u(53), boxSizing: "border-box", padding: `0 ${u(13)}`, color: "#fff", fontSize: u(20), outline: "none", ...input }} />
         <T x={40} y={1147} size={19} color="#8ea3bf">Description (optional)</T>
         <textarea aria-label="Reel description" placeholder="Describe this reel (optional)" disabled title={notBuilt("a reel has no description field")}
-          className="absolute" style={{ left: u(38), top: u(1160 - 101), width: u(363), height: u(105), boxSizing: "border-box", padding: u(13), color: "#fff", fontSize: u(20), resize: "none", opacity: 0.7, ...input }} />
-        <T x={40} y={1305} size={19} color="#8ea3bf">Duration</T>
-        <B x={128} y={1279} w={273} h={52} style={input}>
+          className="absolute" style={{ left: u(38), top: u(1160 - 101), width: u(363), height: u(52), boxSizing: "border-box", padding: u(13), color: "#fff", fontSize: u(20), resize: "none", opacity: 0.7, ...input }} />
+        <T x={40} y={1252} size={19} color="#8ea3bf">Duration</T>
+        <B x={128} y={1226} w={273} h={52} style={input}>
           <span style={{ position: "absolute", left: u(18), top: "50%", transform: "translateY(-50%)", fontSize: u(20), whiteSpace: "nowrap" }}>Auto (Best Moments)</span>
         </B>
-        <Ic x={381} y={1305} k="chev" size={20} color="#8ea3bf" />
-        <div aria-label="The reel's duration is the total of its clips" title="Automatic: the total of the clips you add" className="absolute" style={{ left: u(128), top: u(1279 - 101), width: u(273), height: u(52) }} />
-        <T x={40} y={1371} size={19} color="#8ea3bf">Music</T>
-        <B x={128} y={1347} w={273} h={52} style={input} />
-        <Ic x={153} y={1373} k="note" size={28} color={tune ? "#3ee6a8" : "#cfe0f5"} />
-        <T x={181} y={1373} size={20} color={tune ? "#fff" : "#cfe0f5"} style={{ maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tune ?? "Choose music"}</T>
-        <Ic x={381} y={1373} k="chev" size={20} color="#8ea3bf" />
-        <Hit x={128} y={1347} w={273} h={52} label={tune ? `Music: ${tune}. Change it` : "Choose music: upload your own, with the right to use it"}
+        <Ic x={381} y={1252} k="chev" size={20} color="#8ea3bf" />
+        <div aria-label="The reel's duration is the total of its clips" title="Automatic: the total of the clips you add" className="absolute" style={{ left: u(128), top: u(1226 - 101), width: u(273), height: u(52) }} />
+        <T x={40} y={1318} size={19} color="#8ea3bf">Music</T>
+        <B x={128} y={1294} w={273} h={52} style={input} />
+        <Ic x={153} y={1320} k="note" size={28} color={tune ? "#3ee6a8" : "#cfe0f5"} />
+        <T x={181} y={1320} size={20} color={tune ? "#fff" : "#cfe0f5"} style={{ maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tune ?? "Choose music"}</T>
+        <Ic x={381} y={1320} k="chev" size={20} color="#8ea3bf" />
+        <Hit x={128} y={1294} w={273} h={52} label={tune ? `Music: ${tune}. Change it` : "Choose music: upload your own, with the right to use it"}
           {...(r?.canEdit && reel && draft ? { onClick: () => setMusicOpen(true) } : { reason: reel ? "You cannot edit this reel" : "Open a reel first" })} />
         {musicOpen && draft && <MusicPicker settings={draft} onChange={setDraft} onClose={() => setMusicOpen(false)} />}
+        {/* ADR-131: which matches this reel covers — "All matches" makes a NEW cross-match reel and opens it; this reel is untouched.
+            For a cross-match reel the row is a read-only summary (length + rule version). The row ends at y1414, inside the panel. */}
+        <T x={40} y={1360} size={19} color="#8ea3bf">Matches</T>
+        <div className="absolute" style={{ left: u(38), top: u(1378 - 101), width: u(363) }}>
+          <ReelSourceChoice compact />
+        </div>
       </section>
     </>
   );
