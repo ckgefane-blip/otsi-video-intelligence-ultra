@@ -132,6 +132,37 @@ async function findPython(engineDir) {
 /* tools                                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The corepack command to run. Resolved once to an absolute path next to
+ * the Node.js executable when possible. A GUI app launched from Explorer
+ * can have a stale PATH that finds `node` (and `git`) but not `corepack`,
+ * so resolving it next to `node` — which the check above already proved
+ * is findable — removes that whole class of failure. Falls back to the
+ * bare `corepack` on PATH when the absolute path does not exist.
+ */
+let corepackCmd = 'corepack';
+let corepackResolved = false;
+
+async function resolveCorepack() {
+  if (corepackResolved) return corepackCmd;
+  corepackResolved = true;
+  try {
+    const finder = process.platform === 'win32' ? 'where' : 'which';
+    const { stdout } = await execFileAsync(finder, ['node']);
+    const nodePath = stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
+    if (nodePath) {
+      const candidate = path.join(
+        path.dirname(nodePath),
+        process.platform === 'win32' ? 'corepack.cmd' : 'corepack',
+      );
+      if (fs.existsSync(candidate)) corepackCmd = candidate;
+    }
+  } catch {
+    // fall back to `corepack` on PATH
+  }
+  return corepackCmd;
+}
+
 /** Check git, Node >= 22 and pnpm exist. Throws a plain-worded Error. */
 async function checkTools() {
   try {
@@ -155,11 +186,13 @@ async function checkTools() {
       `Node.js ${nodeOut} is too old. OTSI VIE needs Node.js 22 or newer.\nInstall Node.js 22 (LTS) once from https://nodejs.org/ , then open OTSI VIE again.`,
     );
   }
+  await resolveCorepack();
   try {
-    await runCommand('corepack', ['pnpm', '--version'], {});
-  } catch {
+    await runCommand(corepackCmd, ['pnpm', '--version'], {});
+  } catch (err) {
     throw new Error(
-      'pnpm was not found (it comes with Node.js).\nOpen a terminal once and run: corepack enable\nThen open OTSI VIE again.',
+      'pnpm was not found (it comes with Node.js).\nOpen a terminal once and run: corepack enable\nThen open OTSI VIE again.\n'
+      + `(${corepackCmd} pnpm --version: ${err.message})`,
     );
   }
 }
@@ -189,7 +222,8 @@ async function ensureRepo(engineDir, log) {
 async function ensureJsDeps(otsiVieDir, log) {
   if (fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
   log('Installing the engine packages (first time, a few minutes)...\n');
-  await runCommand('corepack', ['pnpm', 'install'], { cwd: otsiVieDir, log });
+  await resolveCorepack();
+  await runCommand(corepackCmd, ['pnpm', 'install'], { cwd: otsiVieDir, log });
 }
 
 async function ensureBuilds(otsiVieDir, log) {
@@ -198,8 +232,9 @@ async function ensureBuilds(otsiVieDir, log) {
   const contractsDist = path.join(otsiVieDir, 'packages', 'contracts', 'dist');
   if (fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist)) return;
   log('Building the engine (first time, a few minutes)...\n');
+  await resolveCorepack();
   for (const pkg of ['packages/contracts', 'apps/api', 'apps/web']) {
-    await runCommand('corepack', ['pnpm', 'build'], {
+    await runCommand(corepackCmd, ['pnpm', 'build'], {
       cwd: path.join(otsiVieDir, pkg),
       log,
     });
@@ -332,6 +367,7 @@ module.exports = {
   WEB_URL,
   DOCKER_CONTAINER,
   checkTools,
+  resolveCorepack,
   findPython,
   pythonCandidates,
   testPython,
