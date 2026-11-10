@@ -139,10 +139,23 @@ export const CreateBrandAssetRequest = z.object({
 });
 export type CreateBrandAssetRequest = z.infer<typeof CreateBrandAssetRequest>;
 
+/**
+ * ADR-131: a reel is one player, one match (source MATCH, video_id set) — or one player, ALL his matches (source ALL_MATCHES,
+ * video_id absent, length_s from 90 / 180 / 300, default 180). A cross-match reel pins targets across every video where he has
+ * confirmed tracks, and its clips each carry their own source video.
+ */
+export const CrossMatchSource = z.enum(["MATCH", "ALL_MATCHES"]);
+export type CrossMatchSource = z.infer<typeof CrossMatchSource>;
 export const CreateReelRequest = z.object({
-  video_id: z.string().uuid(),
+  video_id: z.string().uuid().optional(),
   player_id: z.string().uuid(),
   name: z.string().trim().min(1).max(200).optional(),
+  source: CrossMatchSource.default("MATCH"),
+  /** cross-match only: the reel's length (90 / 180 / 300 s, default 180); ignored for a single-match reel */
+  length_s: z.union([z.literal(90), z.literal(180), z.literal(300)]).optional(),
+}).superRefine((b, ctx) => {
+  if (b.source === "MATCH" && !b.video_id) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["video_id"], message: "video_id is required for a single-match reel" });
+  if (b.source === "ALL_MATCHES" && b.video_id) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["video_id"], message: "video_id is not used for a cross-match reel: it spans all the player's matches" });
 });
 export type CreateReelRequest = z.infer<typeof CreateReelRequest>;
 
@@ -157,6 +170,8 @@ export type UpdateReelRequest = z.infer<typeof UpdateReelRequest>;
 export const ReelClip = z.object({
   id: z.string().uuid(),
   sequence_index: z.number().int(),
+  /** ADR-131: the video this clip comes from (the reel's video for a single-match reel) */
+  source_video_id: z.string().uuid(),
   in_pts_us: z.number().int(),
   out_pts_us: z.number().int(),
   origin: z.enum(["SUGGESTED", "MANUAL"]),
@@ -253,7 +268,14 @@ export const Reel = z.object({
   name: z.string(),
   status: z.string(),
   version: z.number().int(),
-  video_id: z.string().uuid(),
+  /** null for a cross-match reel (ADR-131): it spans all the player's matches, not one video */
+  video_id: z.string().uuid().nullable(),
+  /** ADR-131: MATCH = one player, one match; ALL_MATCHES = one player, all his matches */
+  source: CrossMatchSource.default("MATCH"),
+  /** cross-match only: the chosen reel length in seconds (90 / 180 / 300); null for a single-match reel */
+  cross_match_length_s: z.number().int().nullable().optional(),
+  /** cross-match only: the best-moments rule version the reel was built with (ADR-131); null for a single-match reel */
+  best_moments_rule_version: z.number().int().nullable().optional(),
   run_id: z.string().uuid().nullable(),
   player: z.object({ player_id: z.string().uuid(), display_name: z.string(), canonical_otsi_id: z.string().nullable(), profile: PlayerProfile.optional() }).nullable(),
   /** the player's entry on the team sheet of the video's match (team, shirt number, position), as recorded; null = not on it */
@@ -355,6 +377,9 @@ export const AddClipRequest = z.object({
   out_pts_us: z.number().int().positive(),
   origin: z.enum(["SUGGESTED", "MANUAL"]).default("MANUAL"),
   label: z.string().trim().max(255).nullable().default(null),
+  /** ADR-131: the clip's video for a cross-match reel (required there — a cross-match reel has no single video);
+   *  for a single-match reel it must be the reel's video when given, and defaults to it when not */
+  source_video_id: z.string().uuid().optional(),
 }).refine((c) => c.out_pts_us > c.in_pts_us, { message: "out_pts_us must be after in_pts_us" });
 export type AddClipRequest = z.infer<typeof AddClipRequest>;
 

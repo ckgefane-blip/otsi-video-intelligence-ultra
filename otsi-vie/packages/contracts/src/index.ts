@@ -39,6 +39,7 @@ export * from "./lanes";
 export * from "./snapshots";
 export * from "./identity-impact";
 export * from "./profile-intro";
+export * from "./cross-match";
 export * from "./reel-blocks";
 export * from "./export-presets";
 export * from "./export-review";
