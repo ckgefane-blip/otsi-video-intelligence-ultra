@@ -11,6 +11,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('otsi', {
   onStatus: (fn) => ipcRenderer.on('status', (_event, text) => fn(text)),
   onLog: (fn) => ipcRenderer.on('log', (_event, line) => fn(line)),
+  onUpdateStatus: (fn) => ipcRenderer.on('update-status', (_event, text) => fn(text)),
+  onHardware: (fn) => ipcRenderer.on('hardware', (_event, data) => fn(data)),
   onShowOwner: (fn) => ipcRenderer.on('show-owner', () => fn()),
   onShowError: (fn) => ipcRenderer.on('show-error', (_event, data) => fn(data)),
   submitOwner: (details) => ipcRenderer.send('owner-submit', details),

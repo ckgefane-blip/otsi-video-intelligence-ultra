@@ -21,6 +21,11 @@ the missing Visual C++ Redistributable. Install it once from Microsoft:
   https://aka.ms/vs/17/release/vc_redist.x64.exe
 then run again.
 
+The packaged desktop app (ADR-144 §1.2) bundles the ZIP in the installer
+instead of downloading it: set OTSI_VIE_MYSQL_ZIP to the bundled ZIP, or
+place mysql-8.4.6-winx64.zip next to the app resources. The download below
+only runs when there is no bundled ZIP.
+
 Only used by local_stack.py in --mysql portable mode. The Docker path never
 imports this module.
 """
@@ -93,11 +98,42 @@ def _root_login_works(root_password: str, port: int = PORT) -> bool:
         return False
 
 
+def bundled_zip() -> Path | None:
+    """A MySQL ZIP bundled with the desktop installer (ADR-144 §1.2).
+
+    The packaged app sets OTSI_VIE_MYSQL_ZIP to the bundled ZIP inside the
+    app resources; as a fallback, a ZIP sitting next to the app resources
+    (the installer lays it beside the engine folder) is used. Returns None
+    when there is no bundled ZIP, and the normal CDN download below runs.
+    """
+    env_zip = os.environ.get("OTSI_VIE_MYSQL_ZIP", "").strip()
+    if env_zip:
+        cand = Path(env_zip)
+        if cand.is_file():
+            return cand
+        print(f"portable MySQL: OTSI_VIE_MYSQL_ZIP is set but not a file ({env_zip}); falling back to download")
+    # Next to the app: <resources>/mysql-8.4.6-winx64.zip, i.e. four levels
+    # above this file's tools/dev folder (resources/engine/otsi-vie/tools/dev).
+    beside = Path(__file__).resolve().parents[4] / f"mysql-{MYSQL_VERSION}-winx64.zip"
+    if beside.is_file():
+        return beside
+    return None
+
+
 def _download(root: Path) -> Path:
     zp = zip_path(root)
     if zp.exists() and zp.stat().st_size == MYSQL_ZIP_BYTES:
         print(f"portable MySQL: ZIP already downloaded ({MYSQL_ZIP_BYTES // 1024 // 1024} MB)")
         return zp
+    bundled = bundled_zip()
+    if bundled is not None:
+        got = bundled.stat().st_size
+        if got != MYSQL_ZIP_BYTES:
+            raise SystemExit(
+                f"portable MySQL: the bundled MySQL ZIP is the wrong size ({got} bytes, expected "
+                f"{MYSQL_ZIP_BYTES}). The installer is incomplete — reinstall OTSI VIE.")
+        print(f"portable MySQL: using the bundled MySQL ZIP ({MYSQL_ZIP_BYTES // 1024 // 1024} MB, no download)")
+        return bundled
     zp.parent.mkdir(parents=True, exist_ok=True)
     print(f"portable MySQL: downloading MySQL {MYSQL_VERSION} (~249 MB, once only)...")
     req = urllib.request.Request(MYSQL_URL, headers={"User-Agent": "OTSI-VIE-portable-mysql/1.0"})

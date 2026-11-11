@@ -1,15 +1,26 @@
 'use strict';
 /**
- * OTSI VIE desktop app — main process.
+ * OTSI VIE desktop app — main process (packaged model, plan v3, ADR-144).
  *
  * The app is a window around the local engine (same engine the browser
- * version runs). On launch it shows a small loading window, gets the engine
- * ready (repo, packages, database, builds, owner account), starts it, and
- * then opens the main window on http://localhost:4311. Closing the main
- * window stops the engine. Nothing opens in a browser.
+ * version runs). On launch it shows a small loading window, checks the
+ * hardware, gets the bundled engine ready (database, models, owner
+ * account, licence), starts it, and then opens the main window on
+ * http://localhost:4311. Closing the main window stops the engine.
+ * Nothing opens in a browser.
+ *
+ * The installer ships pre-built code, never source: there is no git clone,
+ * no pnpm install and no build on the user's PC, no system Python, and no
+ * Torch/PaddlePaddle. The worker is a Nuitka-compiled native binary and
+ * inference runs on the bundled ONNX Runtime + DirectML / OpenVINO
+ * runtimes. If a bundled component is missing, the app says so plainly
+ * and stops instead of trying to fetch or build it.
  *
  * First run: if no owner account exists yet, the loading window shows a
  * simple form (email, name, organisation) instead of a console prompt.
+ * Updates: electron-updater checks on launch, downloads in the background
+ * (differential/blockmap — a code update is megabytes, not the whole
+ * installer), and installs on quit.
  */
 
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
@@ -17,13 +28,21 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const backend = require('./backend');
+const components = require('./components');
+
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch {
+  autoUpdater = null; // dev checkout without the dependency: no update checks
+}
 
 const MAIN_WIDTH = 1600;
 const MAIN_HEIGHT = 900;
 
 let loadingWin = null;
 let mainWin = null;
-let backendChild = null;
+let backendHandle = null;
 let backendLogStream = null;
 let fileLogStream = null;
 let logFile = '';
@@ -37,22 +56,7 @@ let ownerResolver = null;
 /* ------------------------------------------------------------------ */
 
 function engineDir() {
-  // Portable build: the engine checkout lives next to the exe.
-  if (process.env.PORTABLE_EXECUTABLE_DIR) {
-    return path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'OTSI-Ultra');
-  }
-  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
-    return path.join(process.env.LOCALAPPDATA, 'OTSI-VIE', 'OTSI-Ultra');
-  }
-  if (!app.isPackaged) {
-    // Development: this package lives in the ultra repo checkout itself.
-    return path.resolve(__dirname, '..', '..', '..');
-  }
-  return path.join(app.getPath('userData'), 'OTSI-Ultra');
-}
-
-function otsiVieDir() {
-  return path.join(engineDir(), 'otsi-vie');
+  return backend.engineRoot();
 }
 
 function windowIcon() {
@@ -80,6 +84,22 @@ function setStatus(text) {
   pushLog(`-- ${text}\n`);
   if (loadingWin && !loadingWin.isDestroyed()) {
     loadingWin.webContents.send('status', text);
+  }
+}
+
+function sendUpdateStatus(text) {
+  if (text) pushLog(`-- update: ${text}\n`);
+  if (loadingWin && !loadingWin.isDestroyed()) {
+    loadingWin.webContents.send('update-status', text);
+  }
+}
+
+function sendHardware(detection) {
+  if (loadingWin && !loadingWin.isDestroyed()) {
+    loadingWin.webContents.send('hardware', {
+      summary: detection.summary,
+      warnings: detection.warnings,
+    });
   }
 }
 
@@ -191,6 +211,12 @@ function buildAppMenu() {
       label: 'Help',
       submenu: [
         { label: 'About OTSI VIE', click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + '/dashboard'); } },
+        { type: 'separator' },
+        {
+          label: 'Check for Updates…',
+          enabled: !!autoUpdater,
+          click: () => { if (autoUpdater) void checkForUpdates(); },
+        },
       ],
     },
   ]);
@@ -219,8 +245,8 @@ function createMainWindow() {
   // Developer tools, for when something needs a closer look.
   mainWin.webContents.on('before-input-event', (event, input) => {
     if (
-      (input.control && input.shift && input.key.toLowerCase() === 'i') ||
-      input.key === 'F12'
+      (input.control && input.shift && input.key.toLowerCase() === 'i')
+      || input.key === 'F12'
     ) {
       mainWin.webContents.toggleDevTools();
       event.preventDefault();
@@ -233,6 +259,49 @@ function createMainWindow() {
 }
 
 /* ------------------------------------------------------------------ */
+/* auto-update (differential)                                          */
+/* ------------------------------------------------------------------ */
+
+// electron-updater, publishing to GitHub Releases (the ultra repo — see
+// electron-builder.yml `publish`). Updates are differential (blockmap):
+// the NSIS installer is built with differentialPackage "store-asar", so a
+// code update downloads megabytes, not the whole installer. The check runs
+// on launch, the download happens in the background, and the update
+// installs on quit. An update problem never blocks the app: it is logged
+// and the app carries on.
+function setupAutoUpdater() {
+  if (!autoUpdater || !app.isPackaged) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('checking-for-update', () => sendUpdateStatus('Checking for updates…'));
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus(`Update ${info.version} available — downloading in the background…`);
+  });
+  autoUpdater.on('update-not-available', () => sendUpdateStatus(''));
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus(`Downloading update… ${Math.round(progress.percent)}%`);
+  });
+  autoUpdater.on('update-downloaded', () => {
+    sendUpdateStatus('Update downloaded — it will install when you quit.');
+  });
+  autoUpdater.on('error', (err) => {
+    pushLog(`Update check failed: ${String((err && err.message) || err)}\n`);
+    sendUpdateStatus('');
+  });
+}
+
+async function checkForUpdates() {
+  if (!autoUpdater) return;
+  sendUpdateStatus('Checking for updates…');
+  try {
+    await autoUpdater.checkForUpdatesAndNotify();
+  } catch (err) {
+    pushLog(`Update check failed: ${String((err && err.message) || err)}\n`);
+    sendUpdateStatus('');
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* startup                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -242,61 +311,81 @@ function checkAborted() {
 
 async function startup() {
   const engine = engineDir();
-  const otsiVie = otsiVieDir();
   const userData = app.getPath('userData');
+  const data = backend.dataDir(userData);
   fs.mkdirSync(userData, { recursive: true });
   logFile = path.join(userData, 'backend.log');
   backendLogStream = fs.createWriteStream(logFile, { flags: 'a' });
   fileLogStream = backendLogStream;
+  // Child processes inherit this stream as their stdout/stderr, which
+  // needs a real file descriptor — wait until it is open.
+  await new Promise((resolve) => backendLogStream.once('open', resolve));
   const log = (text) => {
     pushLog(text);
   };
 
   setStatus('Starting OTSI VIE...');
-  await backend.checkTools();
-  checkAborted();
 
-  setStatus('Finding Python...');
-  const python = await backend.findPython(engine, log);
-  if (!python) {
+  // The installer ships pre-built code. If a bundled component is missing
+  // or corrupt, say so plainly and stop — never download source or build.
+  const missingEngine = backend.verifyBundledEngine(engine);
+  if (missingEngine.length) {
     throw new Error(
-      'No Python with the engine\'s database driver (pymysql) was found.\n' +
-        'Install Python 3.12 or newer from python.org (tick "Add python.exe to PATH"\n' +
-        'during setup), then open OTSI VIE again. The app creates its own Python\n' +
-        'environment inside the OTSI-Ultra folder; it never uses another project\'s folder.',
+      'The installed engine is incomplete — these files are missing:\n'
+      + missingEngine.join('\n')
+      + '\nReinstall OTSI VIE.',
     );
   }
   checkAborted();
 
-  setStatus('Getting the engine ready...');
-  await backend.ensureRepo(engine, log);
+  setStatus('Checking this PC...');
+  const detection = await backend.hardware.detect(data);
+  sendHardware(detection);
+  pushLog(`Hardware: ${detection.summary}\n`);
+  for (const w of detection.warnings) pushLog(`Hardware: ${w}\n`);
   checkAborted();
 
-  await backend.ensureJsDeps(otsiVie, log);
-  checkAborted();
-
-  setStatus('Installing the video libraries (first time, a few minutes)...');
-  await backend.ensureWorkerDeps(otsiVie, python, log);
+  setStatus('Checking the AI runtimes...');
+  const runtime = backend.ensureAiRuntime(engine, log);
+  if (!runtime.ok) {
+    throw new Error(
+      'The AI runtimes are incomplete — these files are missing:\n'
+      + runtime.missing.join('\n')
+      + `\n(from ${runtime.dir})\nReinstall OTSI VIE.`,
+    );
+  }
+  const tools = backend.ensureToolBinaries(engine, log);
+  if (!tools.ok) {
+    throw new Error(
+      `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
+    );
+  }
+  if (!backend.nativeWorkerExe(engine)) {
+    throw new Error(
+      'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
+    );
+  }
   checkAborted();
 
   setStatus('Setting up the database...');
-  await backend.prepareStack(python, otsiVie, engine, log);
+  const { env, mysqlSupervisor } = await backend.prepareDatabase(engine, data, userData, detection, log);
   checkAborted();
 
-  await backend.ensureBuilds(otsiVie, log);
+  setStatus('Getting the AI models ready (first time, a few minutes)...');
+  await backend.ensureModels(engine, data, log);
   checkAborted();
 
-  if (!backend.ownerMarkerExists(engine)) {
+  if (!backend.ownerMarkerExists(data)) {
     setStatus('One last thing: your owner account.');
     showOwnerForm();
     const details = await waitForOwner();
     checkAborted();
     if (details.haveAccount) {
-      backend.writeOwnerMarker(engine);
+      backend.writeOwnerMarker(data);
     } else {
       setStatus('Creating your owner account...');
       try {
-        await backend.bootstrapOwner(python, otsiVie, engine, details, log);
+        await backend.bootstrapOwner(engine, env, details, log);
       } catch (err) {
         // The account may already exist in this database: let the user carry
         // on instead of blocking them. Anything else is a real failure.
@@ -307,27 +396,34 @@ async function startup() {
           throw err;
         }
       }
-      backend.writeOwnerMarker(engine);
+      backend.writeOwnerMarker(data);
     }
     checkAborted();
   }
 
+  // Licence: refresh when a central server is configured and a session is
+  // stored. Offline, or with no session yet, the app still opens — the
+  // stored token and its grace decide what the loading window says, and
+  // the compiled native engine enforces the licence. The shell never
+  // treats a plain flag as proof.
+  setStatus('Checking the licence...');
+  const licenceStatus = await backend.licence.refreshLicence(userData, log);
+  if (licenceStatus.note) pushLog(`Licence: ${licenceStatus.note}\n`);
+  if (licenceStatus.state === 'expired') {
+    setStatus('Licence expired — analysis stays paused until the app can reach the server again.');
+  }
+  checkAborted();
+
   setStatus('Starting the engine...');
-  backendChild = backend.startBackend(python, otsiVie, engine, backendLogStream);
-  backendChild.on('error', (err) => {
-    pushLog(`The engine process could not start: ${err.message}\n`);
-  });
+  backendHandle = backend.startBackend(engine, data, env, backendLogStream, log, mysqlSupervisor);
   // If the engine process dies, say so at once instead of waiting 4 minutes.
-  const childGone = new Promise((resolve) => {
-    backendChild.on('exit', (code) => resolve(code));
-  });
   const first = await Promise.race([
     backend.waitForWeb(backend.WEB_URL, 240000).then(() => 'ready'),
-    childGone.then((code) => `exited:${code}`),
+    backendHandle.exitPromise.then((exited) => `exited:${exited.name}:${exited.code}`),
   ]);
   if (first !== 'ready') {
     throw new Error(
-      `The engine stopped while starting (exit ${first.split(':')[1]}).\nSee the log below, or the full log at ${logFile}`,
+      `The engine stopped while starting (${first}).\nSee the log below, or the full log at ${logFile}`,
     );
   }
   checkAborted();
@@ -335,6 +431,10 @@ async function startup() {
   setStatus('Opening the engine...');
   createMainWindow();
   if (loadingWin && !loadingWin.isDestroyed()) loadingWin.close();
+
+  // Update check after the window opens, so it never delays startup.
+  setupAutoUpdater();
+  if (autoUpdater && app.isPackaged) void checkForUpdates();
 }
 
 /* ------------------------------------------------------------------ */
@@ -342,10 +442,10 @@ async function startup() {
 /* ------------------------------------------------------------------ */
 
 async function stopEverything() {
-  if (backendChild) {
-    const child = backendChild;
-    backendChild = null;
-    await backend.stopBackend(child);
+  if (backendHandle) {
+    const handle = backendHandle;
+    backendHandle = null;
+    await backend.stopBackend(handle);
   }
   if (backendLogStream) {
     fileLogStream = null;
@@ -396,7 +496,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', async (event) => {
   if (quitting) return;
-  if (backendChild) {
+  if (backendHandle) {
     event.preventDefault();
     quitting = true;
     await stopEverything();
@@ -428,4 +528,23 @@ ipcMain.on('owner-have-account', () => {
 ipcMain.on('close-app', () => {
   startupAborted = true;
   app.quit();
+});
+
+// Component manager hook (plan v3 §1b): extra model/language packs install
+// from inside the app. The list/install calls below are the shell side;
+// the UI that calls them and the server side of the manifest feed are
+// follow-ups. Installs are resumable, SHA-256 checked, and the manifest
+// must verify against the Ed25519 public key (components.js).
+ipcMain.handle('components-list', async () => components.listAvailablePacks());
+ipcMain.handle('components-install', async (_event, packId) => {
+  const { packs } = await components.listAvailablePacks();
+  const pack = packs.find((p) => p.id === packId);
+  if (!pack) throw new Error(`No pack ${packId} in the component list.`);
+  const data = backend.dataDir(app.getPath('userData'));
+  const destDir = pack.kind === 'model' ? backend.modelsDir(data) : backend.componentsDir(data);
+  const file = await components.downloadPack(pack, destDir, {
+    log: (text) => pushLog(text),
+  });
+  components.recordInstalled(data, pack);
+  return { file, pack: pack.id };
 });

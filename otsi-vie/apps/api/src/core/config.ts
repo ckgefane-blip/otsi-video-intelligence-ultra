@@ -27,6 +27,33 @@ export interface Config {
    *  fabricates output. The provider name and model are recorded with each assessment; the API key is read from
    *  the environment only, never stored, never logged, never returned. */
   aiAnalyst?: AiAnalystConfig;
+  /** Central server (ADR-144 §1.4/§1.5): the same API deployed on the owner's hosting. Absent = local mode,
+   *  which behaves exactly as before. */
+  central?: CentralConfig;
+}
+
+/** Central-server mode (ADR-144): every setting is optional and comes from the environment. A local engine
+ *  sets only the verification key (licencePublicKeyPem or centralJwksUrl) so it can check licence tokens
+ *  issued by the central server; the central server itself sets centralMode plus its signing key. */
+export interface CentralConfig {
+  /** OTSI_VIE_CENTRAL_MODE=yes: this deployment IS the central server — a real domain as JWT issuer, secure
+   *  cookies on. Local mode (the default) leaves this false. */
+  centralMode: boolean;
+  /** OTSI_VIE_CENTRAL_SERVER_URL: the central server's base URL (e.g. https://accounts.otsi.cc). The desktop
+   *  shell reads it to know where to sign in; the API uses it only to advertise it. */
+  centralServerUrl?: string;
+  /** OTSI_VIE_LICENCE_SIGNING_KEY: the central server's Ed25519 signing key (PKCS#8 PEM) that licence tokens
+   *  are signed with. Central server ONLY — never in the installer, never logged, never in the repo. The
+   *  matching public key is OTSI_VIE_LICENCE_PUBLIC_KEY_PEM. */
+  licenceSigningKeyPem?: string;
+  /** OTSI_VIE_LICENCE_PUBLIC_KEY_PEM: the central server's Ed25519 public key, which a LOCAL engine uses to
+   *  verify licence tokens. The central server itself does not need it (it derives its own public key from
+   *  the signing key when centralMode is on). */
+  licencePublicKeyPem?: string;
+  /** OTSI_VIE_CENTRAL_JWKS_URL: the central server's JWKS endpoint — the alternative to the PEM above. */
+  centralJwksUrl?: string;
+  /** OTSI_VIE_LICENCE_GRACE_DAYS: the offline grace after a licence token expires (ADR-144 §1.5), default 14. */
+  licenceGraceDays: number;
 }
 
 export interface AiAnalystConfig {
@@ -65,7 +92,9 @@ export interface LocalAuthConfig {
   /** browser origins allowed to call the cookie endpoints (refresh, logout): CSRF defence together with SameSite=Strict */
   allowedOrigins: string[];
   /** WebAuthn (passkeys, ADR-143): the relying-party id — the loopback host the desktop app runs on
-   *  (OTSI_VIE_WEBAUTHN_RP_ID, default "localhost"). A passkey created here cannot sign in to any other site. */
+   *  (OTSI_VIE_WEBAUTHN_RP_ID, default "localhost"). A passkey created here cannot sign in to any other site.
+   *  A central deployment (ADR-144) sets this to the product domain instead (e.g. otsi.cc) — never 127.0.0.1:
+   *  Chromium rejects 127.0.0.1 as a WebAuthn RP ID, while a real domain is valid. */
   webauthnRpId?: string;
   /** WebAuthn relying-party name shown to the person (OTSI_VIE_WEBAUTHN_RP_NAME, default "OTSI VIE"). */
   webauthnRpName?: string;
@@ -123,6 +152,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     };
   }
   if (!cfg.jwksUrl && !cfg.jwtPublicKeyPem) throw new Error("set OTSI_VIE_JWKS_URL or OTSI_VIE_JWT_PUBLIC_KEY_PEM");
+  // Central server (ADR-144 §1.4/§1.5): every setting is optional; when none of them is set there is no
+  // cfg.central at all and local mode behaves exactly as before.
+  if (env.OTSI_VIE_CENTRAL_MODE === "yes" || env.OTSI_VIE_CENTRAL_SERVER_URL || env.OTSI_VIE_LICENCE_SIGNING_KEY
+      || env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM || env.OTSI_VIE_CENTRAL_JWKS_URL || env.OTSI_VIE_LICENCE_GRACE_DAYS) {
+    const graceDays = Number(env.OTSI_VIE_LICENCE_GRACE_DAYS ?? 14);
+    if (!Number.isInteger(graceDays) || graceDays < 0) throw new Error("OTSI_VIE_LICENCE_GRACE_DAYS must be a whole number of days >= 0");
+    cfg.central = { centralMode: env.OTSI_VIE_CENTRAL_MODE === "yes", licenceGraceDays: graceDays };
+    if (env.OTSI_VIE_CENTRAL_SERVER_URL) cfg.central.centralServerUrl = env.OTSI_VIE_CENTRAL_SERVER_URL.trim();
+    if (env.OTSI_VIE_LICENCE_SIGNING_KEY) cfg.central.licenceSigningKeyPem = env.OTSI_VIE_LICENCE_SIGNING_KEY.trim();
+    if (env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM) cfg.central.licencePublicKeyPem = env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM.trim();
+    if (env.OTSI_VIE_CENTRAL_JWKS_URL) cfg.central.centralJwksUrl = env.OTSI_VIE_CENTRAL_JWKS_URL.trim();
+    // the central server signs licence tokens with its Ed25519 key, and signs access tokens with its local
+    // signing key: without either it could not issue what it must, so a central deployment that forgot a key
+    // fails at start-up, not at the first licence refresh or sign-in
+    if (cfg.central.centralMode && !cfg.localAuth) throw new Error("OTSI_VIE_CENTRAL_MODE=yes needs local sign-in (OTSI_VIE_LOCAL_SIGNING_KEY_FILE)");
+    if (cfg.central.centralMode && !cfg.central.licenceSigningKeyPem) throw new Error("OTSI_VIE_CENTRAL_MODE=yes needs a licence signing key (OTSI_VIE_LICENCE_SIGNING_KEY)");
+  }
   checkDsn(cfg.dbDsn, env);
   return cfg;
 }

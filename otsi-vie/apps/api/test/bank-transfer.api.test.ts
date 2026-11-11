@@ -1,0 +1,280 @@
+/**
+ * Bank-transfer billing for plans (ADR-144 §1.7, migration 0075) through the real API and MySQL: the plan
+ * catalogue, bank accounts (one per currency, owner-entered), the order flow (create -> pro-forma invoice
+ * with a unique per-year reference -> proof / mark paid -> admin confirm -> subscription ACTIVE, entitlement
+ * grant, wallet PURCHASE with the invoice reference), rejection (never activates), partial payment (never
+ * activates, completes only through confirm), double-confirm idempotency (no double wallet credit), money
+ * refund (claws the tokens back), renewals (7 days before expiry, no duplicates) and expiry + grace (drops
+ * to the free tier, projects kept).
+ * Needs MySQL 8.4 on 127.0.0.1:3507 (global-setup); it cannot run in this VM without it.
+ */
+import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { randomUUID } from "node:crypto";
+import type mysql from "mysql2/promise";
+import { v7 as uuidv7 } from "uuid";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Member, rootDb, seedMember, startApi, token } from "./helpers";
+
+let app: NestFastifyApplication;
+let root: mysql.Connection;
+let owner: Member, viewer: Member;
+let dir: string;
+
+async function call(m: Member | null, method: "GET" | "POST", url: string, body?: unknown, extra: Record<string, string> = {}) {
+  const isRaw = extra["content-type"] === "application/octet-stream";
+  const r = await app.inject({ method, url, headers: { ...(m?.headers ?? {}), ...extra }, ...(body === undefined ? {} : { payload: isRaw ? (body as Buffer) : (body as object) }) });
+  return { status: r.statusCode, body: r.headers["content-type"]?.toString().includes("json") ? JSON.parse(r.body) : r.rawPayload };
+}
+
+/** An organization with one ACTIVE member, WITHOUT the test wallet funding seedMember adds. */
+async function seedBareMember(role = "OWNER"): Promise<Member> {
+  const org = uuidv7(), userId = uuidv7(), subject = `sub-${randomUUID()}`;
+  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [org, `Org ${org.slice(-6)}`, `org-${org}`]);
+  await root.query("INSERT INTO users (id, external_subject, email, display_name) VALUES (?, ?, ?, ?)", [userId, subject, `${subject}@test.invalid`, "Test User"]);
+  await root.query("INSERT INTO memberships (organization_id, user_id, role, status) VALUES (?, ?, ?, 'ACTIVE')", [org, userId, role]);
+  return { userId, subject, orgId: org, role, headers: { authorization: `Bearer ${await token(subject)}`, "x-organization-id": org } };
+}
+
+const balance = async (m: Member) => (await call(m, "GET", "/v1/wallet")).body.balance as number;
+const year = new Date().getUTCFullYear();
+
+async function seedBankAccount(m: Member, currency: "NGN" | "USD") {
+  const r = await call(m, "POST", "/v1/admin/billing/bank-accounts",
+    { currency, account_name: "Osio & Tee Solutions International Ltd", bank_name: currency === "NGN" ? "Zenith Bank" : "Zenith Bank USD", account_number: currency === "NGN" ? "1234567890" : "0987654321", swift_iban: currency === "USD" ? "ZEIBNGLA" : null, is_active: true });
+  expect(r.status).toBe(201);
+  return r.body;
+}
+
+async function createOrder(m: Member, plan = "CLUB", period = 1, currency: "NGN" | "USD" = "NGN") {
+  const r = await call(m, "POST", "/v1/billing/orders", { plan_code: plan, period_months: period, currency });
+  expect(r.status).toBe(201);
+  return r.body;
+}
+
+async function subscriptionOf(orgId: string) {
+  const [rows] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM subscriptions WHERE organization_id = ? ORDER BY created_at DESC LIMIT 1", [orgId]);
+  return rows[0] as mysql.RowDataPacket | undefined;
+}
+
+beforeAll(async () => {
+  dir = await mkdtemp(path.join(tmpdir(), "otsi-vie-billing-"));
+  app = await startApi({ storageDir: dir });
+  root = await rootDb();
+  owner = await seedMember(root, "OWNER");
+  viewer = await seedMember(root, "VIEWER", owner.orgId);
+});
+
+afterAll(async () => {
+  await app.close();
+  await root.end();
+  await rm(dir, { recursive: true, force: true });
+});
+
+describe("bank-transfer billing", () => {
+  it("publishes the plan catalogue: four billable plans, 1/12-month periods, online payment coming soon", async () => {
+    const m = await seedBareMember();
+    const r = await call(m, "GET", "/v1/billing/plans");
+    expect(r.status).toBe(200);
+    expect(r.body.plans.filter((p: { code: string }) => p.code !== "FREE").map((p: { code: string }) => p.code)).toEqual(["STARTER", "CLUB", "ACADEMY", "SEASON"]);
+    expect(r.body.plans.find((p: { code: string }) => p.code === "CLUB")).toMatchObject({ tokens_per_month: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900 });
+    expect(r.body.periods_months).toEqual([1, 12]);
+    expect(r.body).toMatchObject({ order_expiry_days: 14, renewal_window_days: 7, renewal_grace_days: 14, online_payment: "coming_soon" });
+  });
+
+  it("generates references that are unique and sequential per year", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const first = await createOrder(m, "STARTER", 1, "NGN");
+    const second = await createOrder(m, "CLUB", 1, "NGN");
+    expect(first.order.reference).toMatch(new RegExp(`^OTSI-INV-${year}-\\d{6}$`));
+    expect(second.order.reference).toMatch(new RegExp(`^OTSI-INV-${year}-\\d{6}$`));
+    expect(first.order.reference).not.toBe(second.order.reference);
+    const seq = (ref: string) => Number(ref.slice(-6));
+    expect(seq(second.order.reference)).toBe(seq(first.order.reference) + 1);
+    expect(first.invoice).toMatchObject({
+      reference: first.order.reference, plan_code: "STARTER", amount_minor: 1_500_000, currency: "NGN",
+      bank_account: { account_name: "Osio & Tee Solutions International Ltd", bank_name: "Zenith Bank", account_number: "1234567890" },
+    });
+    expect(first.invoice.pay_reference_note).toContain("transfer description");
+  });
+
+  it("refuses an order in a currency with no bank account set up", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const r = await call(m, "POST", "/v1/billing/orders", { plan_code: "CLUB", period_months: 1, currency: "USD" });
+    expect(r.status).toBe(409);
+    expect(r.body.code).toBe("BANK_ACCOUNT_NOT_CONFIGURED");
+  });
+
+  it("refuses to confirm an order before it is awaiting confirmation, and activates nothing", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const before = await balance(m);
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    const r = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" });
+    expect(r.status).toBe(409);
+    expect(r.body.code).toBe("ORDER_NOT_AWAITING_CONFIRMATION");
+    expect(await balance(m)).toBe(before);
+    expect(await subscriptionOf(m.orgId)).toBeUndefined();
+  });
+
+  it("runs the full flow: proof -> confirm -> ACTIVE subscription, grant, wallet PURCHASE; a second confirm never double-credits", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const before = await balance(m);
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    expect(created.order).toMatchObject({ status: "ORDERED", amount_minor: 6_000_000, tokens_granted: 500 });
+    const marked = await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    expect(marked.status).toBe(201);
+    expect(marked.body).toMatchObject({ status: "AWAITING_CONFIRMATION" });
+    // an OWNER of another organization cannot confirm this order (ADR-140 §8: Admin is own-org only)
+    expect((await call(owner, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" })).status).toBe(403);
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REF-1001" });
+    expect(confirmed.status).toBe(201);
+    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", bank_reference: "BANK-REF-1001", amount_received_minor: 6_000_000 });
+    expect(confirmed.body.subscription_id).toBeTruthy();
+    expect(await balance(m)).toBe(before + 500);
+    const sub = await subscriptionOf(m.orgId);
+    expect(sub).toMatchObject({ state: "ACTIVE", id: confirmed.body.subscription_id });
+    const [grants] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM entitlement_grants WHERE organization_id = ? AND source_subscription_id = ?", [m.orgId, confirmed.body.subscription_id]);
+    expect(grants).toHaveLength(1);
+    expect(grants[0]).toMatchObject({ feature_key: "plan:club", limit_value: 500 });
+    const ledger = await call(m, "GET", "/v1/wallet/ledger");
+    expect(ledger.body.entries[0]).toMatchObject({ kind: "PURCHASE", amount: 500, invoice_ref: created.order.reference, balance_after: before + 500 });
+    // confirming twice: refused, and the wallet does not move (idempotency on top of the status guard)
+    const again = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REF-1001" });
+    expect(again.status).toBe(409);
+    expect(again.body.code).toBe("ORDER_NOT_AWAITING_CONFIRMATION");
+    expect(await balance(m)).toBe(before + 500);
+    const ledger2 = await call(m, "GET", "/v1/wallet/ledger");
+    expect(ledger2.body.entries.filter((e: { kind: string; invoice_ref: string }) => e.kind === "PURCHASE" && e.invoice_ref === created.order.reference)).toHaveLength(1);
+  });
+
+  it("accepts a receipt file as proof, recording filename, size and sha256", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "STARTER", 1, "NGN");
+    const pdf = Buffer.from("%PDF-1.4 fake receipt for the test, not a real transfer\n", "utf8");
+    const r = await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, pdf,
+      { "content-type": "application/octet-stream", "x-content-type": "application/pdf", "x-file-name": "transfer-receipt.pdf" });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({
+      status: "AWAITING_CONFIRMATION", proof_filename: "transfer-receipt.pdf", proof_content_type: "application/pdf",
+      proof_size_bytes: pdf.length, proof_sha256: createHash("sha256").update(pdf).digest("hex"),
+    });
+    expect(r.body.proof_uploaded_at).toBeTruthy();
+  });
+
+  it("rejection never activates: no subscription, no grant, no wallet credit, and it cannot be confirmed after", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const before = await balance(m);
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const rejected = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/reject`, { reason: "No matching transfer on the bank statement." });
+    expect(rejected.status).toBe(201);
+    expect(rejected.body).toMatchObject({ status: "REJECTED", reject_reason: "No matching transfer on the bank statement." });
+    expect(await balance(m)).toBe(before);
+    expect(await subscriptionOf(m.orgId)).toBeUndefined();
+    const confirm = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" });
+    expect(confirm.status).toBe(409);
+  });
+
+  it("a partial payment never activates, and the remainder completes only through confirm", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const before = await balance(m);
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const partial = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 2_500_000, bank_reference: "BANK-PART-1" });
+    expect(partial.status).toBe(201);
+    expect(partial.body).toMatchObject({ status: "PARTIAL", amount_received_minor: 2_500_000 });
+    expect(await balance(m)).toBe(before);
+    expect(await subscriptionOf(m.orgId)).toBeUndefined();
+    // a part-payment that would complete the order is refused here — the final amount goes through confirm
+    const tooMuch = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 3_500_000 });
+    expect(tooMuch.status).toBe(409);
+    expect(tooMuch.body.code).toBe("ORDER_AMOUNT_MISMATCH");
+    // and confirming with the wrong remainder is refused too
+    const wrong = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 1_000_000, bank_reference: "BANK-PART-2" });
+    expect(wrong.status).toBe(409);
+    expect(wrong.body.code).toBe("ORDER_AMOUNT_MISMATCH");
+    expect(await balance(m)).toBe(before);
+    // the exact remainder confirms and activates
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 3_500_000, bank_reference: "BANK-PART-2" });
+    expect(confirmed.status).toBe(201);
+    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", amount_received_minor: 6_000_000 });
+    expect(await balance(m)).toBe(before + 500);
+    expect((await subscriptionOf(m.orgId))?.state).toBe("ACTIVE");
+  });
+
+  it("a money refund claws the granted tokens back and cancels the subscription", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const before = await balance(m);
+    const created = await createOrder(m, "STARTER", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 1_500_000, bank_reference: "BANK-2" });
+    expect(confirmed.status).toBe(201);
+    expect(await balance(m)).toBe(before + 100);
+    const refunded = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/refund`, { reason: "Customer asked for a refund; money sent back.", amount_refunded_minor: 1_500_000 });
+    expect(refunded.status).toBe(201);
+    expect(refunded.body).toMatchObject({ status: "REFUNDED", amount_refunded_minor: 1_500_000, refund_reason: "Customer asked for a refund; money sent back." });
+    expect(await balance(m)).toBe(before);
+    expect((await subscriptionOf(m.orgId))?.state).toBe("CANCELED");
+    const ledger = await call(m, "GET", "/v1/wallet/ledger");
+    const clawback = ledger.body.entries.find((e: { kind: string; amount: number; reason: string }) => e.kind === "ADJUSTMENT" && e.amount === -100);
+    expect(clawback).toBeTruthy();
+    expect(clawback?.reason).toContain("Money refund");
+  });
+
+  it("creates one renewal order 7 days before expiry, never a second, and drops to free after expiry + grace", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-3" });
+    const subId = confirmed.body.subscription_id as string;
+    // move the subscription so it expires in 3 days: a renewal order is due
+    await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
+    const run1 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    expect(run1.status).toBe(201);
+    expect(run1.body.renewals_created).toBe(1);
+    expect(run1.body.renewal_order_ids).toHaveLength(1);
+    const [renewals] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
+    expect(renewals).toHaveLength(1);
+    expect(renewals[0]).toMatchObject({ plan_code: "CLUB", period_months: 1, amount_minor: 6_000_000, currency: "NGN", status: "ORDERED" });
+    expect(renewals[0]?.reference).not.toBe(created.order.reference);
+    // a second run creates no duplicate renewal
+    const run2 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    expect(run2.body.renewals_created).toBe(0);
+    // move the subscription 20 days past its end (grace is 14 days): it drops to the free tier, projects kept
+    await root.query("UPDATE subscriptions SET period_end = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 20 DAY) WHERE id = ?", [subId]);
+    const [projectsBefore] = await root.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM projects WHERE organization_id = ?", [m.orgId]);
+    const run3 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    expect(run3.body.downgraded_to_free).toBe(1);
+    const sub = await subscriptionOf(m.orgId);
+    expect(sub?.state).toBe("CANCELED");
+    const [plan] = await root.query<mysql.RowDataPacket[]>("SELECT p.code FROM plans p JOIN plan_versions pv ON pv.plan_id = p.id WHERE pv.id = ?", [sub?.plan_version_id]);
+    expect(plan[0]?.code).toBe("FREE");
+    const [projectsAfter] = await root.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM projects WHERE organization_id = ?", [m.orgId]);
+    expect(projectsAfter[0]?.n).toBe(projectsBefore[0]?.n);
+  });
+
+  it("keeps viewers and other organizations out of billing admin", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    expect((await call(viewer, "GET", "/v1/admin/billing/orders")).status).toBe(403);
+    expect((await call(viewer, "GET", "/v1/admin/billing/bank-accounts")).status).toBe(403);
+    expect((await call(owner, "GET", `/v1/admin/billing/orders/${created.order.id}`)).status).toBe(403);
+    expect((await call(owner, "GET", `/v1/billing/orders/${created.order.id}`)).status).toBe(404);
+    // a member of another organization cannot even see the order in their own list
+    const otherList = await call(owner, "GET", "/v1/billing/orders");
+    expect(otherList.body.map((o: { id: string }) => o.id)).not.toContain(created.order.id);
+  });
+});

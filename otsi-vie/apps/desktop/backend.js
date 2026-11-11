@@ -1,39 +1,92 @@
 'use strict';
 /**
- * Backend management for the OTSI VIE desktop app.
+ * Backend management for the OTSI VIE desktop app — packaged model
+ * (plan v3, ADR-144).
+ *
+ * The installer ships pre-built code, never source. This module locates
+ * the bundled engine inside the app's resources, starts the pre-built API
+ * and web with a bundled Node runtime (Electron's own Node, or a bundled
+ * node.exe), starts the bundled portable MySQL, downloads the exported
+ * AI models on first run, and starts the Nuitka-compiled native worker.
+ *
+ * It NEVER runs git, pnpm install, or a build on the user's PC. There is
+ * no git clone/pull, no pnpm, no system Python, no venv build, no Torch /
+ * PaddlePaddle anywhere: inference runs on the bundled ONNX Runtime +
+ * DirectML / OpenVINO runtimes (§1.2), and the Python engine ships as a
+ * Nuitka-compiled binary, so no .py files ship (§1.8). If a bundled
+ * component is missing or corrupt, the app says so plainly and stops — it
+ * never tries to download source or build anything. (One exception, set
+ * by ADR-144 §1.3: a failed model download does not stop the app from
+ * opening; analysis simply cannot run until it succeeds, and the next
+ * launch retries.)
  *
  * No Electron dependency in this module, so it can be checked and exercised
- * with plain Node. It mirrors the flow of the OTSI-VIE.exe launcher
- * (~/workspace/otsi-launcher/launcher.c):
- *
- *   find Python -> ensure the engine repo -> pnpm install -> prepare
- *   (portable MySQL, no Docker) -> build if needed -> owner account ->
- *   start `local_stack.py run --no-build --mysql portable` -> wait for
- *   http://localhost:4311. (localhost, not 127.0.0.1: the browser rejects
- *   127.0.0.1 as a WebAuthn RP ID — "127.0.0.1 is an invalid domain" —
- *   while localhost is a valid domain, so passkeys only work on localhost.)
- *
- * Everything runs through child_process directly (no shell), so there are no
- * cmd.exe quoting problems. All output goes to a caller-supplied log
- * function; nothing is printed to a console here.
+ * with plain Node. Everything runs through child_process directly (no
+ * shell), so there are no cmd.exe quoting problems. All output goes to a
+ * caller-supplied log function; nothing is printed to a console here.
+ * Secrets (passwords, DSNs, licence tokens) are passed to children through
+ * environment variables only — never on a command line, never in a file
+ * that is logged, never in the log.
  */
 
 const { spawn, execFile } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
+const net = require('node:net');
 const path = require('node:path');
 
-const REPO_URL = 'https://github.com/ckgefane-blip/otsi-video-intelligence-ultra.git';
-const BRANCH = 'muse/ultra-main';
+const hardware = require('./hardware');
+const licence = require('./licence');
+
 // The desktop app always runs the portable stack, which uses its own ports
 // (web 4311, API 4521, MySQL 3510) so it can run side by side with the
 // original engine (web 4310, API 4520, MySQL 3508).
 const WEB_PORT = 4311;
 const API_PORT = 4521;
+const MYSQL_PORT = 3510;
 const API_URL = `http://localhost:${API_PORT}`;
 const WEB_URL = `http://localhost:${WEB_PORT}`;
-const DOCKER_CONTAINER = 'otsi-vie-v2-mysql';
+const DB_NAME = 'otsi_owner_vie';
+
+// One native worker process per group: a 70-minute analysis must not hold
+// up the verification of a new upload (one process runs one job at a time).
+const WORKER_GROUPS = {
+  'jobs-ingest': 'INGEST_UPLOAD,INGEST_URL,ASSESS',
+  'jobs-media': 'PROXY,RENDER,CALIBRATE_PITCH,READ_LINEUPS,SNAPSHOT,BEAT_GRID',
+  'jobs-analysis': 'ANALYZE,TRACK_BALL',
+};
+
+// Minimum model set for a first analysis (ADR-144 §1.3). The registry
+// currently lists the ORIGINAL weights; the ONNX export follow-up adds the
+// exported ONNX/OpenVINO entries to the registry, and this same step then
+// fetches them (the fetch tools verify every file against its SHA-256 pin).
+// Accuracy gate: the exported models must match the originals' accuracy on
+// the evaluation set before the worker switches to them — see the desktop
+// README ("ONNX accuracy gate"). That gate has NOT been run here.
+const MIN_MODELS = [
+  'rtdetr_v2_r18vd', 'dinov2_small',
+  'ppocr_v4_det', 'ppocr_v4_en_rec', 'pnlcalib_sv_kp',
+  'ppocr_v5_cyrillic_rec', 'ppocr_v5_latin_rec',
+];
+
+// The bundled AI runtimes (ADR-144 §1.2): ONNX Runtime + DirectML +
+// OpenVINO, ~100–150 MB. These are the marker files the shell checks;
+// the full staged set is listed in the desktop README.
+const RUNTIME_FILES = process.platform === 'win32'
+  ? ['onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'DirectML.dll', 'openvino.dll']
+  : process.platform === 'darwin'
+    ? ['libonnxruntime.dylib']
+    : ['libonnxruntime.so', 'libopenvino.so'];
+
+// The compiled Python tools (Nuitka; no .py ships — ADR-144 §1.8). The
+// Nuitka build (a Windows build-machine step) produces one binary per
+// entry point; the shell launches them by these paths. Dev/build-machine
+// override: OTSI_VIE_TOOL_BIN_DIR points at a folder holding the same
+// binaries (used to verify the shell without a full installer build).
+const TOOL_BINARIES = [
+  'migrate', 'roles', 'db-setup', 'mysql-supervisor', 'fetch-models', 'fetch-url-models',
+];
 
 /* ------------------------------------------------------------------ */
 /* small helpers                                                       */
@@ -50,42 +103,17 @@ function execFileAsync(cmd, args, options = {}) {
 
 /**
  * Run a command, streaming its output to `log`. Resolves on exit 0, rejects
- * with the exit code and the last output otherwise.
+ * with the exit code and the last output otherwise. Direct spawn, no shell.
  */
 function runCommand(cmd, args, options = {}) {
   const { cwd, log, env } = options;
-  // On Windows, newer Node (including the Node inside this Electron
-  // version) refuses to start .cmd/.bat files directly and fails with
-  // `spawn EINVAL` (CVE-2024-27980). Run those through the Windows
-  // command shell instead. The path AND each argument must be quoted:
-  // `shell: true` alone is not enough — it leaves `C:\Program Files\...`
-  // unquoted and cmd.exe then fails with `'C:\Program' is not
-  // recognized`. So build the command line with every part quoted and
-  // run it via cmd.exe /d /s /c (the /s strips the outer quotes,
-  // leaving the quoted path + args). Pass it verbatim
-  // (windowsVerbatimArguments): without that, Node adds its own
-  // escaping on top of the quoted command line and cmd.exe misreads
-  // the start of the path as a network path ("The network path was
-  // not found"). This is the only place a .cmd is started:
-  // corepack.cmd (via resolveCorepack).
-  let spawnCmd = cmd;
-  let spawnArgs = args;
-  let spawnOpts = {};
-  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd)) {
-    const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
-    const commandLine = [cmd, ...args].map(quote).join(' ');
-    spawnCmd = process.env.ComSpec || 'cmd.exe';
-    spawnArgs = ['/d', '/s', '/c', `"${commandLine}"`];
-    spawnOpts.windowsVerbatimArguments = true;
-  }
   return new Promise((resolve, reject) => {
     let child;
     try {
-      child = spawn(spawnCmd, spawnArgs, {
+      child = spawn(cmd, args, {
         cwd,
         env: env || process.env,
         windowsHide: true,
-        ...spawnOpts,
       });
     } catch (err) {
       reject(new Error(`Could not start ${cmd}: ${err.message}`));
@@ -110,469 +138,460 @@ function runCommand(cmd, args, options = {}) {
   });
 }
 
-function stackScript(otsiVieDir) {
-  return path.join(otsiVieDir, 'tools', 'dev', 'local_stack.py');
+function writeSecretFile(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, 'utf8');
+  try { fs.chmodSync(file, 0o600); } catch { /* Windows: best effort */ }
 }
 
 /* ------------------------------------------------------------------ */
-/* Python                                                              */
+/* layout: bundled engine, data folder, runtimes                       */
 /* ------------------------------------------------------------------ */
 
-// The video libraries are several GB. They must live on D: (the data
-// drive), never on C: (the system drive), so a library download never
-// fills C:. On Windows, when a D: drive exists, the app's own Python
-// environment and pip's download cache both live there; otherwise they
-// fall back to the engine folder / pip's default cache.
-function venvDir(engineDir) {
+/** The app's resources folder when packaged (Electron), else null (dev). */
+function resourcesDir() {
+  return process.resourcesPath || null;
+}
+
+/**
+ * The engine root: the folder holding `otsi-vie/`. Packaged, it is
+ * <resources>/engine; in development it is the ultra repo checkout.
+ */
+function engineRoot() {
+  const resources = resourcesDir();
+  if (resources) {
+    const bundled = path.join(resources, 'engine');
+    if (fs.existsSync(path.join(bundled, 'otsi-vie'))) return bundled;
+  }
+  return path.resolve(__dirname, '..', '..', '..');
+}
+
+function otsiVieDir(root) {
+  return path.join(root, 'otsi-vie');
+}
+
+/**
+ * The data folder: user-chosen, defaulting to a non-system drive when one
+ * exists (D:\OTSI-VIE on Windows when a D: drive exists). Videos, tracks,
+ * renders, project metadata, the local database, the runtimes' caches and
+ * the AI models all live under it. No caches go on C: unless it is the
+ * only drive. `userDataDir` is app.getPath('userData'), passed in by the
+ * main process (this module has no Electron dependency).
+ */
+function dataDir(userDataDir) {
   if (process.platform === 'win32') {
     try {
-      if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE', '.venv');
+      if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE');
     } catch { /* no D: drive */ }
   }
-  return path.join(engineDir, '.venv');
+  return path.join(userDataDir, 'OTSI-VIE');
 }
 
-function pipCacheDir() {
-  if (process.platform === 'win32') {
-    try {
-      if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE', 'pip-cache');
-    } catch { /* no D: drive */ }
+function modelsDir(data) {
+  return path.join(data, 'models');
+}
+
+function componentsDir(data) {
+  return path.join(data, 'components');
+}
+
+/** The bundled engine files the app cannot start without. Returns the missing ones. */
+function verifyBundledEngine(root) {
+  const otsiVie = otsiVieDir(root);
+  const needed = [
+    path.join(otsiVie, 'apps', 'api', 'dist', 'main.js'),
+    path.join(otsiVie, 'apps', 'api', 'dist', 'workers', 'outbox-dispatcher.js'),
+    path.join(otsiVie, 'apps', 'api', 'dist', 'cli', 'bootstrap-owner.js'),
+    path.join(otsiVie, 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js'),
+    path.join(otsiVie, 'packages', 'contracts', 'dist'),
+    path.join(otsiVie, 'services', 'worker', 'vie_worker', 'models', 'registry.json'),
+  ];
+  return needed.filter((p) => !fs.existsSync(p));
+}
+
+/* ------------------------------------------------------------------ */
+/* bundled Node, tool binaries, native worker, AI runtimes             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The Node runtime that starts the pre-built API and web. First a bundled
+ * node.exe in the installer (resources/node); otherwise Electron's own
+ * Node — the Electron binary run with ELECTRON_RUN_AS_NODE=1 behaves as
+ * Node. No user-installed Node is required, and no version check against
+ * the user's Node is done.
+ */
+function bundledNode() {
+  const resources = resourcesDir();
+  if (resources) {
+    const exe = process.platform === 'win32'
+      ? path.join(resources, 'node', 'node.exe')
+      : path.join(resources, 'node', 'bin', 'node');
+    if (fs.existsSync(exe)) return { cmd: exe, extraEnv: {} };
+  }
+  return { cmd: process.execPath, extraEnv: { ELECTRON_RUN_AS_NODE: '1' } };
+}
+
+function toolBinDir(root) {
+  if (process.env.OTSI_VIE_TOOL_BIN_DIR) return process.env.OTSI_VIE_TOOL_BIN_DIR;
+  const resources = resourcesDir();
+  if (resources) return path.join(resources, 'engine', 'tools');
+  return null; // dev checkout: no compiled tools exist
+}
+
+function toolBinary(root, name) {
+  const dir = toolBinDir(root);
+  if (!dir) return null;
+  const exe = process.platform === 'win32' ? path.join(dir, `${name}.exe`) : path.join(dir, name);
+  return fs.existsSync(exe) ? exe : null;
+}
+
+/** The compiled tool binaries the shell needs. Returns the missing names. */
+function ensureToolBinaries(root, log) {
+  const missing = TOOL_BINARIES.filter((name) => !toolBinary(root, name));
+  if (missing.length && log) {
+    log(`The installer is missing these compiled tools: ${missing.join(', ')}.\n`);
+  }
+  return { ok: missing.length === 0, missing };
+}
+
+/**
+ * The Nuitka-compiled worker binary (ADR-144 §1.8). The Nuitka build is a
+ * Windows build-machine step and cannot run on this VM; the shell launches
+ * the binary at this defined path and reports a plain error if it is not
+ * there. Dev override: OTSI_VIE_WORKER_EXE.
+ */
+function nativeWorkerExe(root) {
+  if (process.env.OTSI_VIE_WORKER_EXE) return process.env.OTSI_VIE_WORKER_EXE;
+  const resources = resourcesDir();
+  if (resources) {
+    const exe = process.platform === 'win32'
+      ? path.join(resources, 'engine', 'vie_worker.exe')
+      : path.join(resources, 'engine', 'vie_worker');
+    if (fs.existsSync(exe)) return exe;
   }
   return null;
 }
 
-function pythonCandidates(engineDir) {
-  if (process.platform === 'win32') {
-    // Only this project's own virtual environment. Never fall back to
-    // another project's .venv (in particular never the original
-    // project's VIE-Engine-v2\.venv) — ULTRA must not depend on a
-    // folder outside its own repo.
-    return [path.join(venvDir(engineDir), 'Scripts', 'python.exe')];
-  }
-  return [path.join(engineDir, '.venv', 'bin', 'python3'), 'python3'];
+function aiRuntimeDir(root) {
+  if (process.env.OTSI_VIE_RUNTIMES_DIR) return process.env.OTSI_VIE_RUNTIMES_DIR;
+  const resources = resourcesDir();
+  if (resources) return path.join(resources, 'runtimes');
+  return path.join(root, '.local', 'packaging', 'runtimes');
 }
 
-async function testPython(pythonExe) {
-  try {
-    await fs.promises.access(pythonExe, fs.constants.F_OK);
-  } catch {
-    return false;
+/** The bundled AI runtimes must all be present — a missing runtime is a broken install. */
+function ensureAiRuntime(root, log) {
+  const dir = aiRuntimeDir(root);
+  const missing = RUNTIME_FILES.filter((f) => !fs.existsSync(path.join(dir, f)));
+  if (missing.length && log) {
+    log(`The AI runtimes are incomplete (missing: ${missing.join(', ')} in ${dir}).\n`);
   }
-  try {
-    await runCommand(pythonExe, ['--version'], {});
-    await runCommand(pythonExe, ['-c', 'import pymysql'], {});
-    return true;
-  } catch {
-    return false;
-  }
+  return { ok: missing.length === 0, missing, dir };
 }
 
-/** A Python that lives inside a .venv belonging to another project. */
-function isForeignVenv(pythonExe, engineDir) {
-  const ownVenv = venvDir(engineDir).toLowerCase();
-  const engineVenv = path.join(engineDir, '.venv').toLowerCase();
-  const p = String(pythonExe).toLowerCase();
-  return /\.venv[\\/]/.test(p) && !p.startsWith(ownVenv) && !p.startsWith(engineVenv);
+/** The bundled portable-MySQL ZIP (ADR-144 §1.2), when the installer staged one. */
+function bundledMysqlZip() {
+  const resources = resourcesDir();
+  if (!resources) return null;
+  const zip = path.join(resources, 'mysql-8.4.6-winx64.zip');
+  return fs.existsSync(zip) ? zip : null;
 }
 
-/**
- * Create this project's own .venv (if it does not exist yet) with the
- * system Python and install the database driver into it, so ULTRA never
- * has to borrow a Python from another project. Returns the venv's
- * Python when it runs and has the driver, else null.
- */
-async function ensureOwnVenv(engineDir, log) {
-  const venvPy = pythonCandidates(engineDir)[0];
-  if (await testPython(venvPy)) return venvPy;
-  // Find a system python (not inside any other project's .venv).
-  let sysPy = null;
+/* ------------------------------------------------------------------ */
+/* models (exported ONNX/OpenVINO, first run)                          */
+/* ------------------------------------------------------------------ */
+
+function registryPath(root) {
+  return path.join(otsiVieDir(root), 'services', 'worker', 'vie_worker', 'models', 'registry.json');
+}
+
+function registryHash(root) {
   try {
-    const finder = process.platform === 'win32' ? 'where' : 'which';
-    const { stdout } = await execFileAsync(finder, ['python']);
-    for (const line of stdout.split(/\r?\n/)) {
-      const cand = line.trim();
-      if (!cand || isForeignVenv(cand, engineDir)) continue;
-      try {
-        await runCommand(cand, ['--version'], {});
-        sysPy = cand;
-        break;
-      } catch {
-        // not usable
-      }
-    }
-  } catch {
-    // no python on PATH
-  }
-  if (!sysPy) return null;
-  const venv = venvDir(engineDir);
-  const cache = pipCacheDir();
-  const cacheArgs = cache ? ['--cache-dir', cache] : [];
-  try {
-    if (!fs.existsSync(venvPy)) {
-      await runCommand(sysPy, ['-m', 'venv', venv], { log });
-    }
-    await runCommand(venvPy, ['-m', 'pip', 'install', ...cacheArgs, 'pymysql'], { log });
+    return crypto.createHash('sha256').update(fs.readFileSync(registryPath(root))).digest('hex');
   } catch {
     return null;
   }
-  return (await testPython(venvPy)) ? venvPy : null;
 }
-
-/** First Python that runs and has the engine's database driver, else null. */
-async function findPython(engineDir, log) {
-  for (const cand of pythonCandidates(engineDir)) {
-    if (await testPython(cand)) return cand;
-  }
-  // Create this project's own .venv rather than borrowing another
-  // project's Python.
-  const own = await ensureOwnVenv(engineDir, log);
-  if (own) return own;
-  // Last resort: a python on PATH that is not inside another project's .venv.
-  try {
-    const finder = process.platform === 'win32' ? 'where' : 'which';
-    const { stdout } = await execFileAsync(finder, ['python']);
-    for (const line of stdout.split(/\r?\n/)) {
-      const cand = line.trim();
-      if (!cand || isForeignVenv(cand, engineDir)) continue;
-      if (await testPython(cand)) return cand;
-    }
-  } catch {
-    // ignore: no python on PATH
-  }
-  return null;
-}
-
-/* ------------------------------------------------------------------ */
-/* tools                                                               */
-/* ------------------------------------------------------------------ */
 
 /**
- * The corepack command to run. Resolved once to an absolute path next to
- * the Node.js executable when possible. A GUI app launched from Explorer
- * can have a stale PATH that finds `node` (and `git`) but not `corepack`,
- * so resolving it next to `node` — which the check above already proved
- * is findable — removes that whole class of failure. Falls back to the
- * bare `corepack` on PATH when the absolute path does not exist.
+ * Download the models on first run (ADR-144 §1.3): run the fetch tools
+ * (compiled binaries; the .py sources are never shipped) with the models
+ * directory from the data folder. Every file is verified against its
+ * SHA-256 pin in the registry — the fetch tools already do this and delete
+ * a file whose hash does not match. A marker records the registry hash,
+ * so the fetch only re-runs when the registry changes. A failed download
+ * does not stop the app from opening, but analysis cannot run until it
+ * succeeds; the next launch retries. The models are NEVER copied from any
+ * workspace folder.
  */
-let corepackCmd = 'corepack';
-let corepackResolved = false;
-
-async function resolveCorepack() {
-  if (corepackResolved) return corepackCmd;
-  corepackResolved = true;
-  try {
-    const finder = process.platform === 'win32' ? 'where' : 'which';
-    const { stdout } = await execFileAsync(finder, ['node']);
-    const nodePath = stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
-    if (nodePath) {
-      const candidate = path.join(
-        path.dirname(nodePath),
-        process.platform === 'win32' ? 'corepack.cmd' : 'corepack',
-      );
-      if (fs.existsSync(candidate)) corepackCmd = candidate;
-    }
-  } catch {
-    // fall back to `corepack` on PATH
-  }
-  return corepackCmd;
-}
-
-/** Check git, Node >= 22 and pnpm exist. Throws a plain-worded Error. */
-async function checkTools() {
-  try {
-    await runCommand('git', ['--version'], {});
-  } catch {
-    throw new Error(
-      'Git was not found on this machine.\nInstall it once from https://git-scm.com/download/win , then open OTSI VIE again.',
-    );
-  }
-  let nodeOut = '';
-  try {
-    nodeOut = (await execFileAsync('node', ['--version'])).stdout.trim();
-  } catch {
-    throw new Error(
-      'Node.js was not found on this machine.\nInstall Node.js 22 (LTS) once from https://nodejs.org/ , then open OTSI VIE again.',
-    );
-  }
-  const major = parseInt(nodeOut.replace(/^v/, ''), 10);
-  if (Number.isNaN(major) || major < 22) {
-    throw new Error(
-      `Node.js ${nodeOut} is too old. OTSI VIE needs Node.js 22 or newer.\nInstall Node.js 22 (LTS) once from https://nodejs.org/ , then open OTSI VIE again.`,
-    );
-  }
-  await resolveCorepack();
-  try {
-    await runCommand(corepackCmd, ['pnpm', '--version'], {});
-  } catch (err) {
-    // Do not claim pnpm is missing when the real cause may be that the
-    // check itself could not start (e.g. spawn EINVAL on corepack.cmd).
-    // Report the actual failure so the next diagnosis starts from it.
-    throw new Error(
-      'Could not run pnpm, so the app cannot start.\n'
-      + `(${corepackCmd} pnpm --version: ${err.message})\n`
-      + 'If pnpm is missing, open a terminal once and run: corepack enable, then open OTSI VIE again.',
-    );
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* engine repo                                                         */
-/* ------------------------------------------------------------------ */
-
-async function ensureRepo(engineDir, log) {
-  if (!fs.existsSync(path.join(engineDir, '.git'))) {
-    fs.mkdirSync(path.dirname(engineDir), { recursive: true });
-    log(`Getting the engine (first time, a few minutes)...\n`);
-    await runCommand('git', ['clone', REPO_URL, engineDir], { log });
-  }
-  await runCommand('git', ['fetch', 'origin'], { cwd: engineDir, log });
-  try {
-    await runCommand('git', ['checkout', BRANCH], { cwd: engineDir, log });
-  } catch {
-    await runCommand('git', ['checkout', '-b', BRANCH, `origin/${BRANCH}`], {
-      cwd: engineDir,
-      log,
-    });
-  }
-  await runCommand('git', ['pull', '--ff-only'], { cwd: engineDir, log });
-}
-
-async function ensureJsDeps(otsiVieDir, log) {
-  // Install whenever the dependencies changed, not only the first time.
-  // The old check returned as soon as node_modules existed, so a pulled
-  // update that adds a package (e.g. @simplewebauthn/server for passkeys)
-  // was never installed and the build then failed with "Cannot find
-  // module". Record a hash of the lockfile + the workspace package.json
-  // files (.local/js-deps, git-ignored) and reinstall when it changes.
-  const depFiles = ['pnpm-lock.yaml', 'package.json', 'apps/api/package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json'];
-  let depHash = null;
-  try {
-    const h = crypto.createHash('sha256');
-    for (const f of depFiles) h.update(fs.readFileSync(path.join(otsiVieDir, f)));
-    depHash = h.digest('hex');
-  } catch {
-    // A dependency file cannot be read: fall back to the old behaviour
-    // (install only when node_modules is missing).
-    depHash = null;
-  }
-  const marker = path.join(otsiVieDir, '.local', 'js-deps');
-  let installedHash = null;
-  try { installedHash = fs.readFileSync(marker, 'utf8').trim(); } catch { /* no marker yet */ }
-  if (depHash && installedHash === depHash && fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
-  if (!depHash && fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
-  log(installedHash ? 'Installing the new engine packages (the dependencies changed)...\n' : 'Installing the engine packages (first time, a few minutes)...\n');
-  await resolveCorepack();
-  await runCommand(corepackCmd, ['pnpm', 'install'], { cwd: otsiVieDir, log });
-  if (depHash) {
-    fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
-    fs.writeFileSync(marker, depHash + '\n', 'utf8');
-  }
-}
-
-// The video workers need the full CV/AI stack (requirements.txt, ~45
-// packages including the torch CPU build, OpenVINO, PaddleOCR and
-// pyarrow). First-run setup only installed pymysql (the database
-// driver), so the workers could never start — the Admin page showed
-// "No Active Workers Detected" and no video could be processed. Install
-// requirements.txt into the app's own venv on first run, and again when
-// requirements.txt changes (the marker records its hash). torch is the
-// CPU build, which lives on PyTorch's own index, so pass
-// --extra-index-url. This is a large download (several GB) and takes a
-// while; pip's output goes to the log so the loading window shows
-// progress. A failure does not stop the app from opening, but the
-// workers will not run until it succeeds — the marker is only written
-// on success, so the next launch retries.
-async function ensureWorkerDeps(otsiVieDir, venvPy, log) {
-  const reqFile = path.join(otsiVieDir, 'requirements.txt');
-  let reqHash = null;
-  try {
-    reqHash = crypto.createHash('sha256').update(fs.readFileSync(reqFile)).digest('hex');
-  } catch {
-    log('Could not read requirements.txt; the video libraries were not installed.\n');
+async function ensureModels(root, data, log) {
+  const hash = registryHash(root);
+  if (!hash) {
+    if (log) log('The model registry is missing, so the AI models were not downloaded.\n');
     return false;
   }
-  const marker = path.join(otsiVieDir, '.local', 'worker-deps');
+  const models = modelsDir(data);
+  const marker = path.join(models, '.registry-hash');
   try {
-    if (fs.readFileSync(marker, 'utf8').trim() === reqHash) return true;
+    if (fs.readFileSync(marker, 'utf8').trim() === hash) return true;
   } catch {
-    // No marker yet: install.
+    // No marker yet: fetch.
   }
-  log('Installing the video libraries (first time, a few minutes — several GB)...\n');
-  const cache = pipCacheDir();
-  const cacheArgs = cache ? ['--cache-dir', cache] : [];
+  const fetchModels = toolBinary(root, 'fetch-models');
+  const fetchUrlModels = toolBinary(root, 'fetch-url-models');
+  if (!fetchModels || !fetchUrlModels) {
+    if (log) log('The model download tools are missing, so the AI models were not downloaded.\n');
+    return false;
+  }
+  if (log) log('Downloading the AI models (first time, a few minutes)...\n');
+  const env = {
+    ...process.env,
+    OTSI_VIE_MODELS_DIR: models,
+    HF_HOME: path.join(data, 'hf'),
+    HF_HUB_OFFLINE: '0',
+  };
   try {
-    await runCommand(venvPy, ['-m', 'pip', 'install', ...cacheArgs, '--extra-index-url', 'https://download.pytorch.org/whl/cpu', '-r', reqFile], { log });
+    await runCommand(fetchModels, MIN_MODELS, { log, env });
+    await runCommand(fetchUrlModels, MIN_MODELS, { log, env });
   } catch {
-    log('The video libraries could not be installed, so video analysis will not run yet.\n' +
+    if (log) log('The AI models could not be downloaded, so video analysis will not run yet.\n' +
       'Check the connection and disk space, then open OTSI VIE again to retry.\n');
     return false;
   }
-  // Verify the heavy imports the workers need, so a half-installed venv
-  // is not mistaken for a working one.
-  try {
-    await runCommand(venvPy, ['-c', 'import numpy, pyarrow, torch, openvino, PIL'], {});
-  } catch {
-    log('The video libraries installed but the check import failed; they will be retried next launch.\n');
-    return false;
-  }
-  fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
-  fs.writeFileSync(marker, reqHash + '\n', 'utf8');
+  fs.mkdirSync(models, { recursive: true });
+  fs.writeFileSync(marker, `${hash}\n`, 'utf8');
   return true;
 }
 
-// The web build bakes the API address into its /api proxy at build time
-// (next.config reads OTSI_VIE_API_INTERNAL_URL). If the baked address does
-// not match this stack's API, a stale build would keep proxying sign-in
-// (and every API call) to the wrong API — e.g. the original engine's on
-// 4520 — which rejects the request because it comes from an unfamiliar
-// origin. Rebuild the web when the baked address is wrong.
-function webBuildPointsAtApi(otsiVieDir) {
+/* ------------------------------------------------------------------ */
+/* database (bundled portable MySQL — SQLite needs owner approval)     */
+/* ------------------------------------------------------------------ */
+
+// ADR-144 §1.2: SQLite on user PCs needs the owner's written approval
+// (the project rule says MySQL). Until approved, portable MySQL stays
+// bundled: the ZIP is in the installer instead of downloaded at runtime,
+// it runs on 127.0.0.1:3510 with its own data directory, side by side with
+// the original engine's Docker database on 3508, and it never stops
+// another program's database.
+
+function mysqlRootPasswordFile(data) {
+  return path.join(data, '.local', 'mysql-portable.env');
+}
+
+function stackSecretsFile(data) {
+  return path.join(data, '.local', 'stack', 'owner', 'secrets.env');
+}
+
+function signingKeyFile(data) {
+  return path.join(data, '.local', 'stack', 'owner', 'signing-key.pem');
+}
+
+function storageDir(data) {
+  return path.join(data, '.local', 'stack', 'owner', 'storage');
+}
+
+function envFile(path_) {
+  const out = {};
   try {
-    const manifest = JSON.parse(fs.readFileSync(path.join(otsiVieDir, 'apps', 'web', '.next', 'routes-manifest.json'), 'utf8'));
-    const rewrites = Array.isArray(manifest.rewrites)
-      ? manifest.rewrites
-      : [...(manifest.rewrites?.beforeFiles ?? []), ...(manifest.rewrites?.afterFiles ?? []), ...(manifest.rewrites?.fallback ?? [])];
-    const apiRewrite = rewrites.find((r) => typeof r.source === 'string' && r.source.startsWith('/api/'));
-    return !!apiRewrite && typeof apiRewrite.destination === 'string' && apiRewrite.destination.startsWith(API_URL);
-  } catch {
-    return false; // no readable manifest: build.
+    for (const line of fs.readFileSync(path_, 'utf8').split(/\r?\n/)) {
+      // Split on the FIRST '=' only: values are base64 and can end in '='.
+      const i = line.indexOf('=');
+      if (i > 0 && !line.startsWith('#')) out[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+  } catch { /* no file yet */ }
+  return out;
+}
+
+/**
+ * Start the portable-MySQL supervisor (compiled binary) and wait until it
+ * reports the server running. The supervisor owns mysqld for the whole
+ * session; stopBackend kills it. Resolves with the supervisor child.
+ */
+function startMysqlSupervisor(root, data, log) {
+  const supervisor = toolBinary(root, 'mysql-supervisor');
+  if (!supervisor) {
+    throw new Error(
+      'The installer is missing the database supervisor (mysql-supervisor).\nReinstall OTSI VIE.',
+    );
   }
-}
-
-// The builds are only valid for the commit they were built from. After
-// the app downloads new code (ensureRepo pulls on every launch), a stale
-// build would keep serving the old pages — a page fix in the repo would
-// never reach an installed copy (that is how the Reel Builder crash kept
-// showing the old bundle). So record the commit the builds were made
-// from (in .local/, which is git-ignored) and rebuild whenever the
-// checked-out commit changes.
-async function currentCommit(otsiVieDir) {
-  try {
-    const { tail } = await runCommand('git', ['rev-parse', 'HEAD'], { cwd: otsiVieDir });
-    const sha = tail.trim();
-    return /^[0-9a-f]{40}$/.test(sha) ? sha : null;
-  } catch {
-    return null; // not a git checkout, or git unavailable: never skip a build on this basis.
+  const pwFile = mysqlRootPasswordFile(data);
+  let rootPw = envFile(pwFile).MYSQL_ROOT_PASSWORD || null;
+  if (!rootPw) {
+    rootPw = crypto.randomBytes(18).toString('base64url');
+    writeSecretFile(pwFile, `MYSQL_ROOT_PASSWORD=${rootPw}\n`);
   }
-}
-
-function builtCommit(otsiVieDir) {
-  try {
-    return fs.readFileSync(path.join(otsiVieDir, '.local', 'last-built-commit'), 'utf8').trim() || null;
-  } catch {
-    return null;
-  }
-}
-
-function recordBuiltCommit(otsiVieDir, sha) {
-  if (!sha) return;
-  fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
-  fs.writeFileSync(path.join(otsiVieDir, '.local', 'last-built-commit'), sha + '\n', 'utf8');
-}
-
-async function buildPackages(otsiVieDir, pkgs, log, buildEnv) {
-  await resolveCorepack();
-  for (const pkg of pkgs) {
-    await runCommand(corepackCmd, ['pnpm', 'build'], {
-      cwd: path.join(otsiVieDir, pkg),
-      log,
-      env: buildEnv,
+  const zip = bundledMysqlZip();
+  const env = {
+    ...process.env,
+    OTSI_VIE_DATA_DIR: data,
+    OTSI_VIE_MYSQL_ROOT_PASSWORD: rootPw,
+    OTSI_VIE_ENGINE_DIR: root,
+    ...(zip ? { OTSI_VIE_MYSQL_ZIP: zip } : {}),
+  };
+  const child = spawn(supervisor, [], { env, windowsHide: true });
+  let tail = '';
+  let settled = false;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { child.kill(); } catch { /* already gone */ }
+      reject(new Error('Portable MySQL did not start within 180 seconds.\n' + tail.slice(-2000)));
+    }, 180000);
+    const feed = (d) => {
+      const text = d.toString();
+      tail += text;
+      if (tail.length > 20000) tail = tail.slice(-20000);
+      if (log) log(text);
+      if (!settled && /server running on 127\.0\.0\.1:3510/.test(text)) {
+        settled = true;
+        clearTimeout(timer);
+        resolve({ child, rootPw });
+      }
+    };
+    child.stdout.on('data', feed);
+    child.stderr.on('data', feed);
+    child.on('error', (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(new Error(`Could not start portable MySQL: ${err.message}\n${tail}`));
     });
-  }
+    child.on('exit', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(new Error(`Portable MySQL stopped while starting (exit ${code}).\n${tail.slice(-2000)}`));
+    });
+  });
 }
 
-async function ensureBuilds(otsiVieDir, log) {
-  const apiDist = path.join(otsiVieDir, 'apps', 'api', 'dist', 'main.js');
-  const webBuild = path.join(otsiVieDir, 'apps', 'web', '.next', 'BUILD_ID');
-  const contractsDist = path.join(otsiVieDir, 'packages', 'contracts', 'dist');
-  const buildsExist = fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist);
-  const head = await currentCommit(otsiVieDir);
-  const built = builtCommit(otsiVieDir);
-  const manifestOk = webBuildPointsAtApi(otsiVieDir);
-  // Up to date only when the builds exist, the web proxies to this
-  // stack's API, AND they were built from the commit now checked out.
-  // When the commit cannot be read (head null) keep the old behaviour
-  // and do not rebuild on every launch.
-  if (buildsExist && manifestOk && head !== null && built === head) return;
-  if (buildsExist && manifestOk && head === null) return;
-  // The web build must know the API address or it bakes in the default
-  // (4520, the original engine's API). Pass it explicitly; runCommand
-  // replaces the env when one is given, so merge with the current env.
-  const buildEnv = { ...process.env, OTSI_VIE_API_INTERNAL_URL: API_URL };
-  const codeChanged = head !== null && built !== null && built !== head;
-  const neverRecorded = head !== null && built === null;
-  if (buildsExist && (codeChanged || neverRecorded)) {
-    // New code was downloaded (or this install predates the record):
-    // any of the three packages could have changed, so rebuild all of
-    // them, not just the web. This must run even when the baked API
-    // address is also out of date: the old code required the manifest
-    // to be OK here, so when the address changed at the same time as
-    // the code, only the website was rebuilt, the new commit was
-    // recorded as fully built, and the API kept its old build — the
-    // page ran on localhost while the API still said RP ID 127.0.0.1,
-    // so Windows Hello refused the passkey.
-    log('Rebuilding the engine: new code was downloaded (a few minutes)...\n');
-    await buildPackages(otsiVieDir, ['packages/contracts', 'apps/api', 'apps/web'], log, buildEnv);
-    recordBuiltCommit(otsiVieDir, head);
-    return;
+/**
+ * Prepare the local database and return the process environment for the
+ * API, web and workers, plus the MySQL supervisor child. Steps, in order:
+ * start portable MySQL, create the database + runtime account, run the
+ * migrations (forward-only), provision the roles, create the signing key
+ * and the stack secrets. The database already exists on later launches,
+ * so these are all no-ops except the migrations (pending ones apply).
+ */
+async function prepareDatabase(root, data, userDataDir, detection, log) {
+  const tools = ensureToolBinaries(root, log);
+  if (!tools.ok) {
+    throw new Error(
+      `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
+    );
   }
-  if (buildsExist) {
-    // Only the baked API address is wrong (the commit is unchanged):
-    // rebuild the website alone, as before.
-    log('Rebuilding the website: its built-in API address is out of date...\n');
-    await buildPackages(otsiVieDir, ['apps/web'], log, buildEnv);
-    recordBuiltCommit(otsiVieDir, head);
-    return;
+  const { child: mysqlSupervisor, rootPw } = await startMysqlSupervisor(root, data, log);
+
+  // Stack secrets (same format as the old local stack).
+  let secrets = envFile(stackSecretsFile(data));
+  if (!secrets.DB_PASSWORD) {
+    secrets = {
+      DB_USER: `otsi_app_${crypto.randomBytes(3).toString('hex')}`,
+      DB_PASSWORD: crypto.randomBytes(18).toString('base64url'),
+      MEDIA_SIGNING_KEY: crypto.randomBytes(24).toString('base64url'),
+      CREDENTIAL_KEY: crypto.randomBytes(32).toString('base64'),
+    };
+    writeSecretFile(
+      stackSecretsFile(data),
+      Object.entries(secrets).map(([k, v]) => `${k}=${v}\n`).join(''),
+    );
   }
-  log('Building the engine (first time, a few minutes)...\n');
-  await buildPackages(otsiVieDir, ['packages/contracts', 'apps/api', 'apps/web'], log, buildEnv);
-  recordBuiltCommit(otsiVieDir, head);
+  // The API's local signing key (RSA, as before).
+  let keyFile = signingKeyFile(data);
+  if (!fs.existsSync(keyFile)) {
+    const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 3072 });
+    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+    writeSecretFile(keyFile, pem);
+  }
+  const storage = storageDir(data);
+  fs.mkdirSync(storage, { recursive: true });
+
+  const rootDsn = `mysql://root:${rootPw}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
+  const appDsn = `mysql://${secrets.DB_USER}:${secrets.DB_PASSWORD}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
+  const dbSetupEnv = {
+    ...process.env,
+    OTSI_VIE_ADMIN_HOST: '127.0.0.1',
+    OTSI_VIE_ADMIN_PORT: String(MYSQL_PORT),
+    OTSI_VIE_ADMIN_USER: 'root',
+    OTSI_VIE_ADMIN_PASSWORD: rootPw,
+    OTSI_VIE_APP_DB: DB_NAME,
+    OTSI_VIE_APP_DB_USER: secrets.DB_USER,
+    OTSI_VIE_APP_DB_PASSWORD: secrets.DB_PASSWORD,
+  };
+  // Create the database + runtime account (migrate.py needs the database
+  // to exist in its DSN), then migrate, then provision the roles.
+  await runCommand(toolBinary(root, 'db-setup'), [], { log, env: dbSetupEnv });
+  await runCommand(toolBinary(root, 'migrate'), ['up'], {
+    log,
+    env: { ...process.env, OTSI_VIE_DB_DSN: rootDsn },
+  });
+  await runCommand(toolBinary(root, 'roles'), [], {
+    log,
+    env: { ...process.env, OTSI_VIE_ADMIN_DSN: rootDsn },
+  });
+
+  const env = {
+    OTSI_VIE_DB_DSN: appDsn,
+    OTSI_VIE_JWT_ISSUER: `http://127.0.0.1:${WEB_PORT}/`,
+    OTSI_VIE_JWT_AUDIENCE: 'otsi-vie-api',
+    OTSI_VIE_LOCAL_SIGNING_KEY_FILE: keyFile,
+    OTSI_VIE_INSECURE_COOKIES: 'yes', // plain HTTP on this machine only
+    OTSI_VIE_WEB_ORIGINS: `http://127.0.0.1:${WEB_PORT},http://localhost:${WEB_PORT}`,
+    OTSI_VIE_API_PORT: String(API_PORT),
+    OTSI_VIE_API_INTERNAL_URL: API_URL, // the web build bakes this in at packaging time; must match
+    OTSI_VIE_STORAGE_DIR: storage,
+    OTSI_VIE_MEDIA_SIGNING_KEY: secrets.MEDIA_SIGNING_KEY,
+    OTSI_VIE_CREDENTIAL_KEY: secrets.CREDENTIAL_KEY, // seals users' provider tokens between the API and the worker
+    OTSI_VIE_MODELS_DIR: modelsDir(data),
+    OTSI_VIE_AI_RUNTIME: detection.runtime,
+    OTSI_VIE_INFERENCE_DEVICE: detection.inferenceDevice,
+    PLAYWRIGHT_BROWSERS_PATH: path.join(data, 'browsers'), // the local headless Chromium that prints player reports to PDF (ADR-056)
+    HF_HOME: path.join(data, 'hf'), // model libraries never write to C:
+    HF_HUB_OFFLINE: '1', // workers load verified local weights only
+    ...licence.licenceEnvForWorker(userDataDir), // token + central public key, for the native engine to verify
+  };
+  // Forward central-server configuration when the install has one, so the
+  // local engine can verify licence tokens against the central key.
+  for (const k of ['OTSI_VIE_CENTRAL_SERVER_URL', 'OTSI_VIE_CENTRAL_MODE',
+    'OTSI_VIE_LICENCE_GRACE_DAYS', 'OTSI_VIE_CENTRAL_JWKS_URL']) {
+    if (process.env[k]) env[k] = process.env[k];
+  }
+  if (process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM) {
+    env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM;
+  }
+  return { env, mysqlSupervisor };
 }
 
 /* ------------------------------------------------------------------ */
-/* stack                                                               */
+/* owner account                                                       */
 /* ------------------------------------------------------------------ */
 
-async function prepareStack(python, otsiVieDir, engineDir, log) {
-  await runCommand(
-    python,
-    [stackScript(otsiVieDir), 'prepare', '--mysql', 'portable'],
-    { cwd: engineDir, log },
-  );
-}
-
-async function bootstrapOwner(python, otsiVieDir, engineDir, details, log) {
+async function bootstrapOwner(root, env, details, log) {
   // The bootstrap CLI reads its password from OTSI_VIE_BOOTSTRAP_PASSWORD;
   // without it, it prompts on the terminal, which a GUI app has none of
   // (stdin is ignored), so it would fail. The owner form collects the
   // password and it is passed here only as an environment variable to
   // the child process — never written to a file or to the log.
+  const node = bundledNode();
   await runCommand(
-    python,
-    [
-      stackScript(otsiVieDir),
-      'bootstrap-owner',
-      '--mysql',
-      'portable',
-      '--email',
-      details.email,
-      '--name',
-      details.name,
-      '--organization',
-      details.organization,
-    ],
-    { cwd: engineDir, log, env: { ...process.env, OTSI_VIE_BOOTSTRAP_PASSWORD: details.password } },
+    node.cmd,
+    [path.join(otsiVieDir(root), 'apps', 'api', 'dist', 'cli', 'bootstrap-owner.js'),
+      '--email', details.email, '--name', details.name, '--organization', details.organization],
+    {
+      cwd: path.join(otsiVieDir(root), 'apps', 'api'),
+      log,
+      env: { ...process.env, ...env, ...node.extraEnv, OTSI_VIE_BOOTSTRAP_PASSWORD: details.password },
+    },
   );
 }
 
-function ownerMarkerExists(engineDir) {
-  return fs.existsSync(
-    path.join(engineDir, '.local', 'stack', 'owner', 'owner-created.txt'),
-  );
+function ownerMarkerExists(data) {
+  return fs.existsSync(path.join(data, '.local', 'stack', 'owner', 'owner-created.txt'));
 }
 
-function writeOwnerMarker(engineDir) {
-  const dir = path.join(engineDir, '.local', 'stack', 'owner');
+function writeOwnerMarker(data) {
+  const dir = path.join(data, '.local', 'stack', 'owner');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, 'owner-created.txt'),
@@ -580,51 +599,98 @@ function writeOwnerMarker(engineDir) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* start / stop                                                        */
+/* ------------------------------------------------------------------ */
+
 /**
- * Start `local_stack.py run --no-build --mysql portable` as a child process.
- * Its output goes to the given log stream. Returns the ChildProcess.
+ * Start the engine: the pre-built API, the outbox dispatcher, the web app
+ * (Next.js standalone server) and one Nuitka-compiled worker per group.
+ * The API and web are critical — if one exits, exitPromise resolves and
+ * the main process reports it at once instead of waiting. A worker that
+ * exits is logged (jobs wait until it is back); it does not kill the app.
+ * Returns a handle for stopBackend.
  */
-function startBackend(python, otsiVieDir, engineDir, logStream) {
-  return spawn(
-    python,
-    [stackScript(otsiVieDir), 'run', '--no-build', '--mysql', 'portable'],
-    {
-      cwd: engineDir,
+function startBackend(root, data, env, logStream, log, mysqlSupervisor) {
+  const otsiVie = otsiVieDir(root);
+  const node = bundledNode();
+  const workerExe = nativeWorkerExe(root);
+  if (!workerExe) {
+    throw new Error(
+      'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
+    );
+  }
+  const fullEnv = { ...process.env, ...env, ...node.extraEnv, NEXT_TELEMETRY_DISABLED: '1', NODE_ENV: 'production' };
+  const children = [];
+  let firstCriticalExit = null;
+  const exitPromise = new Promise((resolve) => { firstCriticalExit = resolve; });
+
+  const spawnChild = (name, cmd, args, options, critical) => {
+    const child = spawn(cmd, args, {
+      ...options,
       stdio: ['ignore', logStream, logStream],
       windowsHide: true,
-    },
-  );
+    });
+    children.push({ name, child, critical });
+    child.on('error', (err) => {
+      if (log) log(`The ${name} process could not start: ${err.message}\n`);
+      if (critical) firstCriticalExit({ name, code: 'spawn-error' });
+    });
+    child.on('exit', (code) => {
+      if (critical) firstCriticalExit({ name, code });
+      else if (log) log(`The ${name} worker stopped (exit ${code}); video jobs will wait until it is back.\n`);
+    });
+    return child;
+  };
+
+  spawnChild('api', node.cmd, [path.join(otsiVie, 'apps', 'api', 'dist', 'main.js')], {
+    cwd: path.join(otsiVie, 'apps', 'api'), env: fullEnv,
+  }, true);
+  spawnChild('outbox', node.cmd, [path.join(otsiVie, 'apps', 'api', 'dist', 'workers', 'outbox-dispatcher.js')], {
+    cwd: path.join(otsiVie, 'apps', 'api'), env: fullEnv,
+  }, true);
+  // Monorepo standalone layout: the server is at
+  // .next/standalone/apps/web/server.js (run it from .next/standalone;
+  // it chdirs to its own folder). It reads PORT and HOSTNAME from the
+  // environment. The static assets and public folder are copied into the
+  // standalone tree at packaging time (see electron-builder.yml).
+  spawnChild('web', node.cmd, [path.join(otsiVie, 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js')], {
+    cwd: path.join(otsiVie, 'apps', 'web', '.next', 'standalone'),
+    env: { ...fullEnv, PORT: String(WEB_PORT), HOSTNAME: '127.0.0.1' },
+  }, true);
+  for (const [group, kinds] of Object.entries(WORKER_GROUPS)) {
+    spawnChild(group, workerExe, [], {
+      cwd: otsiVie,
+      env: { ...fullEnv, OTSI_VIE_WORKER_KINDS: kinds },
+    }, false);
+  }
+  if (mysqlSupervisor) children.push({ name: 'mysql', child: mysqlSupervisor, critical: false });
+
+  return { children, exitPromise };
 }
 
-/** Stop the backend child and its whole process tree. Never hangs. */
-function stopBackend(child) {
-  return new Promise((resolve) => {
+/** Stop every child and its whole process tree. Never hangs. */
+function stopBackend(handle) {
+  if (!handle) return Promise.resolve();
+  const stops = handle.children.map(({ name, child }) => new Promise((resolve) => {
     if (!child || child.exitCode !== null) return resolve();
     let done = false;
-    const finish = () => {
-      if (!done) {
-        done = true;
-        resolve();
-      }
-    };
+    const finish = () => { if (!done) { done = true; resolve(); } };
     child.once('exit', finish);
     setTimeout(finish, 8000);
     if (process.platform === 'win32') {
-      // local_stack.py run starts the API, workers and web app as children;
-      // /T takes the whole tree down, same as the OTSI-VIE.exe launcher.
+      // /T takes the whole tree down — the API, the workers and their
+      // ffmpeg children, and mysqld under its supervisor.
       execFile('taskkill', ['/F', '/T', '/PID', String(child.pid)], () => finish());
     } else {
       child.kill('SIGTERM');
       setTimeout(() => {
-        try {
-          child.kill('SIGKILL');
-        } catch {
-          // already gone
-        }
+        try { child.kill('SIGKILL'); } catch { /* already gone */ }
         finish();
       }, 5000);
     }
-  });
+  }));
+  return Promise.all(stops).then(() => undefined);
 }
 
 /** Poll the web app until it answers (any HTTP response counts), or time out. */
@@ -653,29 +719,55 @@ function waitForWeb(url, timeoutMs = 240000) {
   });
 }
 
+/** True when a TCP port on localhost answers (used by tests). */
+function portAnswers(port, timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    const socket = net.connect(port, '127.0.0.1');
+    const timer = setTimeout(() => { socket.destroy(); resolve(false); }, timeoutMs);
+    socket.once('connect', () => { clearTimeout(timer); socket.destroy(); resolve(true); });
+    socket.once('error', () => { clearTimeout(timer); resolve(false); });
+  });
+}
+
 module.exports = {
-  REPO_URL,
-  BRANCH,
   WEB_PORT,
+  API_PORT,
+  MYSQL_PORT,
   WEB_URL,
-  DOCKER_CONTAINER,
-  checkTools,
-  resolveCorepack,
-  findPython,
-  pythonCandidates,
-  testPython,
-  ensureOwnVenv,
-  ensureRepo,
-  ensureJsDeps,
-  ensureWorkerDeps,
-  ensureBuilds,
-  prepareStack,
+  API_URL,
+  DB_NAME,
+  WORKER_GROUPS,
+  MIN_MODELS,
+  RUNTIME_FILES,
+  TOOL_BINARIES,
+  resourcesDir,
+  engineRoot,
+  otsiVieDir,
+  dataDir,
+  modelsDir,
+  componentsDir,
+  verifyBundledEngine,
+  bundledNode,
+  toolBinDir,
+  toolBinary,
+  ensureToolBinaries,
+  nativeWorkerExe,
+  aiRuntimeDir,
+  ensureAiRuntime,
+  bundledMysqlZip,
+  registryPath,
+  registryHash,
+  ensureModels,
+  prepareDatabase,
   bootstrapOwner,
   ownerMarkerExists,
   writeOwnerMarker,
   startBackend,
   stopBackend,
   waitForWeb,
+  portAnswers,
   runCommand,
   execFileAsync,
+  hardware,
+  licence,
 };

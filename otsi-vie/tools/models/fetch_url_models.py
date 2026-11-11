@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import sys
 import tarfile
@@ -17,7 +18,10 @@ from pathlib import Path
 
 APP = Path(__file__).resolve().parents[2]
 REGISTRY = APP / "services" / "worker" / "vie_worker" / "models" / "registry.json"
-MODELS = APP.parent / ".local" / "models"
+# The desktop app sets OTSI_VIE_MODELS_DIR to the data folder's models
+# directory (ADR-144 §1.3); the worker reads the same variable
+# (services/worker/vie_worker/detect/base.py). Default is the dev checkout.
+MODELS = Path(os.environ.get("OTSI_VIE_MODELS_DIR", str(APP.parent / ".local" / "models")))
 KEEP = (".xml", ".bin", ".pdmodel", ".pdiparams", ".txt", ".json", ".onnx")
 
 

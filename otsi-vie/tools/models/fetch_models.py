@@ -15,7 +15,10 @@ from pathlib import Path
 APP = Path(__file__).resolve().parents[2]
 ROOT = APP.parent
 REGISTRY = APP / "services" / "worker" / "vie_worker" / "models" / "registry.json"
-MODELS = ROOT / ".local" / "models"
+# The desktop app sets OTSI_VIE_MODELS_DIR to the data folder's models
+# directory (ADR-144 §1.3); the worker reads the same variable
+# (services/worker/vie_worker/detect/base.py). Default is the dev checkout.
+MODELS = Path(os.environ.get("OTSI_VIE_MODELS_DIR", str(ROOT / ".local" / "models")))
 os.environ.setdefault("HF_HOME", str(ROOT / ".local" / "hf"))           # never the C: drive
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 

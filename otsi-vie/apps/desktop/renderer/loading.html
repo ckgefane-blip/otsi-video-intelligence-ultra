@@ -63,11 +63,14 @@
 
   <div id="status-view">
     <div id="status">Starting OTSI VIE...</div>
+    <div id="update" class="note"></div>
+    <div id="hardware" class="note"></div>
     <div class="bar"><div></div></div>
     <details>
       <summary>What is happening</summary>
       <pre id="log"></pre>
     </details>
+    <p class="note">© Osio &amp; Tee Solutions International Ltd</p>
   </div>
 
   <div id="owner-view" class="hidden">
@@ -120,6 +123,13 @@
   }
 
   window.otsi.onStatus((text) => { $('status').textContent = text; });
+  window.otsi.onUpdateStatus((text) => { $('update').textContent = text || ''; });
+  window.otsi.onHardware((data) => {
+    $('hardware').textContent = data.summary || '';
+    if (data.warnings && data.warnings.length) {
+      $('hardware').textContent += ' ' + data.warnings.join(' ');
+    }
+  });
   window.otsi.onLog((line) => appendLog(line));
   window.otsi.onShowOwner(() => { show('owner'); $('email').focus(); });
   window.otsi.onShowError((data) => {

@@ -25,6 +25,10 @@ const csp = [
 const config = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Packaged desktop app (ADR-144 §1.1): the installer ships this app as a
+  // Next.js standalone server (`.next/standalone/server.js`), started with
+  // the bundled Node runtime. No `next start` / pnpm on the user's PC.
+  output: 'standalone',
   transpilePackages: ["@otsi-vie/contracts"],
   async headers() {
     return [{

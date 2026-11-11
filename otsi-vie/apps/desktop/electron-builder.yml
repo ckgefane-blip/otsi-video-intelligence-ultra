@@ -1,15 +1,89 @@
+# OTSI VIE — self-contained installer (plan v3, ADR-144).
+#
+# The installer ships pre-built code, never source: the built API + web, the
+# Nuitka-compiled native worker and tools, the ONNX Runtime + DirectML +
+# OpenVINO runtimes, the bundled portable-MySQL ZIP (until the SQLite
+# decision is approved), and the core model pack. No git, pnpm, Node or
+# Python is required on the user's PC, and no .py file ships.
+#
+# Target size ~300–400 MB (plan v3). That assumes the SQLite decision is
+# approved; with portable MySQL bundled (+249 MB) it is roughly ~550–650 MB.
+# The first real installer build must record the actual size.
+#
+# What the build machine must stage first (see apps/desktop/README.md,
+# "Building the installer"): the API production dependencies
+# (`pnpm --filter @otsi-vie/api deploy`), the web standalone build
+# (`output: 'standalone'`), the Nuitka-compiled worker + tools, the AI
+# runtimes, the MySQL ZIP, and the bytenode-compiled main-process code
+# (.local/bytecode). Paths below that do not exist in the repo are those
+# staged outputs — the verification script lists them as packaging-time.
 appId: cc.otsi.vie
 productName: OTSI VIE
-copyright: Copyright © OTSI
+copyright: Copyright © Osio & Tee Solutions International Ltd
 directories:
   output: dist
+# Integrity-checked ASAR: everything the app loads is packed in one ASAR,
+# and the afterPack hook turns on the embedded-integrity fuse (see
+# scripts/after-pack.js). The main-process code inside it is V8 bytecode,
+# not readable source (see scripts/compile-bytecode.js).
+asar: true
+afterPack: ./scripts/after-pack.js
 files:
-  - main.js
-  - backend.js
+  # Main-process code, compiled to V8 bytecode (bytenode) on the build
+  # machine: main.js is a two-line loader (require('bytenode') +
+  # require('./main.jsc')); the readable sources are NOT shipped. The
+  # preload is the only plain JS shipped: it is the tiny loading-window
+  # bridge and carries no logic worth hiding.
+  - from: .local/bytecode
+    to: .
+    filter:
+      - '**/*'
   - preload.js
   - renderer/**/*
   - assets/**/*
   - package.json
+extraResources:
+  # Pre-built engine (ADR-144 §1.1).
+  - from: ../../apps/api/dist
+    to: engine/otsi-vie/apps/api/dist
+  # API production dependencies only, from `pnpm --filter @otsi-vie/api deploy`.
+  - from: ../../.local/packaging/api-node_modules
+    to: engine/otsi-vie/apps/api/node_modules
+  # Next.js standalone server (needs `output: 'standalone'` in next.config).
+  # Monorepo layout: the server is at .next/standalone/apps/web/server.js,
+  # and the static assets + public folder are NOT copied into the standalone
+  # tree by Next — the packaging step copies them in (targets below), or
+  # /_next/static/* 404s at runtime.
+  - from: ../../apps/web/.next/standalone
+    to: engine/otsi-vie/apps/web/.next/standalone
+  - from: ../../apps/web/.next/static
+    to: engine/otsi-vie/apps/web/.next/standalone/apps/web/.next/static
+  - from: ../../apps/web/public
+    to: engine/otsi-vie/apps/web/.next/standalone/apps/web/public
+  - from: ../../packages/contracts/dist
+    to: engine/otsi-vie/packages/contracts/dist
+  # The model registry: the native worker and the model tools read it at
+  # runtime (SHA-256 pins). No worker source ships.
+  - from: ../../services/worker/vie_worker/models/registry.json
+    to: engine/otsi-vie/services/worker/vie_worker/models/registry.json
+  # Nuitka-compiled native engine + tools (ADR-144 §1.8). No .py ships.
+  - from: ../../.local/packaging/native
+    to: engine
+  # One AI runtime (ADR-144 §1.2): ONNX Runtime + DirectML + OpenVINO,
+  # ~100–150 MB. No Torch / PaddlePaddle wheels.
+  - from: ../../.local/packaging/runtimes
+    to: runtimes
+  # Bundled Node runtime (used when Electron's own Node is not used).
+  - from: ../../.local/packaging/node
+    to: node
+  # Bundled portable MySQL ZIP (ADR-144 §1.2) — bundled, not downloaded at
+  # runtime. Removed when the SQLite decision is approved.
+  - from: ../../.local/packaging/mysql-8.4.6-winx64.zip
+    to: mysql-8.4.6-winx64.zip
+publish:
+  provider: github
+  owner: ckgefane-blip
+  repo: otsi-video-intelligence-ultra
 win:
   icon: assets/icon.ico
   target:
@@ -21,5 +95,13 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: OTSI VIE
+  artifactName: OTSI-VIE-Setup-${version}.${ext}
+  # Differential (blockmap) updates (plan v3 §1b): electron-updater
+  # downloads only the changed blocks. "store-asar" keeps the ASAR
+  # uncompressed inside the installer, so a small code change costs a
+  # small download instead of the whole compressed ASAR (measured in
+  # electron-builder's docs: a one-line change ~0.2% instead of ~100%).
+  # Trade-off: the installer grows by roughly what compressing the ASAR saved.
+  differentialPackage: store-asar
 portable:
   artifactName: OTSI-VIE-Portable-${version}.${ext}
