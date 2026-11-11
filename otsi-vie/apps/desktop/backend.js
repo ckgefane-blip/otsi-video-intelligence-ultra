@@ -338,6 +338,11 @@ async function prepareStack(python, otsiVieDir, engineDir, log) {
 }
 
 async function bootstrapOwner(python, otsiVieDir, engineDir, details, log) {
+  // The bootstrap CLI reads its password from OTSI_VIE_BOOTSTRAP_PASSWORD;
+  // without it, it prompts on the terminal, which a GUI app has none of
+  // (stdin is ignored), so it would fail. The owner form collects the
+  // password and it is passed here only as an environment variable to
+  // the child process — never written to a file or to the log.
   await runCommand(
     python,
     [
@@ -352,7 +357,7 @@ async function bootstrapOwner(python, otsiVieDir, engineDir, details, log) {
       '--organization',
       details.organization,
     ],
-    { cwd: engineDir, log },
+    { cwd: engineDir, log, env: { ...process.env, OTSI_VIE_BOOTSTRAP_PASSWORD: details.password } },
   );
 }
 

@@ -217,13 +217,25 @@ def run(name: str, build: bool, public_origin: str | None = None, mysql_mode: st
         # the Python background worker (ingest today): claims worker_jobs created by the outbox dispatcher
         **{name_: subprocess.Popen([sys.executable, "-m", "vie_worker.main"], cwd=APP / "services" / "worker", env={**env, "OTSI_VIE_WORKER_KINDS": kinds}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) for name_, kinds in WORKER_GROUPS.items()},
     }
+    # The Python workers need the full CV dependencies (numpy, torch,
+    # OpenVINO, ...). On a fresh desktop install the venv may not have
+    # them yet, so a worker can exit at import time. That must NOT kill
+    # the app: the API + web are what the user sees, and jobs simply
+    # wait until the worker's dependencies are installed. Only the Node
+    # processes (api, worker, web) are critical to the app staying up.
+    critical = ("api", "worker", "web")
+    reported_dead: set[str] = set()
     for k, p in procs.items():
         threading.Thread(target=pump, args=(k, p.stdout), daemon=True).start()
     print(f"\nOTSI VIE is starting: open http://127.0.0.1:{WEB_PORT}  (Ctrl+C stops everything)\n")
     try:
-        while all(p.poll() is None for p in procs.values()):
+        while all(procs[k].poll() is None for k in critical):
             time.sleep(0.5)
-        print("a process stopped; shutting the others down")
+            for k, p in procs.items():
+                if k not in critical and k not in reported_dead and p.poll() is not None:
+                    reported_dead.add(k)
+                    print(f"warning: Python worker {k} stopped (exit {p.returncode}); video jobs will wait until its dependencies are installed. The app keeps running.")
+        print("a critical process stopped; shutting the others down")
     except KeyboardInterrupt:
         pass
     finally:

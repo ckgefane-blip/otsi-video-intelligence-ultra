@@ -80,6 +80,10 @@
       <input id="name" type="text" required autocomplete="name">
       <label for="org">Organisation (your club or academy)</label>
       <input id="org" type="text" required autocomplete="organization">
+      <label for="password">Password (at least 12 characters)</label>
+      <input id="password" type="password" required autocomplete="new-password" minlength="12">
+      <label for="password2">Repeat the password</label>
+      <input id="password2" type="password" required autocomplete="new-password" minlength="12">
       <div id="owner-error" class="err"></div>
       <button id="owner-submit" type="submit">Create account</button>
     </form>
@@ -129,15 +133,25 @@
     const email = $('email').value.trim();
     const name = $('name').value.trim();
     const org = $('org').value.trim();
+    const password = $('password').value;
+    const password2 = $('password2').value;
     if (!email || !name || !org) {
       $('owner-error').textContent = 'Email, name and organisation are all needed.';
+      return;
+    }
+    if (password.length < 12) {
+      $('owner-error').textContent = 'Use at least 12 characters for the password.';
+      return;
+    }
+    if (password !== password2) {
+      $('owner-error').textContent = 'The passwords do not match.';
       return;
     }
     $('owner-submit').disabled = true;
     $('owner-error').textContent = '';
     show('status');
     $('status').textContent = 'Creating your owner account...';
-    window.otsi.submitOwner({ email, name, organization: org });
+    window.otsi.submitOwner({ email, name, organization: org, password });
   });
 
   $('have-account').addEventListener('click', () => {

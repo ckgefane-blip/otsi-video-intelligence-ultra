@@ -345,6 +345,7 @@ ipcMain.on('owner-submit', (_event, details) => {
       email: String(details.email || '').trim(),
       name: String(details.name || '').trim(),
       organization: String(details.organization || '').trim(),
+      password: String(details.password || ''),
     });
   }
 });
