@@ -130,8 +130,11 @@ export class WebAuthnService {
     return {
       id: row.id,
       device_name: row.device_name,
-      created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-      last_used_at: row.last_used_at ? (row.last_used_at instanceof Date ? row.last_used_at.toISOString() : String(row.last_used_at)) : null,
+      // dates leave the API as ISO strings (the adapter stores them as integer ms on SQLite and as
+      // DATETIME on MySQL; new Date() reads both). On MySQL this renders the same wall-clock time the
+      // raw 'YYYY-MM-DD HH:MM:SS' string did, in the unambiguous ISO form every other endpoint uses.
+      created_at: new Date(row.created_at).toISOString(),
+      last_used_at: row.last_used_at ? new Date(row.last_used_at).toISOString() : null,
     };
   }
 

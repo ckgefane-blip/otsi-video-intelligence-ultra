@@ -71,7 +71,7 @@ export class AnalysisService {
       result: (cfg.result as Record<string, unknown> | undefined) ?? null,
       failure_code: r.failure_code, failure_detail: r.failure_detail,
       job: job ? { state: job.state, progress: Number(job.progress), stage_message: job.stage_message } : null,
-      created_at: r.created_at, started_at: r.started_at, finished_at: r.finished_at,
+      created_at: new Date(r.created_at).toISOString(), started_at: r.started_at ? new Date(r.started_at).toISOString() : null, finished_at: r.finished_at ? new Date(r.finished_at).toISOString() : null,
     });
   }
 

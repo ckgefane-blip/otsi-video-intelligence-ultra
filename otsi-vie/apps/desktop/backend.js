@@ -364,15 +364,42 @@ async function ensureModels(root, data, log) {
 }
 
 /* ------------------------------------------------------------------ */
-/* database (bundled portable MySQL — SQLite needs owner approval)     */
+/* database: SQLite by default (ADR-144 §1.2, owner-approved 2026-11-11), */
+/* portable MySQL kept working and selectable (safeguard 7)             */
 /* ------------------------------------------------------------------ */
 
-// ADR-144 §1.2: SQLite on user PCs needs the owner's written approval
-// (the project rule says MySQL). Until approved, portable MySQL stays
-// bundled: the ZIP is in the installer instead of downloaded at runtime,
-// it runs on 127.0.0.1:3510 with its own data directory, side by side with
-// the original engine's Docker database on 3508, and it never stops
-// another program's database.
+// ADR-144 §1.2: SQLite on user PCs is APPROVED (owner, written approval
+// 2026-11-11). The desktop app therefore uses SQLite by default for local
+// data: one file under the data folder (D:\OTSI-VIE\db\otsi-vie.sqlite
+// when a D: drive exists — the same rule dataDir() already uses), created
+// from database/sqlite-bootstrap.sql and upgraded forward-only by
+// migrate.py, which backs the file up before every migration and restores
+// it if one fails (docs/sqlite-rollout.md). The portable-MySQL bundle
+// stays in the installer and stays working — it is removed only once the
+// SQLite conversion passes all eight safeguards (ADR-144 §1.2). Select it
+// with OTSI_VIE_DB_BACKEND=mysql (or a db-backend setting, when the
+// settings UI gains one); the MySQL path below is unchanged.
+
+/** Which local database backend to use: 'sqlite' (default) or 'mysql'. */
+function dbBackend() {
+  const backend = (process.env.OTSI_VIE_DB_BACKEND || 'sqlite').toLowerCase();
+  if (backend !== 'sqlite' && backend !== 'mysql') {
+    throw new Error(
+      `OTSI_VIE_DB_BACKEND must be 'sqlite' or 'mysql', not '${process.env.OTSI_VIE_DB_BACKEND}'.`,
+    );
+  }
+  return backend;
+}
+
+/** The SQLite database file: <data>/db/otsi-vie.sqlite (D: when one exists). */
+function sqliteDbPath(data) {
+  return path.join(data, 'db', 'otsi-vie.sqlite');
+}
+
+/** The SQLite DSN the API adapter reads (OTSI_VIE_DB_DSN): sqlite:///<absolute path>. */
+function sqliteDsn(data) {
+  return `sqlite:///${sqliteDbPath(data).split(path.sep).join('/')}`;
+}
 
 function mysqlRootPasswordFile(data) {
   return path.join(data, '.local', 'mysql-portable.env');
@@ -468,11 +495,16 @@ function startMysqlSupervisor(root, data, log) {
 
 /**
  * Prepare the local database and return the process environment for the
- * API, web and workers, plus the MySQL supervisor child. Steps, in order:
- * start portable MySQL, create the database + runtime account, run the
- * migrations (forward-only), provision the roles, create the signing key
- * and the stack secrets. The database already exists on later launches,
- * so these are all no-ops except the migrations (pending ones apply).
+ * API, web and workers, plus the MySQL supervisor child (null on SQLite).
+ * Steps, in order:
+ * SQLite (default): create the database file from the bootstrap schema
+ *   (db-setup), run the migrations forward-only with a backup first
+ *   (migrate up), create the signing key and the stack secrets. The
+ *   database file already exists on later launches, so these are all
+ *   no-ops except the migrations (pending ones apply).
+ * MySQL (OTSI_VIE_DB_BACKEND=mysql): start portable MySQL, create the
+ *   database + runtime account, run the migrations (forward-only),
+ *   provision the roles, create the signing key and the stack secrets.
  */
 async function prepareDatabase(root, data, userDataDir, detection, log) {
   const tools = ensureToolBinaries(root, log);
@@ -481,7 +513,17 @@ async function prepareDatabase(root, data, userDataDir, detection, log) {
       `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
     );
   }
-  const { child: mysqlSupervisor, rootPw } = await startMysqlSupervisor(root, data, log);
+  const backend = dbBackend();
+  const sqlite = backend === 'sqlite';
+  let mysqlSupervisor = null;
+  let rootPw = null;
+  let appDsn;
+  if (sqlite) {
+    // No server to start: the database is a file under the data folder.
+    appDsn = sqliteDsn(data);
+  } else {
+    ({ child: mysqlSupervisor, rootPw } = await startMysqlSupervisor(root, data, log));
+  }
 
   // Stack secrets (same format as the old local stack).
   let secrets = envFile(stackSecretsFile(data));
@@ -507,32 +549,47 @@ async function prepareDatabase(root, data, userDataDir, detection, log) {
   const storage = storageDir(data);
   fs.mkdirSync(storage, { recursive: true });
 
-  const rootDsn = `mysql://root:${rootPw}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
-  const appDsn = `mysql://${secrets.DB_USER}:${secrets.DB_PASSWORD}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
-  const dbSetupEnv = {
-    ...process.env,
-    OTSI_VIE_ADMIN_HOST: '127.0.0.1',
-    OTSI_VIE_ADMIN_PORT: String(MYSQL_PORT),
-    OTSI_VIE_ADMIN_USER: 'root',
-    OTSI_VIE_ADMIN_PASSWORD: rootPw,
-    OTSI_VIE_APP_DB: DB_NAME,
-    OTSI_VIE_APP_DB_USER: secrets.DB_USER,
-    OTSI_VIE_APP_DB_PASSWORD: secrets.DB_PASSWORD,
-  };
-  // Create the database + runtime account (migrate.py needs the database
-  // to exist in its DSN), then migrate, then provision the roles.
-  await runCommand(toolBinary(root, 'db-setup'), [], { log, env: dbSetupEnv });
-  await runCommand(toolBinary(root, 'migrate'), ['up'], {
-    log,
-    env: { ...process.env, OTSI_VIE_DB_DSN: rootDsn },
-  });
-  await runCommand(toolBinary(root, 'roles'), [], {
-    log,
-    env: { ...process.env, OTSI_VIE_ADMIN_DSN: rootDsn },
-  });
+  if (sqlite) {
+    // SQLite: no server, no runtime account, no MySQL roles. db-setup
+    // creates the file from the bootstrap schema; migrate upgrades it
+    // forward-only, backing it up first (migrate.py, safeguard 6).
+    const sqliteEnv = {
+      ...process.env,
+      OTSI_VIE_DB_BACKEND: 'sqlite',
+      OTSI_VIE_SQLITE_PATH: sqliteDbPath(data),
+      OTSI_VIE_DB_DSN: appDsn,
+    };
+    await runCommand(toolBinary(root, 'db-setup'), [], { log, env: sqliteEnv });
+    await runCommand(toolBinary(root, 'migrate'), ['up'], { log, env: sqliteEnv });
+  } else {
+    const rootDsn = `mysql://root:${rootPw}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
+    appDsn = `mysql://${secrets.DB_USER}:${secrets.DB_PASSWORD}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
+    const dbSetupEnv = {
+      ...process.env,
+      OTSI_VIE_ADMIN_HOST: '127.0.0.1',
+      OTSI_VIE_ADMIN_PORT: String(MYSQL_PORT),
+      OTSI_VIE_ADMIN_USER: 'root',
+      OTSI_VIE_ADMIN_PASSWORD: rootPw,
+      OTSI_VIE_APP_DB: DB_NAME,
+      OTSI_VIE_APP_DB_USER: secrets.DB_USER,
+      OTSI_VIE_APP_DB_PASSWORD: secrets.DB_PASSWORD,
+    };
+    // Create the database + runtime account (migrate.py needs the database
+    // to exist in its DSN), then migrate, then provision the roles.
+    await runCommand(toolBinary(root, 'db-setup'), [], { log, env: dbSetupEnv });
+    await runCommand(toolBinary(root, 'migrate'), ['up'], {
+      log,
+      env: { ...process.env, OTSI_VIE_DB_DSN: rootDsn },
+    });
+    await runCommand(toolBinary(root, 'roles'), [], {
+      log,
+      env: { ...process.env, OTSI_VIE_ADMIN_DSN: rootDsn },
+    });
+  }
 
   const env = {
     OTSI_VIE_DB_DSN: appDsn,
+    OTSI_VIE_DB_BACKEND: backend,
     OTSI_VIE_JWT_ISSUER: `http://127.0.0.1:${WEB_PORT}/`,
     OTSI_VIE_JWT_AUDIENCE: 'otsi-vie-api',
     OTSI_VIE_LOCAL_SIGNING_KEY_FILE: keyFile,
@@ -755,6 +812,9 @@ module.exports = {
   aiRuntimeDir,
   ensureAiRuntime,
   bundledMysqlZip,
+  dbBackend,
+  sqliteDbPath,
+  sqliteDsn,
   registryPath,
   registryHash,
   ensureModels,

@@ -86,7 +86,7 @@ export class BrandService {
   private view(r: RowDataPacket): BrandAsset {
     return BrandAsset.parse({
       id: r.id, kind: r.kind, name: r.name, mime: r.mime_type, byte_size: Number(r.byte_size), rights_holder: r.rights_holder, rights_basis: r.rights_basis,
-      rights_ok: rightsOk(r), uploaded_by: r.uploaded_by ?? null, created_at: r.created_at,
+      rights_ok: rightsOk(r), uploaded_by: r.uploaded_by ?? null, created_at: new Date(r.created_at).toISOString(),
     });
   }
 

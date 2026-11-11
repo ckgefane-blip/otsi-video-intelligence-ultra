@@ -6,8 +6,15 @@ import { readFileSync } from "node:fs";
  * there is no default database, issuer or audience (a silent default would make tokens or tenants ambiguous).
  */
 export interface Config {
-  /** mysql://user:password@host:port/database — the least-privilege RUNTIME account (otsi_app), never the migrator */
-  dbDsn: string;
+  /** mysql://user:password@host:port/database — the least-privilege RUNTIME account (otsi_app), never the migrator.
+   *  Required when `dbBackend` is "mysql"; absent when it is "sqlite" (the local file is `dbPath` instead). */
+  dbDsn?: string;
+  /** Which database backend the API uses (ADR-144 §1.2, distribution plan §1d safeguard 1):
+   *  `OTSI_VIE_DB_BACKEND=mysql` (default, unchanged behaviour) or `sqlite` (the desktop's on-PC file).
+   *  The central server always runs MySQL; only a user's own PC runs SQLite. */
+  dbBackend?: "mysql" | "sqlite";
+  /** SQLite database file (OTSI_VIE_DB_PATH), required when `dbBackend` is "sqlite"; ":memory:" for tests. */
+  dbPath?: string;
   /** OIDC issuer and audience every access token must carry (validated on every request) */
   jwtIssuer: string;
   jwtAudience: string;
@@ -107,12 +114,18 @@ function required(env: NodeJS.ProcessEnv, name: string): string {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const backendRaw = (env.OTSI_VIE_DB_BACKEND ?? "mysql").trim().toLowerCase();
+  if (backendRaw !== "mysql" && backendRaw !== "sqlite") throw new Error(`OTSI_VIE_DB_BACKEND must be "mysql" or "sqlite", got "${env.OTSI_VIE_DB_BACKEND}"`);
   const cfg: Config = {
-    dbDsn: required(env, "OTSI_VIE_DB_DSN"),
+    dbBackend: backendRaw,
     jwtIssuer: required(env, "OTSI_VIE_JWT_ISSUER"),
     jwtAudience: required(env, "OTSI_VIE_JWT_AUDIENCE"),
     port: Number(env.OTSI_VIE_API_PORT ?? 4520),
   };
+  // the database: MySQL needs a DSN (as before); SQLite needs a file path (the desktop's on-PC database).
+  // Exactly one of the two is set, so a half-configured process fails at start-up, not at the first query.
+  if (backendRaw === "sqlite") cfg.dbPath = required(env, "OTSI_VIE_DB_PATH");
+  else cfg.dbDsn = required(env, "OTSI_VIE_DB_DSN");
   if (env.OTSI_VIE_JWKS_URL) cfg.jwksUrl = env.OTSI_VIE_JWKS_URL;
   if (env.OTSI_VIE_JWT_PUBLIC_KEY_PEM) cfg.jwtPublicKeyPem = env.OTSI_VIE_JWT_PUBLIC_KEY_PEM;
   if (env.OTSI_VIE_LOCAL_SIGNING_KEY_FILE) {
@@ -169,7 +182,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (cfg.central.centralMode && !cfg.localAuth) throw new Error("OTSI_VIE_CENTRAL_MODE=yes needs local sign-in (OTSI_VIE_LOCAL_SIGNING_KEY_FILE)");
     if (cfg.central.centralMode && !cfg.central.licenceSigningKeyPem) throw new Error("OTSI_VIE_CENTRAL_MODE=yes needs a licence signing key (OTSI_VIE_LICENCE_SIGNING_KEY)");
   }
-  checkDsn(cfg.dbDsn, env);
+  if (cfg.dbDsn) checkDsn(cfg.dbDsn, env);
   return cfg;
 }
 
@@ -185,14 +198,18 @@ function checkDsn(dsn: string, env: NodeJS.ProcessEnv): void {
   }
 }
 
-/** Background workers (outbox dispatcher, ...) need only the database: same runtime account, same 3306 guard. */
-export interface WorkerConfig { dbDsn: string; pollMs: number }
+/** Background workers (outbox dispatcher, ...) need only the database: same runtime account, same 3306 guard.
+ *  The backend selection rides along: a worker on a user's PC runs SQLite, the central one runs MySQL. */
+export interface WorkerConfig { dbDsn?: string; dbBackend?: "mysql" | "sqlite"; dbPath?: string; pollMs: number }
 export function loadWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
-  const dbDsn = required(env, "OTSI_VIE_DB_DSN");
-  checkDsn(dbDsn, env);
+  const backendRaw = (env.OTSI_VIE_DB_BACKEND ?? "mysql").trim().toLowerCase();
+  if (backendRaw !== "mysql" && backendRaw !== "sqlite") throw new Error(`OTSI_VIE_DB_BACKEND must be "mysql" or "sqlite", got "${env.OTSI_VIE_DB_BACKEND}"`);
   const pollMs = Number(env.OTSI_VIE_OUTBOX_POLL_MS ?? 500);
   if (!Number.isFinite(pollMs) || pollMs < 50) throw new Error("OTSI_VIE_OUTBOX_POLL_MS must be a number >= 50");
-  return { dbDsn, pollMs };
+  if (backendRaw === "sqlite") return { dbBackend: "sqlite", dbPath: required(env, "OTSI_VIE_DB_PATH"), pollMs };
+  const dbDsn = required(env, "OTSI_VIE_DB_DSN");
+  checkDsn(dbDsn, env);
+  return { dbDsn, dbBackend: "mysql", pollMs };
 }
 
 export const CONFIG = Symbol("CONFIG");

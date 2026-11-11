@@ -1,6 +1,8 @@
 """Claiming and settling `worker_jobs` (ADR-022) — the same safety rules as the outbox dispatcher (ADR-018):
 
   claim      FOR UPDATE SKIP LOCKED over QUEUED-and-due jobs, or RUNNING jobs whose lease expired (a crashed worker); a fresh claim token.
+             On SQLite the same claim runs under BEGIN IMMEDIATE (no FOR UPDATE — the write lock is already held, so no other writer
+             can claim between the SELECT and the UPDATE); timestamps are integer ms computed once in Python.
              Highest priority first (1..9), then the oldest; a PAUSED job is never claimed; an organization with `org_max_running` jobs
              already running waits (ADR-060: one club's long queue does not hold every worker). The cap is checked inside the claim
              transaction; two workers claiming at the same instant may pass it by one (a soft cap, never a lost job)
@@ -20,7 +22,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from .db import connect, tx
+from .db import connect, is_sqlite_conn, is_sqlite_dsn, now_ms, tx
 
 log = logging.getLogger("vie_worker.jobs")
 
@@ -65,30 +67,65 @@ class JobRunner:
     def claim(self) -> Job | None:
         token = str(uuid.uuid4())
         marks = ",".join(["%s"] * len(self.kinds))
-        with tx(self.conn) as cur:
-            cur.execute(
-                f"""SELECT j.id FROM worker_jobs j
-                     WHERE j.kind IN ({marks}) AND ((j.state = 'QUEUED' AND j.available_at <= CURRENT_TIMESTAMP(6)
-                            AND (SELECT COUNT(*) FROM worker_jobs r WHERE r.organization_id = j.organization_id AND r.state = 'RUNNING'
-                                    AND r.lease_expires_at > CURRENT_TIMESTAMP(6)) < %s)
-                        OR (j.state = 'RUNNING' AND j.lease_expires_at <= CURRENT_TIMESTAMP(6)))
-                     ORDER BY j.priority, j.created_at LIMIT 1 FOR UPDATE SKIP LOCKED""", (*self.kinds, self.org_max_running))
-            row = cur.fetchone()
-            if not row:
-                return None
-            cur.execute(
-                """UPDATE worker_jobs SET state = 'RUNNING', claim_token = %s, worker_id = %s, attempts = attempts + 1,
-                          lease_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND, heartbeat_at = CURRENT_TIMESTAMP(6),
-                          started_at = COALESCE(started_at, CURRENT_TIMESTAMP(6)), error_code = NULL, error_detail = NULL
-                    WHERE id = %s""", (token, self.worker_id[:100], self.lease, row["id"]))
-            cur.execute("SELECT id, organization_id, kind, subject_type, subject_id, payload, attempts, max_attempts FROM worker_jobs WHERE id = %s", (row["id"],))
-            j = cur.fetchone()
+        # SQLite has no FOR UPDATE SKIP LOCKED — and needs none: tx() is BEGIN IMMEDIATE there, so the
+        # SELECT and the UPDATE below hold the exclusive write lock together and no other writer can
+        # claim between them. Timestamps are integer ms, computed once here so the read and the write agree.
+        if is_sqlite_conn(self.conn):
+            now = now_ms()
+            with tx(self.conn) as cur:
+                cur.execute(
+                    f"""SELECT j.id FROM worker_jobs j
+                         WHERE j.kind IN ({marks}) AND ((j.state = 'QUEUED' AND j.available_at <= %s
+                                AND (SELECT COUNT(*) FROM worker_jobs r WHERE r.organization_id = j.organization_id AND r.state = 'RUNNING'
+                                        AND r.lease_expires_at > %s) < %s)
+                            OR (j.state = 'RUNNING' AND j.lease_expires_at <= %s))
+                         ORDER BY j.priority, j.created_at LIMIT 1""", (*self.kinds, now, now, self.org_max_running, now))
+                row = cur.fetchone()
+                if not row:
+                    return None
+                cur.execute(
+                    """UPDATE worker_jobs SET state = 'RUNNING', claim_token = %s, worker_id = %s, attempts = attempts + 1,
+                              lease_expires_at = %s, heartbeat_at = %s,
+                              started_at = COALESCE(started_at, %s), error_code = NULL, error_detail = NULL
+                        WHERE id = %s""", (token, self.worker_id[:100], now + self.lease * 1000, now, now, row["id"]))
+                cur.execute("SELECT id, organization_id, kind, subject_type, subject_id, payload, attempts, max_attempts FROM worker_jobs WHERE id = %s", (row["id"],))
+                j = cur.fetchone()
+        else:
+            with tx(self.conn) as cur:
+                cur.execute(
+                    f"""SELECT j.id FROM worker_jobs j
+                         WHERE j.kind IN ({marks}) AND ((j.state = 'QUEUED' AND j.available_at <= CURRENT_TIMESTAMP(6)
+                                AND (SELECT COUNT(*) FROM worker_jobs r WHERE r.organization_id = j.organization_id AND r.state = 'RUNNING'
+                                        AND r.lease_expires_at > CURRENT_TIMESTAMP(6)) < %s)
+                            OR (j.state = 'RUNNING' AND j.lease_expires_at <= CURRENT_TIMESTAMP(6)))
+                         ORDER BY j.priority, j.created_at LIMIT 1 FOR UPDATE SKIP LOCKED""", (*self.kinds, self.org_max_running))
+                row = cur.fetchone()
+                if not row:
+                    return None
+                cur.execute(
+                    """UPDATE worker_jobs SET state = 'RUNNING', claim_token = %s, worker_id = %s, attempts = attempts + 1,
+                              lease_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND, heartbeat_at = CURRENT_TIMESTAMP(6),
+                              started_at = COALESCE(started_at, CURRENT_TIMESTAMP(6)), error_code = NULL, error_detail = NULL
+                        WHERE id = %s""", (token, self.worker_id[:100], self.lease, row["id"]))
+                cur.execute("SELECT id, organization_id, kind, subject_type, subject_id, payload, attempts, max_attempts FROM worker_jobs WHERE id = %s", (row["id"],))
+                j = cur.fetchone()
         payload = j["payload"] if isinstance(j["payload"], dict) else json.loads(j["payload"])
         return Job(j["id"], j["organization_id"], j["kind"], j["subject_type"], j["subject_id"], payload, j["attempts"], j["max_attempts"], token)
 
     def _conditional(self, job: Job, sql: str, args: tuple) -> bool:
         c = connect(self.dsn, found_rows=True)      # separate connection: callable from the heartbeat thread and the handler; counts MATCHED rows (see db.connect)
         try:
+            if is_sqlite_conn(c):
+                # SQLite counts CHANGED rows, not matched ones, so rowcount cannot say whether the lease
+                # is still ours (a progress report that did not move changes nothing). Check the token
+                # first, then update, inside one BEGIN IMMEDIATE transaction: atomic, and the same
+                # matched-row meaning as FOUND_ROWS on MySQL.
+                with tx(c) as cur:
+                    cur.execute("SELECT 1 FROM worker_jobs WHERE id = %s AND claim_token = %s", (job.id, job.token))
+                    if cur.fetchone() is None:
+                        return False
+                    cur.execute(sql, args)
+                    return True
             with c.cursor() as cur:
                 return cur.execute(sql, args) == 1
         finally:
@@ -129,8 +166,14 @@ class JobRunner:
     def heartbeat(self, job: Job, stop: threading.Event) -> None:
         while not stop.wait(self.lease / 3):
             try:
-                if not self._conditional(job, "UPDATE worker_jobs SET lease_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND, heartbeat_at = CURRENT_TIMESTAMP(6) "
-                                              "WHERE id = %s AND claim_token = %s", (self.lease, job.id, job.token)):
+                if is_sqlite_dsn(self.dsn):
+                    now = now_ms()
+                    ok = self._conditional(job, "UPDATE worker_jobs SET lease_expires_at = %s, heartbeat_at = %s "
+                                                "WHERE id = %s AND claim_token = %s", (now + self.lease * 1000, now, job.id, job.token))
+                else:
+                    ok = self._conditional(job, "UPDATE worker_jobs SET lease_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND, heartbeat_at = CURRENT_TIMESTAMP(6) "
+                                                "WHERE id = %s AND claim_token = %s", (self.lease, job.id, job.token))
+                if not ok:
                     job._lost.set()
                     return
             except Exception as e:  # noqa: BLE001 - a lock wait while the handler saves its results (it holds this job row) must not end the heartbeat: try again next tick
@@ -143,9 +186,14 @@ class JobRunner:
     def fail(self, job: Job, code: str, detail: str, retryable: bool) -> str:
         if retryable and job.attempts < job.max_attempts:
             delay = min(600, 15 * 2 ** (job.attempts - 1)) * (0.5 + random.random() / 2)
-            self._conditional(job, """UPDATE worker_jobs SET state = 'QUEUED', claim_token = NULL, lease_expires_at = NULL, error_code = %s, error_detail = %s,
-                                        available_at = CURRENT_TIMESTAMP(6) + INTERVAL %s MICROSECOND WHERE id = %s AND claim_token = %s""",
-                              (code[:64], detail[:1000], int(delay * 1_000_000), job.id, job.token))
+            if is_sqlite_dsn(self.dsn):
+                self._conditional(job, """UPDATE worker_jobs SET state = 'QUEUED', claim_token = NULL, lease_expires_at = NULL, error_code = %s, error_detail = %s,
+                                            available_at = %s WHERE id = %s AND claim_token = %s""",
+                                  (code[:64], detail[:1000], now_ms() + int(delay * 1000), job.id, job.token))
+            else:
+                self._conditional(job, """UPDATE worker_jobs SET state = 'QUEUED', claim_token = NULL, lease_expires_at = NULL, error_code = %s, error_detail = %s,
+                                            available_at = CURRENT_TIMESTAMP(6) + INTERVAL %s MICROSECOND WHERE id = %s AND claim_token = %s""",
+                                  (code[:64], detail[:1000], int(delay * 1_000_000), job.id, job.token))
             return "retry"
         self._conditional(job, """UPDATE worker_jobs SET state = 'FAILED', claim_token = NULL, lease_expires_at = NULL, error_code = %s, error_detail = %s,
                                     finished_at = CURRENT_TIMESTAMP(6) WHERE id = %s AND claim_token = %s""", (code[:64], detail[:1000], job.id, job.token))

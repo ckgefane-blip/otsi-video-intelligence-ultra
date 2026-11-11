@@ -3,10 +3,15 @@
  * roles provisioned, and a least-privilege runtime account (role otsi_app) for the API under test. A throwaway RSA key pair stands in
  * for the OIDC issuer (the API verifies issuer, audience and signature exactly as in production). Everything is dropped afterwards.
  * Never touches port 3306 or any existing database.
+ *
+ * SQLite mode (`OTSI_VIE_TEST_DB_BACKEND=sqlite`): no server, no migrations — the scratch database is a temp file and `appDsn`
+ * is its path. Only the dialect tests (`test/db.dialect.test.ts`) pass on SQLite today: they create their own schema. The full
+ * API suite on SQLite needs agent B's SQLite migrations and fails on missing tables until they land.
  */
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { exportJWK, exportSPKI, generateKeyPair } from "jose";
 import mysql from "mysql2/promise";
@@ -25,6 +30,19 @@ function rootPassword(): string {
 }
 
 export default async function setup({ provide }: GlobalSetupContext) {
+  if ((process.env.OTSI_VIE_TEST_DB_BACKEND ?? "mysql").trim().toLowerCase() === "sqlite") {
+    // No MySQL provisioning here: no .local/mysql-lint.env is read, no server is contacted. `appDsn` is the
+    // scratch SQLite file; `rootDsn` is empty because the dialect harness uses the same connection for fixtures.
+    const file = path.join(tmpdir(), `otsi-api-test-${randomBytes(6).toString("hex")}.db`);
+    const { publicKey, privateKey } = await generateKeyPair("RS256", { extractable: true });
+    provide("rootDsn", "");
+    provide("appDsn", file);
+    provide("publicKeyPem", await exportSPKI(publicKey));
+    provide("privateJwk", JSON.stringify(await exportJWK(privateKey)));
+    return async () => {
+      for (const suffix of ["", "-wal", "-shm"]) { try { unlinkSync(file + suffix); } catch { /* already gone */ } }
+    };
+  }
   const pw = rootPassword();
   const db = `vie_api_${randomBytes(6).toString("hex")}`;
   const appUser = `otsi_app_t_${randomBytes(3).toString("hex")}`;

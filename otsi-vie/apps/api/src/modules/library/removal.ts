@@ -156,10 +156,12 @@ export class LibraryRemovalService {
       const mark = async (table: string, ids: string[]) => {
         if (ids.length) await c.query(`UPDATE ${table} SET removed_at = CURRENT_TIMESTAMP(6), removed_by = ? WHERE id IN (?) AND organization_id = ?`, [p.userId, ids, org]);
       };
-      // share links to the removed files stop working
+      // share links to the removed files stop working. (MySQL's multi-table UPDATE ... JOIN has no
+      // SQLite form, so this is the equivalent subquery — the same statement on both backends.)
       if (pl.renders.length) {
-        await c.query(`UPDATE share_links s JOIN render_jobs j ON j.output_asset_id = s.asset_id AND j.organization_id = s.organization_id
-                          SET s.revoked_at = CURRENT_TIMESTAMP(6) WHERE s.organization_id = ? AND s.revoked_at IS NULL AND j.id IN (?)`, [org, pl.renders.map((r) => r.id)]);
+        await c.query(`UPDATE share_links SET revoked_at = CURRENT_TIMESTAMP(6)
+                        WHERE organization_id = ? AND revoked_at IS NULL
+                          AND asset_id IN (SELECT output_asset_id FROM render_jobs WHERE organization_id = ? AND id IN (?))`, [org, org, pl.renders.map((r) => r.id)]);
       }
       await mark("render_jobs", pl.renders.map((r) => r.id));
       for (const r of pl.renders) items.push(["render", r.id, {}]);

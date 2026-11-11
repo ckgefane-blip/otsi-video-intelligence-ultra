@@ -1,0 +1,454 @@
+{
+  "migrations": {
+    "0001": {
+      "file": "0001_baseline_schema.sql",
+      "statements": 1379,
+      "seed_dml": 0
+    },
+    "0002": {
+      "file": "0002_guard_triggers.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0003": {
+      "file": "0003_tenant_integrity.sql",
+      "statements": 266,
+      "seed_dml": 0
+    },
+    "0004": {
+      "file": "0004_canonical_outbox.sql",
+      "statements": 11,
+      "seed_dml": 0
+    },
+    "0005": {
+      "file": "0005_append_only_history.sql",
+      "statements": 8,
+      "seed_dml": 0
+    },
+    "0006": {
+      "file": "0006_countries.sql",
+      "statements": 2,
+      "seed_dml": 1
+    },
+    "0007": {
+      "file": "0007_canonical_player_registry.sql",
+      "statements": 47,
+      "seed_dml": 1
+    },
+    "0008": {
+      "file": "0008_track_identity_integrity.sql",
+      "statements": 29,
+      "seed_dml": 0
+    },
+    "0009": {
+      "file": "0009_outbox_dispatch_and_audit_actor.sql",
+      "statements": 24,
+      "seed_dml": 0
+    },
+    "0010": {
+      "file": "0010_local_sign_in.sql",
+      "statements": 4,
+      "seed_dml": 0
+    },
+    "0011": {
+      "file": "0011_credential_email_case.sql",
+      "statements": 7,
+      "seed_dml": 0
+    },
+    "0012": {
+      "file": "0012_worker_jobs_and_media_facts.sql",
+      "statements": 20,
+      "seed_dml": 0
+    },
+    "0013": {
+      "file": "0013_detection_tracking_playback.sql",
+      "statements": 68,
+      "seed_dml": 0
+    },
+    "0014": {
+      "file": "0014_track_appearance_and_links.sql",
+      "statements": 18,
+      "seed_dml": 0
+    },
+    "0015": {
+      "file": "0015_reel_builder_and_render.sql",
+      "statements": 37,
+      "seed_dml": 0
+    },
+    "0016": {
+      "file": "0016_rosters_teams_jersey_evidence.sql",
+      "statements": 39,
+      "seed_dml": 0
+    },
+    "0017": {
+      "file": "0017_footage_assessment_and_profiles.sql",
+      "statements": 20,
+      "seed_dml": 0
+    },
+    "0018": {
+      "file": "0018_canonical_allocator_nonlocking_lookup.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0019": {
+      "file": "0019_worker_status.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0020": {
+      "file": "0020_video_ingest_options.sql",
+      "statements": 1,
+      "seed_dml": 0
+    },
+    "0021": {
+      "file": "0021_video_removed.sql",
+      "statements": 10,
+      "seed_dml": 0
+    },
+    "0022": {
+      "file": "0022_user_avatars.sql",
+      "statements": 1,
+      "seed_dml": 0
+    },
+    "0023": {
+      "file": "0023_user_onboarding.sql",
+      "statements": 1,
+      "seed_dml": 0
+    },
+    "0024": {
+      "file": "0024_pitch_calibration.sql",
+      "statements": 32,
+      "seed_dml": 0
+    },
+    "0025": {
+      "file": "0025_pitch_camera.sql",
+      "statements": 26,
+      "seed_dml": 0
+    },
+    "0026": {
+      "file": "0026_pitch_auto.sql",
+      "statements": 11,
+      "seed_dml": 0
+    },
+    "0027": {
+      "file": "0027_ball_marks.sql",
+      "statements": 5,
+      "seed_dml": 0
+    },
+    "0028": {
+      "file": "0028_ball_tracks.sql",
+      "statements": 25,
+      "seed_dml": 0
+    },
+    "0029": {
+      "file": "0029_lineup_cards.sql",
+      "statements": 31,
+      "seed_dml": 0
+    },
+    "0030": {
+      "file": "0030_match_periods.sql",
+      "statements": 6,
+      "seed_dml": 0
+    },
+    "0031": {
+      "file": "0031_possession_passes.sql",
+      "statements": 9,
+      "seed_dml": 0
+    },
+    "0032": {
+      "file": "0032_brand_assets.sql",
+      "statements": 14,
+      "seed_dml": 0
+    },
+    "0033": {
+      "file": "0033_reel_music.sql",
+      "statements": 48,
+      "seed_dml": 0
+    },
+    "0034": {
+      "file": "0034_reel_videos.sql",
+      "statements": 24,
+      "seed_dml": 0
+    },
+    "0035": {
+      "file": "0035_player_position.sql",
+      "statements": 12,
+      "seed_dml": 0
+    },
+    "0036": {
+      "file": "0036_team_invitations.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0037": {
+      "file": "0037_two_step_sign_in.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0038": {
+      "file": "0038_library_removal.sql",
+      "statements": 24,
+      "seed_dml": 0
+    },
+    "0039": {
+      "file": "0039_library_folders_trash.sql",
+      "statements": 26,
+      "seed_dml": 7
+    },
+    "0040": {
+      "file": "0040_share_comments_clear_queue.sql",
+      "statements": 16,
+      "seed_dml": 0
+    },
+    "0041": {
+      "file": "0041_transitions_templates.sql",
+      "statements": 22,
+      "seed_dml": 0
+    },
+    "0042": {
+      "file": "0042_player_report.sql",
+      "statements": 22,
+      "seed_dml": 0
+    },
+    "0043": {
+      "file": "0043_project_access.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0044": {
+      "file": "0044_export_bundles_deliveries.sql",
+      "statements": 20,
+      "seed_dml": 0
+    },
+    "0045": {
+      "file": "0045_job_system_v2.sql",
+      "statements": 41,
+      "seed_dml": 0
+    },
+    "0046": {
+      "file": "0046_clip_speed_effects.sql",
+      "statements": 35,
+      "seed_dml": 0
+    },
+    "0047": {
+      "file": "0047_clip_zoom_telestration.sql",
+      "statements": 9,
+      "seed_dml": 0
+    },
+    "0048": {
+      "file": "0048_user_page_modes.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0049": {
+      "file": "0049_notification_reads.sql",
+      "statements": 1,
+      "seed_dml": 0
+    },
+    "0050": {
+      "file": "0050_ingest_analysis_profile.sql",
+      "statements": 7,
+      "seed_dml": 0
+    },
+    "0051": {
+      "file": "0051_reel_aspect_4_5.sql",
+      "statements": 18,
+      "seed_dml": 0
+    },
+    "0052": {
+      "file": "0052_reel_edits.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0053": {
+      "file": "0053_video_markers.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0054": {
+      "file": "0054_snapshots.sql",
+      "statements": 35,
+      "seed_dml": 0
+    },
+    "0055": {
+      "file": "0055_search_index.sql",
+      "statements": 5,
+      "seed_dml": 0
+    },
+    "0056": {
+      "file": "0056_reel_moment_rejections.sql",
+      "statements": 1,
+      "seed_dml": 0
+    },
+    "0057": {
+      "file": "0057_reel_blocks.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0058": {
+      "file": "0058_export_presets.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0059": {
+      "file": "0059_assistant_plans.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0060": {
+      "file": "0060_archive_bundles.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0061": {
+      "file": "0061_music_beat_grids.sql",
+      "statements": 26,
+      "seed_dml": 0
+    },
+    "0062": {
+      "file": "0062_org_templates.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0063": {
+      "file": "0063_retention_and_erasure.sql",
+      "statements": 4,
+      "seed_dml": 0
+    },
+    "0064": {
+      "file": "0064_search_period.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0065": {
+      "file": "0065_role_confirmation.sql",
+      "statements": 12,
+      "seed_dml": 0
+    },
+    "0066": {
+      "file": "0066_formation_decisions.sql",
+      "statements": 2,
+      "seed_dml": 0
+    },
+    "0067": {
+      "file": "0067_player_profile_details.sql",
+      "statements": 10,
+      "seed_dml": 0
+    },
+    "0068": {
+      "file": "0068_cross_match_reels.sql",
+      "statements": 16,
+      "seed_dml": 0
+    },
+    "0069": {
+      "file": "0069_best_moments_rule_v2_1.sql",
+      "statements": 10,
+      "seed_dml": 1
+    },
+    "0071": {
+      "file": "0071_token_wallet.sql",
+      "statements": 9,
+      "seed_dml": 0
+    },
+    "0072": {
+      "file": "0072_ai_analyst_assessments.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0073": {
+      "file": "0073_scouting_packs.sql",
+      "statements": 3,
+      "seed_dml": 0
+    },
+    "0074": {
+      "file": "0074_webauthn_credentials.sql",
+      "statements": 5,
+      "seed_dml": 0
+    },
+    "0075": {
+      "file": "0075_bank_transfer_billing.sql",
+      "statements": 8,
+      "seed_dml": 0
+    }
+  },
+  "procedures": {
+    "sp_issue_canonical_player_id": "APPLICATION CODE \u2014 PlayersService.register() (apps/api/src/modules/players/players.service.ts) must call the adapter's issueCanonicalPlayerId() instead of CALL sp_issue_canonical_player_id. Same checks, same error messages, one transaction; the sequence is reserved with INSERT ... ON CONFLICT DO UPDATE and the row is re-read, so concurrent issuance serialises per namespace exactly as the 0018 procedure did.",
+    "sp_merge_players": "APPLICATION CODE \u2014 PlayersService.merge() (apps/api/src/modules/players/players.service.ts) must call the adapter's mergePlayers() instead of CALL sp_merge_players. Same checks, same error messages, one transaction; both player rows are locked in id order."
+  },
+  "warnings": [
+    "pipeline_steps.progress: NUMERIC(5,2) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "job_events.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "audit_events.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "reel_clips.playback_speed: NUMERIC(6,3) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "outbox_events.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "share_link_access.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "billing_webhook_inbox.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "security_events.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "admin_actions.resulting_audit_event_id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "camera_transforms.reprojection_error_px: NUMERIC(12,4) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "possession_episodes.confidence: NUMERIC(5,4) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "tactical_windows.coverage_ratio: NUMERIC(5,4) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "movement_segments.confidence: NUMERIC(5,4) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "outbox_events.organization_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "outbox_events.dedupe_key: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "outbox_events.available_at: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "outbox_events.last_error: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "canonical_id_sequences.issue_year: UNSIGNED SMALLINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "canonical_id_sequences.last_sequence: UNSIGNED INT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "canonical_id_issuances.issue_year: UNSIGNED SMALLINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "canonical_id_issuances.sequence_number: UNSIGNED INT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "player_jersey_numbers.jersey_number: UNSIGNED SMALLINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "outbox_events.claim_token: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "outbox_events.lease_expires_at: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "outbox_events.dead_lettered_at: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "event_consumer_receipts.outbox_event_id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "audit_events.actor_kind: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "audit_events.actor_service: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "worker_jobs.progress: DECIMAL(5,2) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "video_sources.original_filename: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "video_sources.byte_size: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "upload_sessions.original_filename: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "upload_sessions.part_bytes: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "tracks.shot_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "video_shots.run_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "video_shots.shot_number: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "video_sources.proxy_asset_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_projects.player_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_projects.run_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "worker_status.cpu_percent: DECIMAL(5,2) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "worker_status.gpu_percent: DECIMAL(5,2) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "pitch_calibrations.request_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "pitch_calibration_requests.mode: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "event_candidates.ball_track_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "event_candidates.kit_group: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "worker_jobs.priority: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "worker_jobs.priority: UNSIGNED TINYINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "worker_jobs.paused_at: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "worker_jobs.paused_by: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_clips.effect_kind: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_clips.effect_at_us: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_clips.effect_hold_ms: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_clips.clip_fx: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "search_documents.id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "search_terms.doc_id: UNSIGNED BIGINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "music_beat_grids.tempo_bpm: DECIMAL(6,2) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "music_beat_grids.periodicity: DECIMAL(5,4) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "search_documents.period: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "players.role_confirmed_by: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "players.role_confirmed_at: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "players.role_confirmation_state: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "player_profile_details.height_cm: UNSIGNED SMALLINT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "player_profile_details.weight_kg: DECIMAL(5,1) becomes REAL (exact decimal semantics are lost; the column holds a score or ratio, not money)",
+    "player_profile_details.international_caps: UNSIGNED INT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "player_profile_details.international_goals: UNSIGNED INT becomes signed INTEGER (values above 2^63-1 cannot be stored; ids and counters are far below that)",
+    "reel_projects.source: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_projects.cross_match_length_s: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_projects.best_moments_rule_version: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
+    "reel_moment_rejections.video_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)"
+  ],
+  "tables": 157,
+  "indexes": 126,
+  "views": 5,
+  "triggers": 34,
+  "touch_triggers": 15
+}

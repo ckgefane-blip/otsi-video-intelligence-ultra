@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 import psutil
 
-from .db import connect
+from .db import connect, is_sqlite_conn
 
 log = logging.getLogger("vie_worker.status")
 
@@ -54,14 +54,27 @@ class StatusReporter:
         c = connect(self.dsn)
         try:
             with c.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO worker_status (worker_id, host, kinds, cpu_percent, cpu_count, memory_used_bytes, memory_total_bytes, gpu_name,
-                                                  gpu_percent, busy, started_at, reported_at)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, %s, UTC_TIMESTAMP(6))
-                       ON DUPLICATE KEY UPDATE cpu_percent = VALUES(cpu_percent), cpu_count = VALUES(cpu_count), memory_used_bytes = VALUES(memory_used_bytes),
-                         memory_total_bytes = VALUES(memory_total_bytes), gpu_name = VALUES(gpu_name), busy = VALUES(busy), reported_at = VALUES(reported_at)""",
-                    (self.worker_id, socket.gethostname()[:255], json.dumps(self.kinds), s["cpu_percent"], s["cpu_count"], s["memory_used_bytes"],
-                     s["memory_total_bytes"], self.gpu, self.busy.is_set(), self.started))
+                if is_sqlite_conn(c):
+                    # No ON DUPLICATE KEY UPDATE in SQLite: ON CONFLICT on the worker_id key instead.
+                    # UTC_TIMESTAMP(6) is translated to integer ms by the cursor (see db.py).
+                    cur.execute(
+                        """INSERT INTO worker_status (worker_id, host, kinds, cpu_percent, cpu_count, memory_used_bytes, memory_total_bytes, gpu_name,
+                                                      gpu_percent, busy, started_at, reported_at)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, %s, UTC_TIMESTAMP(6))
+                           ON CONFLICT(worker_id) DO UPDATE SET cpu_percent = excluded.cpu_percent, cpu_count = excluded.cpu_count,
+                             memory_used_bytes = excluded.memory_used_bytes, memory_total_bytes = excluded.memory_total_bytes,
+                             gpu_name = excluded.gpu_name, busy = excluded.busy, reported_at = excluded.reported_at""",
+                        (self.worker_id, socket.gethostname()[:255], json.dumps(self.kinds), s["cpu_percent"], s["cpu_count"], s["memory_used_bytes"],
+                         s["memory_total_bytes"], self.gpu, self.busy.is_set(), self.started))
+                else:
+                    cur.execute(
+                        """INSERT INTO worker_status (worker_id, host, kinds, cpu_percent, cpu_count, memory_used_bytes, memory_total_bytes, gpu_name,
+                                                      gpu_percent, busy, started_at, reported_at)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, %s, UTC_TIMESTAMP(6))
+                           ON DUPLICATE KEY UPDATE cpu_percent = VALUES(cpu_percent), cpu_count = VALUES(cpu_count), memory_used_bytes = VALUES(memory_used_bytes),
+                             memory_total_bytes = VALUES(memory_total_bytes), gpu_name = VALUES(gpu_name), busy = VALUES(busy), reported_at = VALUES(reported_at)""",
+                        (self.worker_id, socket.gethostname()[:255], json.dumps(self.kinds), s["cpu_percent"], s["cpu_count"], s["memory_used_bytes"],
+                         s["memory_total_bytes"], self.gpu, self.busy.is_set(), self.started))
         finally:
             c.close()
 

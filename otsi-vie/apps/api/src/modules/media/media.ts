@@ -133,7 +133,7 @@ function toVideo(r: RowDataPacket): Video {
         // before A.10 the server used High accuracy with Stabilize on, Standard off (the run records it the same way)
         profile: r.opt_auto_profile ?? (r.opt_outcome === "STARTED" ? (r.opt_stabilize ? "HIGH_ACCURACY" : "STANDARD") : null) } : null,
       not_performed: NOT_BUILT_SWITCHES.filter((k) => Boolean(r[k])) },
-    created_by: r.created_by ?? null, created_at: r.created_at, updated_at: r.updated_at,
+    created_by: r.created_by ?? null, created_at: new Date(r.created_at).toISOString(), updated_at: new Date(r.updated_at).toISOString(),
   });
 }
 

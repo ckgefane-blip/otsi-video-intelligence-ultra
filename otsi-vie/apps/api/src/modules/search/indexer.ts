@@ -176,7 +176,10 @@ async function lockState(ex: Executor, org: string): Promise<{ version: number; 
 /** bring the organization's index up to date with the canonical tables (in the caller's transaction) */
 export async function catchUp(ex: Executor, org: string): Promise<{ rebuilt: boolean; reindexed: number }> {
   const [{ now }] = await rows(ex, "SELECT NOW(6) AS now", []) as [{ now: string }];
-  await ex.query("INSERT IGNORE INTO search_index_state (organization_id, version, watermark) VALUES (?, 0, '1970-01-01 00:00:01')", [org]);
+  // the epoch-start watermark as a Date parameter: on MySQL it arrives as '1970-01-01 00:00:01' (the
+  // literal it replaces), on SQLite the adapter stores it as 1000 ms. A datetime string literal cannot
+  // go into an INTEGER-ms STRICT column.
+  await ex.query("INSERT IGNORE INTO search_index_state (organization_id, version, watermark) VALUES (?, 0, ?)", [org, new Date(1000)]);
   const st = (await lockState(ex, org))!;
   const rebuild = st.version !== INDEX_VERSION;
   const videos = new Set<string>(), players = new Set<string>(), reels = new Set<string>(), projects = new Set<string>();

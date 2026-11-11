@@ -11,7 +11,7 @@ import {
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PoolConnection, RowDataPacket } from "mysql2/promise";
+import { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { Principal } from "../../core/auth";
 import { CONFIG, Config } from "../../core/config";
@@ -19,6 +19,7 @@ import { Db, Executor } from "../../core/db";
 import { recordChange, userActor } from "../../core/audit";
 import { ApiError, forbidden, fromDatabase, notFound } from "../../core/problem";
 import { LocalStore } from "../../core/storage";
+import { issueCanonicalPlayerId, mergePlayers } from "./canonical-allocator";
 
 interface IdentityRow extends RowDataPacket {
   player_id: string;
@@ -419,15 +420,12 @@ export class PlayersService {
     if (r.created_by_organization_id !== p.organizationId) throw notFound("Player");
     const requestKey = `${p.organizationId}:${idempotencyKey}`.slice(0, 191);
     await this.db.retryTransient(async () => {
-      const c: PoolConnection = await this.db.pool.getConnection();
-      try {
-        await c.query("CALL sp_issue_canonical_player_id(?, ?, ?, ?, ?, @cid)", [playerId, body.country_code, p.organizationId, p.userId, requestKey]);
-      } catch (e) {
-        if ((e as { errno?: number }).errno === 1213 || (e as { errno?: number }).errno === 1205) throw e;
-        throw fromDatabase(e) ?? e;
-      } finally {
-        c.release();
-      }
+      // the canonical ID is issued by the allocator in application code (canonical-allocator.ts: the
+      // former stored procedure, now one code path on MySQL and SQLite); issuance under heavy concurrency
+      // restarts on a transient lock conflict, up to 8 attempts
+      await issueCanonicalPlayerId(this.db, {
+        playerId, countryCode: body.country_code, organizationId: p.organizationId, issuedBy: p.userId, requestKey,
+      });
     }, 8);                                                                     // issuance under heavy concurrency: more restarts
     return this.identity(playerId, p);
   }
@@ -446,8 +444,10 @@ export class PlayersService {
     }
     if (from.created_by_organization_id !== p.organizationId) throw notFound("Player");
     try {
-      await this.db.pool.query("CALL sp_merge_players(?, ?, ?, ?, ?, ?, ?)",
-        [uuidv7(), fromId, body.into_player_id, p.organizationId, p.userId, body.reason, body.evidence_id ?? null]);
+      await mergePlayers(this.db, {
+        mergeId: uuidv7(), fromPlayerId: fromId, intoPlayerId: body.into_player_id,
+        organizationId: p.organizationId, decidedBy: p.userId, reason: body.reason, evidenceId: body.evidence_id ?? null,
+      });
     } catch (e) {
       throw fromDatabase(e) ?? e;
     }

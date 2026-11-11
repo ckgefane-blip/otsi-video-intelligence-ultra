@@ -296,7 +296,7 @@ export class ReelsService {
       stale: targets.some((t) => !Number(t.current)), clips: clipList, transitions,
       duration_us: clipList.reduce((s, c) => s + slotUs(c), 0),         // B.19 (ADR-094): with the spacers
       latest_render: latest, last_good_render: good, formats,
-      created_by: r.created_by ?? null, created_at: r.created_at, updated_at: r.updated_at,
+      created_by: r.created_by ?? null, created_at: new Date(r.created_at).toISOString(), updated_at: new Date(r.updated_at).toISOString(),
     });
   }
 
@@ -1044,7 +1044,7 @@ export class ReelsService {
     return RenderJob.parse({
       id: r.id, reel_id: r.reel_id, state: r.state, config: json<Record<string, unknown>>(r.config) ?? {}, result: json<Record<string, unknown>>(r.result),
       failure_code: r.failure_code, failure_detail: r.failure_detail, progress: job ? Number(job.progress) : null, stage_message: job?.stage_message ?? null,
-      created_at: r.created_at, completed_at: r.completed_at, has_output: !!r.output_asset_id && !r.removed_at, cleared: !!r.cleared_at,
+      created_at: new Date(r.created_at).toISOString(), completed_at: r.completed_at ? new Date(r.completed_at).toISOString() : null, has_output: !!r.output_asset_id && !r.removed_at, cleared: !!r.cleared_at,
     });
   }
 

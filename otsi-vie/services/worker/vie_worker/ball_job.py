@@ -19,10 +19,8 @@ from pathlib import Path
 import numpy as np
 import pyarrow.parquet as pq
 
-import pymysql
-
 from . import ball, ball_net, possession, scoreboard
-from .db import audit, tx
+from .db import audit, streaming_cursor, tx
 from .jobs import Job, JobError, JobRunner
 from .storage import LocalStore
 
@@ -78,7 +76,7 @@ def pitch_lookup(rows: list[dict]):
 def load_people(conn, video_id: str, run_id: str, wanted: set[int]) -> dict[int, list[possession.Person]]:
     """The run's people (not the ball) in the frames where the ball is known: track, kit group and box. Streamed: a match has millions of rows."""
     out: dict[int, list[possession.Person]] = defaultdict(list)
-    with conn.cursor(pymysql.cursors.SSCursor) as cur:
+    with streaming_cursor(conn) as cur:
         cur.execute("""SELECT o.pts_us, o.track_id, ta.kit_group, o.bbox_x, o.bbox_y, o.bbox_w, o.bbox_h
                          FROM track_observations o JOIN tracks t ON t.id = o.track_id LEFT JOIN track_appearance ta ON ta.track_id = o.track_id
                         WHERE o.video_id = %s AND t.run_id = %s AND t.class_name <> 'BALL'""", (video_id, run_id))

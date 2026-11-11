@@ -118,7 +118,7 @@ export class JobsService {
       error: r.state === "FAILED" ? (r.error_detail ?? r.error_code) : null, attempts: Number(r.attempts), requested_by: r.requester_name,
       worker: machine(r.worker_id),
       estimate_s: r.kind === "ANALYZE" && estimate ? estimate(String(json<Record<string, unknown>>(r.run_config)?.profile ?? "STANDARD")) : null,
-      created_at: r.created_at, started_at: r.started_at, finished_at: r.finished_at, actions: this.actions(r, p, newest),
+      created_at: new Date(r.created_at).toISOString(), started_at: r.started_at ? new Date(r.started_at).toISOString() : null, finished_at: r.finished_at ? new Date(r.finished_at).toISOString() : null, actions: this.actions(r, p, newest),
     });
   }
 

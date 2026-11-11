@@ -7,13 +7,17 @@ import { v7 as uuidv7 } from "uuid";
 import { inject } from "vitest";
 import { createApp } from "../src/app";
 import { Db } from "../src/core/db";
+import { testDbBackend } from "./db-harness";
 
 export const ISSUER = "https://issuer.test.otsi.invalid/";
 export const AUDIENCE = "otsi-vie-api";
 
 export async function startApi(opts: { storageDir?: string; partBytes?: number; maxUploadBytes?: number; credentialKey?: string } = {}): Promise<NestFastifyApplication> {
+  // SQLite mode: the app opens the scratch file (global-setup hands out its path as appDsn); MySQL mode: the DSN.
+  const backend = testDbBackend();
   return createApp({
-    dbDsn: inject("appDsn"), jwtIssuer: ISSUER, jwtAudience: AUDIENCE, jwtPublicKeyPem: inject("publicKeyPem"), port: 0,
+    ...(backend === "sqlite" ? { dbBackend: "sqlite" as const, dbPath: inject("appDsn") } : { dbDsn: inject("appDsn") }),
+    jwtIssuer: ISSUER, jwtAudience: AUDIENCE, jwtPublicKeyPem: inject("publicKeyPem"), port: 0,
     ...(opts.credentialKey ? { credentialKey: opts.credentialKey } : {}),
     ...(opts.storageDir ? { storage: { dir: opts.storageDir, partBytes: opts.partBytes ?? 1024 * 1024, maxUploadBytes: opts.maxUploadBytes ?? 64 * 1024 ** 3 } } : {}),
   });
@@ -74,7 +78,9 @@ export const key = () => `k-${randomUUID()}`;
 
 /** The API's own database access class on the least-privilege RUNTIME account (what the dispatcher worker uses in production). */
 export function appDb(): Db {
-  return new Db({ dbDsn: inject("appDsn") });
+  return testDbBackend() === "sqlite"
+    ? new Db({ dbBackend: "sqlite", dbPath: inject("appDsn") })
+    : new Db({ dbDsn: inject("appDsn") });
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
