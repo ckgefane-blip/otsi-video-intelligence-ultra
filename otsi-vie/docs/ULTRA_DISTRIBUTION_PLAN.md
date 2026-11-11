@@ -45,9 +45,33 @@ Heavy work runs on the user's own PC. Accounts, licences and money live on one s
 - Database migrations for the local database run inside the app on update. They are forward-only and tested.
 
 ### 5. Payments (subscriptions)
-- Use a payment provider with no monthly fee (per-sale fee only), so it fits the zero-cost rule.
+
+**Owner decision (2026-11-11): bank transfer is the main payment method. Online card payment shows "Coming soon" for now: visible, disabled, never charging.**
+
+#### 5a. Bank transfer (build now)
+1. **Order.** The user picks a plan and period in the app or on the web account page. The central server creates an order with a unique payment reference (e.g. `OTSI-INV-2026-000123`) and a price.
+2. **Invoice.** The user sees a pro-forma invoice (on screen and as a PDF) with:
+   - the owner's bank details (account name, bank, account number, SWIFT/IBAN for foreign payers, currency);
+   - the amount and currency;
+   - the reference, with "put this reference in your transfer description";
+   - the order's expiry date.
+   Bank details are entered by the owner in the admin console and are never hard-coded.
+3. **Proof (optional).** The user can upload a transfer receipt (PDF or image) and mark "I have paid". The order shows "Awaiting confirmation".
+4. **Confirmation.** The owner, or an admin with the billing role, sees pending orders in the admin console. They confirm after checking the bank statement: amount received, date, bank reference. Partial payment, reject with a reason, and refund are also recorded.
+5. **Activation.** Only that confirmation activates the plan: entitlements, seats and token wallet. The user gets a final invoice/receipt and an email/in-app notice. The desktop app picks the change up on its next licence refresh.
+6. **Renewals.** Before expiry the user gets a renewal invoice with a new reference (e.g. 7 days before). After expiry, a grace period, then the plan drops to the free tier. Projects are kept and never deleted.
+7. **Audit.** Every order and status change is in the audit log: created, proof uploaded, confirmed by whom, amount, rejected, refunded. Nothing activates without a human confirmation.
+- Currencies: NGN for local payers and USD for foreign payers. The owner sets which bank account applies to each currency.
+- Zero cost: no provider and no fees beyond the owner's own bank charges.
+
+#### 5b. Online payment — "Coming soon" (design only, build later)
+- The plan page shows "Pay online — Coming soon": disabled, with no checkout code active. It must never charge or collect card data.
+- Later: use a provider with no monthly fee (per-sale fee only) with no monthly fee (per-sale fee only), so it fits the zero-cost rule.
 - Prefer a "merchant of record" (e.g. Paddle or Lemon Squeezy). It handles worldwide tax/VAT and invoices.
-- Final provider choice depends on the country where the owner's business is registered. That is an owner decision; list the options for the owner's region.
+- The owner's company is registered in **Nigeria** (private company limited by shares). The plan names two candidate providers, and the owner picks:
+  - **Paystack:** international Visa/Mastercard; USD payouts need a Zenith Bank USD domiciliary account. Confirm that USD recurring billing works.
+  - **Paddle:** merchant of record that handles global VAT. Confirm with Paddle that Nigeria is accepted for sales and payouts.
+- Keep the provider behind one billing adapter, so it can be swapped or a second one added.
 - The flow:
   1. Checkout opens in the browser.
   2. The provider's webhook goes to the central server.
@@ -63,13 +87,15 @@ Heavy work runs on the user's own PC. Accounts, licences and money live on one s
 4. Central server: accounts, sign-in, licences on the owner's hosting (staging subdomain first).
 5. Desktop sign-in against the server, passkeys on the real domain, offline licence grace.
 6. Auto-update feed.
-7. Payment provider integration in test mode (owner approval before live).
+7. Bank-transfer billing: orders, invoices with reference, proof upload, admin confirmation, activation, renewals.
+8. "Coming soon" online-payment button (disabled). The provider integration comes later, in test mode first, with owner approval before live.
 
 ## Acceptance
 - A fresh Windows PC with none of git, Node, pnpm or Python installs the app and finishes first run with no developer tools.
 - The same account signs in on two different PCs.
 - A passkey made on one PC signs in with that PC's Windows Hello; the RP ID is the product domain.
-- A test-mode subscription flips the entitlement and the app sees it within one refresh.
+- A bank-transfer order shows the owner's bank details and a unique reference. The plan stays inactive until an admin confirms the payment, then activates, and the app sees it within one refresh.
+- "Pay online" shows "Coming soon" and cannot be clicked through to any payment.
 - An update installs from version N to N+1 without losing local projects.
 
 ## Constraints that still hold
