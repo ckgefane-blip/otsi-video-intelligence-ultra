@@ -74,6 +74,29 @@ Heavy work runs on the user's own PC. Accounts, licences and money live on one s
 - **Trademark:** register "OTSI VIE" and the logo, first in Nigeria, then via WIPO Madrid for key markets.
 - **Patent:** software patents are hard to get and costly. Have counsel assess whether any novel method (e.g. identity-confirmed spotlight tracking) qualifies before any public disclosure. Until then, keep those methods as trade secrets: compiled, private repo, NDAs.
 
+### 1d. SQLite on the desktop — how the conversion risk is controlled (owner 2026-11-11)
+1. **One database layer.** All local data access goes through one adapter with a MySQL backend (server) and a SQLite backend (desktop). No raw SQL scattered through modules; the same queries and the same code paths run on both.
+2. **Every test runs on both databases.** The full API/integration/migration test suite runs twice (MySQL and SQLite) on every change, and both must pass. A SQLite-only failure blocks the release.
+3. **Known SQLite differences, handled explicitly and each covered by a test:**
+   - Foreign keys switched on (`PRAGMA foreign_keys=ON`).
+   - Strict typing (STRICT tables).
+   - Dates stored as integer ms.
+   - JSON via the JSON1 functions.
+   - Booleans as 0/1.
+   - MySQL stored routines and triggers moved into application code or equivalent SQLite triggers.
+   - Case-sensitive text comparison decided per column.
+4. **Three workers writing at once.**
+   - WAL mode, a busy timeout, short transactions, and a single job-queue writer where needed.
+   - Tested with the ingest, media and analysis workers all running on a real match. No "database is locked" errors allowed.
+5. **Same results on both.** Process the same sample match on the MySQL build and the SQLite build. Tracks, events, identities, reel and render outputs must match (record the comparison).
+6. **Users' data is protected.**
+   - Automatic local backup before every update and migration, with restore tested.
+   - Migrations are forward-only and run inside a transaction; if one fails, the app restores the backup and says so plainly.
+7. **Staged switch.**
+   - Keep the MySQL path working until SQLite passes all of the above.
+   - Then the owner's own PC (full end-to-end test by the build/test session), then a few beta users, then everyone.
+8. **Evidence.** ADR + `docs/IMPLEMENTATION_STATUS.md` record each check with its command and result. Nothing is called done without it.
+
 ### 2. Central server — the owner's existing hosting (subdomain + MySQL)
 - Accounts, sign-in, passkeys, organisations and teams.
 - Licences and entitlements: which plan, which features, the token wallet and seats.
@@ -127,6 +150,58 @@ Heavy work runs on the user's own PC. Accounts, licences and money live on one s
   4. The desktop app refreshes its licence.
 - No card data ever touches the app or the server.
 - Real billing activation needs the owner's explicit approval.
+
+### 6. UI/UX maturity — cleaner, friendlier, extensible (owner direction 2026-11-11)
+
+**Rule: keep every existing function, control and screen.** Nothing is removed. Visual changes to the approved designs need the owner's approval: show before/after screenshots.
+
+**Root cause, measured in `apps/web/src` on 2026-11-11:**
+- The screens are pixel replicas of the 2560×1440 approved images. **86 of 191 components** place every box and text by exact coordinates (`components/stage/DesignStage`: `B`, `T`, `P`, `u()`).
+- There are **433 different hard-coded colours** used **2,762 times**, against **8** shared CSS variables.
+- Almost no responsive rules: 2 files.
+
+This is why:
+- adding a button or a longer Russian label breaks a page;
+- laptops (1366×768, 1920×1080) feel cramped;
+- each page looks slightly different.
+
+**Recommendations, in order:**
+1. **Design system first.**
+   - Tokens: about 20 colours, a type scale, spacing, radius, elevation and motion, in one file (Tailwind theme + CSS variables). Tailwind and Radix are already installed.
+   - A small component kit: Button, IconButton, Panel, Field, Select, Tabs, Table (virtualised), Dialog, Drawer, Toast, Tooltip, Menu/ContextMenu, EmptyState, Skeleton, ProgressBar, and **TrustBadge** (detected / inferred / confirmed / not measured).
+   - A free component gallery page (dev-only route or Ladle/Storybook).
+2. **Flow layout instead of coordinates.** Rebuild each page with CSS grid/flex, keeping the approved look.
+   - Guard each page with a control inventory, so every button, field and section is checked to still exist and work.
+   - Also guard each page with Playwright visual-comparison tests against the approved image at 2560×1440, plus layout tests at 1366×768 and 1920×1080.
+   - Migrate page by page, most-used first: Reel Builder, Analysis, Library, then the rest.
+3. **One editor-style workspace (DaVinci/Filmora pattern).**
+   - Workflow tabs along the bottom: Media → Analyse → Players → Reel → Deliver.
+   - Inside each: left panel (media/players), centre viewer, right inspector, bottom timeline.
+   - Panels collapse and resize, and the layout is remembered per user.
+4. **Progressive disclosure.** Each panel shows the essentials and puts details under "Advanced". Add a Guided/Pro mode switch: Guided walks a new user step by step, Pro shows everything.
+5. **Pro speed.**
+   - Keyboard shortcuts (editable), a command palette (Ctrl+K) and right-click menus.
+   - Undo/redo on every edit.
+   - Multi-select on lists.
+6. **Consistent states.**
+   - Loading skeletons.
+   - Empty states that say the next step.
+   - Errors in plain words with a fix button.
+   - One **Jobs centre** (all analysis/render jobs, progress, cancel and retry in one place) instead of per-page spinners.
+7. **Extensible by design.** A **feature registry**: each engine feature registers its menu item, panel, shortcut, required role and plan entitlement, and its status (live / beta / coming soon). New engine functions then appear in the UI without redesigning pages. Every "Coming soon" uses one standard disabled pattern with a reason.
+8. **Responsive and accessible.**
+   - Works from 1366×768 to 4K with UI scale settings (90–150%).
+   - Text expansion safe for Russian and future languages.
+   - WCAG AA contrast, visible focus, full keyboard use and screen-reader labels.
+9. **Onboarding.**
+   - First-run tour.
+   - A sample project (clearly labelled sample, per the mock-data rule).
+   - Contextual tips.
+   - A Help panel linked to the tutorial material.
+10. **Performance feel.** Virtualised long lists, cached thumbnails and filmstrips, optimistic UI on edits, and a time-to-interactive under 2 s per page on a mid-range laptop.
+11. **Real-user check.** After the Reel Builder and Analysis migrations, run a 30-minute usability session with 3–5 real coaches or analysts. Fix the top problems before migrating further.
+
+**Order:** tokens + component kit → workspace shell + Jobs centre → page migrations (each behind its inventory + visual tests) → feature registry → onboarding.
 
 ## Build order
 1. ADR: this architecture (desktop engine + central account server), with alternatives and what changes.
