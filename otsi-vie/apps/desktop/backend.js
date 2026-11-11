@@ -501,10 +501,16 @@ async function ensureBuilds(otsiVieDir, log) {
   const buildEnv = { ...process.env, OTSI_VIE_API_INTERNAL_URL: API_URL };
   const codeChanged = head !== null && built !== null && built !== head;
   const neverRecorded = head !== null && built === null;
-  if (buildsExist && manifestOk && (codeChanged || neverRecorded)) {
+  if (buildsExist && (codeChanged || neverRecorded)) {
     // New code was downloaded (or this install predates the record):
     // any of the three packages could have changed, so rebuild all of
-    // them, not just the web.
+    // them, not just the web. This must run even when the baked API
+    // address is also out of date: the old code required the manifest
+    // to be OK here, so when the address changed at the same time as
+    // the code, only the website was rebuilt, the new commit was
+    // recorded as fully built, and the API kept its old build — the
+    // page ran on localhost while the API still said RP ID 127.0.0.1,
+    // so Windows Hello refused the passkey.
     log('Rebuilding the engine: new code was downloaded (a few minutes)...\n');
     await buildPackages(otsiVieDir, ['packages/contracts', 'apps/api', 'apps/web'], log, buildEnv);
     recordBuiltCommit(otsiVieDir, head);
