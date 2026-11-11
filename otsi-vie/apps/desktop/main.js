@@ -135,6 +135,59 @@ function createLoadingWindow() {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* application menu                                                    */
+/* ------------------------------------------------------------------ */
+
+// The window's own menu bar (Go / View / Help): navigation to the engine's
+// pages, reload, developer tools for a closer look, and quit. Without it
+// the window only has the bare Windows system menu (Restore / Move /
+// Size / Minimize / Maximize / Close) and no way to move around the app
+// except the in-page navigation.
+function buildAppMenu() {
+  const go = (label, route) => ({
+    label,
+    click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + route); },
+  });
+  return Menu.buildFromTemplate([
+    {
+      label: 'Go',
+      submenu: [
+        go('Dashboard', '/dashboard'),
+        go('Analysis', '/analysis'),
+        go('Timeline', '/timeline'),
+        go('Reel Builder', '/reels'),
+        go('Player Reports', '/reports'),
+        go('Library', '/library'),
+        go('Export', '/exports'),
+        go('Players', '/players'),
+        { type: 'separator' },
+        go('Settings', '/settings'),
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => { if (mainWin) mainWin.webContents.reload(); } },
+        { type: 'separator' },
+        { label: 'Toggle Developer Tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => { if (mainWin) mainWin.webContents.toggleDevTools(); } },
+        { type: 'separator' },
+        { role: 'zoomIn', label: 'Zoom In' },
+        { role: 'zoomOut', label: 'Zoom Out' },
+        { role: 'resetZoom', label: 'Reset Zoom' },
+        { type: 'separator' },
+        { role: 'togglefullscreen', label: 'Toggle Full Screen' },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'About OTSI VIE', click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + '/settings'); } },
+      ],
+    },
+  ]);
+}
+
 function createMainWindow() {
   mainWin = new BrowserWindow({
     width: MAIN_WIDTH,
@@ -150,7 +203,9 @@ function createMainWindow() {
       sandbox: false,
     },
   });
-  mainWin.setMenu(null);
+  // The main window keeps the application menu (Go / View / Help); the
+  // loading window has none.
+  mainWin.setMenu(buildAppMenu());
   // Keep the window title "OTSI VIE" even when the web app sets its own.
   mainWin.on('page-title-updated', (event) => event.preventDefault());
   // Developer tools, for when something needs a closer look.
@@ -318,7 +373,7 @@ async function runStartupWithRetry() {
 }
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
+  Menu.setApplicationMenu(buildAppMenu());
   createLoadingWindow();
   runStartupWithRetry();
 });
