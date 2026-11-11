@@ -140,12 +140,18 @@ export class AuthService {
 
   async refresh(refreshToken: string | undefined, client: ClientInfo): Promise<IssuedSession> {
     if (!refreshToken) throw new ApiError(401, "NO_SESSION", "Sign in first.");
+    // The reuse-grace cutoff as a plain value, not `INTERVAL ? MICROSECOND`:
+    // a bound parameter inside an INTERVAL expression is rejected by some
+    // MySQL drivers/servers and the query then fails with a server error
+    // (500) instead of the 401 a dead session should get, so the session
+    // never renews and the user has to sign in again and again.
+    const graceCutoff = new Date(Date.now() - this.local.refreshReuseGraceSeconds * 1000);
     const found = await this.db.tx(async (c) => {
       const [rows] = await c.query<RowDataPacket[]>(
         `SELECT s.id, s.family_id, s.user_id, s.rotated_at, s.revoked_at, s.expires_at > CURRENT_TIMESTAMP(6) AS live, u.external_subject,
-                s.rotated_at > CURRENT_TIMESTAMP(6) - INTERVAL ? MICROSECOND AS in_grace
+                s.rotated_at > ? AS in_grace
            FROM auth_sessions s JOIN users u ON u.id = s.user_id WHERE s.refresh_hash = ? FOR UPDATE`,
-        [this.local.refreshReuseGraceSeconds * 1_000_000, sha256(refreshToken)]);
+        [graceCutoff, sha256(refreshToken)]);
       const s = rows[0];
       if (!s) return null;
       if (s.rotated_at && !s.revoked_at && Number(s.in_grace) && Number(s.live)) {
