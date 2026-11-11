@@ -34,8 +34,8 @@
   sizes, not a measurement: Electron runtime ~150 MB, pre-built web ~50–80 MB, pre-built API plus production
   dependencies ~100–120 MB, the single AI runtime (ONNX Runtime + DirectML + OpenVINO, §1.2) ~100–150 MB, the
   Nuitka-compiled engine ~30–60 MB, the core model pack ~50–100 MB. The first real installer build must record the
-  actual size. **Caveat:** until the SQLite decision is approved (§1.2), the bundled portable MySQL ZIP (+249 MB)
-  pushes the installer to roughly ~550–650 MB. The ~300–400 MB target assumes SQLite.
+  actual size. **SQLite is APPROVED (owner, 2026-11-11 — see §1.2), so the ~300–400 MB target applies;** the
+  ~550–650 MB figure was the fallback while portable MySQL stayed bundled pending that approval.
 - Heavier model packs and future language packs are **not** in the installer: they install from inside the app via
   a component manager (chosen by the user, resumable, SHA-256 checked, signed manifest).
 
@@ -54,10 +54,17 @@
   Oracle commercial terms that embedding/distributing MySQL would need (the licence register,
   `docs/legal/LICENSE_REGISTER.md`, says exactly that: MySQL 8.4 Community is GPL-2.0, cleared for network use,
   and "distributing a modified server, or embedding it, would need Oracle commercial terms — not planned").
-- **SQLite needs the owner's written approval**, because the project rule says MySQL. It is recorded here as a
-  decision for the owner (§1.10). **Until approved, keep portable MySQL bundled** (the current behaviour: the ZIP
-  bundled in the installer instead of downloaded at runtime; runs on 127.0.0.1:3510 with its own data directory,
-  side by side with the original engine's Docker database on 3508, and it never stops another program's database).
+- **SQLite APPROVED by the owner, 2026-11-11 (written approval, in chat):** the project rule says MySQL, so this
+  needed the owner's written approval — now given. Reasons: the licence register says shipping MySQL inside the
+  app needs Oracle's commercial terms (a legal risk carried into every sale), SQLite is public domain (nothing to
+  license or pay), it makes the installer ~250 MB smaller (~300–400 MB instead of ~550–650 MB), it is how
+  professional desktop apps store each user's own project data, and MySQL stays on the central server for
+  accounts, licences, billing and payments either way. The conversion risk is controlled by the eight safeguards
+  in the plan v4 §1d (one database layer; every test on both databases; known differences handled explicitly with
+  tests; three workers writing at once with no "database is locked" allowed; same results on both; automatic
+  backup before every update/migration; staged switch — MySQL keeps working until SQLite passes all, then the
+  owner's PC, then beta users, then everyone; written proof in this ADR + `docs/IMPLEMENTATION_STATUS.md`). The
+  portable MySQL bundle is removed once the SQLite conversion passes all eight safeguards.
 - **Hardware check at first run.** The app detects the GPU, RAM and disk, picks the fastest runtime automatically
   (DirectML GPU → OpenVINO → CPU), and shows the user the expected speed. It does not fail silently on a weak PC.
 - **Mac later.** ONNX Runtime with CoreML runs the same models on Mac. Paths, codecs and the runtime choice are
@@ -212,8 +219,9 @@
 
 ### 1.10 Decisions needed from the owner
 
-1. **SQLite (written approval):** the project rule says MySQL; SQLite on user PCs needs the owner's written
-   approval. Until then, portable MySQL stays bundled (§1.2).
+1. **SQLite (written approval) — APPROVED 2026-11-11:** the owner approved SQLite on user PCs in chat (see §1.2
+   for the reasons and the eight safeguards). The portable MySQL bundle is removed once the conversion passes all
+   eight safeguards.
 2. **Microsoft Store company account:** register at storedeveloper.microsoft.com (new flow, $0 per current docs —
    re-verify at registration); the owner supplies the business verification.
 3. **Native shell later:** Qt/C++ or Tauri/Rust — a separate ADR with cost/effort; no switch without approval.
