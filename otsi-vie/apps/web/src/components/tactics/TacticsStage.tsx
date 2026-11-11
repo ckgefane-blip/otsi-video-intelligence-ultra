@@ -24,9 +24,11 @@ import { PlayerComparison } from "./PlayerComparison";
 import { SyncedPreview } from "./SyncedPreview";
 import { TransitionsPanel } from "./TransitionsPanel";
 import { TABS, TacticsHeader, type Layers } from "./TacticsHeader";
+import { useLocale } from "@/lib/i18n";
 import { groupsOf, teamCounts } from "./teams";
 
 function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
+  const { t: dict } = useLocale();
   const [layers, setLayers] = useState<Layers>(DEFAULT_OVERLAYS);
   useEffect(() => { setLayers(readOverlays()); }, []);                     // the viewer's default overlays (Library left panel)
   const [tab, setTab] = useState(0);
@@ -50,7 +52,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
   const teamGroups = useMemo(() => groupsOf(kits, team), [team, kits]);
   const choose = (i: number) => {
     setTab(i);
-    const target = TABS[i]![2];
+    const target = TABS(dict)[i]![2];
     setFocus(target);
     document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     setTimeout(() => setFocus((f) => (f === target ? null : f)), 1600);

@@ -308,3 +308,119 @@ engine here) — visual confirmation on the owner's host is the honest last step
 pass. The four translations were written by the author, not checked by a native speaker; a
 native-speaker review is still follow-up. Only **Tactical Intelligence** bodies remain of the
 original page-bodies gap.
+
+## Follow-up done 2026-11-11: Analysis workspace, Tactical pages, Clip Studio bodies — Group B (Muse, `muse/ultra-main`)
+
+Scope: `components/analysis/` (AnalysisWorkspace, IdentityEvidence, SamePerson, ProcessingView,
+Events/HeatPitch helpers, TrackOverlay), `components/workspace/` (the whole workspace shell:
+LeftRail, CentreVideo, TimelinePanel, PlayersPanel, PropertiesCard, WhoIsThis, NamePlayers,
+Lineups, PitchCalibration, PitchLayers, PlayerTools, BallMarks, EngineLanes, IdentifyDialog,
+Periods), `components/tactics/` (Panels, TacticsHeader, TransitionsPanel, PressingPanel,
+SyncedPreview, PlayerComparison), `components/studio/` (Adjustments, Inspector, EditPanels,
+BeatGridInfo, DualTimeline, Scopes, Preview, StudioHeader, Timeline, MediaBin, ProjectInfo,
+useStudio, spotlight, StudioStage), plus the four app pages
+`analysis/page.tsx`, `tactics/page.tsx`, `studio/page.tsx`,
+`videos/[videoId]/tactics/page.tsx` — which are pure wrappers (Stage component + metadata
+title, or a redirect) and carry no UI strings of their own.
+
+Dictionary: `body.analysis` 208 keys, `body.processing` 302 keys (ProcessingView's strings live
+there, not in `body.analysis`), `body.workspace` 729 keys (new subsection), `body.tactics` 164
+keys (new subsection), `body.studio` 723 keys. New keys added in Group B (vs the Group A
+commit fd339b7: analysis 13, studio 17, processing 255, no workspace/tactics sections):
+analysis 195, processing 47, workspace 729, tactics 164, studio 706 — of the studio keys,
+196 landed in the final studio pass (527 → 723: 189 + freezeBtn + 9 Timeline keys − 3
+removed); the rest came from the earlier Group B wiring pass. Every key has a real RU/ES/DE/FR
+translation (hand-written, not
+machine placeholders); the completeness test asserts every leaf is a non-empty string in every
+locale, with one deliberate exception — `body.workspace.eventSingularSuffix` is the empty
+string in en/es/de/fr (the singular takes no suffix) and "и" in ru.
+
+Wiring: every component reads via `useLocale()` / `dict.body.<section>.<key>`. Plain functions
+and hooks that return UI strings take an optional `d?: Dictionary` parameter with an English
+fallback via `getDictionary("en")` — never `useLocale()` inside a plain function (it throws
+outside render). Contracts-package labels are NOT edited: `PROFILES`/`LOOK_PRESETS`/
+`LOUDNESS_TARGETS` labels, `describeBeatGrid`/`BEAT_LIBRARY_NOTE`, and `computeCutDiff`'s
+summary are mapped at the render site by local helpers (`lookLabelOf`, `loudnessLabelOf`/
+`loudnessNoteOf`, `beatDesc`, `cutDiffSummary`, `transitionKindName`) that mirror the
+contracts branches exactly. Composed messages use `{a}`/`{b}`/`{c}` placeholders; plurals use
+separate one/many keys (RU uses the genitive plural for all counts — imperfect for 2–4,
+accepted shorthand). Label-vs-label comparisons translate both sides consistently; code
+values (kind codes, LaneMode, keyboard key names, codec/format labels, resolution badges,
+"FRZ"/"RAMP", vectorscope letters, channel codes) are never translated.
+
+Fixes found while wiring (all in the Group B files, all fixed in this commit):
+- Two TS1005 syntax corruptions from the earlier wiring pass — a JSX expression wrapped in an
+  extra pair of braces in `PitchCalibration.tsx` (`clickYellowDot` ternary branch) and
+  `PlayerTools.tsx` (snapshot button label). Both were parse errors, not runtime issues.
+- `useLocale()` had been inserted inside the plain async `confirm()`/`rejectFor()` functions in
+  `NamePlayers.tsx` — a hook called from an event handler would have crashed naming a player
+  at runtime. Converted to optional-dict parameters, threaded through `confirmAll`.
+- `renderedState`/`reviewTime` (spotlight.ts / useStudio.ts) called `useLocale()` in plain
+  functions — 8 test failures. Same optional-dict fix.
+- Three dictionary keys translated sentences that do not exist in the source (the snap toggle
+  titles were paraphrased, not quoted): `snapOnBeats`, `snapOnPlain`, `snapOffLabel` were
+  removed and replaced by `snapTitleOnBeats`/`snapTitleOnPlain`/`snapTitleOff` with the real
+  "Snapping on: dragged edges jump to …" text. Nine further Timeline keys were added after
+  reading the real source (transition button aria-label/title, clip aria-label, clipWord,
+  renderedWord). `unmuteLabel` lives in `body.workspace`, not `body.studio` (Preview fix);
+  `notATeam` for the PlayersPanel team-name fallback is reused from `body.processing`
+  ("Not a team", Title Case — the `body.tactics` one is lowercase).
+- `transitionKindName` was first inserted inside the `useStudio` hook body (`export` inside a
+  function, TS1184); moved to module level.
+- TimelinePanel CHIPS/LEGEND/KIND are now functions of the dictionary (kind codes kept for
+  lookup, labels translated); the shared `KIND` export forced a 1-line change in
+  `components/library/LeftPanel.tsx:66` (`KIND(dict)[k].color`) — outside the file scope, a
+  forced consequence, flagged in the report.
+- MediaBin kind badges and filter pills rendered the raw kind codes (SPOTLIGHT/STYLE/BRANDING/
+  FULL); they now render the translated labels (EN changes "SPOTLIGHT" → "Spotlight" etc. —
+  no test asserts the raw code). Template/history messages use curly quotes “{a}” per existing
+  dictionary style where the source used straight quotes; Inspector's line-2 " · at playhead"
+  becomes " · at the playhead" via the shared `atPlayheadSuffix` key.
+- Two strings found by the final distinct-literal rescan and wired late: PlayersPanel's
+  disabled-chip reason "Assign this team to a kit colour first (Analysis, Teams)" (key
+  `assignTeamKitFirst` already existed — LeftRail uses it) and the "Players (n)" tab label
+  (now reuses `body.analysis.players`).
+
+Deliberately left untranslated (residual English on these pages, and why):
+- `NOT_YET` (`src/lib/devMode.ts`, outside scope) — "not built yet"/"not available yet" in
+  LeftRail and Inspector (via `tabNotYet` = "{a} are {b}", identical in all five locales
+  because the tail is English); the same dev-mode helper feeds `notBuilt("season statistics")`
+  in PlayersPanel. Translating it needs a locale-aware refactor of a module-level const.
+- Kind/status codes everywhere (TransitionKind, LaneMode `"tall"`/`"normal"`, OrgTemplateKind
+  in `saveOrgTemplate`/`applyOrgTemplate` messages, beat-grid statuses, `data-stage` keys);
+  only their display labels are translated.
+- Keyboard key names (`Escape`, `Home`, `End`, `Enter`, `Alt+[`, `Alt+]`, `M`, `S`, `C`),
+  codec/format labels ("MP4 · H.264" / "MP4 · AV1" / "WebM · VP9"), resolution badges
+  ("4K"/"QHD"/"HD"/"SD"), clip badge abbreviations ("FRZ"/"RAMP"), vectorscope graticule
+  letters ("R"/"B"/"G") and channel codes ("LUMA"/"RGB").
+- "PRO" in "DUAL TIMELINE (PRO)" is the free UI mode (ADR-072), not a paid plan — kept as
+  "(Pro)".
+- `useStudio.ts` LAYOUTS labels/hints stay English literals by design: `test/look.test.ts`
+  asserts `LAYOUTS.COLOUR.open` / `LAYOUTS.REVIEW.open`, and the rendered layout switcher
+  uses the translated `layoutText` map in StudioHeader — LAYOUTS itself is never rendered.
+- `components/library/LeftPanel.tsx` (outside Group B scope) still carries English UI
+  strings — "Ball Tracking", "All Players", "Home team"/"Away team", Match/Browse switch and
+  titles, "Analysis available"/"No analysis available", "Clip Studio (this reel) →" /
+  "Make a reel →" — for the Library group, not this one. `MatchLinker` lives in
+  `components/matches/MatchPanels.tsx` (not in scope) — referenced from AnalysisWorkspace.
+- English fallbacks remain in pure helpers called with no dictionary (the unit tests assert
+  those defaults; the running app always passes the dictionary).
+
+Verification (2026-11-11): web typecheck clean apart from the 1 pre-existing
+`test/formationsPanel.test.tsx` `assigned_by` error; full web vitest 78 files / 378 tests, all
+passing; `next build` succeeds. Tests extended: `test/i18n.test.ts` now asserts the analysis
+(208), processing (302), workspace (729), tactics (164) and studio (723) key counts, the
+COGNATES allowlist for words legitimately shared with English (differ-test cap raised 60 →
+100 — the allowlist is the binding check), and the `EMPTY_OK` exception for
+`eventSingularSuffix`; `test/i18nBody.test.tsx` gains a ProbeB rendering Group B studio /
+tactics / workspace strings in Russian and Spanish. Before/after hardcoded-string count
+(distinct double-quoted literals starting with a capital letter across the in-scope files,
+same method as Group A): 1,092 before, 219 after — 882 removed; the 219 that remain are the
+categories above (codes, proper nouns, format names, comments, data-stage keys, English
+fallback defaults, LAYOUTS data, library strings). Line endings preserved on every edited
+file (one CRLF file, Preview.tsx, was briefly flattened by a fix script and restored — diff
+checked). Not verified: a click-through of a translated page in a running browser (no running
+engine here) — visual confirmation on the owner's host is the honest last step, as with every
+UI pass. The four translations were written by the author, not checked by a native speaker; a
+native-speaker review is still follow-up. With Group B done, no page-body gap remains from
+the original audit — the remaining English on these pages is the deliberate list above.

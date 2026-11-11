@@ -11,6 +11,7 @@ import { useAnalysisWorkspace } from "@/components/analysis/AnalysisWorkspace";
 import { ImpactNote } from "@/components/analysis/ImpactNote";
 import { api, ApiProblem } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
+import { useLocale } from "@/lib/i18n";
 
 /** each track's box nearest to time t (within 400 ms) */
 function boxesAt(obs: Observation[], t: number): Observation[] {
@@ -33,6 +34,7 @@ const inside = (o: Observation, px: number, py: number) => px >= o.x && px <= o.
 export function MomentPreview({ trackId, runId, from, to, label, onClose, onMove, picked }: {
   trackId: string; runId?: string | null; from: number; to: number; label: string; onClose?(): void; onMove?(o: Observation, boxSeen: boolean): void; picked?: Observation | null;
 }) {
+  const { t: dict } = useLocale();
   const ws = useAnalysisWorkspace();
   const ref = useRef<HTMLVideoElement | null>(null);
   const area = useRef<HTMLDivElement | null>(null);
@@ -93,11 +95,11 @@ export function MomentPreview({ trackId, runId, from, to, label, onClose, onMove
       <div className="mb-1 flex items-center justify-between gap-2 text-xs">
         <span>{label} · the green box is the player{onMove ? " · wrong player? drag the box onto the right one, or click him" : ""}</span>
         <span className="flex gap-1">
-          {onMove && stopped && !picked && <button type="button" onClick={() => { setStopped(false); void ref.current?.play().catch(() => undefined); }} className="rounded-ctl border border-line px-2 py-0.5">Play</button>}
-          {onClose && <button type="button" onClick={onClose} className="rounded-ctl border border-line px-2 py-0.5">Close</button>}
+          {onMove && stopped && !picked && <button type="button" onClick={() => { setStopped(false); void ref.current?.play().catch(() => undefined); }} className="rounded-ctl border border-line px-2 py-0.5">{dict.body.processing.playBtn}</button>}
+          {onClose && <button type="button" onClick={onClose} className="rounded-ctl border border-line px-2 py-0.5">{dict.common.close}</button>}
         </span>
       </div>
-      {!url ? <p className="text-xs text-muted">No playback copy of this video.</p> : (
+      {!url ? <p className="text-xs text-muted">{dict.body.workspace.noPlaybackCopy}</p> : (
         <div ref={area} className={`relative mx-auto w-full max-w-[600px] ${onMove ? "touch-none select-none" : ""}`} style={{ aspectRatio: ratio, cursor: onMove ? (drag ? "grabbing" : "crosshair") : undefined }}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)}>
           <video ref={ref} src={url} muted playsInline autoPlay preload="auto" className="pointer-events-none absolute inset-0 h-full w-full" aria-label="Moment of the match"
@@ -111,7 +113,6 @@ export function MomentPreview({ trackId, runId, from, to, label, onClose, onMove
   );
 }
 
-const KIND: Record<WhoItem["moment"]["kind"], string> = { SHOT: "shoots", PASS_FROM: "makes a pass", PASS_TO: "receives a pass", BALL_WON: "wins the ball", PRESSURE: "presses", SET_PIECE: "takes a set piece" };
 
 /**
  * "Is this him?" for the player whose reel is being made: one possible track at a time (the engine's events only, his shirt colour, never on
@@ -121,7 +122,9 @@ const KIND: Record<WhoItem["moment"]["kind"], string> = { SHOT: "shoots", PASS_F
  * No to" serves those moments again for exactly that.
  */
 export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string; playerId: string; onNamed(): Promise<void> }) {
+  const { t: dict } = useLocale();
   const [data, setData] = useState<WhoIsThis | null>(null);
+  const KIND: Record<WhoItem["moment"]["kind"], string> = { SHOT: dict.body.workspace.shootsVerb, PASS_FROM: dict.body.workspace.makesPass, PASS_TO: dict.body.workspace.receivesPass, BALL_WON: dict.body.workspace.winsBall, PRESSURE: dict.body.workspace.pressesVerb, SET_PIECE: dict.body.workspace.takesSetPiece };
   const [revisit, setRevisit] = useState(false);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Observation | null>(null);
@@ -129,7 +132,7 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const load = useCallback(async () => setData(await api<WhoIsThis>(`/v1/videos/${videoId}/who-is-this?player=${playerId}${revisit ? "&revisit=1" : ""}`)), [videoId, playerId, revisit]);
-  useEffect(() => { setData(null); setSkipped(new Set()); setPicked(null); void load().catch(() => setMsg({ ok: false, text: "Could not load his possible moments." })); }, [load]);
+  useEffect(() => { setData(null); setSkipped(new Set()); setPicked(null); void load().catch(() => setMsg({ ok: false, text: dict.body.workspace.couldNotLoadMoments })); }, [load]);
   // A.9 (ADR-071): N, the next possible moment of this player (the same as Can't tell / Next); never an answer about who it is
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,8 +146,8 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
     return () => removeEventListener("keydown", onKey);
   });
 
-  if (!data) return <p className="text-xs text-muted">Loading…</p>;
-  if (data.state === "NONE") return <p className="text-xs text-muted">No events yet: the engine follows the ball after the analysis; then his possible moments show here.</p>;
+  if (!data) return <p className="text-xs text-muted">{dict.common.loading}</p>;
+  if (data.state === "NONE") return <p className="text-xs text-muted">{dict.body.workspace.noEventsYetWho}</p>;
   const name = data.player.display_name;
   const left = data.items.filter((x) => !skipped.has(x.track_id));
   const cur = left[0] ?? null;
@@ -153,62 +156,61 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
   const decide = async (trackId: string, yes: boolean, why: string) => {
     const now = await api<TrackIdentity>(`/v1/tracks/${trackId}/identity`);
     if (now.state === (yes ? "CONFIRMED" : "REJECTED") && now.player?.player_id === playerId) return;
-    if (now.state === "CONFIRMED" && now.player?.player_id !== playerId) throw new ApiProblem(409, "CONFLICT", `That player is already named ${now.player?.display_name ?? "as someone else"}.`);
+    if (now.state === "CONFIRMED" && now.player?.player_id !== playerId) throw new ApiProblem(409, "CONFLICT", dict.body.workspace.thatPlayerAlreadyNamed.replace("{a}", now.player?.display_name ?? dict.body.workspace.asSomeoneElse));
     await api(`/v1/tracks/${trackId}/identity-decisions`, { method: "POST",
       json: { state: yes ? "CONFIRMED" : "REJECTED", player_id: playerId, supersedes_id: now.decision_id, reason: now.decision_id ? why : null } });
   };
   const run = async (f: () => Promise<string>, named: boolean) => {
     setBusy(true); setMsg(null);
     try { const text = await f(); setMsg({ ok: true, text }); setPicked(null); await load(); if (named) await onNamed(); }
-    catch (x) { setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "Not saved." }); } finally { setBusy(false); }
+    catch (x) { setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.workspace.notSaved }); } finally { setBusy(false); }
   };
   const answer = (it: WhoItem, yes: boolean) => run(async () => {
-    await decide(it.track_id, yes, yes ? (it.said_not_him ? `it was ${name} after all` : `recognised as ${name} in an event`) : `not ${name} (seen in an event)`);
-    return yes ? `Yes: ${it.events} more event${it.events === 1 ? "" : "s"} count for ${name}.` : `Recorded: not ${name}.`;
+    await decide(it.track_id, yes, yes ? (it.said_not_him ? dict.body.workspace.wasHimAfterAllName.replace("{a}", name) : dict.body.workspace.recognisedInEvent.replace("{a}", name)) : dict.body.workspace.notNameSeenEvent.replace("{a}", name));
+    return yes ? (it.events === 1 ? dict.body.workspace.yesMoreEventsOne : dict.body.workspace.yesMoreEventsMany).replace("{a}", String(it.events)).replace("{b}", name) : dict.body.workspace.recordedNotHim.replace("{a}", name);
   }, yes);
   const moveTo = (it: WhoItem, o: Observation, seen: boolean) => run(async () => {
     // a player on screen together with one of his named tracks is someone else: unknown beats wrong
     const busyWith = data.his_spans.find((h) => h.track_id !== o.track_id && h.first_pts_us <= o.pts_us && o.pts_us <= h.last_pts_us);
-    if (busyWith) throw new ApiProblem(409, "CONFLICT", `Not saved: ${name} is already named on another player at this moment, so this one cannot be him.`);
-    await decide(o.track_id, true, `the box was moved onto ${name}`);
+    if (busyWith) throw new ApiProblem(409, "CONFLICT", dict.body.workspace.notSavedAlreadyNamed.replace("{a}", name));
+    await decide(o.track_id, true, dict.body.workspace.boxMovedOnto.replace("{a}", name));
     // the boxed player seen at the same moment as him is someone else; not seen then, nothing is said about him
-    if (seen) await decide(it.track_id, false, `the box was on someone else: ${name} was seen elsewhere at the same moment`);
-    return `Moved: the player you chose is ${name} (track ${o.track_number})${seen ? "; the boxed one is not him" : ""}.`;
+    if (seen) await decide(it.track_id, false, dict.body.workspace.boxOnSomeoneElse.replace("{a}", name));
+    return dict.body.workspace.movedPlayerIs.replace("{a}", name).replace("{b}", String(o.track_number)).replace("{c}", seen ? dict.body.workspace.boxedOneNotHim : "");
   }, true);
 
   return (
     <div className="space-y-2" data-who={name}>
       <p className="text-xs text-muted">
-        {revisit ? <>The moments you said were not <b>{name}</b>. If he is in the picture, drag the box onto him (or click him).</>
-          : <>Moments of the engine&apos;s events where the player in the green box could be <b>{name}</b> (his shirt colour, never on screen with him,
-            most alike to him first).</>} {data.his_events} event{data.his_events === 1 ? "" : "s"} already count for him, from {data.his_tracks} named track{data.his_tracks === 1 ? "" : "s"}.{" "}
-        <button type="button" className="text-primary" data-revisit onClick={() => { setMsg(null); setRevisit(!revisit); }}>{revisit ? "Back to new moments" : `Go back to the ones I said No to`}</button>
+        {revisit ? <>{dict.body.workspace.momentsSaidNot}<b>{name}</b>{dict.body.workspace.ifInPictureDrag}</>
+          : <>{dict.body.workspace.momentsGreenBoxStart}<b>{name}</b>{dict.body.workspace.momentsGreenBoxEnd}</>} {(data.his_events === 1 ? (data.his_tracks === 1 ? dict.body.workspace.hisEventsOneTrack : dict.body.workspace.hisEventsOneTracks) : (data.his_tracks === 1 ? dict.body.workspace.hisEventsManyTrack : dict.body.workspace.hisEventsManyTracks)).replace("{a}", String(data.his_events)).replace("{b}", String(data.his_tracks))}{" "}
+        <button type="button" className="text-primary" data-revisit onClick={() => { setMsg(null); setRevisit(!revisit); }}>{revisit ? dict.body.workspace.backToNewMoments : dict.body.workspace.goBackNo}</button>
       </p>
-      {!cur ? <p className="text-xs text-muted">{data.items.length ? "You skipped the rest. " : revisit ? `No moment marked "not ${name}". ` : `No more possible moments for ${name}. `}{skipped.size > 0 && <button type="button" className="text-primary" onClick={() => setSkipped(new Set())}>Show the skipped ones again</button>}</p> : (
+      {!cur ? <p className="text-xs text-muted">{data.items.length ? dict.body.workspace.youSkippedRest : revisit ? dict.body.workspace.noMomentMarkedNot.replace("{a}", name) : dict.body.workspace.noMorePossibleMoments.replace("{a}", name)}{skipped.size > 0 && <button type="button" className="text-primary" onClick={() => setSkipped(new Set())}>{dict.body.workspace.showSkippedAgain}</button>}</p> : (
         <div className="space-y-2" data-who-item={cur.track_number}>
           <MomentPreview key={cur.track_id} trackId={cur.track_id} runId={data.run_id} from={cur.moment.start_us - 2_000_000} to={cur.moment.end_us + 2_000_000}
             onMove={(o, seen) => { setMsg(null); setPicked(o); setBoxSeen(seen); }} picked={picked}
-            label={`${formatDuration(cur.moment.start_us)}: the boxed player ${KIND[cur.moment.kind]} · ${left.length + data.more} ${revisit ? "to look at again" : `possible moment${left.length + data.more === 1 ? "" : "s"} left`}`} />
+            label={dict.body.workspace.boxedPlayerLabel.replace("{a}", formatDuration(cur.moment.start_us)).replace("{b}", KIND[cur.moment.kind]).replace("{c}", String(left.length + data.more)).replace("{d}", revisit ? dict.body.workspace.toLookAgain : (left.length + data.more === 1 ? dict.body.workspace.possibleMomentsLeftOne : dict.body.workspace.possibleMomentsLeftMany))} />
           {picked ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">Is the player in the blue box {name}?</span>
+              <span className="text-sm font-semibold">{dict.body.workspace.isPlayerInBlueBox.replace("{a}", name)}</span>
               {data.kit_group !== null && picked.kit_group != null && picked.kit_group !== data.kit_group
-                && <span className="text-xs text-amber">His shirt colour differs from {name}&apos;s other tracks: check it is him.</span>}
-              <button type="button" disabled={busy} onClick={() => void moveTo(cur, picked, boxSeen)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">Yes, move the box</button>
-              <button type="button" disabled={busy} onClick={() => setPicked(null)} className="rounded-ctl border border-line px-3 py-1.5">Cancel</button>
+                && <span className="text-xs text-amber">{dict.body.workspace.shirtColourDiffers.replace("{a}", name)}</span>}
+              <button type="button" disabled={busy} onClick={() => void moveTo(cur, picked, boxSeen)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">{dict.body.workspace.yesMoveBox}</button>
+              <button type="button" disabled={busy} onClick={() => setPicked(null)} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</button>
               <ImpactNote trackIds={[picked.track_id]} state="CONFIRMED" playerId={playerId} className="w-full" />
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{cur.said_not_him ? `You said this is not ${name}.` : `Is this ${name}?`}</span>
+              <span className="text-sm font-semibold">{cur.said_not_him ? dict.body.workspace.youSaidNotName.replace("{a}", name) : dict.body.workspace.isThisName.replace("{a}", name)}</span>
               {cur.said_not_him
-                ? <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl border border-line px-3 py-1.5 disabled:opacity-50">It was him after all</button>
+                ? <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl border border-line px-3 py-1.5 disabled:opacity-50">{dict.body.workspace.wasHimAfterAll}</button>
                 : <>
-                    <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">Yes</button>
-                    <button type="button" disabled={busy} onClick={() => void answer(cur, false)} className="rounded-ctl bg-danger px-4 py-1.5 font-semibold text-white disabled:opacity-50">No</button>
+                    <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">{dict.body.workspace.yesBtn}</button>
+                    <button type="button" disabled={busy} onClick={() => void answer(cur, false)} className="rounded-ctl bg-danger px-4 py-1.5 font-semibold text-white disabled:opacity-50">{dict.body.workspace.noBtn}</button>
                   </>}
-              <button type="button" disabled={busy} onClick={() => setSkipped((s) => new Set(s).add(cur.track_id))} title="The next possible moment (N)" className="rounded-ctl border border-line px-3 py-1.5">{cur.said_not_him ? "Next" : "Can't tell"}</button>
-              <span className="text-xs text-muted">This player is in {cur.events} event{cur.events === 1 ? "" : "s"}{cur.look !== null ? ` · looks ${Math.round(cur.look * 100)} alike` : ""}</span>
+              <button type="button" disabled={busy} onClick={() => setSkipped((s) => new Set(s).add(cur.track_id))} title={dict.body.workspace.nextMomentTitle} className="rounded-ctl border border-line px-3 py-1.5">{cur.said_not_him ? dict.body.workspace.nextPlain : dict.body.workspace.cantTell}</button>
+              <span className="text-xs text-muted">{dict.body.workspace.thisPlayerInEvents.replace("{a}", String(cur.events)).replace("{b}", cur.events === 1 ? dict.body.workspace.eventSingularSuffix : dict.body.workspace.eventPluralSuffix).replace("{c}", cur.look !== null ? dict.body.workspace.looksAlikeSuffix.replace("{a}", String(Math.round(cur.look * 100))) : "")}</span>
               <ImpactNote trackIds={[cur.track_id]} state="CONFIRMED" playerId={playerId} className="w-full" />
             </div>
           )}

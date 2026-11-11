@@ -17,6 +17,7 @@ import {
 } from "@otsi-vie/contracts";
 import React, { useEffect, useRef, useState } from "react";
 import { u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 
 interface ScopesProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -24,6 +25,7 @@ interface ScopesProps {
 }
 
 export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
+  const { t: dict } = useLocale();
   const [mode, setMode] = useState<ScopeMode>("waveform");
   const [channel, setChannel] = useState<ScopeChannel>("luma");
   const [audioMeter, setAudioMeter] = useState<AudioMeterData>({ peakDb: -60, rmsDb: -60, clip: false });
@@ -204,7 +206,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
         }
 
         ctx.fillStyle = clip ? "#ff3333" : "#8ea3bf";
-        ctx.fillText(clip ? "CLIP" : "PEAK", 75, 14);
+        ctx.fillText(clip ? dict.body.studio.clipMeter : dict.body.studio.peakMeter, 75, 14);
       }
 
       if (!dead) animId = requestAnimationFrame(sample);
@@ -215,7 +217,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
       dead = true;
       cancelAnimationFrame(animId);
     };
-  }, [mode, channel, videoRef]);
+  }, [mode, channel, videoRef, dict]);
 
   // Audio analysis when playing
   useEffect(() => {
@@ -276,19 +278,19 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
               onClick={() => setMode(m)}
             >
               {m === "waveform"
-                ? "Waveform"
+                ? dict.body.studio.waveformLabel
                 : m === "histogram"
-                ? "Histogram"
+                ? dict.body.studio.histogramLabel
                 : m === "vectorscope"
-                ? "Vectorscope"
-                : "Audio"}
+                ? dict.body.studio.vectorscopeLabel
+                : dict.body.studio.audioLabel}
             </button>
           ))}
         </div>
         {onClose && (
           <button
             type="button"
-            aria-label="Close scopes"
+            aria-label={dict.body.studio.closeScopes}
             onClick={onClose}
             className="px-2 text-base font-semibold text-[#8ea3bf] hover:text-white"
           >
@@ -299,7 +301,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
 
       {(mode === "waveform" || mode === "histogram") && (
         <div className="flex items-center gap-2 text-xs text-[#cfe0f5]">
-          <span>Channel:</span>
+          <span>{dict.body.studio.channelLabel}</span>
           {(["luma", "rgb"] as const).map((ch) => (
             <button
               key={ch}

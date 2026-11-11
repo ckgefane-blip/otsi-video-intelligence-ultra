@@ -17,12 +17,28 @@ import {
   syncPlayhead,
   type ClipComparisonItem,
   type CutClip,
+  type CutComparison,
 } from "@otsi-vie/contracts";
 import React, { useEffect, useMemo, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { typing } from "@/lib/keymap";
 import { tc, type Ui } from "./kit";
 import type { Studio } from "./useStudio";
+import { useLocale, type Dictionary } from "@/lib/i18n";
+
+/** the cut-diff summary, translated at the render site: mirrors contracts computeCutDiff parts exactly (contracts stays English) */
+const cutDiffSummary = (diff: CutComparison, d: Dictionary): string => {
+  const parts: string[] = [];
+  const deltaS = (diff.delta_duration_us / 1e6).toFixed(1);
+  if (diff.delta_duration_us === 0) parts.push(d.body.studio.bothCutsSameDuration);
+  else if (diff.delta_duration_us > 0) parts.push(d.body.studio.cutALonger.replace("{a}", deltaS));
+  else parts.push(d.body.studio.cutAShorter.replace("{a}", deltaS));
+  if (diff.added_count > 0) parts.push(d.body.studio.addedCountN.replace("{a}", String(diff.added_count)));
+  if (diff.removed_count > 0) parts.push(d.body.studio.removedCountN.replace("{a}", String(diff.removed_count)));
+  if (diff.trimmed_count > 0) parts.push(d.body.studio.trimmedCountN.replace("{a}", String(diff.trimmed_count)));
+  if (diff.matched_count > 0 && !diff.added_count && !diff.removed_count && !diff.trimmed_count) parts.push(d.body.studio.allCutsIdentical);
+  return parts.join(" · ");
+};
 
 interface DualTimelineProps {
   st: Studio;
@@ -31,9 +47,10 @@ interface DualTimelineProps {
 }
 
 export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
+  const { t: dict } = useLocale();
   const [syncMode, setSyncMode] = useState<"RELATIVE" | "SOURCE_MATCH">("SOURCE_MATCH");
   const [cutBClips, setCutBClips] = useState<CutClip[]>([]);
-  const [cutBLabel, setCutBLabel] = useState<string>("Initial Snapshot");
+  const [cutBLabel, setCutBLabel] = useState<string>(dict.body.studio.initialSnapshot);
 
   // Cut A is the active edit
   const cutAClips: CutClip[] = useMemo(() => {
@@ -51,7 +68,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
     if (!cutBClips.length && cutAClips.length) {
       // By default, capture an initial reference state
       setCutBClips([...cutAClips]);
-      setCutBLabel("Baseline Reference");
+      setCutBLabel(dict.body.studio.baselineReference);
     }
   }, [cutAClips, cutBClips.length]);
 
@@ -69,7 +86,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
 
   const handleApplyCutB = () => {
     if (!st.reel || !cutBClips.length) return;
-    ui.say("Applying Cut B to active reel…");
+    ui.say(dict.body.studio.applyingCutB);
     // Reorder and re-trim clips matching Cut B
     for (const b of cutBClips) {
       const match = st.items.find((p) => p.clip.id === b.id);
@@ -83,8 +100,8 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
 
   const handleCaptureReference = () => {
     setCutBClips([...cutAClips]);
-    setCutBLabel("Current Snapshot");
-    ui.say("Captured current timeline as reference Cut B");
+    setCutBLabel(dict.body.studio.currentSnapshot);
+    ui.say(dict.body.studio.capturedCutB);
   };
 
   // Blueprint §2.3: snapshot-and-swap keyboard control — B snapshots the active cut as Cut B, Shift+B applies Cut B.
@@ -104,7 +121,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
   return (
     <section
       data-dual-timeline=""
-      aria-label="Dual timeline cut comparison"
+      aria-label={dict.body.studio.dualTimelineCompare}
       className="relative flex flex-col gap-2 rounded border border-[#1e90ff]/60 bg-[#06142e] p-3 text-white shadow-xl z-20"
       style={{
         left: u(28),
@@ -116,15 +133,15 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
       {/* Header bar: summary, stats, controls */}
       <div className="flex items-center justify-between border-b border-[#12335f] pb-2 text-sm">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-[#33a8ff]">DUAL TIMELINE (PRO)</span>
+          <span className="font-bold text-[#33a8ff]">{dict.body.studio.dualTimelinePro}</span>
           <span
             data-cut-diff-summary=""
             className="rounded bg-[#0b2447] px-2.5 py-1 text-xs font-semibold text-[#cfe0f5]"
           >
-            {diff.summary}
+            {cutDiffSummary(diff, dict)}
           </span>
           <span className="text-xs text-[#8ea3bf]">
-            Cut A: {tc(totalA)} · Cut B ({cutBLabel}): {tc(totalB)}
+            {dict.body.studio.cutA}: {tc(totalA)} · {dict.body.studio.cutB} ({cutBLabel}): {tc(totalB)}
           </span>
         </div>
 
@@ -135,19 +152,18 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             data-dual-sync-mode={syncMode}
             onClick={() => setSyncMode(syncMode === "SOURCE_MATCH" ? "RELATIVE" : "SOURCE_MATCH")}
             className="rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 text-xs font-medium text-[#cfe8ff] hover:bg-[#123566]"
-            title="Toggle between source-timecode match and relative percentage playhead sync"
+            title={dict.body.studio.toggleSyncHint}
           >
-            Sync: {syncMode === "SOURCE_MATCH" ? "Source Timecode" : "Relative %"}
+            Sync: {syncMode === "SOURCE_MATCH" ? dict.body.studio.syncSource : dict.body.studio.syncRelative}
           </button>
 
           {/* Capture Snapshot */}
           <button
             type="button"
             onClick={handleCaptureReference}
-            title="Snapshot the active cut as Cut B (B)"
+            title={dict.body.studio.snapshotCutBHint}
             className="rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 text-xs font-medium text-[#cfe8ff] hover:bg-[#123566]"
-          >
-            Snapshot Cut
+          >{dict.body.studio.snapshotCut}
           </button>
 
           {/* Apply Cut B to Reel */}
@@ -156,15 +172,14 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             data-dual-swap=""
             onClick={handleApplyCutB}
             className="rounded bg-[#1e90ff] px-3 py-1 text-xs font-semibold text-white hover:bg-[#33a8ff]"
-            title="Restore reference Cut B into the active reel timeline (Shift+B)"
-          >
-            Apply Cut B
+            title={dict.body.studio.restoreCutBHint}
+          >{dict.body.studio.applyCutB}
           </button>
 
           {/* Close Dual Mode */}
           <button
             type="button"
-            aria-label="Close dual timeline"
+            aria-label={dict.body.studio.closeDualTimeline}
             onClick={onClose}
             className="ml-2 text-base font-semibold text-[#8ea3bf] hover:text-white"
           >
@@ -177,7 +192,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
       <div className="flex flex-col gap-1.5 flex-1 justify-center">
         {/* Cut A (Active Edit) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-bold text-[#33a8ff]">Cut A</span>
+          <span className="w-16 text-right text-xs font-bold text-[#33a8ff]">{dict.body.studio.cutA}</span>
           <div className="relative flex-1 h-7 rounded border border-[#1d4f8a] bg-[#040e20] overflow-hidden flex">
             {cutAClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);
@@ -199,11 +214,11 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
                       ? "bg-[#785010] text-[#fef08a]"
                       : "bg-[#103866] text-[#cfe8ff]"
                   }`}
-                  title={`${c.label ?? "Clip"} (${((c.out_pts_us - c.in_pts_us) / 1e6).toFixed(1)}s)${
-                    isTrimmed ? " · Trimmed" : isAdded ? " · Added in Cut A" : ""
+                  title={`${c.label ?? dict.body.workspace.metricClip} (${((c.out_pts_us - c.in_pts_us) / 1e6).toFixed(1)}s)${
+                    isTrimmed ? dict.body.studio.trimmedSuffix : isAdded ? dict.body.studio.addedInCutASuffix : ""
                   }`}
                 >
-                  <span className="truncate">{c.label ?? `Clip ${i + 1}`}</span>
+                  <span className="truncate">{c.label ?? dict.body.studio.clipIndex.replace("{a}", String(i + 1))}</span>
                   {isTrimmed && <span className="ml-1 text-[10px] opacity-75">Δ</span>}
                 </div>
               );
@@ -221,7 +236,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
 
         {/* Cut B (Comparison Cut) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-bold text-[#f5b82e]">Cut B</span>
+          <span className="w-16 text-right text-xs font-bold text-[#f5b82e]">{dict.body.studio.cutB}</span>
           <div className="relative flex-1 h-7 rounded border border-[#6b5014] bg-[#040e20] overflow-hidden flex">
             {cutBClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);
@@ -243,11 +258,11 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
                       ? "bg-[#553808] text-[#fde047]"
                       : "bg-[#284060] text-[#cfe8ff]"
                   }`}
-                  title={`${c.label ?? "Clip"} (${((c.out_pts_us - c.in_pts_us) / 1e6).toFixed(1)}s)${
-                    isRemoved ? " · Removed from Cut A" : isTrimmed ? " · Trimmed" : ""
+                  title={`${c.label ?? dict.body.workspace.metricClip} (${((c.out_pts_us - c.in_pts_us) / 1e6).toFixed(1)}s)${
+                    isRemoved ? dict.body.studio.removedFromCutASuffix : isTrimmed ? dict.body.studio.trimmedSuffix : ""
                   }`}
                 >
-                  <span className="truncate">{c.label ?? `Ref ${i + 1}`}</span>
+                  <span className="truncate">{c.label ?? dict.body.studio.refClipN.replace("{a}", String(i + 1))}</span>
                   {isRemoved && <span className="ml-1 text-[10px] text-red-300">✕</span>}
                 </div>
               );

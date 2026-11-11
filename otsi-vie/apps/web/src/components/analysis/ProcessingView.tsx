@@ -12,6 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
 import { formatDuration, formatResolution, formatWhen, NOT_MEASURED } from "@/lib/format";
+import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
 
 const RUNNERS = ["OWNER", "ADMIN", "ANALYST"];
 
@@ -36,8 +37,14 @@ export function useProcessing(): Ctx {
 }
 
 const active = (r: AnalysisRun | null) => !!r && (r.status === "QUEUED" || r.status === "RUNNING");
+/** Display label/summary for a contracts analysis profile, by key (never the contracts English). */
+const profileLabelOf = (k: AnalysisProfile, d: Dictionary) => k === "STANDARD" ? d.body.processing.profileStandardLabel
+  : k === "HIGH_ACCURACY" ? d.body.processing.profileHighAccuracyLabel : d.body.processing.profileUltraLabel;
+const profileSummaryOf = (k: AnalysisProfile, d: Dictionary) => k === "STANDARD" ? d.body.processing.profileStandardSummary
+  : k === "HIGH_ACCURACY" ? d.body.processing.profileHighAccuracySummary : d.body.processing.profileUltraSummary;
 
 export function ProcessingProvider({ videoId, children }: { videoId: string; children: ReactNode }) {
+  const { t: dict } = useLocale();
   const { organization } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
@@ -58,7 +65,7 @@ export function ProcessingProvider({ videoId, children }: { videoId: string; chi
       const [v, r] = await Promise.all([api<Video>(`/v1/videos/${videoId}`), api<AnalysisRun[]>(`/v1/videos/${videoId}/analysis-runs`)]);
       setVideo(v); setRuns(r); setError(null);
     } catch (x) {
-      setError(x instanceof ApiProblem ? x.message : "The video could not be loaded.");
+      setError(x instanceof ApiProblem ? x.message : dict.body.processing.videoLoadFailed);
     }
   }, [videoId]);
   useEffect(() => { void load(); }, [load]);
@@ -88,6 +95,7 @@ export function ProcessingProvider({ videoId, children }: { videoId: string; chi
 
 /* ------------------------------------------------------------------ section 1: headline, the video, start analysis */
 export function RunHeadline() {
+  const { t: dict } = useLocale();
   const { video, run, error, canRun, start, cancel, assessment, assess } = useProcessing();
   const [profile, setProfile] = useState<AnalysisProfile | null>(null);      // null = follow the recommendation
   const [fps, setFps] = useState<number | null>(null);
@@ -98,80 +106,86 @@ export function RunHeadline() {
   }, [asked, video?.state, canRun, assessment, assess]);
   const [msg, setMsg] = useState<string | null>(null);
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
-  if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading the video…</p>;
+  if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" />{dict.body.processing.loadingVideo}</p>;
   const ready = video.state === "INGESTED";
   const chosen: AnalysisProfile = profile ?? assessment?.recommended_profile ?? "STANDARD";
   const act = (f: () => Promise<void>) => {
     setBusy(true); setMsg(null);
-    void f().catch((x) => setMsg(x instanceof ApiProblem ? x.message : "That did not work.")).finally(() => setBusy(false));
+    void f().catch((x) => setMsg(x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork)).finally(() => setBusy(false));
   };
   return (
     <div className="space-y-3 text-sm" data-video={video.id}>
       <p><span className="font-semibold">{video.title ?? video.original_filename}</span>{" "}
         <span className="text-muted">· {formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</span></p>
-      {!ready && <p className="text-muted">This video is not verified yet ({video.state.toLowerCase()}); it can be analysed once it is.</p>}
+      {!ready && <p className="text-muted">{dict.body.processing.notVerifiedVideo.replace("{a}", video.state.toLowerCase())}</p>}
       {ready && !active(run) && canRun && (
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); act(() => start(chosen, fps)); }}>
           <FootageCheck assessment={assessment} />
-          <fieldset className="space-y-1.5" aria-label="Analysis profile">
-            <legend className="mb-1 text-xs text-muted">Analysis profile{assessment?.recommended_profile ? " (recommended one pre-selected; you can change it)" : ""}</legend>
+          <fieldset className="space-y-1.5" aria-label={dict.body.processing.profileAria}>
+            <legend className="mb-1 text-xs text-muted">{dict.body.processing.profileAria}{assessment?.recommended_profile ? ` ${dict.body.processing.recommendedPreselected}` : ""}</legend>
             {(Object.keys(PROFILES) as AnalysisProfile[]).map((k) => {
               const e = assessment?.estimates.find((x) => x.profile === k);
               return (
                 <label key={k} data-profile={k} className={`flex cursor-pointer items-start gap-2 rounded-ctl border px-2.5 py-2 ${chosen === k ? "border-primary bg-primary/5" : "border-line/70"}`}>
-                  <input type="radio" name="profile" value={k} checked={chosen === k} onChange={() => setProfile(k)} className="mt-1" aria-label={PROFILES[k].label} />
+                  <input type="radio" name="profile" value={k} checked={chosen === k} onChange={() => setProfile(k)} className="mt-1" aria-label={profileLabelOf(k, dict)} />
                   <span className="min-w-0 flex-1">
-                    <span className="font-medium">{PROFILES[k].label}</span>
-                    {assessment?.recommended_profile === k && <span className="ml-2 rounded bg-ok/15 px-1.5 py-0.5 text-[11px] text-ok">recommended</span>}
-                    <span className="block text-xs text-muted">{PROFILES[k].summary} {PROFILES[k].sample_fps} frames/s, {e?.passes_per_frame ?? "?"} detector passes per frame.</span>
-                    <span className="block text-xs text-muted" data-estimate={k}>{e?.seconds != null ? `Estimate: about ${formatEstimate(e.seconds)}, peak memory about ${(e.peak_memory_mb! / 1024).toFixed(1)} GB` : "Estimate after the footage check"}</span>
+                    <span className="font-medium">{profileLabelOf(k, dict)}</span>
+                    {assessment?.recommended_profile === k && <span className="ml-2 rounded bg-ok/15 px-1.5 py-0.5 text-[11px] text-ok">{dict.body.processing.recommendedBadge}</span>}
+                    <span className="block text-xs text-muted">{profileSummaryOf(k, dict)} {dict.body.processing.fpsPasses.replace("{fps}", String(PROFILES[k].sample_fps)).replace("{passes}", String(e?.passes_per_frame ?? "?"))}</span>
+                    <span className="block text-xs text-muted" data-estimate={k}>{e?.seconds != null ? dict.body.processing.estimateAbout.replace("{est}", formatEstimate(e.seconds, dict)).replace("{gb}", (e.peak_memory_mb! / 1024).toFixed(1)) : dict.body.processing.estimateAfterCheck}</span>
                   </span>
                 </label>
               );
             })}
           </fieldset>
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-xs text-muted">Frames analysed per second
+            <label className="flex flex-col gap-1 text-xs text-muted">{dict.body.processing.framesAnalysed}
               <select value={fps ?? ""} onChange={(e) => setFps(e.target.value ? Number(e.target.value) : null)} className="rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm text-ink">
-                <option value="">Profile setting ({PROFILES[chosen].sample_fps})</option>
-                {[1, 2, 3, 5, 6, 8, 10].map((v) => <option key={v} value={v}>{v} fps</option>)}
+                <option value="">{dict.body.processing.profileSetting.replace("{fps}", String(PROFILES[chosen].sample_fps))}</option>
+                {[1, 2, 3, 5, 6, 8, 10].map((v) => <option key={v} value={v}>{dict.body.processing.fpsOption.replace("{n}", String(v))}</option>)}
               </select>
             </label>
             <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {run ? "Analyse again" : "Start analysis"}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {run ? dict.body.processing.analyseAgainPlain : dict.body.processing.startAnalysisPlain}
             </button>
           </div>
-          <p className="text-[11px] text-muted">Every profile keeps the same identity rules: a player is named only after a person confirms it. The sensitive profiles look harder and confirm boxes over time; they never accept weak single detections as players.</p>
+          <p className="text-[11px] text-muted">{dict.body.processing.identityRulesNote}</p>
         </form>
       )}
-      {ready && !canRun && !run && <p className="text-muted">Your role can view analyses but not start them.</p>}
+      {ready && !canRun && !run && <p className="text-muted">{dict.body.processing.roleViewAnalyses}</p>}
       {active(run) && canRun && (
         <button type="button" disabled={busy} onClick={() => act(cancel)} className="inline-flex items-center gap-2 rounded-ctl border border-line px-3 py-2 hover:border-danger/60">
-          <Square className="h-4 w-4" /> Cancel analysis
+          <Square className="h-4 w-4" />{dict.body.upload.cancelAnalysis}
         </button>
       )}
       {run?.status === "SUCCEEDED" && (
-        <Link href={`/videos/${video.id}/analyze`} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white">Open Analysis Workspace</Link>
+        <Link href={`/videos/${video.id}/analyze`} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white">{dict.body.processing.openAnalysisWorkspace}</Link>
       )}
       {msg && <p role="alert" className="text-danger">{msg}</p>}
     </div>
   );
 }
 
-const formatEstimate = (s: number) => (s < 90 ? `${Math.max(1, Math.round(s))} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`);
+const formatEstimate = (s: number, d?: Dictionary) => {
+  const dict = d ?? getDictionary("en");
+  return s < 90 ? dict.body.processing.estimateSeconds.replace("{n}", String(Math.max(1, Math.round(s))))
+    : s < 5400 ? dict.body.processing.estimateMinutes.replace("{n}", String(Math.round(s / 60)))
+    : dict.body.processing.estimateHours.replace("{n}", (s / 3600).toFixed(1));
+};
 
 function FootageCheck({ assessment }: { assessment: QualityAssessment | null }) {
-  if (!assessment) return <p className="text-xs text-muted">Footage check: not run yet.</p>;
+  const { t: dict } = useLocale();
+  if (!assessment) return <p className="text-xs text-muted">{dict.body.processing.footageCheckNotRun}</p>;
   if (assessment.status === "QUEUED" || assessment.status === "RUNNING")
-    return <p role="status" className="flex items-center gap-2 text-xs text-muted" data-assessment="RUNNING"><Loader2 className="h-3.5 w-3.5 animate-spin" />Checking the footage (sharpness, compression, motion, player size)…</p>;
-  if (assessment.status === "FAILED") return <p className="text-xs text-amber" data-assessment="FAILED">Footage check failed ({assessment.failure_code}); choose a profile yourself.</p>;
+    return <p role="status" className="flex items-center gap-2 text-xs text-muted" data-assessment="RUNNING"><Loader2 className="h-3.5 w-3.5 animate-spin" />{dict.body.processing.checkingFootage}</p>;
+  if (assessment.status === "FAILED") return <p className="text-xs text-amber" data-assessment="FAILED">{dict.body.processing.footageCheckFailed.replace("{code}", assessment.failure_code ?? "—")}</p>;
   const m = assessment.metrics as { people?: { measured?: boolean; median_height_px?: number; people_per_frame?: number }; sharpness?: number; bits_per_pixel?: number | null } | null;
   return (
     <div className="space-y-1 rounded-ctl border border-line/70 p-2 text-xs" data-assessment="SUCCEEDED">
-      <p className="font-semibold">Footage check</p>
-      {m?.people?.measured && <p className="text-muted">Players about {Math.round(m.people.median_height_px ?? 0)} px tall on median, {m.people.people_per_frame?.toFixed(1)} on the pitch per sampled frame.</p>}
-      {assessment.issues.length === 0 ? <p className="text-ok">No problem found.</p> : (
-        <ul className="space-y-0.5" aria-label="Footage issues">
+      <p className="font-semibold">{dict.body.processing.footageCheck}</p>
+      {m?.people?.measured && <p className="text-muted">{dict.body.processing.playersAboutTall.replace("{a}", String(Math.round(m.people.median_height_px ?? 0))).replace("{b}", String(m.people.people_per_frame?.toFixed(1)))}</p>}
+      {assessment.issues.length === 0 ? <p className="text-ok">{dict.body.processing.noProblemFound}</p> : (
+        <ul className="space-y-0.5" aria-label={dict.body.processing.footageIssues}>
           {assessment.issues.map((i) => <li key={i.code} data-issue={i.code} className="flex items-start gap-1"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber" />{i.text}</li>)}
         </ul>
       )}
@@ -180,20 +194,21 @@ function FootageCheck({ assessment }: { assessment: QualityAssessment | null }) 
 }
 
 /* ------------------------------------------------------------------ section 2: the pipeline steps */
-const STEP_NAMES: Record<string, { name: string; note: string }> = {
-  SHOTS: { name: "Camera cuts", note: "finds hard cuts; no track continues across one" },
-  DETECT: { name: "Detection", note: "people and the ball in every analysed frame" },
-  TRACK: { name: "Tracking", note: "temporary track numbers within each shot" },
-  IDENTIFY: { name: "Identity evidence", note: "kit colours, look-alike suggestions across cuts (for your review); no identity is assigned" },
-};
 
 export function PipelineSteps() {
+  const { t: dict } = useLocale();
   const { run } = useProcessing();
-  if (!run) return <p className="text-sm text-muted">No analysis has been run on this video yet.</p>;
+  const STEP_NAMES: Record<string, { name: string; note: string }> = {
+    SHOTS: { name: dict.body.processing.stepCameraCuts, note: dict.body.processing.stepCameraCutsNote },
+    DETECT: { name: dict.body.processing.stepDetection, note: dict.body.processing.stepDetectionNote },
+    TRACK: { name: dict.body.processing.stepTracking, note: dict.body.processing.stepTrackingNote },
+    IDENTIFY: { name: dict.body.processing.stepIdentity, note: dict.body.processing.stepIdentityNote },
+  };
+  if (!run) return <p className="text-sm text-muted">{dict.body.processing.noAnalysisYet}</p>;
   const icon = (s: string) => s === "SUCCEEDED" ? <CheckCircle2 className="h-4 w-4 text-ok" /> : s === "RUNNING" ? <Loader2 className="h-4 w-4 animate-spin text-cyan" />
     : s === "FAILED" ? <AlertTriangle className="h-4 w-4 text-danger" /> : s === "CANCELLED" ? <XCircle className="h-4 w-4 text-muted" /> : <CircleDashed className="h-4 w-4 text-muted" />;
   return (
-    <ol aria-label="Analysis steps" className="grid grid-cols-2 gap-2 md:grid-cols-6">
+    <ol aria-label={dict.body.processing.analysisSteps} className="grid grid-cols-2 gap-2 md:grid-cols-6">
       {run.steps.map((s) => (
         <li key={s.name} className="rounded-ctl border border-line/70 bg-raised/40 p-2" data-step={s.name} data-step-status={s.status}>
           <span className="flex items-center gap-1.5 text-sm font-medium">{icon(s.status)} {STEP_NAMES[s.name]?.name ?? s.name}</span>
@@ -208,21 +223,22 @@ export function PipelineSteps() {
 
 /* ------------------------------------------------------------------ section 8: what the worker says, and earlier runs */
 export function ProcessingLog() {
+  const { t: dict } = useLocale();
   const { run, runs } = useProcessing();
-  if (!runs?.length) return <p className="text-sm text-muted">Nothing has run yet.</p>;
+  if (!runs?.length) return <p className="text-sm text-muted">{dict.body.processing.nothingRunYet}</p>;
   return (
     <div className="space-y-2 text-sm">
       {run && active(run) && (
         <p role="status" className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin text-cyan" />
-          {run.job?.stage_message ?? (run.status === "QUEUED" ? "Waiting for the analysis worker…" : "Working…")}</p>
+          {run.job?.stage_message ?? (run.status === "QUEUED" ? dict.body.processing.waitingWorker : dict.body.processing.working)}</p>
       )}
       {run?.status === "FAILED" && (
         <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-danger"><span className="font-semibold">{run.failure_code}</span>: {run.failure_detail}</p>
       )}
-      <ul aria-label="Analysis runs" className="space-y-1">
+      <ul aria-label={dict.body.processing.analysisRuns} className="space-y-1">
         {runs.map((r) => (
           <li key={r.id} className="flex justify-between gap-2 text-xs" data-run={r.id} data-run-status={r.status}>
-            <span>{formatWhen(r.created_at)} · {r.config.profile ? PROFILES[r.config.profile].label : r.config.tiles === 2 ? "distant players" : "fast"} · {r.config.sample_fps} fps</span>
+            <span>{formatWhen(r.created_at)} · {r.config.profile ? PROFILES[r.config.profile].label : r.config.tiles === 2 ? dict.body.processing.runDistant : dict.body.processing.runFast} · {r.config.sample_fps} fps</span>
             <span className={r.status === "SUCCEEDED" ? "text-ok" : r.status === "FAILED" ? "text-danger" : "text-muted"}>{r.status.toLowerCase()}</span>
           </li>
         ))}
@@ -233,28 +249,29 @@ export function ProcessingLog() {
 
 /* ------------------------------------------------------------------ section 11: measured output of the finished run */
 export function OutputSummary() {
+  const { t: dict } = useLocale();
   const { run } = useProcessing();
   const r = run?.status === "SUCCEEDED" ? (run.result as Record<string, number | string | null> | null) : null;
   const look = (run?.result as { appearance?: { link_suggestions: number; links_across_cuts: number } | null } | null)?.appearance ?? null;
-  if (!r) return <p className="text-sm text-muted">The numbers appear when a run has finished; they are what the worker measured.</p>;
+  if (!r) return <p className="text-sm text-muted">{dict.body.processing.numbersAppear}</p>;
   const cards: [string, string][] = [
-    ["People tracked", String(r.person_tracks ?? NOT_MEASURED)],
-    ["Ball tracks", String(r.ball_tracks ?? NOT_MEASURED)],
-    ["Camera shots", String(r.shots ?? NOT_MEASURED)],
-    ["Frames analysed", String(r.sampled_frames ?? NOT_MEASURED)],
-    ["Processing time", r.seconds ? `${Math.round(Number(r.seconds))} s (${r.frames_per_second ?? "—"} frames/s)` : NOT_MEASURED],
-    ["Detector", `${r.model ?? NOT_MEASURED} · ${r.runtime ?? ""}`],
-    ["Look-alike suggestions", look ? `${look.link_suggestions} (${look.links_across_cuts} across cuts)` : NOT_MEASURED],
+    [dict.body.processing.peopleTracked, String(r.person_tracks ?? NOT_MEASURED)],
+    [dict.body.processing.ballTracks, String(r.ball_tracks ?? NOT_MEASURED)],
+    [dict.body.processing.cameraShots, String(r.shots ?? NOT_MEASURED)],
+    [dict.body.processing.framesAnalysedLabel, String(r.sampled_frames ?? NOT_MEASURED)],
+    [dict.body.processing.processingTime, r.seconds ? dict.body.processing.processingTimeValue.replace("{a}", String(Math.round(Number(r.seconds)))).replace("{b}", String(r.frames_per_second ?? "—")) : NOT_MEASURED],
+    [dict.body.processing.detectorLabel, `${r.model ?? NOT_MEASURED} · ${r.runtime ?? ""}`],
+    [dict.body.processing.lookalikeSuggestions, look ? dict.body.processing.acrossCuts.replace("{a}", String(look.link_suggestions)).replace("{b}", String(look.links_across_cuts)) : NOT_MEASURED],
   ];
   const rej = (run?.result as { candidate_tracks_rejected?: { too_few_detections: number; no_confident_detection: number } } | null)?.candidate_tracks_rejected;
-  if (r.profile) cards.push(["Profile", `${PROFILES[r.profile as AnalysisProfile]?.label ?? r.profile} · ${r.passes_per_frame ?? "?"} passes/frame`]);
-  if (rej) cards.push(["Candidates not confirmed", `${rej.too_few_detections + rej.no_confident_detection} (too brief ${rej.too_few_detections}, never confident ${rej.no_confident_detection})`]);
+  if (r.profile) cards.push([dict.body.processing.profileLabel, `${profileLabelOf(r.profile as AnalysisProfile, dict)} · ${dict.body.processing.passesPerFrame.replace("{a}", String(r.passes_per_frame ?? "?"))}`]);
+  if (rej) cards.push([dict.body.processing.candidatesNotConfirmed, dict.body.processing.candidatesDetail.replace("{a}", String(rej.too_few_detections + rej.no_confident_detection)).replace("{b}", String(rej.too_few_detections)).replace("{c}", String(rej.no_confident_detection))]);
   return (
-    <dl className="grid grid-cols-2 gap-2 md:grid-cols-3" aria-label="Run output">
+    <dl className="grid grid-cols-2 gap-2 md:grid-cols-3" aria-label={dict.body.processing.runOutput}>
       {cards.map(([k, v]) => (
         <div key={k} className="rounded-ctl border border-line/70 bg-raised/40 p-2"><dt className="text-xs text-muted">{k}</dt><dd className="text-sm font-semibold" data-metric={k}>{v}</dd></div>
       ))}
-      <p className="col-span-full text-xs text-muted">Events (goals, passes, shots) are not detected yet (Block 08).</p>
+      <p className="col-span-full text-xs text-muted">{dict.body.processing.eventsNotDetected}</p>
     </dl>
   );
 }

@@ -4,6 +4,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { B, Ic, T, u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 
 export const box = (border = "#12335f") => ({ border: `${u(1.5)} solid ${border}`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" });
 
@@ -42,10 +43,14 @@ export function Pitch({ x, y, w, h }: { x: number; y: number; w: number; h: numb
 }
 
 /** "Not measured" on a pitch, as the reference draws it */
-export const NotMeasured = ({ x, y, size = 22, children = "Not measured" }: { x: number; y: number; size?: number; children?: ReactNode }) => (
+export const NotMeasured = ({ x, y, size = 22, children }: { x: number; y: number; size?: number; children?: ReactNode }) => {
+  const { t: dict } = useLocale();
+  const label = children ?? dict.body.reports.notMeasured;
   // the reference sets the text's top at y - size/2 and then pads it, so the chip's centre sits 4 px below y
-  <T x={x} y={y + 4} size={size} color="#e6f3ea" align="center" style={{ background: "rgba(7,20,42,.78)", padding: `${u(4)} ${u(12)}`, borderRadius: u(6), lineHeight: 1 }}>{children}</T>
-);
+  return (
+    <T x={x} y={y + 4} size={size} color="#e6f3ea" align="center" style={{ background: "rgba(7,20,42,.78)", padding: `${u(4)} ${u(12)}`, borderRadius: u(6), lineHeight: 1 }}>{label}</T>
+  );
+};
 
 /** one option of a selector: value, label, and — when it cannot be chosen yet — the reason (shown greyed in the list) */
 export type Opt<V extends string> = [V, string] | [V, string, string];

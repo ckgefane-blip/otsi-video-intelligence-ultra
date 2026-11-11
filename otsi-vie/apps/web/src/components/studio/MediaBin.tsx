@@ -19,7 +19,7 @@
 import { binMoments, type BrandAsset, type ReelMoment, type ReelTemplate, type SmartBinItems, type SpotlightSettings, type OrgTemplate, type OrgTemplateKind } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { BeatStatusRow } from "./BeatGridInfo";
 import { binCount, useSmartBins } from "@/components/library/SmartBins";
 import type { ReelState } from "@/components/reels/ReelBuilder";
@@ -27,7 +27,6 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Btn, IN } from "./kit";
 import type { Studio } from "./useStudio";
 
-const TABS: [string, number, number][] = [["Media Bin", 68, 41], ["Graphics", 232, 205], ["Audio", 389, 362], ["Templates", 523, 496]];
 const COLS = 3, TW = 184, TH = 104, GX = 9, GY = 52, X0 = 48, Y0 = 396;
 const dur = (m: ReelMoment) => `${((m.out_pts_us - m.in_pts_us) / 1e6).toFixed(1)} s`;
 export const MOMENT_MIME = "application/x-otsi-moment";
@@ -35,6 +34,7 @@ export const MOMENT_MIME = "application/x-otsi-moment";
 export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Studio; onPick: () => void; say: (m: string) => void }) {
   const { t: dict } = useLocale();
   const tab = st.binTab, setTab = st.setBinTab;
+  const TABS: [string, number, number][] = [[dict.body.studio.mediaBinTab, 68, 41], [dict.body.studio.graphicsTab, 232, 205], [dict.body.studio.audioTab, 389, 362], [dict.body.studio.templatesTab, 523, 496]];
   const [q, setQ] = useState("");
   const [hideUsed, setHideUsed] = useState(false);
   // B.11: a Smart Bin narrows the moments to those holding what it finds on this reel's video
@@ -51,16 +51,16 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
   const needle = q.trim().toLowerCase();
   const shown = all.filter((m) => (!hideUsed || !m.in_reel) && m.label.toLowerCase().includes(needle));
   // E4: one search over every tab
-  const brandHit = (a: BrandAsset) => !needle || `${a.name} ${KIND[a.kind]}`.toLowerCase().includes(needle);
+  const brandHit = (a: BrandAsset) => !needle || `${a.name} ${brandKind(dict)[a.kind]}`.toLowerCase().includes(needle);
   const tplHit = (t: ReelTemplate) => !needle || `${t.name} ${t.structure ? "slots" : ""}`.toLowerCase().includes(needle);
   const counts = [shown.length, (st.brand ?? []).filter((a) => a.kind !== "MUSIC" && brandHit(a)).length, (st.brand ?? []).filter((a) => a.kind === "MUSIC" && brandHit(a)).length,
     (st.templates ?? []).filter(tplHit).length];
   const edit = !!st.reel && !!r?.canEdit && !r.busy;
-  const empty = !st.reel ? "Choose a reel to edit" : r?.moments === null || (binId && !binHits) ? "Loading…"
-    : binId && all.length === 0 ? "None of his suggested moments holds what this bin finds" : all.length === 0 ? "No clips in this folder yet" : shown.length === 0 ? "No moment matches" : null;
+  const empty = !st.reel ? dict.body.studio.chooseReelEdit : r?.moments === null || (binId && !binHits) ? dict.common.loading
+    : binId && all.length === 0 ? dict.body.studio.noneBinFinds : all.length === 0 ? dict.body.studio.noClipsFolder : shown.length === 0 ? dict.body.studio.noMomentMatches : null;
 
   return (
-    <section aria-label="Media bin / asset browser" data-section="p07-s02" data-moments={String(shown.length)}>
+    <section aria-label={dict.body.studio.mediaBinBrowserAria} data-section="p07-s02" data-moments={String(shown.length)}>
       <P x={28} y={210} w={627} h={610} />
       <div role="tablist" aria-label={dict.body.studio.assets}>
         {TABS.map(([l, x], i) => (
@@ -75,33 +75,33 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
 
       <label className="absolute" style={{ left: u(48), top: u(284 - 101), width: u(512), height: u(52), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), background: "#041022" }}>
         <Ic o={[48, 284]} x={75} y={310} k="srch" size={26} color="#cfe0f5" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.studio.searchBin} aria-label="Search the media bin"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.studio.searchBin} aria-label={dict.body.studio.searchMediaBin}
           style={{ position: "absolute", left: u(102 - 48), top: 0, width: u(400), height: "100%", background: "transparent", border: 0, outline: "none",
             color: "#e3eefb", fontSize: u(20), fontFamily: "inherit" }} className="placeholder:text-[#9fb3cc]" />
       </label>
       {tab === 0 ? (
         <>
-          <Btn x={583} y={284} w={52} h={52} label={hideUsed ? "Show all moments" : "Hide moments already in the reel"} pressed={hideUsed}
+          <Btn x={583} y={284} w={52} h={52} label={hideUsed ? dict.body.studio.showAllMoments : dict.body.studio.hideUsedMoments} pressed={hideUsed}
             style={{ ...IN, ...(hideUsed ? { background: "#0d3a78" } : {}) }} onClick={() => setHideUsed((h) => !h)}>
             <Ic o={[583, 284]} x={609} y={310} k="flt" size={26} color="#cfe0f5" />
           </Btn>
           <Ic x={60} y={368} k="fold" size={26} color="#cfe0f5" />
-          <nav aria-label="Folder">
+          <nav aria-label={dict.body.studio.folderAria}>
             <Ic x={88} y={368} k="gt" size={14} color="#8ea3bf" />
-            <T x={102} y={368} size={20} color="#e3eefb">Folders</T>
+            <T x={102} y={368} size={20} color="#e3eefb">{dict.body.studio.foldersLabel}</T>
             <Ic x={182} y={368} k="gt" size={14} color="#8ea3bf" />
             {st.reel && bins && bins.length > 0 ? (
-              <select value={binId} onChange={(e) => setBinId(e.target.value)} aria-label="Show suggested moments or a Smart Bin" data-bin-select className="absolute"
+              <select value={binId} onChange={(e) => setBinId(e.target.value)} aria-label={dict.body.studio.showBinHint} data-bin-select className="absolute"
                 style={{ left: u(190), top: u(352 - 101), width: u(440), height: u(34), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(6),
                   color: "#e3eefb", fontSize: u(19), fontFamily: "inherit" }}>
-                <option value="">{st.reel.player ? `${st.reel.player.display_name} · suggested moments` : dict.body.studio.suggestedMoments}</option>
-                {bins.map((b) => <option key={b.id} value={b.id}>{`Smart Bin: ${b.name} (${binCount(b)})`}</option>)}
+                <option value="">{st.reel.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.suggestedMoments}</option>
+                {bins.map((b) => <option key={b.id} value={b.id}>{dict.body.studio.smartBinOption.replace("{a}", b.name).replace("{b}", String(binCount(b)))}</option>)}
               </select>
-            ) : <T x={196} y={368} size={20} color="#e3eefb">{st.reel?.player ? `${st.reel.player.display_name} · suggested moments` : "All media"}</T>}
+            ) : <T x={196} y={368} size={20} color="#e3eefb">{st.reel?.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.allMedia}</T>}
           </nav>
           {!st.reel ? (
             <button type="button" onClick={onPick} className="absolute" style={{ left: u(191), top: u(570 - 101), width: u(300), height: u(40), borderRadius: u(8),
-              border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", color: "#e3eefb", fontSize: u(20), cursor: "pointer", fontFamily: "inherit" }}>Choose a reel to edit</button>
+              border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", color: "#e3eefb", fontSize: u(20), cursor: "pointer", fontFamily: "inherit" }}>{dict.body.studio.chooseReelEdit}</button>
           ) : empty ? <T x={341} y={590} size={20} color="#8ea3bf" align="center">{empty}</T> : (
             <ul aria-label={dict.body.studio.suggestedMoments} className="absolute" style={{ left: u(X0), top: u(Y0 - 101), width: u(590), height: u(410), margin: 0, padding: 0, listStyle: "none", overflowY: "auto" }}>
               {shown.map((m, i) => {
@@ -110,17 +110,17 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
                 return (
                   <li key={`${m.in_pts_us}-${m.out_pts_us}`} draggable={edit} onDragStart={(e) => e.dataTransfer.setData(MOMENT_MIME, JSON.stringify(m))}
                     style={{ position: "absolute", left: u(x), top: u(y), width: u(TW), height: u(TH + GY - 8) }} data-moment={m.in_pts_us}>
-                    <button type="button" aria-label={`${m.label}, ${dur(m)}${m.in_reel ? ", in the reel" : ""}: show in the preview`} aria-pressed={sel}
+                    <button type="button" aria-label={dict.body.studio.momentPreviewAria.replace("{a}", m.label).replace("{b}", dur(m)).replace("{c}", m.in_reel ? dict.body.studio.inReelSuffix : "")} aria-pressed={sel}
                       onClick={() => { st.setPreview(m); r?.setSelectedClip(null); }} onDoubleClick={() => edit && st.add(m)}
                       style={{ position: "absolute", inset: `0 0 ${u(GY - 8)} 0`, padding: 0, cursor: edit ? "grab" : "pointer", borderRadius: u(5),
                         border: sel ? `${u(2)} solid #33a8ff` : 0,
                         background: "radial-gradient(ellipse at 45% 85%,#6fb8ee 0,#2a6fb8 35%,transparent 70%),linear-gradient(180deg,#27487a,#2d7a3a 40%,#1d5a28)" }}>
                       <span style={{ position: "absolute", right: u(8), bottom: u(6), padding: `${u(2)} ${u(8)}`, borderRadius: u(4), background: "rgba(0,10,25,.8)", fontSize: u(17), fontWeight: 600, color: "#fff" }}>{dur(m)}</span>
-                      {m.in_reel && <span title="In the reel" style={{ position: "absolute", left: u(8), top: u(6), color: "#3ee6a8", fontSize: u(18) }}>✓</span>}
+                      {m.in_reel && <span title={dict.body.studio.inReelBadge} style={{ position: "absolute", left: u(8), top: u(6), color: "#3ee6a8", fontSize: u(18) }}>✓</span>}
                     </button>
                     <span style={{ position: "absolute", left: 0, top: u(TH + 6), width: u(TW - 34), fontSize: u(16), color: "#cfe0f5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</span>
                     {edit && !m.in_reel && (
-                      <button type="button" aria-label={`Add ${m.label} to the reel`} onClick={() => st.add(m)}
+                      <button type="button" aria-label={dict.body.studio.addMomentToReel.replace("{a}", m.label)} onClick={() => st.add(m)}
                         style={{ position: "absolute", right: 0, top: u(TH + 2), width: u(28), height: u(28), padding: 0, borderRadius: u(6), border: `${u(1.5)} solid #1d4f8a`,
                           background: "#0a2447", color: "#fff", cursor: "pointer", fontSize: u(18), lineHeight: 1 }}>+</button>
                     )}
@@ -158,24 +158,25 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
 
   const taken = !!orgList.some((t) => t.name.toLowerCase() === name.trim().toLowerCase());
 
+  const kindLabel = (k: OrgTemplateKind) => k === "SPOTLIGHT" ? dict.body.studio.spotlightLabel : k === "STYLE" ? dict.body.studio.styleLabel : k === "BRANDING" ? dict.body.studio.brandingLabel : dict.body.studio.fullLook;
   const kindBadge = (k: OrgTemplateKind) => {
     const bg = k === "SPOTLIGHT" ? "#0e4b75" : k === "STYLE" ? "#4a1d75" : k === "BRANDING" ? "#135c3b" : "#705312";
     const text = k === "SPOTLIGHT" ? "#33a8ff" : k === "STYLE" ? "#d292ff" : k === "BRANDING" ? "#3ee6a8" : "#f5d02e";
-    return <span style={{ fontSize: u(12), fontWeight: 700, padding: `${u(2)} ${u(6)}`, borderRadius: u(4), background: bg, color: text }}>{k}</span>;
+    return <span style={{ fontSize: u(12), fontWeight: 700, padding: `${u(2)} ${u(6)}`, borderRadius: u(4), background: bg, color: text }}>{kindLabel(k)}</span>;
   };
 
   return (
     <div className="absolute" data-templates={String(orgList.length)} style={{ left: u(48), top: u(350 - 101), width: u(590), height: u(455), display: "flex", flexDirection: "column", gap: u(8) }}>
       {!st.reel ? (
-        <button type="button" onClick={onPick} style={{ ...chip(false), alignSelf: "center", marginTop: u(260) }}>Choose a reel to edit</button>
+        <button type="button" onClick={onPick} style={{ ...chip(false), alignSelf: "center", marginTop: u(260) }}>{dict.body.studio.chooseReelEdit}</button>
       ) : (
         <>
           {/* Quick kind filter pills */}
           <div style={{ display: "flex", gap: u(6), alignItems: "center" }}>
-            <span style={{ fontSize: u(14), color: "#8ea3bf", fontWeight: 600 }}>Filter:</span>
+            <span style={{ fontSize: u(14), color: "#8ea3bf", fontWeight: 600 }}>{dict.body.studio.filterLabel}</span>
             {(["ALL", "SPOTLIGHT", "STYLE", "BRANDING", "FULL"] as const).map((k) => (
               <button key={k} type="button" data-filter-kind={k} onClick={() => setKindFilter(k)} style={chip(false, false, kindFilter === k)}>
-                {k === "ALL" ? "All" : k}
+                {k === "ALL" ? dict.body.processing.filterAll : kindLabel(k)}
               </button>
             ))}
           </div>
@@ -187,24 +188,24 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
               st.saveOrgTemplate(name.trim(), saveKind); setName("");
             }
           }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Name new template…" aria-label="Template name" disabled={!canEdit}
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={dict.body.studio.nameNewTemplate} aria-label={dict.body.studio.templateName} disabled={!canEdit}
               style={{ flex: 1, height: u(38), padding: `0 ${u(10)}`, borderRadius: u(6), border: `${u(1.5)} solid #17406f`, background: "#041022", color: "#e3eefb", fontSize: u(15), fontFamily: "inherit", outline: "none" }} />
             <select value={saveKind} onChange={(e) => setSaveKind(e.target.value as OrgTemplateKind)} disabled={!canEdit}
-              aria-label="Template section"
+              aria-label={dict.body.studio.templateSection}
               style={{ height: u(38), padding: `0 ${u(8)}`, borderRadius: u(6), border: `${u(1.5)} solid #17406f`, background: "#0a2447", color: "#e3eefb", fontSize: u(14), fontFamily: "inherit" }}>
-              <option value="FULL">Full Look</option>
-              <option value="SPOTLIGHT">Spotlight</option>
-              <option value="STYLE">Style</option>
-              <option value="BRANDING">Branding</option>
+              <option value="FULL">{dict.body.studio.fullLook}</option>
+              <option value="SPOTLIGHT">{dict.body.studio.spotlightLabel}</option>
+              <option value="STYLE">{dict.body.studio.styleLabel}</option>
+              <option value="BRANDING">{dict.body.studio.brandingLabel}</option>
             </select>
-            <button type="submit" data-save-template disabled={!canEdit || !name.trim() || taken} title={taken ? "A template has that name: choose another name" : "Save this reel's settings as an organization template"}
-              style={chip(!canEdit || !name.trim() || taken)}>Save</button>
+            <button type="submit" data-save-template disabled={!canEdit || !name.trim() || taken} title={taken ? dict.body.studio.templateNameTakenDot : dict.body.studio.saveTemplateHint}
+              style={chip(!canEdit || !name.trim() || taken)}>{dict.common.save}</button>
           </form>
 
-          {taken && <p style={{ ...cell, fontSize: u(14), color: "#ffb86b" }}>A template has that name: choose another name.</p>}
+          {taken && <p style={{ ...cell, fontSize: u(14), color: "#ffb86b" }}>{dict.body.studio.templateNameTaken}</p>}
 
-          {st.orgTemplates === null ? <p style={cell}>Loading…</p> : orgList.length === 0 ? (
-            <p style={cell}>No templates match this filter. Save this reel's settings above to reuse across the team.</p>
+          {st.orgTemplates === null ? <p style={cell}>{dict.common.loading}</p> : orgList.length === 0 ? (
+            <p style={cell}>{dict.body.studio.noTemplatesFilter}</p>
           ) : (
             <ul aria-label={dict.body.studio.templates} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(6) }}>
               {orgList.map((t) => (
@@ -213,32 +214,32 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
                     <span style={{ display: "flex", alignItems: "center", gap: u(8) }}>
                       <span style={{ fontSize: u(16), fontWeight: 600, color: "#e3eefb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</span>
                       {kindBadge(t.kind)}
-                      {t.is_builtin && <span style={{ fontSize: u(12), color: "#8ea3bf" }}>Built-in</span>}
+                      {t.is_builtin && <span style={{ fontSize: u(12), color: "#8ea3bf" }}>{dict.body.studio.builtIn}</span>}
                     </span>
                     <span style={{ display: "block", fontSize: u(13), color: "#8ea3bf", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.description}>
-                      {t.description || (t.is_builtin ? "Built-in preset" : "Organization template")}
+                      {t.description || (t.is_builtin ? dict.body.studio.builtInPreset : dict.body.studio.organizationTemplate)}
                     </span>
                   </span>
 
                   {sure === t.id ? (
                     <>
-                      <button type="button" data-confirm-delete={t.id} onClick={() => { st.deleteOrgTemplate(t, say); setSure(null); }} style={chip(false, true)}>Delete</button>
-                      <button type="button" onClick={() => setSure(null)} style={chip(false)}>Keep</button>
+                      <button type="button" data-confirm-delete={t.id} onClick={() => { st.deleteOrgTemplate(t, say); setSure(null); }} style={chip(false, true)}>{dict.body.studio.deleteBtn}</button>
+                      <button type="button" onClick={() => setSure(null)} style={chip(false)}>{dict.body.studio.keepLabel}</button>
                     </>
                   ) : (
                     <div style={{ display: "flex", gap: u(4), alignItems: "center" }}>
                       {t.kind === "FULL" ? (
                         <>
-                          <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title="Apply all settings (Spotlight, Style, Branding)" style={chip(!canEdit)}>All</button>
-                          <button type="button" data-apply-spotlight={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["SPOTLIGHT"], say)} title="Apply Spotlight settings only" style={chip(!canEdit)}>Spotlight</button>
-                          <button type="button" data-apply-style={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["STYLE"], say)} title="Apply Style settings only" style={chip(!canEdit)}>Style</button>
+                          <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyAllSettings} style={chip(!canEdit)}>{dict.body.processing.filterAll}</button>
+                          <button type="button" data-apply-spotlight={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["SPOTLIGHT"], say)} title={dict.body.studio.applySpotlightOnly} style={chip(!canEdit)}>{dict.body.studio.spotlightLabel}</button>
+                          <button type="button" data-apply-style={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["STYLE"], say)} title={dict.body.studio.applyStyleOnly} style={chip(!canEdit)}>{dict.body.studio.styleLabel}</button>
                         </>
                       ) : (
-                        <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={`Apply ${t.kind} settings`} style={chip(!canEdit)}>Apply</button>
+                        <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyKindSettings.replace("{a}", kindLabel(t.kind))} style={chip(!canEdit)}>{dict.body.studio.applyLabel}</button>
                       )}
 
                       {!t.is_builtin && (
-                        <button type="button" aria-label={`Delete template ${t.name}`} disabled={!canEdit} onClick={() => setSure(t.id)} style={chip(!canEdit)}>✕</button>
+                        <button type="button" aria-label={dict.body.studio.deleteTemplateAria.replace("{a}", t.name)} disabled={!canEdit} onClick={() => setSure(t.id)} style={chip(!canEdit)}>✕</button>
                       )}
                     </div>
                   )}
@@ -246,8 +247,7 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
               ))}
             </ul>
           )}
-          <p style={{ ...cell, fontSize: u(13), color: "#8ea3bf" }}>
-            Templates save Spotlight, Style and Branding settings to share across your organization. Apply selectively without overwriting your other settings.
+          <p style={{ ...cell, fontSize: u(13), color: "#8ea3bf" }}>{dict.body.studio.templatesSaveNote}
           </p>
         </>
       )}
@@ -256,14 +256,15 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
 }
 
 type Slot = keyof Pick<SpotlightSettings, "competition_logo_id" | "custom_logo_id" | "music_id" | "intro_id" | "outro_id">;
-const SLOTS: Record<BrandAsset["kind"], [Slot, string][]> = {
-  COMPETITION_LOGO: [["competition_logo_id", "Use"]], CUSTOM_LOGO: [["custom_logo_id", "Use"]], MUSIC: [["music_id", "Use"]],
-  REEL_VIDEO: [["intro_id", "Intro"], ["outro_id", "Outro"]],
-};
-const KIND: Record<BrandAsset["kind"], string> = { COMPETITION_LOGO: "Competition logo", CUSTOM_LOGO: "Logo", MUSIC: "Music", REEL_VIDEO: "Intro / outro video" };
+const brandSlots = (d: Dictionary): Record<BrandAsset["kind"], [Slot, string][]> => ({
+    COMPETITION_LOGO: [["competition_logo_id", d.body.workspace.useLabel]], CUSTOM_LOGO: [["custom_logo_id", d.body.workspace.useLabel]], MUSIC: [["music_id", d.body.workspace.useLabel]],
+    REEL_VIDEO: [["intro_id", d.body.studio.introLabel], ["outro_id", d.body.studio.outroLabel]],
+  });
+const brandKind = (d: Dictionary): Record<BrandAsset["kind"], string> => ({ COMPETITION_LOGO: d.body.studio.competitionLogo, CUSTOM_LOGO: d.body.studio.logoLabel, MUSIC: d.body.reels.music, REEL_VIDEO: d.body.studio.introOutroVideo });
 
 /** Graphics (logos, intro / outro videos) or Audio (music) of the organization; Use puts the asset into this reel's render */
 function BrandList({ st, canEdit, audio, onPick, hit }: { st: Studio; canEdit: boolean; audio: boolean; onPick: () => void; hit: (a: BrandAsset) => boolean }) {
+  const { t: dict } = useLocale();
   const s = st.reel?.settings;
   const list = (st.brand ?? []).filter((a) => (a.kind === "MUSIC") === audio && hit(a));
   const cell = { fontSize: u(17), color: "#cfe0f5", margin: 0 } as const;
@@ -273,36 +274,36 @@ function BrandList({ st, canEdit, audio, onPick, hit }: { st: Studio; canEdit: b
   return (
     <div className="absolute" data-brand-list={audio ? "audio" : "graphics"} style={{ left: u(48), top: u(350 - 101), width: u(590), height: u(455), display: "flex", flexDirection: "column", gap: u(10) }}>
       {!st.reel ? (
-        <button type="button" onClick={onPick} style={{ ...chip(false, false), alignSelf: "center", marginTop: u(260) }}>Choose a reel to edit</button>
-      ) : st.brand === null ? <p style={cell}>Loading…</p> : (
+        <button type="button" onClick={onPick} style={{ ...chip(false, false), alignSelf: "center", marginTop: u(260) }}>{dict.body.studio.chooseReelEdit}</button>
+      ) : st.brand === null ? <p style={cell}>{dict.common.loading}</p> : (
         <>
           {audio && (
-            <button type="button" data-use-asset="none" disabled={!canEdit || !s?.music_id} onClick={() => st.setSettings({ music_id: null }, "Music removed")}
-              style={{ ...chip(!s?.music_id, !canEdit), textAlign: "left" }}>{s?.music_id ? "No music: use the clips' match sound" : "✓ No music: the clips' match sound"}</button>
+            <button type="button" data-use-asset="none" disabled={!canEdit || !s?.music_id} onClick={() => st.setSettings({ music_id: null }, dict.body.studio.musicRemoved)}
+              style={{ ...chip(!s?.music_id, !canEdit), textAlign: "left" }}>{s?.music_id ? dict.body.studio.noMusicUseMatch : dict.body.studio.noMusicCheck}</button>
           )}
-          {list.length === 0 && <p style={cell}>{audio ? "No music uploaded yet." : "No logos or intro / outro videos uploaded yet."}</p>}
-          <ul aria-label={audio ? "Music" : "Graphics"} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(8) }}>
+          {list.length === 0 && <p style={cell}>{audio ? dict.body.studio.noMusicYet : dict.body.studio.noLogosYet}</p>}
+          <ul aria-label={audio ? dict.body.reels.music : dict.body.studio.graphicsTab} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(8) }}>
             {list.map((a) => (
               <li key={a.id} data-asset={a.id} style={{ display: "flex", alignItems: "center", gap: u(10), padding: `${u(8)} ${u(12)}`, borderRadius: u(8), border: `${u(1.5)} solid #17406f`, background: "#041022" }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: u(18), fontWeight: 600, color: "#e3eefb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</span>
-                  <span style={{ display: "block", fontSize: u(15), color: a.rights_ok ? "#8ea3bf" : "#ff8a8a" }}>{KIND[a.kind]} · {a.rights_ok ? `rights: ${a.rights_holder}` : "rights not in force"}</span>
+                    <span style={{ display: "block", fontSize: u(15), color: a.rights_ok ? "#8ea3bf" : "#ff8a8a" }}>{brandKind(dict)[a.kind]} · {a.rights_ok ? dict.body.studio.rightsHolder.replace("{a}", a.rights_holder) : dict.body.studio.rightsNotInForceLower}</span>
                   {audio && a.rights_ok && <div style={{ marginTop: u(4) }}><BeatStatusRow musicId={a.id} canEdit={canEdit} /></div>}
                 </span>
-                {SLOTS[a.kind].map(([slot, label]) => {
+                {brandSlots(dict)[a.kind].map(([slot, label]) => {
                   const on = s?.[slot] === a.id, dis = !canEdit || !a.rights_ok;
                   return (
                     <button key={slot} type="button" data-use-asset={`${slot}:${a.id}`} aria-pressed={on} disabled={dis}
-                      title={!a.rights_ok ? "Its rights are not in force" : !canEdit ? "Your role cannot edit this reel" : on ? "Take it out of the reel" : "Put it in the reel"}
-                      onClick={() => st.setSettings({ [slot]: on ? null : a.id }, on ? `${a.name} removed` : `${a.name} added to the reel`)} style={chip(on, dis)}>
-                      {on ? `✓ ${label === "Use" ? "In the reel" : label}` : label}</button>
+                      title={!a.rights_ok ? dict.body.studio.rightsNotInForce : !canEdit ? dict.body.studio.roleCannotEditReel : on ? dict.body.studio.takeOutReel : dict.body.studio.putInReel}
+                      onClick={() => st.setSettings({ [slot]: on ? null : a.id }, on ? dict.body.studio.assetRemoved.replace("{a}", a.name) : dict.body.studio.assetAddedToReel.replace("{a}", a.name))} style={chip(on, dis)}>
+                      {on ? `✓ ${label === dict.body.workspace.useLabel ? dict.body.studio.inReelBadge : label}` : label}</button>
                   );
                 })}
               </li>
             ))}
           </ul>
           <p style={{ ...cell, fontSize: u(15), color: "#8ea3bf" }}>
-            Upload {audio ? "music" : "logos and videos"} with their rights in the <a href={where} style={{ color: "#33a8ff", textDecoration: "underline" }}>Reel Builder (Branding)</a>. The render draws what is chosen here.
+            {dict.body.studio.uploadWithRights.replace("{a}", audio ? dict.body.studio.musicWord : dict.body.studio.logosVideosLower)} <a href={where} style={{ color: "#33a8ff", textDecoration: "underline" }}>{dict.body.studio.reelBuilderBranding}</a>{dict.body.studio.renderDrawsChosen}
           </p>
         </>
       )}

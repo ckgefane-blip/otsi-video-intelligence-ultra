@@ -37,45 +37,46 @@ const pct = (v: number) => `${Math.round(v * 100)} %`;
 
 /** what each lane holds, from the reel's saved look (the same settings the renderer reads) */
 function laneItems(st: Studio): Item[][] {
+  const { t: dict } = useLocale();
   const s = st.reel?.settings, it = st.items, total = st.total;
   if (!s || !it.length) return [[], [], [], [], [], [], [], []];
-  const nameOf = (id: string | null) => (id ? (st.brand?.find((a) => a.id === id)?.name ?? "chosen") : null);
+  const nameOf = (id: string | null) => (id ? (st.brand?.find((a) => a.id === id)?.name ?? dict.body.studio.chosenWord) : null);
   const per = (f: (p: Placed) => Item | null) => it.map(f).filter((x): x is Item => !!x);
-  const logos = [nameOf(s.competition_logo_id), nameOf(s.custom_logo_id)].filter(Boolean).map((n) => `logo ${n}`);
-  const extra = [...logos, ...(s.watermark ? ["OTSI VIE mark"] : [])];
-  const player = st.reel?.player?.display_name ?? "player";
+  const logos = [nameOf(s.competition_logo_id), nameOf(s.custom_logo_id)].filter(Boolean).map((n) => dict.body.studio.logoName.replace("{a}", String(n)));
+  const extra = [...logos, ...(s.watermark ? [dict.body.studio.otsiMark] : [])];
+  const player = st.reel?.player?.display_name ?? dict.body.studio.playerWord;
   const music = nameOf(s.music_id);
   // E2 (ADR-065): with a freeze or ramp, the strap and the event caption start one second before its key moment
   const tags: Item[] = s.event_tags ? per((p) => { const o = strapStartUs(p.clip); return p.clip.label && p.dur > o
     ? { key: p.clip.id, from: p.start + o, to: p.start + Math.min(p.dur, o + TAG), color: "#7a5a1a", text: p.clip.label, ...(s.score_bug ? { row: 0 as const } : {}) } : null; }) : [];
-  const score: Item[] = s.score_bug ? [{ key: "score", from: 0, to: total, color: "#244a6a", text: "Teams and match clock", ...(s.event_tags ? { row: 1 as const } : {}) }] : [];
+  const score: Item[] = s.score_bug ? [{ key: "score", from: 0, to: total, color: "#244a6a", text: dict.body.studio.teamsClock, ...(s.event_tags ? { row: 1 as const } : {}) }] : [];
   return [
     [],
     [],
-    per((p) => ({ key: p.clip.id, from: p.start, to: p.start + p.dur, color: "#1a5a8a", text: ["Spotlight", ...extra].join(" + ") })),
+    per((p) => ({ key: p.clip.id, from: p.start, to: p.start + p.dur, color: "#1a5a8a", text: [dict.body.studio.spotlightLabel, ...extra].join(" + ") })),
     s.lower_third ? per((p) => { const o = strapStartUs(p.clip); return p.dur > o + LOWER_IN
-      ? { key: p.clip.id, from: p.start + o + LOWER_IN, to: p.start + Math.min(p.dur, o + LOWER_IN + LOWER_HOLD), color: "#5a3a8a", text: `Lower third: ${player}` } : null; }) : [],
-    s.name_caption ? per((p) => ({ key: p.clip.id, from: p.start, to: p.start + p.dur, color: "#3a5a2a", text: `Name: ${player}` })) : [],
+      ? { key: p.clip.id, from: p.start + o + LOWER_IN, to: p.start + Math.min(p.dur, o + LOWER_IN + LOWER_HOLD), color: "#5a3a8a", text: dict.body.studio.lowerThirdPlayer.replace("{a}", player) } : null; }) : [],
+    s.name_caption ? per((p) => ({ key: p.clip.id, from: p.start, to: p.start + p.dur, color: "#3a5a2a", text: dict.body.studio.nameCaptionPlayer.replace("{a}", player) })) : [],
     [...tags, ...score],
-    music ? [{ key: "music", from: 0, to: total, color: "#6a2a5a", text: `Music: ${music} · ${pct(s.music_volume)}` }] : [],
-    [{ key: "match", from: 0, to: total, color: "#2a4a4a", text: music ? `Match sound under the music · ${pct(s.match_volume)}` : "Match sound as recorded" }],
+    music ? [{ key: "music", from: 0, to: total, color: "#6a2a5a", text: dict.body.studio.musicLane.replace("{a}", music).replace("{b}", pct(s.music_volume)) }] : [],
+    [{ key: "match", from: 0, to: total, color: "#2a4a4a", text: music ? dict.body.studio.matchSoundUnderMusic.replace("{a}", pct(s.match_volume)) : dict.body.studio.matchSoundRecorded }],
   ];
 }
 
 const O = 343, W = 2128;
-const LANES: [string, number, string][] = [["Video Clips", 1027, "p07-s07"], ["Transitions", 1074, "p07-s08"], ["Graphics & Overlays", 1121, "p07-s09"],
-  ["Lower Thirds", 1168, "p07-s10"], ["Captions", 1215, "p07-s10"], ["Statistics", 1266, "p07-s10"], ["Soundtrack", 1320, "p07-s11"], ["Audio FX", 1372, "p07-s11"]];
-const SECTIONS: [string, string][] = [["p07-s07", "Video Clips lane"], ["p07-s08", "Transitions lane"], ["p07-s09", "Graphics & spotlight lane"],
-  ["p07-s10", "Lower-third, captions and statistics lanes"], ["p07-s11", "Soundtrack and audio FX lanes"]];
 const RULER = [357, 568, 809, 1055, 1296, 1533, 1780, 2022, 2265];
-const KINDS: [TransitionKind, string][] = [["FADE", "Fade"], ["DISSOLVE", "Dissolve"], ["ZOOM", "Zoom"], ["SPIN", "Spin"]];
 const LENGTHS = [400, 600, 1000];
-const kindName = (k: TransitionKind) => KINDS.find(([x]) => x === k)![1];
 const mmss = (t: number) => { const s = Math.round(t / 1e6); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
 
 export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: Ui }) {
   const { t: dict } = useLocale();
   const [zoom, setZoom] = useState(1);
+  const LANES: [string, number, string][] = [[dict.body.studio.videoClipsLabel, 1027, "p07-s07"], [dict.body.studio.transitionsSection, 1074, "p07-s08"], [dict.body.studio.graphicsOverlays, 1121, "p07-s09"],
+    [dict.body.studio.lowerThirds, 1168, "p07-s10"], [dict.body.studio.captionsLabel, 1215, "p07-s10"], [dict.body.studio.statisticsLabel, 1266, "p07-s10"], [dict.body.studio.soundtrackLabel, 1320, "p07-s11"], [dict.body.studio.audioFxLabel, 1372, "p07-s11"]];
+  const SECTIONS: [string, string][] = [["p07-s07", dict.body.studio.videoClipsLane], ["p07-s08", dict.body.studio.transitionsLane], ["p07-s09", dict.body.studio.graphicsSpotlightHint],
+    ["p07-s10", dict.body.studio.lowerLanesHint], ["p07-s11", dict.body.studio.soundtrackHint]];
+  const KINDS: [TransitionKind, string][] = [["FADE", dict.body.studio.fadeLabel], ["DISSOLVE", dict.body.studio.dissolveLabel], ["ZOOM", dict.body.studio.zoomLabel2], ["SPIN", dict.body.studio.spinLabel]];
+  const kindName = (k: TransitionKind) => KINDS.find(([x]) => x === k)![1];
   const [hidden, setHidden] = useState(false);
   const [locked, setLocked] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   const selected = st.items.find((p) => p.clip.id === r?.selectedClip) ?? null;
   // the playhead moves every frame while playing, so these derivations are memoised on what they actually read:
   // st.items is memoised on the reel in useStudio, so they hold still while only the playhead moves
-  const rendered = useMemo(() => (st.reel ? renderedState(st.reel) : null), [st.reel]);   // E1: is each clip in the last rendered file as it is now?
+  const rendered = useMemo(() => (st.reel ? renderedState(st.reel, dict) : null), [st.reel]);   // E1: is each clip in the last rendered file as it is now?
   const under = locate(st.items, st.playhead);
   const missing = useMemo(() => (r?.moments ?? []).filter((m) => !m.in_reel && !m.rejected), [r?.moments]);   // B.15: never one a person rejected
   const lanes = useMemo(() => laneItems(st), [st.reel, st.items, st.total, st.brand]);
@@ -125,34 +126,34 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   }), [st.notes, st.items]);
   const addMarker = () => {
     if (!under || !st.reel) return;
-    void st.addNote("Marker", Math.round(under.src))
-      .then(() => ui.say(`Marker added at ${tc(st.playhead)}: write on it in the Clip Inspector`), () => ui.say("The marker could not be saved"));
+    void st.addNote(dict.body.studio.markerLabel, Math.round(under.src))
+      .then(() => ui.say(dict.body.studio.markerAddedAt.replace("{a}", tc(st.playhead))), () => ui.say(dict.body.studio.markerNotSaved));
   };
   const canSet = !!st.reel && !!r?.canEdit && !r.busy;
   /** the eye of a lane below the clips: switch its overlay in the render */
   const laneEye = (i: number): [boolean, string, () => void] | null => {
     if (!set) return null;
     const flip = (k: "lower_third" | "name_caption" | "event_tags", on: string, off: string) => (): void => {
-      if (!canSet) return ui.say(r?.canEdit ? "Saving the previous change…" : "Your role can view this reel but not edit it");
+      if (!canSet) return ui.say(r?.canEdit ? dict.body.studio.savingPrevChange : dict.body.studio.roleViewReel);
       st.setSettings({ [k]: !set[k] }, set[k] ? off : on);
     };
-    if (i === 2) return [true, "Choose logos in the Media Bin's Graphics", () => { st.setBinTab(1); ui.say("The spotlight is always drawn; choose logos in Graphics"); }];
-    if (i === 3) return [set.lower_third, set.lower_third ? "Leave out the lower third" : "Add the lower third", flip("lower_third", "Lower third on", "Lower third off")];
-    if (i === 4) return [set.name_caption, set.name_caption ? "Leave out the name caption" : "Add the name caption", flip("name_caption", "Name caption on", "Name caption off")];
-    if (i === 5) return [set.event_tags, set.event_tags ? "Leave out the event tags" : "Add the event tags", flip("event_tags", "Event tags on", "Event tags off")];
+    if (i === 2) return [true, dict.body.studio.chooseLogosBin, () => { st.setBinTab(1); ui.say(dict.body.studio.spotlightAlwaysDrawn); }];
+    if (i === 3) return [set.lower_third, set.lower_third ? dict.body.studio.leaveLowerThird : dict.body.studio.addLowerThird, flip("lower_third", dict.body.studio.lowerThirdOn, dict.body.studio.lowerThirdOff)];
+    if (i === 4) return [set.name_caption, set.name_caption ? dict.body.studio.leaveNameCaption : dict.body.studio.addNameCaption, flip("name_caption", dict.body.studio.nameCaptionOn, dict.body.studio.nameCaptionOff)];
+    if (i === 5) return [set.event_tags, set.event_tags ? dict.body.studio.leaveEventTags : dict.body.studio.addEventTags, flip("event_tags", dict.body.studio.eventTagsOn, dict.body.studio.eventTagsOff)];
     if (i === 6) {
-      return [!!set.music_id, set.music_id ? "Take the music out" : "Choose music in the Media Bin's Audio", () => {
-        if (!set.music_id) { st.setBinTab(2); return ui.say("Choose the reel's music in Audio"); }
-        if (!canSet) return ui.say("Your role can view this reel but not edit it");
-        st.setSettings({ music_id: null }, "Music removed");
+      return [!!set.music_id, set.music_id ? dict.body.studio.takeMusicOut : dict.body.studio.chooseMusicBinAudio, () => {
+        if (!set.music_id) { st.setBinTab(2); return ui.say(dict.body.studio.chooseMusicAudio); }
+        if (!canSet) return ui.say(dict.body.studio.roleViewReel);
+        st.setSettings({ music_id: null }, dict.body.studio.musicRemoved);
       }];
     }
     if (i === 7) {
       const on = set.match_volume > 0 || !set.music_id;
-      return [on, !set.music_id ? "The match sound plays as recorded when there is no music" : on ? "Mute the match sound under the music" : "Bring the match sound back under the music", () => {
-        if (!set.music_id) return ui.say("With no music the clips keep their match sound");
-        if (!canSet) return ui.say("Your role can view this reel but not edit it");
-        st.setSettings({ match_volume: on ? 0 : 0.3 }, on ? "Match sound muted" : "Match sound back at 30 %");
+      return [on, !set.music_id ? dict.body.studio.matchSoundRecordedNoMusic : on ? dict.body.studio.muteMatchUnderMusic : dict.body.studio.bringMatchBack, () => {
+        if (!set.music_id) return ui.say(dict.body.studio.noMusicKeepMatch);
+        if (!canSet) return ui.say(dict.body.studio.roleViewReel);
+        st.setSettings({ match_volume: on ? 0 : 0.3 }, on ? dict.body.studio.matchSoundMuted : dict.body.studio.matchSound30);
       }];
     }
     return null;
@@ -168,7 +169,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
     if (!under || !edit) return explain(edge === "in" ? "trim-in" : "cut", "");
     const t = Math.round(under.src), c = under.p.clip;
     if (edge === "in" ? t < c.in_pts_us + 100_000 || t > c.out_pts_us - 100_000 : t > c.out_pts_us - 100_000 || t < c.in_pts_us + 100_000)
-      return ui.say("Move the playhead inside the clip, not on its edge");
+      return ui.say(dict.body.studio.movePlayheadInside);
     if (edge === "in") { st.trim(c, t, c.out_pts_us); st.setPlayhead(under.p.start); } else st.trim(c, c.in_pts_us, t);
   };
   /** E1: drag a clip's left or right edge to trim it (the clips after it close up, as Ripple Delete does) */
@@ -181,7 +182,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
     trimming.current = true;
     let d = 0, cancelled = false;
     setTrimDrag({ id: p.clip.id, edge, d });
-    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") { cancelled = true; ev.preventDefault(); up(); ui.say("Trim cancelled"); } };
+    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") { cancelled = true; ev.preventDefault(); up(); ui.say(dict.body.studio.trimCancelled); } };
     // E2: a slowed clip's edge moves through source time at its speed
     const k = p.clip.effect.kind === "SLOW" && effectActive(p.clip) ? p.clip.effect.speed : 1;
     // B.19: where the edge may snap, in source time: markers inside the clip, the playhead (on this clip, or after it for the end)
@@ -223,7 +224,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
     trimming.current = true;
     let d = 0, cancelled = false;
     setSlipDrag({ id: p.clip.id, d });
-    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") { cancelled = true; ev.preventDefault(); up(); ui.say("Slip cancelled"); } };
+    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") { cancelled = true; ev.preventDefault(); up(); ui.say(dict.body.studio.slipCancelled); } };
     const move = (ev: PointerEvent) => { d = slipWindow(p.clip, -((ev.clientX - x0) / w) * span).in_pts_us - p.clip.in_pts_us; setSlipDrag({ id: p.clip.id, d }); };
     const up = () => {
       removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("keydown", esc, true);
@@ -245,7 +246,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   const ripple = () => { const c = selected ?? under?.p; if (c && edit) { st.remove(c.clip); r?.setSelectedClip(null); } };
   const highlights = () => r?.run(async () => {
     for (const m of missing) await api(`/v1/reels/${st.reel!.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } });
-  }, `${missing.length} suggested moments added`);
+  }, dict.body.studio.suggestedMomentsAdded.replace("{a}", String(missing.length)));
 
   useEffect(() => {                                                      // the reference's shortcuts: S, C, Delete
     const onKey = (e: KeyboardEvent) => {
@@ -297,40 +298,40 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   };
 
   const TOOLS: [string, string, number, number, (() => void) | null, string][] = [
-    ["split", "Split (S)", 74, 101, edit && under ? () => { if (!st.split()) explain("split", ""); } : null, "Split the clip under the playhead"],
-    ["cut", "Cut (C)", 218, 245, edit && under ? cut : null, "End the clip under the playhead at the playhead"],
-    ["trash", "Ripple Delete", 355, 382, edit && (selected || under) ? ripple : null, "Remove the selected clip and close the gap"],
-    ["marker", "Add Marker (M)", 535, 562, edit && under ? addMarker : null, "Add a marker at the playhead"],
-    ["gfx", "Add Graphic", 1083, 1112, st.reel ? () => { st.setBinTab(1); ui.say("Graphics: put a logo or an intro / outro video into the reel"); } : null, "Open Graphics in the Media Bin"],
+    ["split", dict.body.studio.splitTool, 74, 101, edit && under ? () => { if (!st.split()) explain("split", ""); } : null, dict.body.studio.splitClipHint],
+    ["cut", dict.body.studio.cutTool, 218, 245, edit && under ? cut : null, dict.body.studio.endClipHint],
+    ["trash", dict.body.studio.rippleDelete, 355, 382, edit && (selected || under) ? ripple : null, dict.body.studio.rippleDeleteHint],
+    ["marker", dict.body.studio.addMarkerTool, 535, 562, edit && under ? addMarker : null, dict.body.studio.addMarkerHint],
+    ["gfx", dict.body.studio.addGraphic, 1083, 1112, st.reel ? () => { st.setBinTab(1); ui.say(dict.body.studio.graphicsHint); } : null, dict.body.studio.openGraphicsHint],
     // owner 2026-11-06 ("Why is the AI feature not working?"): the button says its state; dimmed alone looked broken
-    ["ai", missing.length ? `Suggestions (${missing.length})` : r?.moments?.length ? "Suggestions ✓" : "Suggestions", 1265, 1291, edit && missing.length ? highlights : null,
-      missing.length ? `Add the ${missing.length} moments the engine suggests` : r?.moments?.length ? `All ${r.moments.length} suggested moments are in the reel` : "The engine suggested no moments for this reel's player"],
-    ["speed", "Speed", 1474, 1502, st.reel ? () => { st.setInspTab(2); ui.say(under || selected ? "Speed: slow motion, freeze or hero ramp in Adjustments" : "Select a clip, then choose its speed in Adjustments"); } : null,
-      "Slow motion, freeze frame or hero ramp (inspector Adjustments)"],
-    ["col", "Color", 1617, 1645, st.reel ? () => { st.openAdjust("look"); ui.say("Look: the reel's colour, presets and match to a reference frame"); } : null,
-      "The reel's colour look (inspector Adjustments)"],
-    ["mus", "Audio", 1754, 1781, st.reel ? () => { st.setBinTab(2); ui.say("Audio: choose the reel's music"); } : null, "Choose the reel's music in the Media Bin"],
-    ["trf", "Transform", 1892, 1919, st.reel ? () => { st.openAdjust("zoom"); st.openAdjust("draw"); ui.say(under || selected ? "Zoom and Draw: move in on him, draw arrows and circles" : "Select a clip, then zoom or draw in Adjustments"); } : null,
-      "Keyframed zoom and drawings on the clip (inspector Adjustments)"],
-    ["fit", "Fit to Screen", 2133, 2160, () => setZoom(1), "Show the whole reel"],
+    ["ai", missing.length ? dict.body.studio.suggestionsCount.replace("{a}", String(missing.length)) : r?.moments?.length ? dict.body.studio.suggestionsCheck : dict.body.studio.suggestionsLabel, 1265, 1291, edit && missing.length ? highlights : null,
+      missing.length ? dict.body.studio.addMomentsSuggested.replace("{a}", String(missing.length)) : r?.moments?.length ? dict.body.studio.allMomentsInReelCount.replace("{a}", String(r.moments.length)) : dict.body.studio.noMomentsSuggested],
+    ["speed", dict.body.studio.speedSection, 1474, 1502, st.reel ? () => { st.setInspTab(2); ui.say(under || selected ? dict.body.studio.speedHint : dict.body.studio.selectClipSpeed); } : null,
+      dict.body.studio.speedToolHint],
+    ["col", dict.body.studio.colorLabel, 1617, 1645, st.reel ? () => { st.openAdjust("look"); ui.say(dict.body.studio.lookHint); } : null,
+      dict.body.studio.colourToolHint],
+    ["mus", dict.body.studio.audioLabel, 1754, 1781, st.reel ? () => { st.setBinTab(2); ui.say(dict.body.studio.audioChooseMusic); } : null, dict.body.studio.chooseMusicMediaBin],
+    ["trf", dict.body.studio.transformLabel, 1892, 1919, st.reel ? () => { st.openAdjust("zoom"); st.openAdjust("draw"); ui.say(under || selected ? dict.body.studio.zoomDrawHint : dict.body.studio.selectClipZoomDraw); } : null,
+      dict.body.studio.transformToolHint],
+    ["fit", dict.body.studio.fitToScreen, 2133, 2160, () => setZoom(1), dict.body.studio.showWholeReel],
   ];
   const zf = (zoom - 1) / 7;                                             // zoom 1..8 on the slider
   /** why a tool cannot act right now (or open the reel chooser): no dead buttons */
   const explain = (k: string, why: string) => {
     if (why.startsWith(NOT_BUILT)) return ui.say(why);
     if (!st.reel) return ui.pick();
-    if (!r?.canEdit) return ui.say("Your role can view this reel but not edit it");
-    if (locked) return ui.say("The Video Clips lane is locked: unlock it to edit");
-    if (r.busy) return ui.say("Saving the previous change…");
-    if (k === "ai") return ui.say(r.moments?.length ? "Every suggested moment is already in the reel" : "The engine suggested no moments for this reel's player");
-    if (k === "split" && under) return ui.say("Move the playhead inside the clip, not on its edge");
-    if (k === "trim") return ui.say("Drag a clip's edge to trim it");
-    return ui.say(st.items.length ? "Move the playhead onto a clip first" : "The reel has no clips yet: add moments from the Media Bin");
+    if (!r?.canEdit) return ui.say(dict.body.studio.roleViewReel);
+    if (locked) return ui.say(dict.body.studio.laneLocked);
+    if (r.busy) return ui.say(dict.body.studio.savingPrevChange);
+    if (k === "ai") return ui.say(r.moments?.length ? dict.body.studio.allMomentsInReel : dict.body.studio.noMomentsSuggested);
+    if (k === "split" && under) return ui.say(dict.body.studio.movePlayheadInside);
+    if (k === "trim") return ui.say(dict.body.studio.dragClipEdge);
+    return ui.say(st.items.length ? dict.body.studio.movePlayheadOntoClip : dict.body.studio.reelNoClips);
   };
 
   return (
     <>
-      <section aria-label="Editing tools ribbon" data-section="p07-s05">
+      <section aria-label={dict.body.studio.editingRibbon} data-section="p07-s05">
         <P x={28} y={843} w={2506} h={62} />
         {TOOLS.map(([k, l, ix, tx, fn, why]) => (
           <button key={l} type="button" aria-label={l} title={why} aria-disabled={!fn || undefined} data-tool={k} data-pro={k === "col" || k === "trf" ? "" : undefined} onClick={fn ?? (() => explain(k, why))} className="absolute"
@@ -342,35 +343,35 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
         ))}
         <B x={1421} y={860} w={1} h={32} style={{ background: "#12335f" }} />
         <B x={2078} y={860} w={1} h={32} style={{ background: "#12335f" }} />
-        <Btn x={2270} y={862} w={26} h={26} label={dict.body.studio.zoomOut} onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say("Already showing the whole reel")}>
+        <Btn x={2270} y={862} w={26} h={26} label={dict.body.studio.zoomOut} onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say(dict.body.studio.alreadyWholeReel)}>
           <Ic o={[2270, 862]} x={2283} y={875} k="zo" size={26} color="#cfe0f5" />
         </Btn>
         <div className="absolute" style={{ left: u(2300), top: u(862 - 101), width: u(178), height: u(26) }}>
           <B o={[2300, 862]} x={2310} y={873} w={158} h={5} style={{ background: "#0b2a4d", borderRadius: u(3) }} />
           <B o={[2300, 862]} x={2310} y={873} w={10 + zf * 148} h={5} style={{ background: "#1e90ff", borderRadius: u(3) }} />
           <B o={[2300, 862]} x={2310 + zf * 136} y={865} w={22} h={22} style={{ background: "#cfe8ff", border: `${u(3)} solid #33a8ff`, borderRadius: "50%" }} />
-          <input type="range" min={1} max={8} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Timeline zoom"
+          <input type="range" min={1} max={8} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label={dict.body.studio.timelineZoom}
             style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", cursor: "pointer" }} />
         </div>
-        <Btn x={2485} y={862} w={26} h={26} label={dict.body.studio.zoomIn} onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say("Maximum zoom")}>
+        <Btn x={2485} y={862} w={26} h={26} label={dict.body.studio.zoomIn} onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say(dict.body.studio.maxZoom)}>
           <Ic o={[2485, 862]} x={2498} y={875} k="zi" size={26} color="#cfe0f5" />
         </Btn>
       </section>
 
-      <section aria-label="Timeline ruler and playhead" data-section="p07-s06">
+      <section aria-label={dict.body.studio.timelineRuler} data-section="p07-s06">
         <T x={42} y={937} size={32} weight={700} color="#33a8ff">{tc(st.playhead)}</T>
         <T x={42} y={972} size={20} color="#8ea3bf">{tc(st.total)}</T>
-        {([["snap", snap ? "Snap ✓" : "Snap", snap ? (beatsUsable(beatGrid) ? "Snapping on: dragged edges jump to beats, playhead and markers" : "Snapping on: dragged edges jump to the playhead and markers") : "Snapping off", () => setSnap(!snap), snap, 152, 56],
-           ["tall", laneMode === "tall" ? "Tall ✓" : "Tall", laneMode === "tall" ? "Back to the normal lane heights" : "A tall Video Clips lane (the other lanes compact)", () => setLaneMode(laneMode === "tall" ? "normal" : "tall"), laneMode === "tall", 212, 56],
-           ["dual", dual ? "Dual ✓" : "Dual", dual ? "Exit Dual timeline comparison" : "Compare two cuts side-by-side (Pro)", () => setDual(!dual), dual, 272, 58]] as const).map(([k, l, t, go, on, x, bw]) => (
+        {([["snap", snap ? dict.body.studio.snapOn : dict.body.studio.snapOff, snap ? (beatsUsable(beatGrid) ? dict.body.studio.snapTitleOnBeats : dict.body.studio.snapTitleOnPlain) : dict.body.studio.snapTitleOff, () => setSnap(!snap), snap, 152, 56],
+           ["tall", laneMode === "tall" ? dict.body.studio.tallOn : dict.body.studio.tallOff, laneMode === "tall" ? dict.body.studio.backToNormalLanes : dict.body.studio.tallLaneHint, () => setLaneMode(laneMode === "tall" ? "normal" : "tall"), laneMode === "tall", 212, 56],
+           ["dual", dual ? dict.body.studio.dualOn : dict.body.studio.dualOff, dual ? dict.body.studio.exitDual : dict.body.studio.compareTwoCuts, () => setDual(!dual), dual, 272, 58]] as const).map(([k, l, t, go, on, x, bw]) => (
           <button key={k} type="button" data-timeline-toggle={k} aria-pressed={on} title={t} aria-label={t} onClick={go} className="absolute"
             style={{ left: u(x), top: u(957 - 101), width: u(bw), height: u(28), fontSize: u(14), fontWeight: 600, color: on ? "#fff" : "#cfe0f5", background: on ? "#0d3a78" : "#0a2447",
               border: `${u(1.5)} solid ${on ? "#33a8ff" : "#1d4f8a"}`, borderRadius: u(6), cursor: "pointer", padding: 0, fontFamily: "inherit", zIndex: 5 }}>{l}</button>
         ))}
         {RULER.map((x, i) => <T key={x} x={x} y={937} size={20} color="#cfe0f5">{i === 0 ? mmss(start) : st.total ? mmss(start + ((x - 357) / (2265 - 357)) * span * (8 / 8)) : "—"}</T>)}
         {/* overview strip: the whole reel, click to move the playhead */}
-        <div role="slider" aria-label="Reel overview" aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
-          onClick={(e) => { if (!st.total) { if (!st.reel) ui.pick(); else ui.say("The reel has no clips yet"); return; } const rc = e.currentTarget.getBoundingClientRect(); st.setPlayhead(((e.clientX - rc.left) / rc.width) * st.total); }}
+        <div role="slider" aria-label={dict.body.studio.reelOverview} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
+          onClick={(e) => { if (!st.total) { if (!st.reel) ui.pick(); else ui.say(dict.body.studio.reelNoClipsShort); return; } const rc = e.currentTarget.getBoundingClientRect(); st.setPlayhead(((e.clientX - rc.left) / rc.width) * st.total); }}
           className="absolute" style={{ left: u(335), top: u(958 - 101), width: u(2199), height: u(42), background: "#0a1d38", opacity: 0.75, cursor: "pointer" }}>
           {st.items.map((p) => (
             <span key={p.clip.id} style={{ position: "absolute", left: `${(p.start / st.total) * 100}%`, width: `${(p.dur / st.total) * 100}%`, top: u(8), bottom: u(8),
@@ -379,7 +380,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
           {st.total > 0 && marks.map((m) => <span key={m.key} title={`${tc(m.t)} ${m.body}`} data-marker={m.t}
             style={{ position: "absolute", left: `${(m.t / st.total) * 100}%`, width: u(3), top: 0, bottom: 0, background: "#f5d02e" }} />)}
           {st.total > 0 && st.reel && st.reviews.map((x) => {                // E5: reviewers' comments, where they fall in this edit
-            const t = reviewTime(x, st.reel!, st.total).at_us;
+            const t = reviewTime(x, st.reel!, st.total, dict).at_us;
             return t === null ? null : <span key={x.id} title={`${tc(t)} ${x.name}: ${x.body}`} data-review-marker={t}
               style={{ position: "absolute", left: `${(t / st.total) * 100}%`, width: u(4), top: 0, bottom: 0, background: "#ff6bd5" }} />;
           })}
@@ -387,7 +388,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
         </div>
         <B x={28} y={1003} w={304} h={412} style={{ background: "#06122a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
         <div ref={lane} aria-hidden className="absolute" style={{ left: u(O), top: u(1003 - 101), width: u(W), height: u(4) }} />
-        <div role="slider" aria-label="Playhead" aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
+        <div role="slider" aria-label={dict.body.studio.playheadLabel} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
           onPointerDown={dragHead} onKeyDown={(e) => { if (e.key === "ArrowRight") st.setPlayhead(Math.min(st.total, st.playhead + 1e6)); if (e.key === "ArrowLeft") st.setPlayhead(Math.max(0, st.playhead - 1e6)); }}
           className="absolute" style={{ left: u(head - 15), top: u(922 - 101), width: u(30), height: u(28), background: "#1e90ff", borderRadius: u(6), zIndex: 3, cursor: st.total ? "ew-resize" : "default", touchAction: "none" }}>
           <Ic o={[head - 15, 922]} x={head} y={936} k="chev" size={16} />
@@ -398,13 +399,13 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
       {SECTIONS.map(([id, label]) => (
         <section key={id} aria-label={label} data-section={id}>
           {LANES.map(([name, , sec], i) => { const { y, h } = geo[i]!; return sec !== id ? null : (
-            <div key={name} role="group" aria-label={`${name} lane`}>
+            <div key={name} role="group" aria-label={dict.body.studio.laneAria.replace("{a}", name)}>
               {i === 0 ? (
                 <>
-                  <Btn x={36} y={y - 16} w={32} h={32} label={hidden ? "Show the Video Clips lane" : "Dim the Video Clips lane"} pressed={hidden} onClick={() => setHidden((h) => !h)}>
+                  <Btn x={36} y={y - 16} w={32} h={32} label={hidden ? dict.body.studio.showLane : dict.body.studio.dimLane} pressed={hidden} onClick={() => setHidden((h) => !h)}>
                     <Ic o={[36, y - 16]} x={52} y={y} k="eye" size={26} color={hidden ? "#6a7f9c" : "#cfe0f5"} />
                   </Btn>
-                  <Btn x={74} y={y - 16} w={30} h={32} label={locked ? "Unlock the Video Clips lane" : "Lock the Video Clips lane"} pressed={locked} onClick={() => setLocked((l) => !l)}>
+                  <Btn x={74} y={y - 16} w={30} h={32} label={locked ? dict.body.studio.unlockLane : dict.body.studio.lockLane} pressed={locked} onClick={() => setLocked((l) => !l)}>
                     <Ic o={[74, y - 16]} x={89} y={y} k="lock" size={24} color={locked ? "#f5b82e" : "#cfe0f5"} />
                   </Btn>
                 </>
@@ -417,7 +418,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                 ) : <span title={i === 1 ? `${name}: click + on a cut to add a transition; the render draws it` : name}><Ic x={52} y={y} k="eye" size={26} color={i === 1 ? "#cfe0f5" : "#6a7f9c"} /></span>;
               })()}
               <button type="button" data-lane-solo={i} aria-pressed={solo === i} onClick={() => setSolo(solo === i ? null : i)}
-                title={solo === i ? "Show every lane again" : `Solo: show the ${name} lane alone (the others dimmed)`} className="absolute"
+                title={solo === i ? dict.body.studio.showEveryLane : `Solo: show the ${name} lane alone (the others dimmed)`} className="absolute"
                 style={{ left: u(124), top: u(y - 14 - 101), height: u(28), maxWidth: u(162), padding: `0 ${u(4)}`, border: 0, borderRadius: u(4), cursor: "pointer", fontFamily: "inherit",
                   fontSize: u(18), color: solo === i ? "#06122a" : "#e3eefb", background: solo === i ? "#f5d02e" : "transparent", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</button>
               <B x={289} y={y - 16} w={32} h={32} style={{ background: "#0a2447", borderRadius: u(6) }} />
@@ -448,8 +449,8 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                   const w = t ? Math.max(70, (t.duration_ms * 1000) * scale) : 34;
                   return (
                     <button key={p.clip.id} type="button" data-transition={p.clip.id} data-kind={t?.kind ?? "NONE"} aria-pressed={menuCut === p.clip.id}
-                      aria-label={t ? `${kindName(t.kind)} into clip ${p.index + 1}, ${(t.duration_ms / 1000).toFixed(1)} s: change` : `Add a transition into clip ${p.index + 1}`}
-                      title={t ? `${kindName(t.kind)} · ${(t.duration_ms / 1000).toFixed(1)} s, drawn over the start of clip ${p.index + 1}` : `Cut into clip ${p.index + 1}: add a transition`}
+                      aria-label={t ? dict.body.studio.transitionChangeAria.replace("{a}", kindName(t.kind)).replace("{b}", String(p.index + 1)).replace("{c}", (t.duration_ms / 1000).toFixed(1)) : dict.body.studio.addTransitionIntoClip.replace("{a}", String(p.index + 1))}
+                      title={t ? dict.body.studio.transitionDrawnOver.replace("{a}", kindName(t.kind)).replace("{b}", (t.duration_ms / 1000).toFixed(1)).replace("{c}", String(p.index + 1)) : dict.body.studio.cutIntoClip.replace("{a}", String(p.index + 1))}
                       onClick={(e) => { e.stopPropagation(); setMenuCut((c) => (c === p.clip.id ? null : p.clip.id)); }}
                       style={{ position: "absolute", left: u(t ? left : left - w / 2), width: u(w), top: u(4), bottom: u(4), padding: `0 ${u(6)}`, borderRadius: u(5), cursor: "pointer",
                         background: t ? "#7a3a9a" : "#0d2a50", border: `${u(1.5)} solid ${t ? "#d9a6ff" : "#2d6cc0"}`, color: "#fff", fontSize: u(14), lineHeight: 1,
@@ -471,8 +472,8 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                   return (
                     <button key={p.clip.id} type="button" data-clip={p.clip.id} draggable={edit && !trimDrag} aria-pressed={sel}
                       data-rendered={rendered?.clip(p.clip.id) ?? "CHANGED"}
-                      title={rendered?.clip(p.clip.id) === "RENDERED" ? "In the last rendered file, unchanged" : "Not yet rendered as it is now: the preview is approximate until Export"}
-                      aria-label={`Clip ${p.index + 1}: ${p.clip.label ?? "clip"}, ${(p.dur / 1e6).toFixed(1)} s, ${rendered?.clip(p.clip.id) === "RENDERED" ? "rendered" : "not rendered as it is"}`}
+                      title={rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.lastRenderedUnchanged : dict.body.studio.notYetRenderedApprox}
+                      aria-label={`${dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))}: ${p.clip.label ?? dict.body.studio.clipWord}, ${(p.dur / 1e6).toFixed(1)} s, ${rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.renderedWord : dict.body.studio.notRenderedAsIs}`}
                       onPointerDown={slipDown(p)}
                       onDragStart={(e) => { if (trimming.current || e.altKey) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-otsi-clip", p.clip.id); setDragging(p.clip.id); }} onDragEnd={() => setDragging(null)}
                       onClick={() => { if (trimming.current) return; r?.setSelectedClip(p.clip.id); st.setPreview(null); st.setPlayhead(p.start); }}
@@ -481,16 +482,16 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                         color: "#fff", fontSize: u(15), textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: dragging === p.clip.id ? 0.5 : 1 }}>
                       <i aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: u(3),
                         background: rendered?.clip(p.clip.id) === "RENDERED" ? "#3ecf7a" : "#ffb86b" }} />
-                      {sd ? `Slip ${sd.d >= 0 ? "+" : "−"}${(Math.abs(sd.d) / 1e6).toFixed(2)} s · ${tc(p.clip.in_pts_us + sd.d)} – ${tc(p.clip.out_pts_us + sd.d)}`
-                        : td ? `${td.edge === "in" ? "In" : "Out"} ${td.d >= 0 ? "+" : "−"}${(Math.abs(td.d) / 1e6).toFixed(1)} s · ${(ghost / 1e6).toFixed(1)}s`
-                        : <>{p.clip.effect.kind !== "NONE" && <b data-clip-effect={p.clip.effect.kind} title={effectActive(p.clip) ? effectName(p.clip.effect) : `${effectName(p.clip.effect)} (its moment is outside the clip)`}
+                      {sd ? `${dict.body.studio.slipLabel} ${sd.d >= 0 ? "+" : "−"}${(Math.abs(sd.d) / 1e6).toFixed(2)} s · ${tc(p.clip.in_pts_us + sd.d)} – ${tc(p.clip.out_pts_us + sd.d)}`
+                        : td ? `${td.edge === "in" ? dict.body.studio.trimEdgeIn : dict.body.studio.trimEdgeOut} ${td.d >= 0 ? "+" : "−"}${(Math.abs(td.d) / 1e6).toFixed(1)} s · ${(ghost / 1e6).toFixed(1)}s`
+                        : <>{p.clip.effect.kind !== "NONE" && <b data-clip-effect={p.clip.effect.kind} title={effectActive(p.clip) ? effectName(p.clip.effect, dict) : dict.body.studio.effectMomentOutside.replace("{a}", effectName(p.clip.effect, dict))}
                             style={{ marginRight: u(6), padding: `0 ${u(4)}`, borderRadius: u(3), background: effectActive(p.clip) ? "#f5b82e" : "#556", color: "#06122a", fontSize: u(12) }}>
                             {p.clip.effect.kind === "SLOW" ? `${p.clip.effect.speed}x` : p.clip.effect.kind === "FREEZE" ? "FRZ" : "RAMP"}</b>}
-                          {p.clip.label ?? `Clip ${p.index + 1}`} · {(p.dur / 1e6).toFixed(1)}s
-                          {h > 60 && <span data-clip-source="" style={{ display: "block", fontSize: u(13), color: "#cfe0f5", marginTop: u(4) }}>{`${tc(p.clip.in_pts_us)} – ${tc(p.clip.out_pts_us)} · Alt+drag to slip`}</span>}</>}
+                          {p.clip.label ?? dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))} · {(p.dur / 1e6).toFixed(1)}s
+                          {h > 60 && <span data-clip-source="" style={{ display: "block", fontSize: u(13), color: "#cfe0f5", marginTop: u(4) }}>{`${tc(p.clip.in_pts_us)} – ${tc(p.clip.out_pts_us)} · ${dict.body.studio.altDragToSlip}`}</span>}</>}
                       {(["in", "out"] as const).map((edge) => (
                         <span key={edge} data-trim-edge={edge} aria-hidden onPointerDown={edgeDown(p, edge)}
-                          title={edge === "in" ? "Drag to trim the start (Alt+[ trims it to the playhead)" : "Drag to trim the end (Alt+] trims it to the playhead)"}
+                          title={edge === "in" ? dict.body.studio.dragTrimStart : dict.body.studio.dragTrimEnd}
                           style={{ position: "absolute", top: 0, bottom: 0, [edge === "in" ? "left" : "right"]: 0, width: u(10), cursor: edit ? "ew-resize" : "not-allowed",
                             background: td?.edge === edge ? "rgba(245,184,46,.9)" : "rgba(255,255,255,.18)", zIndex: 1 }} />
                       ))}
@@ -505,38 +506,38 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                 const x = Math.min(Math.max(O, O + (p.start - start) * scale - 60), O + W - 520);
                 const max = Math.min(...[1000], Math.floor(p.dur / 2000));
                 const pick = (k: TransitionKind | null, ms: number) => {
-                  if (!canSet) return ui.say(r?.canEdit ? "Saving the previous change…" : "Your role can view this reel but not edit it");
+                  if (!canSet) return ui.say(r?.canEdit ? dict.body.studio.savingPrevChange : dict.body.studio.roleViewReel);
                   st.setTransition(menuCut, k, ms); setMenuCut(null);
                 };
                 const chip = (on: boolean) => ({ padding: `${u(5)} ${u(12)}`, borderRadius: u(6), border: `${u(1.5)} solid ${on ? "#d9a6ff" : "#1d4f8a"}`,
                   background: on ? "#5a2a7a" : "#0a2447", color: "#fff", fontSize: u(16), cursor: canSet ? "pointer" : "not-allowed", fontFamily: "inherit", opacity: canSet ? 1 : 0.5 });
                 const len = t?.duration_ms ?? TRANSITION_DEFAULT_MS;
                 return (
-                  <div role="dialog" aria-label={`Transition into clip ${p.index + 1}`} data-transition-menu={menuCut} className="absolute"
+                  <div role="dialog" aria-label={dict.body.studio.transitionIntoClip.replace("{a}", String(p.index + 1))} data-transition-menu={menuCut} className="absolute"
                     style={{ left: u(x), top: u(geo[1]!.y + geo[1]!.h / 2 + 4 - 101), width: u(520), zIndex: 6, padding: u(12), boxSizing: "border-box", borderRadius: u(10),
                       background: "#06122a", border: `${u(1.5)} solid #2d6cc0`, boxShadow: "0 8px 24px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", gap: u(10) }}>
-                    <span style={{ fontSize: u(16), color: "#cfe0f5" }}>Into clip {p.index + 1}: drawn over its first moments; the reel keeps its length and sound</span>
+                    <span style={{ fontSize: u(16), color: "#cfe0f5" }}>{dict.body.studio.intoClipDrawn.replace("{a}", String(p.index + 1))}</span>
                     <span style={{ display: "flex", gap: u(8), flexWrap: "wrap" }}>
-                      <button type="button" data-pick="NONE" aria-pressed={!t} onClick={() => pick(null, len)} style={chip(!t)}>None (cut)</button>
+                      <button type="button" data-pick="NONE" aria-pressed={!t} onClick={() => pick(null, len)} style={chip(!t)}>{dict.body.studio.noneCut}</button>
                       {KINDS.map(([k, name]) => (
                         <button key={k} type="button" data-pick={k} aria-pressed={t?.kind === k} disabled={max < 200} onClick={() => pick(k, Math.min(len, max))} style={chip(t?.kind === k)}>{name}</button>
                       ))}
                     </span>
                     {t && (
-                      <span style={{ display: "flex", gap: u(8), alignItems: "center", fontSize: u(16), color: "#cfe0f5" }}>Length
+                      <span style={{ display: "flex", gap: u(8), alignItems: "center", fontSize: u(16), color: "#cfe0f5" }}>{dict.body.studio.lengthLabel}
                         {LENGTHS.filter((ms) => ms <= max).map((ms) => (
                           <button key={ms} type="button" data-length={ms} aria-pressed={t.duration_ms === ms} onClick={() => pick(t.kind, ms)} style={chip(t.duration_ms === ms)}>{(ms / 1000).toFixed(1)} s</button>
                         ))}
                       </span>
                     )}
-                    {max < 200 && <span style={{ fontSize: u(15), color: "#ffb86b" }}>This clip is too short for a transition (it may take at most half of it).</span>}
-                    <button type="button" onClick={() => setMenuCut(null)} style={{ ...chip(false), alignSelf: "flex-end" }}>Close</button>
+                    {max < 200 && <span style={{ fontSize: u(15), color: "#ffb86b" }}>{dict.body.studio.clipTooShortTransition}</span>}
+                    <button type="button" onClick={() => setMenuCut(null)} style={{ ...chip(false), alignSelf: "flex-end" }}>{dict.common.close}</button>
                   </div>
                 );
               })()}
-              {i === 0 && st.items.length === 0 && <T x={1407} y={y} size={19} color="#8ea3bf" align="center">{st.reel ? "Drag clips from the Media Bin to start editing" : "Choose a reel to start editing"}</T>}
+              {i === 0 && st.items.length === 0 && <T x={1407} y={y} size={19} color="#8ea3bf" align="center">{st.reel ? dict.body.studio.dragClipsStart : dict.body.studio.chooseReelStart}</T>}
               {i === 0 && (
-                <Btn x={2477} y={1005} w={49} h={44} label="Fit the reel to the timeline" style={IN} onClick={() => setZoom(1)}>
+                <Btn x={2477} y={1005} w={49} h={44} label={dict.body.studio.fitReelTimeline} style={IN} onClick={() => setZoom(1)}>
                   <Ic o={[2477, 1005]} x={2501} y={1027} k="fit" size={24} color="#cfe0f5" />
                 </Btn>
               )}

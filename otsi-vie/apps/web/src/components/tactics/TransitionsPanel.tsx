@@ -10,6 +10,7 @@ import type { TransitionsAnalysis } from "@otsi-vie/contracts";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { Box, Head } from "./kit";
+import { useLocale } from "@/lib/i18n";
 
 export function TransitionsPanel({
   videoId,
@@ -20,6 +21,7 @@ export function TransitionsPanel({
   focus: boolean;
   onSeek?: (us: number) => void;
 }) {
+  const { t: dict } = useLocale();
   const [data, setData] = useState<TransitionsAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -59,8 +61,8 @@ export function TransitionsPanel({
       <Head
         x={1460}
         y={1193}
-        title="Transitions (Inferred)"
-        info="Ball won or lost linked to the subsequent action within 10 seconds. Labelled Inferred. Excludes rejected event candidates."
+        title={dict.body.tactics.transitionsInferred}
+        info={dict.body.tactics.transitionsDesc}
       />
 
       {/* Inferred badge */}
@@ -77,39 +79,36 @@ export function TransitionsPanel({
           color: "#33a8ff",
           border: `${u(1)} solid rgba(51, 168, 255, 0.4)`,
         }}
-      >
-        Inferred
+      >{dict.body.tactics.inferredLabel}
       </span>
 
       {!videoId ? (
-        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">
-          No video selected.
+        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">{dict.body.tactics.noVideoSelected}
         </T>
       ) : loading ? (
-        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">
-          Computing transitions…
+        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">{dict.body.tactics.computingTransitions}
         </T>
       ) : !data || data.state === "NONE" || teams.length === 0 ? (
         <T x={1996} y={1290} size={19} color="#8ea3bf" align="center" style={{ maxWidth: u(600) }}>
-          Transitions appear once the ball is followed and match events are detected (AI Tools → Ball).
+          {dict.body.tactics.transitionsAppear}
         </T>
       ) : (
         <div style={{ position: "absolute", left: u(1480), top: u(1230 - 101), width: u(1032), height: u(175), display: "flex", gap: u(16) }}>
           {/* Team KPI comparison columns */}
           <div style={{ width: u(420), display: "flex", flexDirection: "column", gap: u(8), borderRight: `${u(1)} solid #142f55`, paddingRight: u(16) }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", fontSize: u(14), color: "#8ea3bf", fontWeight: 600 }}>
-              <span>Metric</span>
-              <span style={{ textAlign: "right", color: "#7ab6ff" }}>{teams[0]?.name ?? `Kit ${teams[0]?.kit_group ?? 0}`}</span>
-              <span style={{ textAlign: "right", color: "#e8d9a0" }}>{teams[1]?.name ?? `Kit ${teams[1]?.kit_group ?? 1}`}</span>
+              <span>{dict.body.tactics.metricLabel}</span>
+              <span style={{ textAlign: "right", color: "#7ab6ff" }}>{teams[0]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[0]?.kit_group ?? 0))}</span>
+              <span style={{ textAlign: "right", color: "#e8d9a0" }}>{teams[1]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[1]?.kit_group ?? 1))}</span>
             </div>
             {[
-              ["Turnovers Won", teams[0]?.attacking_transitions ?? 0, teams[1]?.attacking_transitions ?? 0],
-              ["Shots from Regain", teams[0]?.shots_from_transitions ?? 0, teams[1]?.shots_from_transitions ?? 0],
-              ["Possession Retained", teams[0]?.transitions_retained ?? 0, teams[1]?.transitions_retained ?? 0],
-              ["Turnovers Lost (<5s)", teams[0]?.transitions_lost ?? 0, teams[1]?.transitions_lost ?? 0],
-              ["Counter-Press (<5s)", teams[0]?.counter_press_regains ?? 0, teams[1]?.counter_press_regains ?? 0],
+              [dict.body.tactics.turnoversWon, teams[0]?.attacking_transitions ?? 0, teams[1]?.attacking_transitions ?? 0],
+              [dict.body.tactics.shotsFromRegain, teams[0]?.shots_from_transitions ?? 0, teams[1]?.shots_from_transitions ?? 0],
+              [dict.body.tactics.possessionRetained, teams[0]?.transitions_retained ?? 0, teams[1]?.transitions_retained ?? 0],
+              [dict.body.tactics.turnoversLost5s, teams[0]?.transitions_lost ?? 0, teams[1]?.transitions_lost ?? 0],
+              [dict.body.tactics.counterPress5s, teams[0]?.counter_press_regains ?? 0, teams[1]?.counter_press_regains ?? 0],
               [
-                "Avg Time to Action",
+                dict.body.tactics.avgTimeToAction,
                 teams[0]?.avg_duration_to_action_s != null ? `${teams[0]?.avg_duration_to_action_s}s` : "—",
                 teams[1]?.avg_duration_to_action_s != null ? `${teams[1]?.avg_duration_to_action_s}s` : "—",
               ],
@@ -125,10 +124,10 @@ export function TransitionsPanel({
           {/* Chronological transitions event stream */}
           <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: u(6) }}>
             <div style={{ fontSize: u(13), color: "#8ea3bf", fontWeight: 600, marginBottom: u(2) }}>
-              Recent Transitions ({data.items.length} detected)
+              {dict.body.tactics.recentTransitions.replace("{a}", String(data.items.length))}
             </div>
             {data.items.length === 0 ? (
-              <div style={{ fontSize: u(14), color: "#8ea3bf", padding: u(12) }}>No turnover transitions found in match time.</div>
+              <div style={{ fontSize: u(14), color: "#8ea3bf", padding: u(12) }}>{dict.body.tactics.noTurnovers}</div>
             ) : (
               data.items.slice(0, 8).map((it) => (
                 <div

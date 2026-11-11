@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { api } from "@/lib/api";
 import { renderedState } from "./spotlight";
+import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
 
 /** start = where the clip itself starts; gap = the spacer before it (B.19, ADR-094), from start - gap */
 export interface Placed { clip: ReelClip; start: number; dur: number; index: number; gap: number }
@@ -59,13 +60,14 @@ export const LAYOUTS: Record<Layout, { label: string; insp: number; bin: number;
 const LAYOUT_KEY = "otsi-studio-layout";
 /** E5: where a reviewer's comment falls on this timeline. Only when it was left on the reel's last good render and the edit still matches
  *  that file (else the times no longer line up): reel time = time in the file minus the intro and match card before the first clip. */
-export function reviewTime(x: ReviewComment, reel: Pick<Reel, "last_good_render"> & Parameters<typeof renderedState>[0], total: number): { at_us: number | null; why: string | null } {
+export function reviewTime(x: ReviewComment, reel: Pick<Reel, "last_good_render"> & Parameters<typeof renderedState>[0], total: number, d?: Dictionary): { at_us: number | null; why: string | null } {
+  const dict = d ?? getDictionary("en");
   if (x.at_s === null) return { at_us: null, why: null };
-  if (x.lead_s === null) return { at_us: null, why: "Left on a file made before review times were kept" };
-  if (reel.last_good_render?.id !== x.render_id) return { at_us: null, why: "Left on an older render of this reel" };
-  if (renderedState(reel).reel.state !== "RENDERED") return { at_us: null, why: "The reel changed since that render: times no longer line up" };
+  if (x.lead_s === null) return { at_us: null, why: dict.body.studio.reviewBeforeTimes };
+  if (reel.last_good_render?.id !== x.render_id) return { at_us: null, why: dict.body.studio.reviewOlderRender };
+  if (renderedState(reel, dict).reel.state !== "RENDERED") return { at_us: null, why: dict.body.studio.reviewReelChanged };
   const t = Math.round((x.at_s - x.lead_s) * 1e6);
-  return t < 0 || t > total ? { at_us: null, why: "During the intro, match card or end screen" } : { at_us: t, why: null };
+  return t < 0 || t > total ? { at_us: null, why: dict.body.studio.reviewDuringIntro } : { at_us: t, why: null };
 }
 /** reel milliseconds into a clip: where the playhead is inside it (null when it is not on that clip) */
 export function clipMs(items: Placed[], playhead: number, clipId: string): number | null {
@@ -73,7 +75,11 @@ export function clipMs(items: Placed[], playhead: number, clipId: string): numbe
   return p && playhead >= p.start && playhead <= p.start + p.dur ? Math.round((playhead - p.start) / 1000) : null;
 }
 
+/** transition-kind code -> translated label (used in history labels; the code itself is never shown) */
+export const transitionKindName = (k: TransitionKind, d: Dictionary) => k === "FADE" ? d.body.studio.fadeLabel : k === "DISSOLVE" ? d.body.studio.dissolveLabel : k === "ZOOM" ? d.body.studio.zoomLabel2 : d.body.studio.spinLabel;
+
 export function useStudio(r: ReelState | null) {
+  const { t: dict } = useLocale();
   const reel = r?.reel ?? null;
   const { items, total } = useMemo(() => place(reel), [reel]);
   const [playhead, setPlayhead] = useState(0);
@@ -136,20 +142,20 @@ export function useStudio(r: ReelState | null) {
     // the previewed moment with I / O marks: add the marked part; a person chose that range, so it is MANUAL
     const marked = preview && preview.in_pts_us === m0.in_pts_us && preview.out_pts_us === m0.out_pts_us ? markedRange(m0, marks) : null;
     const m = marked ? { ...m0, ...marked } : m0, origin = marked ? "MANUAL" as const : origin0;
-    return exec("Add clip", async () => {
+    return exec(dict.body.studio.addClip, async () => {
       let added = await api<Reel>(`${base}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin, label: m.label } });
       const id = () => newest(added, m.in_pts_us)?.id;
       return {
         undo: async () => { const c = id(); if (c) await api(`${base}/clips/${c}`, { method: "DELETE" }); },
         redo: async () => { added = await api<Reel>(`${base}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin, label: m.label } }); },
       };
-    }, "Clip added");
+    }, dict.body.studio.clipAdded);
   };
 
   const remove = (c: ReelClip) => {
     const before = items.map((p) => p.clip.id);
     let cur = c.id;                                                     // undo re-creates the clip under a new id
-    exec("Delete clip", async () => {
+    exec(dict.body.studio.deleteClip, async () => {
       await api(`${base}/clips/${cur}`, { method: "DELETE" });
       return {
         undo: async () => {
@@ -163,20 +169,20 @@ export function useStudio(r: ReelState | null) {
         },
         redo: () => api(`${base}/clips/${cur}`, { method: "DELETE" }),
       };
-    }, "Clip removed");
+    }, dict.body.studio.clipRemoved);
   };
 
-  const trim = (c: ReelClip, in_pts_us: number, out_pts_us: number) => exec("Trim clip", async () => {
+  const trim = (c: ReelClip, in_pts_us: number, out_pts_us: number) => exec(dict.body.studio.trimClipLabel, async () => {
     await api(`${base}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us, out_pts_us } });
     return { undo: () => api(`${base}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us: c.in_pts_us, out_pts_us: c.out_pts_us } }) };
-  }, "Clip trimmed");
+  }, dict.body.studio.clipTrimmed);
 
   /** split the clip under the playhead into two clips at the playhead */
   const split = () => {
     const at = locate(items, playhead);
     if (!at || at.src <= at.p.clip.in_pts_us + 100_000 || at.src >= at.p.clip.out_pts_us - 100_000) return false;
     const c = at.p.clip, cutAt = Math.round(at.src);
-    exec("Split clip", async () => {
+    exec(dict.body.studio.splitClip, async () => {
       await api(`${base}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us: c.in_pts_us, out_pts_us: cutAt } });
       const after = await api<Reel>(`${base}/clips`, { method: "POST", json: { in_pts_us: cutAt, out_pts_us: c.out_pts_us, origin: c.origin, label: c.label } });
       const tail = newest(after, cutAt);
@@ -189,16 +195,16 @@ export function useStudio(r: ReelState | null) {
           await api(`${base}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us: c.in_pts_us, out_pts_us: c.out_pts_us } });
         },
       };
-    }, "Clip split");
+    }, dict.body.studio.clipSplit);
     return true;
   };
 
   const reorder = (ids: string[]) => {
     const before = items.map((p) => p.clip.id);
-    exec("Reorder", async () => {
+    exec(dict.body.studio.reorderLabel, async () => {
       await api(`${base}/clips/order`, { method: "POST", json: { clip_ids: ids } });
       return { undo: () => api(`${base}/clips/order`, { method: "POST", json: { clip_ids: before } }) };
-    }, "Order saved");
+    }, dict.body.studio.orderSaved);
   };
 
   /** ADR-055: set or remove the transition into a clip (PATCH /v1/reels/:id/transitions); saved at once, undoable */
@@ -206,7 +212,7 @@ export function useStudio(r: ReelState | null) {
     if (!reel) return;
     const was = reel.transitions.find((t) => t.clip_id === clipId) ?? null;
     const put = (k: TransitionKind | null, ms: number) => api<Reel>(`${base}/transitions`, { method: "PATCH", json: { clip_id: clipId, kind: k, duration_ms: ms } });
-    const label = kind ? `${kind[0]}${kind.slice(1).toLowerCase()} transition, ${(durationMs / 1000).toFixed(1)} s` : "Transition removed";
+    const label = kind ? dict.body.studio.transitionKindLabel.replace("{a}", transitionKindName(kind, dict)).replace("{b}", (durationMs / 1000).toFixed(1)) : dict.body.studio.transitionRemoved;
     exec(label, async () => {
       latest.current = await put(kind, durationMs);
       return { undo: () => put(was?.kind ?? null, was?.duration_ms ?? TRANSITION_DEFAULT_MS), redo: () => put(kind, durationMs) };
@@ -224,7 +230,7 @@ export function useStudio(r: ReelState | null) {
       if (into) await api(`/v1/reel-templates/${into.id}`, { method: "PUT", json: { reel_id: reel.id } });
       else await api("/v1/reel-templates", { method: "POST", json: { name, reel_id: reel.id, with_structure: withStructure } });
       await loadTemplates();
-    }, into ? `This reel's ${into.structure ? "look and clip slots" : "look"} saved into "${into.name}"` : `Template "${name}" saved${withStructure ? ` with ${reel.clips.length} clip slots` : ""}`);
+    }, into ? dict.body.studio.reelLookSavedInto.replace("{a}", into.structure ? dict.body.studio.lookClipSlots : dict.body.studio.lookWord).replace("{b}", into.name) : dict.body.studio.templateSaved.replace("{a}", name).replace("{b}", withStructure ? dict.body.studio.templateSavedWithSlots.replace("{a}", String(reel.clips.length)) : ""));
   };
   /** E4: the template's look and its slots filled with this reel's player's moments; the clips are replaced (asked first on the page),
    *  B.1 (ADR-081): the look and the filled clips are two entries of the reel's history, so Undo takes them back */
@@ -233,25 +239,25 @@ export function useStudio(r: ReelState | null) {
     r.run(async () => {
       const res = await api<{ reel: Reel; left_out: string[] }>(`${base}/apply-template`, { method: "POST", json: { template_id: t.id, version: latest.current!.version, clips: "FILL" } });
       latest.current = res.reel;
-      if (res.left_out.length) say(`"${t.name}" filled; left out: ${res.left_out.join("; ")}`);
-    }, `"${t.name}" filled with his moments: ${t.structure?.slots.length ?? 0} slots`);
+      if (res.left_out.length) say(dict.body.studio.templateFilled.replace("{a}", t.name).replace("{b}", res.left_out.join("; ")));
+    }, dict.body.studio.templateFilledMoments.replace("{a}", t.name).replace("{b}", String(t.structure?.slots.length ?? 0)));
   };
   const deleteTemplate = (t: ReelTemplate) => {
     if (!r) return;
-    r.run(async () => { await api(`/v1/reel-templates/${t.id}`, { method: "DELETE" }); await loadTemplates(); }, `Template "${t.name}" deleted`);
+    r.run(async () => { await api(`/v1/reel-templates/${t.id}`, { method: "DELETE" }); await loadTemplates(); }, dict.body.studio.templateDeleted.replace("{a}", t.name));
   };
   const applyTemplate = (t: ReelTemplate, say: (m: string) => void) => {
     if (!reel) return;
     const before = { aspect: reel.aspect, settings: reel.settings };
-    exec(`Template ${t.name}`, async () => {
+    exec(dict.body.studio.templateLabel.replace("{a}", t.name), async () => {
       const res = await api<{ reel: Reel; left_out: string[] }>(`${base}/apply-template`, { method: "POST", json: { template_id: t.id, version: latest.current!.version } });
       latest.current = res.reel;
-      if (res.left_out.length) say(`"${t.name}" applied; left out: ${res.left_out.join(", ")}`);
+      if (res.left_out.length) say(dict.body.studio.templateApplied.replace("{a}", t.name).replace("{b}", res.left_out.join(", ")));
       return {
         undo: () => api<Reel>(`${base}`, { method: "PATCH", json: { version: latest.current!.version, aspect: before.aspect, settings: before.settings } }),
         redo: () => api(`${base}/apply-template`, { method: "POST", json: { template_id: t.id, version: latest.current!.version } }),
       };
-    }, `"${t.name}" applied to this reel`);
+    }, dict.body.studio.templateAppliedToReel.replace("{a}", t.name));
   };
 
   /** ADR-109 (v3 Phase C.10): organization templates for Spotlight, Style, and Branding */
@@ -270,24 +276,24 @@ export function useStudio(r: ReelState | null) {
         json: { name, kind, description, reel_id: reel.id },
       });
       await loadOrgTemplates();
-    }, `Template "${name}" saved (${kind})`);
+    }, dict.body.studio.templateSavedKind.replace("{a}", name).replace("{b}", kind));
   };
 
   const applyOrgTemplate = (t: OrgTemplate, applyKinds?: OrgTemplateKind[], say?: (m: string) => void) => {
     if (!reel) return;
     const before = { settings: reel.settings };
-    return exec(`Template ${t.name}`, async () => {
+    return exec(dict.body.studio.templateLabel.replace("{a}", t.name), async () => {
       const res = await api<{ reel: Reel; applied_kinds: OrgTemplateKind[] }>(`${base}/apply-org-template`, {
         method: "POST",
         json: { template_id: t.id, version: latest.current!.version, apply_kinds: applyKinds },
       });
       latest.current = res.reel;
-      say?.(`Template "${t.name}" applied: ${res.applied_kinds.join(", ")}`);
+      say?.(dict.body.studio.templateAppliedKinds.replace("{a}", t.name).replace("{b}", res.applied_kinds.join(", ")));
       return {
         undo: () => api<Reel>(`${base}`, { method: "PATCH", json: { version: latest.current!.version, settings: before.settings } }),
         redo: () => api(`${base}/apply-org-template`, { method: "POST", json: { template_id: t.id, version: latest.current!.version, apply_kinds: applyKinds } }),
       };
-    }, `"${t.name}" applied to this reel`);
+    }, dict.body.studio.templateAppliedToReel.replace("{a}", t.name));
   };
 
   const deleteOrgTemplate = (t: OrgTemplate, say?: (m: string) => void) => {
@@ -295,17 +301,17 @@ export function useStudio(r: ReelState | null) {
     return r.run(async () => {
       await api(`/v1/templates/${t.id}`, { method: "DELETE" });
       await loadOrgTemplates();
-      say?.(`Template "${t.name}" deleted`);
-    }, `Template "${t.name}" deleted`);
+      say?.(dict.body.studio.templateDeleted.replace("{a}", t.name));
+    }, dict.body.studio.templateDeleted.replace("{a}", t.name));
   };
 
   /** B.21 (ADR-096): one transition on every cut (none after a gap; a short clip what it can take), one change; Undo reverts it */
   const setAllTransitions = (kind: TransitionKind | null, ms: number = TRANSITION_DEFAULT_MS) =>
-    exec("All transitions", async () => { latest.current = await api<Reel>(`${base}/transitions/all`, { method: "POST", json: { kind, duration_ms: ms } }); },
-      kind ? `${kind[0]}${kind.slice(1).toLowerCase()} on every cut` : "Every transition removed");
+    exec(dict.body.studio.allTransitions, async () => { latest.current = await api<Reel>(`${base}/transitions/all`, { method: "POST", json: { kind, duration_ms: ms } }); },
+      kind ? dict.body.studio.transitionOnEveryCut.replace("{a}", transitionKindName(kind, dict)) : dict.body.studio.everyTransitionRemoved);
   /** B.21: copies of a saved block's clips before position `at` (null = at the end), one change */
   const insertBlock = (blockId: string, at: number | null, name: string) =>
-    exec("Put in block", async () => { latest.current = await api<Reel>(`${base}/blocks/${blockId}/insert`, { method: "POST", json: { at } }); }, `Block "${name}" put in`);
+    exec(dict.body.studio.putInBlock, async () => { latest.current = await api<Reel>(`${base}/blocks/${blockId}/insert`, { method: "POST", json: { at } }); }, dict.body.studio.blockPutIn.replace("{a}", name));
   /** B.21: delete a marker / note (its author, or an owner / admin: the API decides) */
   const removeNote = async (id: string) => { await api(`${base}/notes/${id}`, { method: "DELETE" }); await loadNotes(); };
 
@@ -336,10 +342,10 @@ export function useStudio(r: ReelState | null) {
     if (!reel || reel.aspect === a) return;
     const was = reel.aspect;
     const put = (x: Reel["aspect"]) => api<Reel>(`${base}`, { method: "PATCH", json: { version: latest.current!.version, aspect: x } });
-    exec(`Frame ${a}`, async () => {
+    exec(dict.body.studio.frameLabel.replace("{a}", a), async () => {
       latest.current = await put(a);
       return { undo: () => put(was), redo: () => put(a) };
-    }, `Frame ${a}`);
+    }, dict.body.studio.frameLabel.replace("{a}", a));
   };
 
   const setSettings = (patch: Partial<SpotlightSettings>, label: string) => {

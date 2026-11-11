@@ -37,7 +37,7 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
           {reels === undefined && <p className="text-muted">{dict.common.loading}</p>}
           {reels === null && <p role="alert" className="text-danger">{dict.body.studio.reelsLoadFailed}</p>}
           {reels?.length === 0 && <p className="text-muted">{dict.body.studio.noReelsYet} <a className="text-primary underline" href="/reels">{dict.body.studio.makeInReelBuilder}</a>.</p>}
-          <ul className="space-y-1" aria-label="Reels">
+          <ul className="space-y-1" aria-label={dict.pages.reels.title}>
             {reels?.map((r) => (
               <li key={r.id}>
                 <button type="button" onClick={() => { onOpenChange(false); router.replace(`/studio?reel=${r.id}`); }}

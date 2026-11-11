@@ -11,17 +11,17 @@ import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { Box, Head, NotMeasured, Pitch, Sel, type Opt } from "./kit";
 import { PHASES } from "./TacticsHeader";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
-const NEEDS = "Needs calibrated pitch positions and event detection.";
 
 const highlight = (on: boolean) => (on ? { outline: `${u(3)} solid #33a8ff`, outlineOffset: u(2), borderRadius: u(10) } : {});
 const Frame = ({ x, y, w, h, on }: { x: number; y: number; w: number; h: number; on: boolean }) =>
   on ? <B x={x} y={y} w={w} h={h} style={{ ...highlight(true), pointerEvents: "none" }} /> : null;
 
-const teamOpts = (m: Match | null): Opt<string>[] => [
-  ["none", "Both teams"],
+const teamOpts = (m: Match | null, d: Dictionary): Opt<string>[] => [
+  ["none", d.body.tactics.bothTeams],
   ...(m ? [m.home, m.away].filter((c): c is NonNullable<Match["home"]> => !!c).map((c): Opt<string> => [c.id, c.name])
-    : [["0", "Home team"], ["1", "Away team"]] as Opt<string>[]),
+    : [["0", d.body.workspace.homeTeam], ["1", d.body.workspace.awayTeam]] as Opt<string>[]),
 ];
 
 export function PressingPanel({
@@ -35,6 +35,8 @@ export function PressingPanel({
   match: Match | null;
   onSeek?: ((us: number) => void) | undefined;
 }) {
+  const { t: dict } = useLocale();
+  const NEEDS = dict.body.tactics.needsPitchEvents;
   const [data, setData] = useState<PressingAnalysis | null>(null);
   const [teamVal, setTeamVal] = useState<string>("none");
 
@@ -137,25 +139,25 @@ export function PressingPanel({
   const ppdaText = ppdaVal != null ? String(ppdaVal) : "—";
   const ppdaReason = (activeStats as { ppda_reason?: string | null } | null)?.ppda_reason
     ?? (data?.is_calibrated
-      ? "Not measured: requires minimum 10 opponent passes and 3 defensive actions in defensive 60%."
-      : "Not measured: requires calibrated pitch coordinates to delineate defensive 60% zone.");
+      ? dict.body.tactics.notMeasuredPpdaPasses
+      : dict.body.tactics.notMeasuredPpdaCoords);
 
   return (
-    <section id="p05-s07" aria-label="Pressing map" data-section="p05-s07">
+    <section id="p05-s07" aria-label={dict.body.tactics.pressingMapLower} data-section="p05-s07">
       <Box x={1830} y={810} w={702} h={340} />
       <Frame x={1830} y={810} w={702} h={340} on={focus} />
-      <Head x={1830} y={844} title="Pressing Map" info={`Where and how teams press. ${NEEDS}`} />
+      <Head x={1830} y={844} title={dict.body.tactics.pressingMap} info={`Where and how teams press. ${NEEDS}`} />
       <Sel
         x={2107}
         y={824}
         w={190}
         h={38}
-        label="Pressing team"
+        label={dict.body.tactics.pressingTeam}
         value={teamVal}
-        options={teamOpts(match)}
+        options={teamOpts(match, dict)}
         onChange={(v) => setTeamVal(v)}
       />
-      <Sel x={2322} y={824} w={192} h={38} label="Pressing phase" value="all" options={PHASES} />
+      <Sel x={2322} y={824} w={192} h={38} label={dict.body.tactics.pressingPhase} value="all" options={PHASES(dict)} />
       <Pitch x={1846} y={879} w={441} h={256} />
 
       {/* When pitch not calibrated, show overlay notice */}
@@ -170,9 +172,9 @@ export function PressingPanel({
             const isRegain = pt.regain;
             const color = isRegain ? "#19e6a0" : "#2b7bff";
             const shape = isRegain ? "◆" : "●";
-            const who = pt.presser_name ?? `Track ${pt.presser_track_id?.slice(-4) ?? ""}`;
-            const target = pt.pressed_name ?? `Track ${pt.pressed_track_id?.slice(-4) ?? ""}`;
-            const tip = `${who} pressed ${target}${isRegain ? " (Regained)" : ""}${pt.press_height_m ? ` · ${pt.press_height_m}m` : ""}`;
+            const who = pt.presser_name ?? dict.body.workspace.trackButton.replace("{a}", pt.presser_track_id?.slice(-4) ?? "");
+            const target = pt.pressed_name ?? dict.body.workspace.trackButton.replace("{a}", pt.pressed_track_id?.slice(-4) ?? "");
+            const tip = dict.body.tactics.pressedTip.replace("{a}", who).replace("{b}", target).replace("{c}", isRegain ? dict.body.tactics.regainedSuffix : "").replace("{d}", pt.press_height_m ? dict.body.tactics.heightSuffix.replace("{a}", String(pt.press_height_m)) : "");
 
             return (
               <button
@@ -202,9 +204,9 @@ export function PressingPanel({
 
       {/* Legend */}
       {([
-        ["Pressing Event", 888, "#2b7bff", "●"],
-        ["Recovery", 916, "#19e6a0", "◆"],
-        ["Forced Turnover", 945, "#ff3a3a", "▲"],
+        [dict.body.tactics.pressingEvent, 888, "#2b7bff", "●"],
+        [dict.body.tactics.recoveryLabel, 916, "#19e6a0", "◆"],
+        [dict.body.tactics.forcedTurnoverLabel, 945, "#ff3a3a", "▲"],
       ] as const).map(([l, y, c, g]) => (
         <div key={l}>
           <T x={2325} y={y} size={18} color={c}>{g}</T>
@@ -213,7 +215,7 @@ export function PressingPanel({
       ))}
 
       <T x={2315} y={980} size={18}>- - →</T>
-      <T x={2359} y={980} size={19} color="#cfdcf0">Pressing Direction</T>
+      <T x={2359} y={980} size={19} color="#cfdcf0">{dict.body.tactics.pressingDirection}</T>
 
       {/* Live Pressing Metrics */}
       <div data-testid="pressing-metrics">
@@ -222,13 +224,13 @@ export function PressingPanel({
           <T x={2504} y={1025} size={18} weight={700}>{ppdaText}</T>
         </div>
 
-        <T x={2315} y={1056} size={18} color="#cfdcf0">High Press Success</T>
+        <T x={2315} y={1056} size={18} color="#cfdcf0">{dict.body.tactics.highPressSuccess}</T>
         <T x={2504} y={1056} size={18} weight={700}>{highPressText}</T>
 
-        <T x={2315} y={1088} size={18} color="#cfdcf0">Final Third Regains</T>
+        <T x={2315} y={1088} size={18} color="#cfdcf0">{dict.body.tactics.finalThirdRegains}</T>
         <T x={2504} y={1088} size={18} weight={700}>{finalThirdText}</T>
 
-        <T x={2315} y={1119} size={18} color="#cfdcf0">Avg Press Height</T>
+        <T x={2315} y={1119} size={18} color="#cfdcf0">{dict.body.tactics.avgPressHeight}</T>
         <T x={2504} y={1119} size={18} weight={700}>{avgHeightText}</T>
       </div>
     </section>

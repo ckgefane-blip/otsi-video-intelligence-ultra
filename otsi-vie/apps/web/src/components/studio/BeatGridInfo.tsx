@@ -5,11 +5,23 @@
  * Calls GET /v1/brand-assets/:id/beat-grid and POST /v1/brand-assets/:id/beat-grid.
  * Shows the beat description (Detected; accuracy not measured) and allows requesting beat analysis.
  */
-import { BEAT_LIBRARY_NOTE, beatsUsable, describeBeatGrid, type BeatGrid, type BeatGridView } from "@otsi-vie/contracts";
+import { beatsUsable, type BeatGrid, type BeatGridView } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale, type Dictionary } from "@/lib/i18n";
+
+/** the beat description, translated at the render site: mirrors contracts describeBeatGrid branch for branch (contracts stays English) */
+const beatDesc = (g: BeatGrid | null, d: Dictionary): string => {
+  if (!g) return d.body.studio.beatNotAnalysed;
+  if (g.status === "QUEUED") return d.body.studio.beatWaiting;
+  if (g.status === "RUNNING") return d.body.studio.beatFinding;
+  if (g.status === "FAILED") return g.failure ?? d.body.studio.beatNotFound;
+  if (!beatsUsable(g)) return d.body.studio.beatNoSteady;
+  return d.body.studio.beatDetected.replace("{a}", String(Math.round(g.tempo_bpm ?? 0))).replace("{b}", String(g.beats_us.length));
+};
 
 export function useBeatGrid(musicId: string | null | undefined) {
+  const { t: dict } = useLocale();
   const [grid, setGrid] = useState<BeatGrid | null>(null);
   const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState(0);
@@ -41,24 +53,24 @@ export function useBeatGrid(musicId: string | null | undefined) {
     }
   };
 
-  return { grid, loading, findBeat, usable: beatsUsable(grid), desc: describeBeatGrid(grid) };
+  return { grid, loading, findBeat, usable: beatsUsable(grid), desc: beatDesc(grid, dict) };
 }
 
 export function BeatStatusRow({ musicId, canEdit }: { musicId: string; canEdit: boolean }) {
+  const { t: dict } = useLocale();
   const { grid, findBeat, desc } = useBeatGrid(musicId);
   const showBtn = canEdit && (!grid || grid.status === "FAILED");
   const busy = grid?.status === "QUEUED" || grid?.status === "RUNNING";
 
   return (
     <div className="flex items-center gap-2 text-xs" data-beat-status={grid?.status ?? "NONE"}>
-      <span className="text-[#cfe0f5]" title={BEAT_LIBRARY_NOTE}>Beat: {desc}</span>
+      <span className="text-[#cfe0f5]" title={dict.body.studio.beatLibraryNote}>{dict.body.studio.beatLabel.replace("{a}", desc)}</span>
       {showBtn && (
         <button type="button" data-find-beat={musicId} onClick={() => void findBeat()}
-          className="rounded border border-[#33a8ff]/60 bg-[#1e90ff]/20 px-2 py-0.5 text-xs text-[#cfe0f5] hover:bg-[#1e90ff]/30">
-          Find beat
+          className="rounded border border-[#33a8ff]/60 bg-[#1e90ff]/20 px-2 py-0.5 text-xs text-[#cfe0f5] hover:bg-[#1e90ff]/30">{dict.body.studio.findBeat}
         </button>
       )}
-      {busy && <span className="text-[#8ea3bf]">Analyzing…</span>}
+      {busy && <span className="text-[#8ea3bf]">{dict.body.studio.analyzing}</span>}
     </div>
   );
 }

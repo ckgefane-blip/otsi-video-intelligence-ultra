@@ -63,7 +63,7 @@ function EventCounts({ videoId, span, rangeLabel }: { videoId: string | null; sp
       {EVENT_KINDS.map((k) => (
         <Link key={k} href={`/videos/${videoId}/analyze`} data-kind={k}
           style={{ display: "flex", alignItems: "center", gap: u(10), height: u(38), borderBottom: `${u(1)} solid #12305a`, fontSize: u(20), color: "#d6e4f7" }}>
-          <span style={{ width: u(12), height: u(12), borderRadius: "50%", background: KIND[k].color, flex: "none" }} />
+          <span style={{ width: u(12), height: u(12), borderRadius: "50%", background: KIND(dict)[k].color, flex: "none" }} />
           <span style={{ flex: 1 }}>{k}</span>
           <span style={{ fontWeight: 700, color: marks![k].length ? "#fff" : "#8ea3bf" }}>{marks![k].length}</span>
         </Link>

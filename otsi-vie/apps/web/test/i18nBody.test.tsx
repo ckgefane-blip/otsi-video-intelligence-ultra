@@ -22,6 +22,20 @@ function Probe() {
   );
 }
 
+/** Group B probe: Analysis workspace / Tactical / Clip Studio body strings. */
+function ProbeB() {
+  const { t } = useLocale();
+  return (
+    <p>
+      {t.body.studio.splitTool} | {t.body.studio.rippleDelete} | {t.body.studio.speedSection} |{" "}
+      {t.body.studio.waveformLabel} | {t.body.studio.frameRow} | {t.body.studio.deleteBtn} |{" "}
+      {t.body.tactics.colourGroupN.replace("{a}", "2")} |{" "}
+      {t.body.studio.suggestedMomentsAdded.replace("{a}", "3")} |{" "}
+      {t.body.workspace.matchTitleVs.replace("{a}", "Home").replace("{b}", "Away")}
+    </p>
+  );
+}
+
 describe("page bodies through the provider (ADR-139 follow-up)", () => {
   it("a component reads body strings from the stored locale (Russian)", () => {
     localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
@@ -62,5 +76,25 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
     );
     expect(screen.getByText("НАДЁЖНЫЕ ПАРТНЁРЫ")).toBeDefined();
     expect(screen.getByText("Создано для клубов, академий и скаутов")).toBeDefined();
+  });
+
+  it("Group B strings read from the stored locale (Russian)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
+    render(
+      <LocaleProvider>
+        <ProbeB />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Разделить (S) | Удалить со сдвигом | Скорость | Волна | Кадр | Удалить | Цветовая группа 2 | Добавлено предложенных моментов: 3 | Home — Away")).toBeDefined();
+  });
+
+  it("Group B strings read from the stored locale (Spanish)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "es");
+    render(
+      <LocaleProvider>
+        <ProbeB />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Dividir (S) | Eliminar en cadena | Velocidad | Onda | Encuadre | Eliminar | Grupo de color 2 | 3 momentos sugeridos añadidos | Home vs Away")).toBeDefined();
   });
 });

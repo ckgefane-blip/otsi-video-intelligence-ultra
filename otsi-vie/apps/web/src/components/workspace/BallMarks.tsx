@@ -15,6 +15,7 @@ import { api, ApiProblem } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
 import { u } from "@/components/stage/DesignStage";
 import { useDw } from "./ResizableColumns";
+import { useLocale } from "@/lib/i18n";
 
 const ZOOM = 4, LOUPE = 180;
 
@@ -26,6 +27,7 @@ export type BallState = {
 };
 
 export function useBall(videoId: string | undefined): BallState {
+  const { t: dict } = useLocale();
   const [marks, setMarks] = useState<BallMarks | null>(null);
   const [path, setPath] = useState<BallPath | null>(null);
   const reloadMarks = useCallback(async () => {
@@ -44,9 +46,9 @@ export function useBall(videoId: string | undefined): BallState {
     return () => clearInterval(t);
   }, [busy, reloadPath]);
   const start = useCallback(async () => {
-    if (!videoId) return "No video.";
+    if (!videoId) return dict.body.workspace.noVideo;
     try { setPath(await api<BallPath>(`/v1/videos/${videoId}/ball`, { method: "POST" })); return null; }
-    catch (e) { return e instanceof ApiProblem ? e.message : "The engine could not start."; }
+    catch (e) { return e instanceof ApiProblem ? e.message : dict.body.workspace.engineCouldNotStart; }
   }, [videoId]);
   const set = useCallback((m: BallMarks) => { setMarks(m); void reloadPath(); }, [reloadPath]);   // the check against the marks changes with them
   return { marks, setMarks: set, reloadMarks, path, reloadPath, start };
@@ -84,6 +86,7 @@ export function BallOverlay({ ball, timeUs, stepUs }: { ball: BallState; timeUs:
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "—");
 
 export function BallBlock({ ball, canWrite, onMark }: { ball: BallState; canWrite: boolean; onMark: () => void }) {
+  const { t: dict } = useLocale();
   const dw = useDw();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,37 +98,33 @@ export function BallBlock({ ball, canWrite, onMark }: { ball: BallState; canWrit
   const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: "pointer" } as const;
   return (
     <div data-ball-block style={{ display: "flex", flexDirection: "column", gap: u(10), width: u(330 + dw), marginTop: u(18), fontSize: u(17) }}>
-      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>Ball <span data-ball-experimental style={{ marginLeft: u(8), padding: `${u(1)} ${u(8)}`, borderRadius: u(10), background: "#3a2a05", color: "#ffd400", fontSize: u(14), fontWeight: 700 }}>EXPERIMENTAL</span></div>
+      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>{dict.body.processing.ball}<span data-ball-experimental style={{ marginLeft: u(8), padding: `${u(1)} ${u(8)}`, borderRadius: u(10), background: "#3a2a05", color: "#ffd400", fontSize: u(14), fontWeight: 700 }}>{dict.body.workspace.experimental}</span></div>
       <span data-ball-source style={{ color: "#ffd400" }}>{String(m.candidates_from ?? "").startsWith("ball_net")
-        ? "Found by OTSI's own ball model, trained on your footage. Still being measured: your marks give the real accuracy."
-        : tr?.status === "SUCCEEDED" ? "Found with the general detector: not reliable in wide shots. Press \"Follow the ball again\" to use OTSI's own ball model (about an hour for a full match)."
-        : "Not yet measured: possession and passes wait for a reliable ball."}</span>
-      {!tr && <span style={line}>The engine follows the ball by itself when an analysis finishes. This video's analysis finished before it could.</span>}
-      {tr && (tr.status === "QUEUED" || tr.status === "RUNNING") && <span role="status" style={line}>Following the ball… {tr.stage_message ?? ""}{tr.progress !== null ? ` (${Math.round(tr.progress)}%)` : ""}</span>}
-      {tr?.status === "FAILED" && <span role="alert" style={{ color: "#ff8a8a" }}>{tr.failure_detail ?? "The engine could not follow the ball."}</span>}
+        ? dict.body.workspace.ballModelOwn
+        : tr?.status === "SUCCEEDED" ? dict.body.workspace.ballModelGeneral
+        : dict.body.workspace.notYetMeasuredBall}</span>
+      {!tr && <span style={line}>{dict.body.workspace.engineFollowsBall}</span>}
+      {tr && (tr.status === "QUEUED" || tr.status === "RUNNING") && <span role="status" style={line}>{dict.body.workspace.followingBall} {tr.stage_message ?? ""}{tr.progress !== null ? ` (${Math.round(tr.progress)}%)` : ""}</span>}
+      {tr?.status === "FAILED" && <span role="alert" style={{ color: "#ff8a8a" }}>{tr.failure_detail ?? dict.body.workspace.engineCouldNotFollow}</span>}
       {tr?.status === "SUCCEEDED" && (
         <span data-ball-found style={line}>
-          Found in <b style={{ color: "#dbe8f8" }}>{pct((m.detected ?? 0) + (m.inferred ?? 0), m.frames ?? 0)}</b> of the analysed frames
-          ({m.detected ?? 0} seen, {m.inferred ?? 0} filled in across short gaps). In the other {m.unknown ?? 0} it does not know where the ball is
-          (close-ups, replays, the ball hidden): it says so rather than guess.
+          {dict.body.workspace.ballFoundDetail.replace("{a}", pct((m.detected ?? 0) + (m.inferred ?? 0), m.frames ?? 0)).replace("{b}", String(m.detected ?? 0)).replace("{c}", String(m.inferred ?? 0)).replace("{d}", String(m.unknown ?? 0))}
         </span>
       )}
       {check && (
         <span data-ball-check style={line}>
-          Checked against your {n} marks: right in <b style={{ color: "#2ee86a" }}>{check.right}</b>, wrong in <b style={{ color: check.wrong ? "#ff8a8a" : "#dbe8f8" }}>{check.wrong}</b>,
-          could not see it in {check.unknown}{check.marked_hidden ? `; of your ${check.marked_hidden} "not visible", it placed a ball in ${check.invented}` : ""}.
+          {dict.body.workspace.ballCheckStart.replace("{a}", String(n))}<b style={{ color: "#2ee86a" }}>{check.right}</b>{dict.body.workspace.ballCheckWrong}<b style={{ color: check.wrong ? "#ff8a8a" : "#dbe8f8" }}>{check.wrong}</b>{dict.body.workspace.ballCheckUnknown.replace("{a}", String(check.unknown))}{check.marked_hidden ? dict.body.workspace.ballCheckHidden.replace("{a}", String(check.marked_hidden)).replace("{b}", String(check.invented)) : ""}.
         </span>
       )}
-      {canWrite && (!tr || tr.status === "FAILED") && <button type="button" data-ball-start onClick={() => void go()} disabled={busy} style={btn}>Find the ball</button>}
+      {canWrite && (!tr || tr.status === "FAILED") && <button type="button" data-ball-start onClick={() => void go()} disabled={busy} style={btn}>{dict.body.workspace.findBall}</button>}
       {canWrite && tr?.status === "SUCCEEDED" && (
-        <button type="button" data-ball-open onClick={onMark} style={btn}>Mark frames the engine can't see…</button>
+        <button type="button" data-ball-open onClick={onMark} style={btn}>{dict.body.workspace.markFramesUnseen}</button>
       )}
       {canWrite && tr?.status === "SUCCEEDED" && (
-        <button type="button" data-ball-again onClick={() => void go()} disabled={busy} style={{ ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 600, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` }}>
-          Follow the ball again
+        <button type="button" data-ball-again onClick={() => void go()} disabled={busy} style={{ ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 600, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` }}>{dict.body.workspace.followBallAgain}
         </button>
       )}
-      {!canWrite && <span style={line}>Your role can look at the ball but not start the engine or add marks.</span>}
+      {!canWrite && <span style={line}>{dict.body.workspace.roleBallMarks}</span>}
       {err && <span role="alert" style={{ color: "#ff8a8a" }}>{err}</span>}
     </div>
   );
@@ -134,6 +133,7 @@ export function BallBlock({ ball, canWrite, onMark }: { ball: BallState; canWrit
 export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, ball }: {
   open: boolean; onOpenChange: (o: boolean) => void; videoId: string; videoRef: React.MutableRefObject<HTMLVideoElement | null>; stepUs: number; ball: BallState;
 }) {
+  const { t: dict } = useLocale();
   const marks = ball.marks, path = ball.path;
   const step = stepOf(path, stepUs);
   const [t, setT] = useState(0);
@@ -153,7 +153,7 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
 
   const capture = useCallback(() => {
     const v = videoRef.current;
-    if (!v || !v.videoWidth) { setErr("The video is not ready yet."); return; }
+    if (!v || !v.videoWidth) { setErr(dict.body.workspace.videoNotReady); return; }
     const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
     c.getContext("2d")!.drawImage(v, 0, 0);
     frame.current = c; setSize({ w: v.videoWidth, h: v.videoHeight }); setFrameKey((k) => k + 1);
@@ -214,15 +214,15 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
     try {
       ball.setMarks(await api<BallMarks>(`/v1/videos/${videoId}/ball-marks`, { method: "PUT", json: { pts_us: t, visible, x, y } }));
       go(t + step);
-    } catch (x2) { setErr(x2 instanceof ApiProblem ? x2.message : "The mark could not be saved."); } finally { setBusy(false); }
+    } catch (x2) { setErr(x2 instanceof ApiProblem ? x2.message : dict.body.workspace.markNotSaved); } finally { setBusy(false); }
   };
   const remove = async () => {
     if (!here) return;
     setErr(null);
     try { await api(`/v1/ball-marks/${here.id}`, { method: "DELETE" }); await ball.reloadMarks(); void ball.reloadPath(); }
-    catch (x2) { setErr(x2 instanceof ApiProblem ? x2.message : "The mark could not be removed."); }
+    catch (x2) { setErr(x2 instanceof ApiProblem ? x2.message : dict.body.workspace.markNotRemoved); }
   };
-  const jump = () => { const s = nextUnknown(t); if (s === null) setErr("The engine knows where the ball is in every analysed frame after this one."); else go(s); };
+  const jump = () => { const s = nextUnknown(t); if (s === null) setErr(dict.body.workspace.engineKnowsBall); else go(s); };
   const pos = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
@@ -235,7 +235,7 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
     else if (e.key === "ArrowRight") { e.preventDefault(); go(t + step); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); go(t - step); }
   };
-  const said = here ? (here.visible ? "you marked the ball" : "you marked it not visible") : engine ? (engine.inferred ? "the engine filled it in (dashed blue ring)" : "the engine found it (blue ring)") : "the engine cannot see it here";
+  const said = here ? (here.visible ? dict.body.workspace.saidMarkedBall : dict.body.workspace.saidMarkedHidden) : engine ? (engine.inferred ? dict.body.workspace.saidEngineFilled : dict.body.workspace.saidEngineFound) : dict.body.workspace.saidEngineCannotSee;
   const btn = "rounded-ctl border border-line px-2 py-1";
 
   return (
@@ -243,25 +243,25 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75" />
         <Dialog.Content data-dialog="ball-marks" onKeyDown={onKey} className="fixed left-1/2 top-1/2 z-50 max-h-[96vh] w-[min(1400px,98vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Mark the ball where the engine can't see it</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.markBallUnseen}</Dialog.Title>
           <Dialog.Description className="mb-2 text-xs text-muted">
-            <b>Next it can't see (U)</b> jumps to the next frame without an answer. Click the centre of the ball, or press <b>N</b> when nobody could see it.
-            Where the blue ring is on the ball, <b>Enter</b> confirms it. The magnifier follows your cursor; the yellow ring is your previous mark.
+            <b>{dict.body.workspace.nextUnseen}</b>{dict.body.workspace.jumpsNextFrame}<b>N</b> {dict.body.workspace.whenNobodyCouldSee}
+            {dict.body.workspace.whereBlueRing} <b>Enter</b>{dict.body.workspace.confirmsIt}
           </Dialog.Description>
-          <canvas ref={setView} data-ball-canvas aria-label="The frame to mark" onMouseMove={(e) => setHover(pos(e))} onMouseLeave={() => setHover(null)}
+          <canvas ref={setView} data-ball-canvas aria-label={dict.body.workspace.frameToMark} onMouseMove={(e) => setHover(pos(e))} onMouseLeave={() => setHover(null)}
             onClick={(e) => { if (!busy) { const p = pos(e); void save(true, p.x, p.y); } }}
             style={{ width: "100%", height: "auto", aspectRatio: `${size.w} / ${size.h}`, cursor: "crosshair", background: "#000", borderRadius: 8, display: "block" }} />
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" role="status">
-            <span className="text-fg">Frame at {formatDuration(t)}</span>
-            <span className="text-muted">· {said}{marks ? ` · ${marks.visible + marks.hidden} marked in this video` : ""}</span>
+            <span className="text-fg">{dict.body.workspace.frameAt.replace("{a}", formatDuration(t))}</span>
+            <span className="text-muted">· {said}{marks ? ` · ${dict.body.workspace.markedInVideo.replace("{a}", String(marks.visible + marks.hidden))}` : ""}</span>
             <span className="ml-auto" />
-            <button type="button" onClick={() => go(t - step)} disabled={busy} className={btn}>← Back</button>
-            <button type="button" onClick={() => go(t + step)} disabled={busy} className={btn}>Skip →</button>
-            <button type="button" data-ball-hidden onClick={() => void save(false)} disabled={busy} className={btn}>Not visible (N)</button>
-            {engine && !here && <button type="button" data-ball-confirm onClick={() => void save(true, engine.x, engine.y)} disabled={busy} className={btn}>Engine is right (Enter)</button>}
-            {here && <button type="button" onClick={() => void remove()} disabled={busy} className={`${btn} text-danger`}>Remove this mark</button>}
-            <button type="button" data-ball-next-unknown onClick={jump} disabled={busy} className={btn}>Next it can't see (U) →</button>
-            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-semibold text-white">Done</Dialog.Close>
+            <button type="button" onClick={() => go(t - step)} disabled={busy} className={btn}>{dict.body.workspace.backArrow}</button>
+            <button type="button" onClick={() => go(t + step)} disabled={busy} className={btn}>{dict.body.workspace.skipArrow}</button>
+            <button type="button" data-ball-hidden onClick={() => void save(false)} disabled={busy} className={btn}>{dict.body.workspace.notVisibleKey}</button>
+            {engine && !here && <button type="button" data-ball-confirm onClick={() => void save(true, engine.x, engine.y)} disabled={busy} className={btn}>{dict.body.workspace.engineIsRightEnter}</button>}
+            {here && <button type="button" onClick={() => void remove()} disabled={busy} className={`${btn} text-danger`}>{dict.body.workspace.removeMark}</button>}
+            <button type="button" data-ball-next-unknown onClick={jump} disabled={busy} className={btn}>{dict.body.workspace.nextUnseenArrow}</button>
+            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-semibold text-white">{dict.body.upload.done}</Dialog.Close>
           </div>
           {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
         </Dialog.Content>

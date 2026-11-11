@@ -26,9 +26,10 @@ import { useBall, type BallState } from "@/components/workspace/BallMarks";
 import { usePeriods, type PeriodsState } from "@/components/workspace/Periods";
 import { useEvents, type EventsState } from "@/components/workspace/Events";
 import { CandidatesPanel, ShirtNumberPanel } from "./IdentityEvidence";
-import { KIT_COLOUR, KIT_LEGEND, TrackOverlay } from "./TrackOverlay";
+import { KIT_COLOUR, kitLegend, TrackOverlay } from "./TrackOverlay";
 import { MatchLinker, RosterPanel, TeamAssignment } from "@/components/matches/MatchPanels";
 import { ImpactNote } from "./ImpactNote";
+import { useLocale } from "@/lib/i18n";
 
 const CHUNK_US = 10_000_000;
 const REVIEWERS = ["OWNER", "ADMIN", "ANALYST"];
@@ -93,6 +94,7 @@ const seconds = (us: number) => `${(us / 1_000_000).toFixed(2)} s`;
 
 /** `finishedRunId`: the newest finished run as another view sees it (Processing); when it changes the run and its tracks are read again */
 export function AnalysisWorkspace({ videoId, finishedRunId, children }: { videoId: string; finishedRunId?: string | null; children: ReactNode }) {
+  const { t: dict } = useLocale();
   const { organization } = useAuth();
   useEffect(() => { rememberVideo(organization?.organization_id, videoId); }, [organization?.organization_id, videoId]);   // carried to the other pages
   const [video, setVideo] = useState<Video | null>(null);
@@ -125,7 +127,7 @@ export function AnalysisWorkspace({ videoId, finishedRunId, children }: { videoI
         setRun(done);
         if (done) setTracks(await api<TrackSummary[]>(`/v1/analysis-runs/${done.id}/tracks`));
       } catch (x) {
-        setError(x instanceof ApiProblem ? x.message : "The analysis could not be loaded.");
+        setError(x instanceof ApiProblem ? x.message : dict.body.analysis.analysisLoadFailed);
       }
     })();
   }, [videoId, finishedRunId]);
@@ -266,20 +268,21 @@ export function AnalysisWorkspace({ videoId, finishedRunId, children }: { videoI
 
 /* ------------------------------------------------------------------ section 1: which video and run */
 export function MatchContext() {
+  const { t: dict } = useLocale();
   const { video, run, error, tracks, canWrite, reloadVideo, bumpEvidence, evidenceKey } = useWs();
   // the two counts are derived from the track list, not re-filtered on every video frame (the provider re-renders per frame while playing)
   const counts = useMemo(() => tracks ? { people: tracks.filter((t) => t.class_name !== "BALL").length, ball: tracks.filter((t) => t.class_name === "BALL").length } : null, [tracks]);
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
-  if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</p>;
+  if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" />{dict.common.loading}</p>;
   return (
     <div className="space-y-2 text-sm" data-video={video.id}>
       <p className="font-semibold">{video.title ?? video.original_filename}</p>
       <p className="text-xs text-muted">{formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</p>
       {run ? (
-        <p className="text-xs" data-run={run.id}>Analysis of {run.finished_at?.slice(0, 16).replace("T", " ") ?? "—"} · {run.config.sample_fps} frames/s analysed ·{" "}
-          {counts ? `${counts.people} people tracks, ${counts.ball} ball tracks` : "…"}</p>
+        <p className="text-xs" data-run={run.id}>{dict.body.analysis.analysisOf.replace("{a}", run.finished_at?.slice(0, 16).replace("T", " ") ?? "—").replace("{b}", String(run.config.sample_fps))} ·{" "}
+          {counts ? dict.body.analysis.peopleBallTracks.replace("{a}", String(counts.people)).replace("{b}", String(counts.ball)) : "…"}</p>
       ) : (
-        <p className="text-xs text-muted">No finished analysis yet. <Link className="text-primary underline" href={`/videos/${video.id}/processing`}>Start one on the processing page</Link>.</p>
+        <p className="text-xs text-muted">{dict.body.analysis.noFinishedYet}<Link className="text-primary underline" href={`/videos/${video.id}/processing`}>{dict.body.analysis.startOnProcessing}</Link>.</p>
       )}
       <div className="border-t border-line/60 pt-2">
         <MatchLinker videoId={video.id} matchId={video.match_id} canWrite={canWrite} refreshKey={evidenceKey} onLinked={() => { void reloadVideo(); bumpEvidence(); }} />
@@ -290,45 +293,48 @@ export function MatchContext() {
 
 /* ------------------------------------------------------------------ sections 3 + 4: the video with the boxes */
 export function VideoWithBoxes() {
+  const { t: dict } = useLocale();
   const { video, playback, videoRef, visible, layers, selectedId, select, tracks } = useWs();
   const labelOf = useMemo(() => new Map((tracks ?? []).map((t) => [t.track_id, t])), [tracks]);
   // the boxes at the playhead, after the layer toggles — derived from the frame's observations and the toggles only, not re-filtered per render
   const shown = useMemo(() => visible.filter(({ o }) => (o.class_name === "BALL" ? layers.ball : layers.people) && layers.boxes), [visible, layers]);
-  if (!playback) return <div role="status" aria-label="Loading playback" className="aspect-video animate-pulse rounded-ctl bg-raised/50" />;
-  if (!playback.available || !playback.url) return <p className="text-sm text-muted">No playback yet: {playback.reason}</p>;
+  if (!playback) return <div role="status" aria-label={dict.body.analysis.loadingPlayback} className="aspect-video animate-pulse rounded-ctl bg-raised/50" />;
+  if (!playback.available || !playback.url) return <p className="text-sm text-muted">{dict.body.analysis.noPlaybackYet.replace("{a}", playback.reason ?? "")}</p>;
   const W = video?.width ?? 1920, H = video?.height ?? 1080;           // boxes are normalised to the decoded frame: draw in its pixels
   return (
     <div className="relative w-full overflow-hidden rounded-ctl bg-black" style={{ aspectRatio: `${W} / ${H}` }}>
-      <video ref={videoRef} src={playback.url} preload="metadata" playsInline className="absolute inset-0 h-full w-full" aria-label="Match video" />
+      <video ref={videoRef} src={playback.url} preload="metadata" playsInline className="absolute inset-0 h-full w-full" aria-label={dict.body.processing.matchVideo} />
       <TrackOverlay visible={shown} tracks={labelOf} W={W} H={H} labels={layers.labels} selectedId={selectedId} onSelect={select} />
     </div>
   );
 }
 
 export function BoxLegend() {
+  const { t: dict } = useLocale();
   const { intervalUs, visible } = useWs();
   return (
     <div className="space-y-1 text-xs text-muted">
-      <p>{KIT_LEGEND.map(([g, l]) => <span key={g} className="mr-2"><span className="font-semibold" style={{ color: KIT_COLOUR[g] }}>{l}</span></span>)}
-        <span className="font-semibold" style={{ color: "#19a0ff" }}>blue</span>: no team measured · <span className="font-semibold text-amber">amber</span>: ball · white: selected.
-        A name replaces the track number only after a person confirmed who it is. Click a box to select it.</p>
-      <p>Frames are analysed every {seconds(intervalUs)}. A solid box is measured: detected in this frame, or estimated between two detections of the same player a fraction of a second apart (the selected player&apos;s panel says which). A dashed box is a held position, not measured now. Estimates are never stored.</p>
-      <p data-visible-boxes={visible.length}>{visible.length} boxes at the playhead.</p>
+      <p>{kitLegend(dict).map(([g, l]) => <span key={g} className="mr-2"><span className="font-semibold" style={{ color: KIT_COLOUR[g] }}>{l}</span></span>)}
+        <span className="font-semibold" style={{ color: "#19a0ff" }}>{dict.body.analysis.legendBlue}</span>: {dict.body.analysis.legendNoTeam} · <span className="font-semibold text-amber">{dict.body.analysis.legendAmber}</span>: {dict.body.analysis.legendBall} · {dict.body.analysis.legendWhite}: {dict.body.analysis.legendSelected}.
+        {dict.body.analysis.legendNameReplaces}</p>
+      <p>{dict.body.analysis.legendFrames.replace("{a}", seconds(intervalUs))}</p>
+      <p data-visible-boxes={visible.length}>{dict.body.analysis.legendBoxesAtPlayhead.replace("{a}", String(visible.length))}</p>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ section 5: overlay toggles */
 export function OverlayToggles() {
+  const { t: dict } = useLocale();
   const { layers, setLayers } = useWs();
-  const items: [keyof Layers, string][] = [["boxes", "Boxes"], ["labels", "Track numbers / names"], ["people", "People"], ["ball", "Ball"]];
+  const items: [keyof Layers, string][] = [["boxes", dict.body.analysis.overlayBoxes], ["labels", dict.body.analysis.overlayTrackNumbers], ["people", dict.body.analysis.overlayPeople], ["ball", dict.body.processing.ball]];
   return (
     <fieldset className="space-y-1.5 text-sm">
-      <legend className="sr-only">Overlays</legend>
+      <legend className="sr-only">{dict.body.processing.overlaysLabel}</legend>
       {items.map(([k, label]) => (
         <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={layers[k]} onChange={(e) => setLayers({ ...layers, [k]: e.target.checked })} /> {label}</label>
       ))}
-      <p className="pt-1 text-xs text-muted">Team shapes, pass arrows, heatmaps and offside need team and event detection (Blocks 07-08).</p>
+      <p className="pt-1 text-xs text-muted">{dict.body.analysis.overlaysNeed}</p>
     </fieldset>
   );
 }
@@ -337,6 +343,8 @@ export function OverlayToggles() {
 // one row of the track list: memoised, so the rows do not re-render on every video frame — only the selected row changes, and the list
 // itself only when the tracks, the kind filter or the minimum-observation filter change (select and seek are stable callbacks)
 const TrackRow = memo(function TrackRow({ t, selected, onSelect, onSeek }: { t: TrackSummary; selected: boolean; onSelect: (id: string) => void; onSeek: (t: number) => void }) {
+  const { t: dict } = useLocale();
+  const stateLabel: Record<string, string> = { CONFIRMED: dict.body.workspace.confirmedLabel, CANDIDATE: dict.body.workspace.suggestedLabel, UNRESOLVED: dict.body.workspace.notIdentified, REJECTED: dict.body.workspace.rejectedLabel, CONFLICT: dict.body.workspace.conflictLabel };
   return (
     <li>
       <button type="button" data-track={t.track_number} aria-pressed={selected}
@@ -345,16 +353,16 @@ const TrackRow = memo(function TrackRow({ t, selected, onSelect, onSeek }: { t: 
         {t.class_name !== "BALL" && <TrackThumb trackId={t.track_id} has={t.has_thumbnail} size={22} />}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{t.label}</span>
-          <span className="block text-xs text-muted">{seconds(t.first_pts_us)}–{seconds(t.last_pts_us)} · {t.observation_count} obs · conf {t.mean_confidence?.toFixed(2) ?? "—"}
-            {t.identity_state !== "UNRESOLVED" ? ` · ${t.identity_state.toLowerCase()}` : ""}</span>
+          <span className="block text-xs text-muted">{seconds(t.first_pts_us)}–{seconds(t.last_pts_us)} · {t.observation_count} {dict.body.analysis.obsAbbr} · {dict.body.analysis.confAbbr} {t.mean_confidence?.toFixed(2) ?? "—"}
+            {t.identity_state !== "UNRESOLVED" ? ` · ${stateLabel[t.identity_state] ?? t.identity_state.toLowerCase()}` : ""}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-2">
             <KitSwatch t={t} />
             {(t.links_proposed ?? 0) + (t.links_confirmed ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-[11px] text-cyan" title="Same-person suggestions / confirmed links">
-                <Link2 className="h-3 w-3" />{t.links_confirmed ? `${t.links_confirmed} linked` : ""}{t.links_confirmed && t.links_proposed ? " · " : ""}{t.links_proposed ? `${t.links_proposed} to review` : ""}
+              <span className="inline-flex items-center gap-0.5 text-[11px] text-cyan" title={dict.body.analysis.samePersonLinksTitle}>
+                <Link2 className="h-3 w-3" />{t.links_confirmed ? dict.body.analysis.linksLinked.replace("{a}", String(t.links_confirmed)) : ""}{t.links_confirmed && t.links_proposed ? " · " : ""}{t.links_proposed ? dict.body.analysis.linksToReview.replace("{a}", String(t.links_proposed)) : ""}
               </span>
             )}
-            {t.possible_identity_switch && <span className="inline-flex items-center gap-0.5 text-[11px] text-amber" title="Appearance changes during the track"><AlertTriangle className="h-3 w-3" />check</span>}
+            {t.possible_identity_switch && <span className="inline-flex items-center gap-0.5 text-[11px] text-amber" title={dict.body.analysis.appearanceChangesTitle}><AlertTriangle className="h-3 w-3" />{dict.body.analysis.linksCheck}</span>}
           </span>
         </span>
       </button>
@@ -363,6 +371,7 @@ const TrackRow = memo(function TrackRow({ t, selected, onSelect, onSeek }: { t: 
 });
 
 export function TrackList() {
+  const { t: dict } = useLocale();
   const { tracks, select, selectedId, seek, run, video, canWrite, canReview, bumpEvidence } = useWs();
   const [tab, setTab] = useState<"tracks" | "roster" | "teams">("tracks");
   const [kind, setKind] = useState<"PERSON" | "BALL" | "ALL">("PERSON");
@@ -371,8 +380,8 @@ export function TrackList() {
   const list = useMemo(() => (tracks ?? []).filter((t) => (kind === "ALL" || (kind === "BALL" ? t.class_name === "BALL" : t.class_name !== "BALL")) && t.observation_count >= minObs)
     .sort((a, b) => a.first_pts_us - b.first_pts_us), [tracks, kind, minObs]);
   const tabs = (
-    <div role="tablist" aria-label="Players panel" className="flex gap-1 text-xs">
-      {([["tracks", "Tracks"], ["roster", "Roster"], ["teams", "Teams"]] as const).map(([k, l]) => (
+    <div role="tablist" aria-label={dict.body.analysis.playersPanel} className="flex gap-1 text-xs">
+      {([["tracks", dict.body.analysis.tabTracks], ["roster", dict.body.analysis.tabRoster], ["teams", dict.body.analysis.tabTeams]] as const).map(([k, l]) => (
         <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
           className={`rounded-ctl border px-2 py-1 ${tab === k ? "border-primary bg-primary/10 text-primary" : "border-line"}`}>{l}</button>
       ))}
@@ -380,27 +389,27 @@ export function TrackList() {
   );
   if (tab === "roster") return <div className="space-y-2">{tabs}{video?.match_id
     ? <RosterPanel matchId={video.match_id} canWrite={canWrite} canVerify={canReview} onChanged={bumpEvidence} />
-    : <p className="text-sm text-muted">Link this video to a match (section 1) to enter its rosters.</p>}</div>;
+    : <p className="text-sm text-muted">{dict.body.analysis.rosterLinkFirst}</p>}</div>;
   if (tab === "teams") return <div className="space-y-2">{tabs}{run
     ? <TeamAssignment runId={run.id} canReview={canReview} onChanged={bumpEvidence} />
-    : <p className="text-sm text-muted">Kit groups appear after an analysis has finished.</p>}</div>;
-  if (!run) return <div className="space-y-2">{tabs}<p className="text-sm text-muted">Tracks appear after an analysis has finished.</p></div>;
-  if (!tracks) return <p role="status" className="text-sm text-muted">Loading tracks…</p>;
+    : <p className="text-sm text-muted">{dict.body.analysis.kitGroupsAppear}</p>}</div>;
+  if (!run) return <div className="space-y-2">{tabs}<p className="text-sm text-muted">{dict.body.analysis.tracksAppear}</p></div>;
+  if (!tracks) return <p role="status" className="text-sm text-muted">{dict.body.analysis.loadingTracks}</p>;
   return (
     <div className="flex min-h-0 flex-col gap-2 text-sm">
       {tabs}
       <div className="flex flex-wrap gap-2 text-xs">
-        <select aria-label="Track kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="rounded-ctl border border-line bg-canvas px-2 py-1">
-          <option value="PERSON">People</option><option value="BALL">Ball</option><option value="ALL">All</option>
+        <select aria-label={dict.body.analysis.trackKind} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="rounded-ctl border border-line bg-canvas px-2 py-1">
+          <option value="PERSON">{dict.body.analysis.overlayPeople}</option><option value="BALL">{dict.body.processing.ball}</option><option value="ALL">{dict.body.processing.filterAll}</option>
         </select>
-        <label className="flex items-center gap-1">at least
-          <select aria-label="Minimum observations" value={minObs} onChange={(e) => setMinObs(Number(e.target.value))} className="rounded-ctl border border-line bg-canvas px-1 py-1">
+        <label className="flex items-center gap-1">{dict.body.analysis.atLeast}
+          <select aria-label={dict.body.analysis.minObs} value={minObs} onChange={(e) => setMinObs(Number(e.target.value))} className="rounded-ctl border border-line bg-canvas px-1 py-1">
             {[1, 3, 10, 30].map((v) => <option key={v} value={v}>{v}</option>)}
-          </select> observations</label>
+          </select>{dict.body.analysis.observations}</label>
       </div>
       <p className="text-xs text-muted">{list.length} of {tracks.length} tracks. Track numbers are temporary references within this analysis, not player IDs.</p>
-      {list.length === 0 && <p className="text-sm text-muted">No tracks match these filters — lower the minimum observations or show all kinds.</p>}
-      <ul aria-label="Tracks" className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
+      {list.length === 0 && <p className="text-sm text-muted">{dict.body.analysis.noTracksMatch}</p>}
+      <ul aria-label={dict.body.analysis.tabTracks} className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
         {list.map((t) => <TrackRow key={t.track_id} t={t} selected={t.track_id === selectedId} onSelect={select} onSeek={seek} />)}
       </ul>
     </div>
@@ -409,6 +418,7 @@ export function TrackList() {
 
 /* ------------------------------------------------------------------ section 7: the selected track and its identity */
 export function SelectedTrack() {
+  const { t: dict } = useLocale();
   const { tracks, selectedId, visible, canReview, reloadTracks, seek, select, video, evidenceKey, bumpEvidence } = useWs();
   const router = useRouter();
   // the selected track, looked up once per selection / track-list change — not on every video frame
@@ -431,7 +441,7 @@ export function SelectedTrack() {
     const h = setTimeout(() => void api<PlayerIdentity[]>(`/v1/players?q=${encodeURIComponent(q.trim())}`).then(setHits, () => setHits([])), 250);
     return () => clearTimeout(h);
   }, [q]);
-  if (!t) return <p className="text-sm text-muted">Click a box on the video or a track in the list.</p>;
+  if (!t) return <p className="text-sm text-muted">{dict.body.analysis.clickBoxOrTrack}</p>;
   // changing an existing decision is a correction: the history needs a reason (enforced by the database too)
   const correcting = !!identity?.decision_id;
   const reasonOk = !correcting || reason.trim().length >= 3;
@@ -441,91 +451,91 @@ export function SelectedTrack() {
     void api<TrackIdentity>(`/v1/tracks/${t.track_id}/identity-decisions`, {
       method: "POST", json: { state, player_id: playerId, supersedes_id: identity.decision_id, reason: correcting ? reason.trim() : null },
     }).then(async (r) => { setIdentity(r); setMsg({ ok: true, text: what }); setHits(null); setQ(""); setReason(""); await reloadTracks(); },
-      (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "The decision was not saved." })).finally(() => setBusy(false));
+      (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.analysis.decisionNotSaved })).finally(() => setBusy(false));
   };
   const createAndConfirm = (name: string = newName) => {
     if (!reasonOk || name.trim().length < 2) return;
     setBusy(true); setMsg(null);
     void api<PlayerIdentity>("/v1/players", { method: "POST", json: { display_name: name.trim() }, headers: { "idempotency-key": `ws-${t.track_id}-${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}` } })
-      .then((p) => { setBusy(false); setNewName(""); setQ(""); decide("CONFIRMED", p.player_id, `New provisional player ${p.display_name} created and confirmed for ${trackLabel(t.track_number)}.`); },
-        (x) => { setBusy(false); setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "The player could not be created." }); });
+      .then((p) => { setBusy(false); setNewName(""); setQ(""); decide("CONFIRMED", p.player_id, dict.body.analysis.newProvisionalCreated.replace("{a}", p.display_name).replace("{b}", trackLabel(t.track_number))); },
+        (x) => { setBusy(false); setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.analysis.playerNotCreated }); });
   };
   return (
     <div className="space-y-3 text-sm" data-selected-track={t.track_number}>
       <div>
         <p className="font-semibold" data-track-label>{t.label}</p>
-        <p className="text-xs text-muted">Temporary {trackLabel(t.track_number)} (this analysis only){t.shot_number ? ` · shot ${t.shot_number}` : ""}</p>
+        <p className="text-xs text-muted">{dict.body.analysis.temporaryTrack.replace("{a}", trackLabel(t.track_number))}{t.shot_number ? ` · ${dict.body.analysis.shotLabel.replace("{a}", String(t.shot_number))}` : ""}</p>
       </div>
       <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
-        <dt className="text-muted">Kind</dt><dd>{t.class_name === "BALL" ? "Ball" : "Person (team: see Teams; role not decided)"}</dd>
-        <dt className="text-muted">Seen</dt><dd>{seconds(t.first_pts_us)} – {seconds(t.last_pts_us)}</dd>
-        <dt className="text-muted">Observations</dt><dd>{t.observation_count} detected boxes, mean confidence {t.mean_confidence?.toFixed(2) ?? "—"}</dd>
+        <dt className="text-muted">{dict.body.analysis.kindLabel}</dt><dd>{t.class_name === "BALL" ? dict.body.processing.ball : dict.body.analysis.kindPersonTeam}</dd>
+        <dt className="text-muted">{dict.body.analysis.seenLabel}</dt><dd>{seconds(t.first_pts_us)} – {seconds(t.last_pts_us)}</dd>
+        <dt className="text-muted">{dict.body.analysis.observationsLabel}</dt><dd>{dict.body.analysis.detectedBoxes.replace("{a}", String(t.observation_count)).replace("{b}", t.mean_confidence?.toFixed(2) ?? "—")}</dd>
         {t.evidence && t.class_name !== "BALL" && (
           <>
-            <dt className="text-muted">Evidence</dt>
-            <dd data-track-evidence>strongest detection {t.evidence.peak_confidence?.toFixed(2) ?? "—"} · about {t.evidence.mean_height_px ?? "—"} px tall
-              {t.evidence.low_confidence_share ? ` · ${Math.round(t.evidence.low_confidence_share * 100)} % weak detections, kept only because the track was confirmed over time` : ""}</dd>
+            <dt className="text-muted">{dict.body.aiAnalyst.evidence}</dt>
+            <dd data-track-evidence>{dict.body.analysis.strongestDetection.replace("{a}", t.evidence.peak_confidence?.toFixed(2) ?? "—").replace("{b}", String(t.evidence.mean_height_px ?? "—"))}
+              {t.evidence.low_confidence_share ? dict.body.analysis.weakDetections.replace("{a}", String(Math.round(t.evidence.low_confidence_share * 100))) : ""}</dd>
           </>
         )}
-        <dt className="text-muted">At the playhead</dt>
-        <dd data-at-playhead={here ? (here.exact ? "exact" : here.glided ? "estimated" : "nearest") : "none"}>{here ? (here.exact ? "detected in this frame" : here.glided ? `estimated between two detections (nearest ${seconds(here.dtUs)} away), not detected` : `nearest analysed frame, ${seconds(here.dtUs)} away`) : "not observed here"}</dd>
+        <dt className="text-muted">{dict.body.analysis.atPlayhead}</dt>
+        <dd data-at-playhead={here ? (here.exact ? "exact" : here.glided ? "estimated" : "nearest") : "none"}>{here ? (here.exact ? dict.body.analysis.detectedInFrame : here.glided ? dict.body.analysis.estimatedBetween.replace("{a}", seconds(here.dtUs)) : dict.body.analysis.nearestFrame.replace("{a}", seconds(here.dtUs))) : dict.body.analysis.notObservedHere}</dd>
       </dl>
       {t.class_name !== "BALL" && (
-        <div className="space-y-2 rounded-ctl border border-line/70 p-2" aria-label="Identity review">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Identity</p>
-          {!identity ? <p className="text-xs text-muted">Loading…</p> : (
+        <div className="space-y-2 rounded-ctl border border-line/70 p-2" aria-label={dict.body.analysis.identityReview}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.upload.identity}</p>
+          {!identity ? <p className="text-xs text-muted">{dict.common.loading}</p> : (
             <>
               <p data-identity-state={identity.state}>{identity.display.label}
-                {identity.player && !identity.player.canonical_otsi_id && <span className="block text-xs text-muted">Provisional player: no OTSI Player ID until registered.</span>}</p>
+                {identity.player && !identity.player.canonical_otsi_id && <span className="block text-xs text-muted">{dict.body.analysis.provisionalPlayer}</span>}</p>
               {canReview ? (
                 <>
                   {correcting && (
-                    <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why change it? (required for a correction)" aria-label="Reason for the correction"
+                    <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={dict.body.analysis.whyChange} aria-label={dict.body.analysis.reasonCorrection}
                       className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
                   )}
                   {/* B.7 (ADR-084): what changing this confirmed identity would put out of date, before anything is saved */}
                   {identity.state === "CONFIRMED" && <ImpactNote trackIds={[t.track_id]} state="UNRESOLVED" playerId={null} />}
                   {/* no browser autofill: its list looks like results, but picking from it only fills the box and confirms nothing (owner, 2026-11-02) */}
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find player by name or OTSI Player ID" aria-label="Find player" autoComplete="off"
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.analysis.findPlayerPlaceholder} aria-label={dict.body.analysis.findPlayer} autoComplete="off"
                     className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
-                  {!hits && q.trim().length < 2 && <p className="text-[11px] text-muted">Type 2 letters or more, then press the green button with his name to confirm.</p>}
+                  {!hits && q.trim().length < 2 && <p className="text-[11px] text-muted">{dict.body.analysis.type2Letters}</p>}
                   {hits && (
-                    <ul aria-label="Matching players" className="space-y-1">
+                    <ul aria-label={dict.body.analysis.matchingPlayers} className="space-y-1">
                       {hits.length === 0 && (
                         <li className="flex items-center justify-between gap-2 text-xs" data-no-player>
-                          <span className="text-muted">No player called “{q.trim()}” yet.</span>
+                          <span className="text-muted">{dict.body.analysis.noPlayerCalled.replace("{a}", q.trim())}</span>
                           <button type="button" disabled={busy || !reasonOk} onClick={() => createAndConfirm(q)}
-                            className="shrink-0 rounded border border-primary/60 px-2 py-0.5 text-primary">Create “{q.trim()}” and confirm</button>
+                            className="shrink-0 rounded border border-primary/60 px-2 py-0.5 text-primary">{dict.body.analysis.createAndConfirm.replace("{a}", q.trim())}</button>
                         </li>
                       )}
                       {/* one big button per match: the name itself is the confirmation (a small "This is them" beside it was missed) */}
                       {hits.map((p) => (
                         <li key={p.player_id}>
-                          <button type="button" data-confirm-player={p.player_id} disabled={busy || !reasonOk} onClick={() => decide("CONFIRMED", p.player_id, `${trackLabel(t.track_number)} confirmed as ${p.display_name}.`)}
+                          <button type="button" data-confirm-player={p.player_id} disabled={busy || !reasonOk} onClick={() => decide("CONFIRMED", p.player_id, dict.body.analysis.confirmedAs.replace("{a}", trackLabel(t.track_number)).replace("{b}", p.display_name))}
                             className="flex w-full items-center justify-between gap-2 rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 text-left text-sm font-semibold hover:bg-ok/25 disabled:opacity-50">
-                            <span className="truncate">Confirm as {p.display_name}</span>
-                            <span className="shrink-0 text-xs font-normal text-muted">{p.canonical_otsi_id ?? "provisional"}</span>
+                            <span className="truncate">{dict.body.analysis.confirmAs.replace("{a}", p.display_name)}</span>
+                            <span className="shrink-0 text-xs font-normal text-muted">{p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                   )}
                   <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (newName.trim().length >= 2) createAndConfirm(); }}>
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Or a new player's name" aria-label="New player name" minLength={2}
+                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={dict.body.analysis.orNewPlayer} aria-label={dict.body.analysis.newPlayerName} minLength={2}
                       className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
-                    <button type="submit" disabled={busy || !reasonOk || newName.trim().length < 2} className="rounded-ctl border border-line px-2 text-xs disabled:opacity-50">Create &amp; confirm</button>
+                    <button type="submit" disabled={busy || !reasonOk || newName.trim().length < 2} className="rounded-ctl border border-line px-2 text-xs disabled:opacity-50">{dict.body.analysis.createAndConfirmBtn}</button>
                   </form>
                   {identity.state === "CONFIRMED" && identity.player && (
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <button type="button" disabled={busy || !reasonOk} onClick={() => decide("REJECTED", identity.player!.player_id, `Marked: ${trackLabel(t.track_number)} is not ${identity.player!.display_name}.`)}
-                        className="rounded border border-line px-2 py-0.5 hover:border-danger/60">Not this player</button>
-                      <button type="button" disabled={busy || !reasonOk} onClick={() => decide("UNRESOLVED", null, `${trackLabel(t.track_number)} is unidentified again.`)}
-                        className="rounded border border-line px-2 py-0.5">Back to unidentified</button>
+                      <button type="button" disabled={busy || !reasonOk} onClick={() => decide("REJECTED", identity.player!.player_id, dict.body.analysis.markedNot.replace("{a}", trackLabel(t.track_number)).replace("{b}", identity.player!.display_name))}
+                        className="rounded border border-line px-2 py-0.5 hover:border-danger/60">{dict.body.analysis.notThisPlayer}</button>
+                      <button type="button" disabled={busy || !reasonOk} onClick={() => decide("UNRESOLVED", null, dict.body.analysis.unidentifiedAgain.replace("{a}", trackLabel(t.track_number)))}
+                        className="rounded border border-line px-2 py-0.5">{dict.body.analysis.backToUnidentified}</button>
                     </div>
                   )}
-                  <p className="text-[11px] text-muted">Every decision is recorded with who made it; a correction is added to the history, never written over it.</p>
+                  <p className="text-[11px] text-muted">{dict.body.analysis.decisionsRecorded}</p>
                 </>
-              ) : <p className="text-xs text-muted">Your role can view identities but not decide them.</p>}
+              ) : <p className="text-xs text-muted">{dict.body.analysis.roleViewIdentities}</p>}
             </>
           )}
           {msg && <p role={msg.ok ? "status" : "alert"} className={`text-xs ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
@@ -536,7 +546,7 @@ export function SelectedTrack() {
           onClick={() => {
             setBusy(true); setMsg(null);
             void api<{ id: string }>("/v1/reels", { method: "POST", json: { video_id: video.id, player_id: identity.player!.player_id } })
-              .then((r) => router.push(`/reels/${r.id}`), (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "The reel could not be created." }))
+              .then((r) => router.push(`/reels/${r.id}`), (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.analysis.reelNotCreated }))
               .finally(() => setBusy(false));
           }}
           className="w-full rounded-ctl bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
@@ -557,21 +567,22 @@ export function SelectedTrack() {
 
 /* ------------------------------------------------------------------ section 8: transport */
 export function Transport() {
+  const { t: dict } = useLocale();
   const { videoRef, timeUs, playing, seek, video, intervalUs, playback } = useWs();
   const [rate, setRate] = useState(1);
   const dur = video?.duration_us ?? 0;
-  if (!playback?.available) return <p className="text-sm text-muted">Playback controls appear with the playback copy.</p>;
+  if (!playback?.available) return <p className="text-sm text-muted">{dict.body.analysis.playbackControlsAppear}</p>;
   const el = videoRef.current;
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      <button type="button" aria-label="Previous analysed frame" onClick={() => seek(Math.max(0, Math.round((timeUs - intervalUs) / intervalUs) * intervalUs))} className="rounded-ctl border border-line p-1.5"><SkipBack className="h-4 w-4" /></button>
-      <button type="button" aria-label={playing ? "Pause" : "Play"} onClick={() => (el?.paused ? void el.play() : el?.pause())} className="rounded-ctl bg-primary p-1.5 text-white">
+      <button type="button" aria-label={dict.body.analysis.previousFrame} onClick={() => seek(Math.max(0, Math.round((timeUs - intervalUs) / intervalUs) * intervalUs))} className="rounded-ctl border border-line p-1.5"><SkipBack className="h-4 w-4" /></button>
+      <button type="button" aria-label={playing ? dict.body.upload.pause : dict.body.processing.playBtn} onClick={() => (el?.paused ? void el.play() : el?.pause())} className="rounded-ctl bg-primary p-1.5 text-white">
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
-      <button type="button" aria-label="Next analysed frame" onClick={() => seek(Math.round((timeUs + intervalUs) / intervalUs) * intervalUs)} className="rounded-ctl border border-line p-1.5"><SkipForward className="h-4 w-4" /></button>
-      <input type="range" aria-label="Seek" min={0} max={Math.max(1, dur)} step={10_000} value={Math.min(timeUs, dur)} onChange={(e) => seek(Number(e.target.value))} className="min-w-[160px] flex-1" />
+      <button type="button" aria-label={dict.body.analysis.nextFrame} onClick={() => seek(Math.round((timeUs + intervalUs) / intervalUs) * intervalUs)} className="rounded-ctl border border-line p-1.5"><SkipForward className="h-4 w-4" /></button>
+      <input type="range" aria-label={dict.body.analysis.seekLabel} min={0} max={Math.max(1, dur)} step={10_000} value={Math.min(timeUs, dur)} onChange={(e) => seek(Number(e.target.value))} className="min-w-[160px] flex-1" />
       <span className="tabular-nums" data-playhead-us={timeUs}>{seconds(timeUs)} / {formatDuration(dur)}</span>
-      <select aria-label="Playback speed" value={rate} onChange={(e) => { const r = Number(e.target.value); setRate(r); if (el) el.playbackRate = r; }} className="rounded-ctl border border-line bg-canvas px-2 py-1 text-xs">
+      <select aria-label={dict.body.processing.playbackSpeed} value={rate} onChange={(e) => { const r = Number(e.target.value); setRate(r); if (el) el.playbackRate = r; }} className="rounded-ctl border border-line bg-canvas px-2 py-1 text-xs">
         {[0.25, 0.5, 1, 1.5, 2].map((r) => <option key={r} value={r}>{r}×</option>)}
       </select>
     </div>
@@ -580,6 +591,7 @@ export function Transport() {
 
 /* ------------------------------------------------------------------ section 10: presence of the selected track */
 export function PresenceTimeline() {
+  const { t: dict } = useLocale();
   const { selectedId, observationsOf, video, timeUs, seek, run, intervalUs } = useWs();
   const [obs, setObs] = useState<Observation[] | null>(null);
   useEffect(() => {
@@ -597,12 +609,12 @@ export function PresenceTimeline() {
     }
     return out;
   }, [obs, intervalUs]);
-  if (!run) return <p className="text-sm text-muted">Presence appears after an analysis has finished.</p>;
-  if (!selectedId) return <p className="text-sm text-muted">Select a track to see when it was observed.</p>;
-  if (!obs) return <p className="text-sm text-muted">Loading…</p>;
+  if (!run) return <p className="text-sm text-muted">{dict.body.analysis.presenceAppears}</p>;
+  if (!selectedId) return <p className="text-sm text-muted">{dict.body.analysis.selectTrackSpans}</p>;
+  if (!obs) return <p className="text-sm text-muted">{dict.common.loading}</p>;
   return (
     <div className="space-y-1">
-      <div className="relative h-6 w-full cursor-pointer rounded bg-raised/60" aria-label="Observed spans of the selected track" role="img"
+      <div className="relative h-6 w-full cursor-pointer rounded bg-raised/60" aria-label={dict.body.analysis.observedSpans} role="img"
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); seek(((e.clientX - r.left) / r.width) * dur); }}>
         {spans.map(([a, b]) => (
           <span key={a} data-span={`${a}-${b}`} className="absolute top-1 h-4 rounded-sm bg-cyan/70" style={{ left: `${(100 * a) / dur}%`, width: `max(2px, ${(100 * (b - a + intervalUs)) / dur}%)` }} />
@@ -610,8 +622,8 @@ export function PresenceTimeline() {
         <span className="absolute top-0 h-6 w-0.5 bg-primary" style={{ left: `${(100 * timeUs) / dur}%` }} />
       </div>
       <p className="text-xs text-muted">{obs.length === 0
-        ? "No observations of this track were loaded."
-        : `${obs.length} observations in ${spans.length} span${spans.length === 1 ? "" : "s"}; gaps are times the track was not observed. Click to seek.`}</p>
+        ? dict.body.analysis.noObsLoaded
+        : dict.body.analysis.obsSpans.replace("{a}", String(obs.length)).replace("{b}", String(spans.length))}</p>
     </div>
   );
 }

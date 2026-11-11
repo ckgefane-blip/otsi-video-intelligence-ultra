@@ -7,6 +7,7 @@
 import { impactText, type IdentityImpact } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 
 export function useIdentityImpact(trackIds: string[], state: string, playerId: string | null): IdentityImpact | null {
   const [impact, setImpact] = useState<IdentityImpact | null>(null);
@@ -24,12 +25,13 @@ export function useIdentityImpact(trackIds: string[], state: string, playerId: s
 }
 
 export function ImpactNote({ trackIds, state, playerId, className = "" }: { trackIds: string[]; state: string; playerId: string | null; className?: string }) {
+  const { t: dict } = useLocale();
   const i = useIdentityImpact(trackIds, state, playerId);
   const text = i ? impactText(i) : null;
   if (!text) return null;
   return (
     <p role="note" data-identity-impact className={`rounded-ctl border border-[#f5b82e]/60 bg-[#f5b82e]/10 px-2.5 py-1.5 text-xs text-[#ffe6a8] ${className}`}>
-      <b>Before you save:</b> {text}
+      <b>{dict.body.analysis.beforeYouSave}</b> {text}
     </p>
   );
 }

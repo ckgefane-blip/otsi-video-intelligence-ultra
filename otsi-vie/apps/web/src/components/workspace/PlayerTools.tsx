@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { clock } from "./shared";
 import type { AnalysisWorkspaceState as WorkspaceState } from "@/components/analysis/AnalysisWorkspace";
+import { useLocale } from "@/lib/i18n";
 
 /* ------------------------------------------------------------------ overlay opacity */
 export type OverlayOpacity = { boxes: number; pitch: number; ball: number };
@@ -86,6 +87,7 @@ export function zoomOrigin(box: { x: number; y: number; w: number; h: number } |
 type Opts = { boxes: boolean; labels: boolean; selected: boolean; caption: boolean };
 
 export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState | null; open: boolean; onOpenChange(o: boolean): void }) {
+  const { t: dict } = useLocale();
   const [opts, setOpts] = useState<Opts>({ boxes: true, labels: false, selected: true, caption: true });
   const [list, setList] = useState<Snapshot[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState 
     try {
       await api(`/v1/videos/${vid}/snapshots`, { method: "POST", json: { at_pts_us: at, overlays: { boxes: opts.boxes, labels: opts.boxes && opts.labels, selected_track_id: opts.selected ? selId : null, caption: opts.caption } } });
       await load();
-    } catch (x) { setErr(x instanceof ApiProblem ? x.message : "The snapshot could not be asked for."); } finally { setBusy(false); }
+    } catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.workspace.snapshotNotAsked); } finally { setBusy(false); }
   };
   const save = async (s: Snapshot) => {
     try {
@@ -138,11 +140,11 @@ export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState 
       a.download = snapshotFileName(ws?.video?.title ?? ws?.video?.original_filename ?? null, s.frame_pts_us ?? s.pts_us);
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-    } catch (x) { setErr(x instanceof ApiProblem ? x.message : "The picture could not be saved."); }
+    } catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.workspace.pictureNotSaved); }
   };
   const remove = async (s: Snapshot) => {
     try { await api(`/v1/snapshots/${s.id}`, { method: "DELETE" }); if (shown?.id === s.id) setShown(null); await load(); }
-    catch (x) { setErr(x instanceof ApiProblem ? x.message : "That did not work."); }
+    catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork); }
   };
   const box = (k: keyof Opts, label: string, disabled = false, note?: string) => (
     <label className={`flex items-center gap-2 ${disabled ? "opacity-50" : ""}`}>
@@ -155,45 +157,45 @@ export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="snapshot" className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[min(860px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Snapshot</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.snapshotLabel}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
-            A still picture of the video at {clock(at)}, at the video&apos;s full resolution. Boxes are drawn only where the analysis recorded them at that frame; names only for confirmed players.
+            {dict.body.workspace.snapshotDesc.replace("{a}", clock(at))}
           </Dialog.Description>
           {ws?.canWrite ? (
             <div className="mb-3 grid gap-1.5 sm:grid-cols-2">
-              {box("boxes", "Player boxes", !ws.run, ws.run ? undefined : "no finished analysis")}
-              {box("labels", "Track numbers and confirmed names", !opts.boxes || !ws.run)}
-              {box("selected", "Highlight the selected player", !selId, selId ? undefined : "select a player first")}
-              {box("caption", "Caption: video, time, what the boxes are")}
+              {box("boxes", dict.body.workspace.playerBoxesLower, !ws.run, ws.run ? undefined : dict.body.workspace.noFinishedAnalysisLower)}
+              {box("labels", dict.body.workspace.trackNumbersNames, !opts.boxes || !ws.run)}
+              {box("selected", dict.body.workspace.highlightPlayer, !selId, selId ? undefined : dict.body.workspace.selectPlayerFirstLower)}
+              {box("caption", dict.body.workspace.captionVideoTime)}
               <div className="sm:col-span-2">
                 <button type="button" data-snap-make disabled={busy || !vid} onClick={() => void make()}
-                  className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-semibold disabled:opacity-40">{busy ? "Asking…" : `Make a snapshot at ${clock(at)}`}</button>
+                  className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-semibold disabled:opacity-40">{busy ? dict.body.workspace.asking : dict.body.workspace.makeSnapshotAt.replace("{a}", clock(at))}</button>
               </div>
             </div>
-          ) : <p className="mb-3 text-xs text-muted">Your role can see snapshots but not make them.</p>}
+          ) : <p className="mb-3 text-xs text-muted">{dict.body.workspace.roleSnapshots}</p>}
           {err && <p className="mb-2 text-xs text-[#ff8a8a]" role="alert">{err}</p>}
           {shown && latest && shown.id === latest.id && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={shown.url} alt={`Snapshot at ${clock(latest.frame_pts_us ?? latest.pts_us)}`} data-snap-image className="mb-3 w-full rounded-ctl border border-line" />
+            <img src={shown.url} alt={dict.body.workspace.snapshotAtAlt.replace("{a}", clock(latest.frame_pts_us ?? latest.pts_us))} data-snap-image className="mb-3 w-full rounded-ctl border border-line" />
           )}
-          {list === null ? <p className="text-xs text-muted">Reading the snapshots…</p> : list.length === 0 ? <p className="text-xs text-muted">No snapshots of this video yet.</p> : (
+          {list === null ? <p className="text-xs text-muted">{dict.body.workspace.readingSnapshots}</p> : list.length === 0 ? <p className="text-xs text-muted">{dict.body.workspace.noSnapshotsYet}</p> : (
             <ol className="space-y-1" data-snap-list>
               {list.map((s) => (
                 <li key={s.id} data-snap={s.status} className="flex items-center gap-2 rounded-ctl border border-line/60 px-2.5 py-1.5">
                   <button type="button" className="shrink-0 font-mono text-xs text-[#9fd0ff]" onClick={() => { ws?.seek(s.frame_pts_us ?? s.pts_us); onOpenChange(false); }}>{clock(s.frame_pts_us ?? s.pts_us)}</button>
                   <span className="min-w-0 flex-1 text-xs">
-                    {s.status === "SUCCEEDED" ? `${s.width}×${s.height}${s.overlays.boxes ? ` · ${s.boxes_drawn ?? 0} boxes` : ""}` : s.status === "FAILED" ? <span className="text-[#ff8a8a]">{s.failure}</span> : "Being made…"}
-                    <span className="block text-muted">{s.requested_by?.name ?? "Someone"}</span>
+                    {s.status === "SUCCEEDED" ? `${s.width}×${s.height}${s.overlays.boxes ? dict.body.workspace.boxesDrawn.replace("{a}", String(s.boxes_drawn ?? 0)) : ""}` : s.status === "FAILED" ? <span className="text-[#ff8a8a]">{s.failure}</span> : dict.body.workspace.beingMade}
+                    <span className="block text-muted">{s.requested_by?.name ?? dict.body.workspace.someoneLabel}</span>
                   </span>
-                  {s.status === "SUCCEEDED" && <button type="button" data-snap-save={s.id} onClick={() => void save(s)} className="shrink-0 rounded-ctl border border-line px-2 py-1 text-xs">Save PNG</button>}
+                  {s.status === "SUCCEEDED" && <button type="button" data-snap-save={s.id} onClick={() => void save(s)} className="shrink-0 rounded-ctl border border-line px-2 py-1 text-xs">{dict.body.workspace.savePng}</button>}
                   {ws?.canWrite && s.status !== "QUEUED" && s.status !== "RUNNING" && (
-                    <button type="button" data-snap-remove={s.id} onClick={() => void remove(s)} className="shrink-0 rounded-ctl border border-line px-2 py-1 text-xs">Remove</button>
+                    <button type="button" data-snap-remove={s.id} onClick={() => void remove(s)} className="shrink-0 rounded-ctl border border-line px-2 py-1 text-xs">{dict.body.upload.removeVerb}</button>
                   )}
                 </li>
               ))}
             </ol>
           )}
-          <div className="mt-3 text-right"><Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">Close</Dialog.Close></div>
+          <div className="mt-3 text-right"><Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.close}</Dialog.Close></div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

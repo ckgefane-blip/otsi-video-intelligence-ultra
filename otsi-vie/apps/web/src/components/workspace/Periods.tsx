@@ -6,6 +6,7 @@
 import type { MatchPeriods, Period } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 
 export type Range = "FULL" | "FIRST" | "SECOND";
 export type PeriodsState = {
@@ -23,6 +24,7 @@ export type PeriodsState = {
 };
 
 export function usePeriods(videoId: string | undefined): PeriodsState {
+  const { t: dict } = useLocale();
   const [data, setData] = useState<MatchPeriods | null>(null);
   const [draft, setDraft] = useState<{ first: Period | null; second: Period | null } | null>(null);
   const [range, setRange] = useState<Range>("FULL");
@@ -44,11 +46,11 @@ export function usePeriods(videoId: string | undefined): PeriodsState {
     setDraft({ ...cur, [which]: next });
   };
   const confirm = async () => {
-    if (!videoId || !shown.first) return "Nothing to confirm.";
+    if (!videoId || !shown.first) return dict.body.workspace.nothingConfirm;
     try {
       setData(await api<MatchPeriods>(`/v1/videos/${videoId}/match-periods`, { method: "PUT", json: { first: shown.first, second: shown.second } }));
       setDraft(null); return null;
-    } catch (x) { return x instanceof ApiProblem ? x.message : "Not saved."; }
+    } catch (x) { return x instanceof ApiProblem ? x.message : dict.body.workspace.notSaved; }
   };
   const window = (dur: number): [number, number] => {
     const p = range === "FIRST" ? shown.first : range === "SECOND" ? shown.second : null;

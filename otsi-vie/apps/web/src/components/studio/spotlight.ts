@@ -7,6 +7,7 @@
  * neither draws anything (unknown beats wrong).
  */
 import { ASPECT_RATIO, SpotlightSettings, type ReelPathPoint } from "@otsi-vie/contracts";
+import { getDictionary, type Dictionary } from "@/lib/i18n";
 
 export type Box = [number, number, number, number];                       // x, y, w, h normalised to the source frame
 export type BoxState = "DETECTED" | "INTERPOLATED" | "MISSING";
@@ -321,11 +322,12 @@ export interface RenderedState { state: "RENDERED" | "CHANGED" | "NEVER"; why: s
 /** E1: is the reel's latest playable render still this edit? Compared on what the renderer reads: clips (id, in, out, order), transitions,
  *  aspect and look settings. Per clip: RENDERED when the same clip window is in that render and the look is unchanged. */
 export function renderedState(reel: { clips: { id: string; in_pts_us: number; out_pts_us: number; sequence_index: number; effect?: object; fx?: { zoom: unknown[]; drawings: unknown[] } }[]; transitions?: { clip_id: string; kind: string; duration_ms: number }[];
-  aspect: string; settings: object; stale: boolean; last_good_render?: { config: Record<string, unknown> } | null | undefined }) {
+  aspect: string; settings: object; stale: boolean; last_good_render?: { config: Record<string, unknown> } | null | undefined }, d?: Dictionary) {
+  const dict = d ?? getDictionary("en");
   const cfg = reel.last_good_render?.config as { clips?: { id: string; in_pts_us: number; out_pts_us: number; effect?: object; fx?: { zoom: unknown[]; drawings: unknown[] } }[]; transitions?: { clip_id: string; kind: string; duration_us: number }[];
     aspect?: string; settings?: object; profile?: string } | undefined;
   const clipState = new Map<string, "RENDERED" | "CHANGED">();
-  if (!cfg?.clips) return { reel: { state: "NEVER", why: "Not rendered yet: Export makes the exact file" } as RenderedState, clip: (id: string) => (void id, "CHANGED" as const) };
+  if (!cfg?.clips) return { reel: { state: "NEVER", why: dict.body.studio.notRenderedExport } as RenderedState, clip: (id: string) => (void id, "CHANGED" as const) };
   // E3: a scout / social / archive file has its profile's own frame; settings compared with today's defaults filled in on both sides
   const withDefaults = (x: object) => { const p = SpotlightSettings.safeParse(x); return p.success ? p.data : x; };
   const lookSame = (!cfg.profile || cfg.profile === "REEL" ? cfg.aspect === reel.aspect : true)
@@ -346,8 +348,8 @@ export function renderedState(reel: { clips: { id: string; in_pts_us: number; ou
   const sameTrans = trans((reel.transitions ?? []).map((t) => ({ clip_id: t.clip_id, kind: t.kind, ms: t.duration_ms })))
     === trans((cfg.transitions ?? []).map((t) => ({ clip_id: t.clip_id, kind: t.kind, ms: Math.round(t.duration_us / 1000) })));
   const all = lookSame && sameTrans && !reel.stale && order === cfg.clips.map((c) => c.id).join(",") && [...clipState.values()].every((v) => v === "RENDERED");
-  const why = all ? "The rendered file matches this edit" : reel.stale ? "A followed identity changed: refresh the targets and render again"
-    : !lookSame ? "The look changed since the last render" : "The clips changed since the last render";
+  const why = all ? dict.body.studio.renderedFileMatchesEdit : reel.stale ? dict.body.studio.identityChangedRender
+    : !lookSame ? dict.body.studio.lookChangedRender : dict.body.studio.clipsChangedRender;
   return { reel: { state: all ? "RENDERED" : "CHANGED", why } as RenderedState, clip: (id: string) => clipState.get(id) ?? "CHANGED" };
 }
 

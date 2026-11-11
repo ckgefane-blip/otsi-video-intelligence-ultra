@@ -12,9 +12,10 @@
  * player's name only after a person confirmed the identity (ADR-016).
  */
 import type { Observation, TrackSummary } from "@otsi-vie/contracts";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
 export const KIT_COLOUR: Record<number, string> = { 0: "#2ee86a", 1: "#ff4d4d", 2: "#ffd600" };
-export const KIT_LEGEND: [number, string][] = [[0, "Team 1"], [1, "Team 2"], [2, "Officials"]];
+export const kitLegend = (d: Dictionary): [number, string][] => [[0, d.body.analysis.kitTeam1], [1, d.body.analysis.kitTeam2], [2, d.body.analysis.kitOfficials]];
 const NO_TEAM = "#19a0ff", BALL = "#f5b82e", CHOSEN = "#ffffff";
 
 /** a box's team (kit group): carried on the observation itself; the track list is only a fallback (it is capped, later tracks are not in it) */
@@ -26,17 +27,18 @@ export function TrackOverlay({ visible, tracks, W, H, labels, byTeam = true, sel
   visible: Visible[]; tracks: Map<string, TrackSummary>; W: number; H: number; labels: boolean; byTeam?: boolean;
   selectedId?: string | null; onSelect?: (trackId: string) => void;
 }) {
+  const { t: dict } = useLocale();
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Detected people and ball"
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={dict.body.analysis.detectedPeopleBall}
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
       {visible.map(({ o, exact, glided }) => {
         const ball = o.class_name === "BALL", tr = tracks.get(o.track_id), named = tr?.identity_state === "CONFIRMED", chosen = o.track_id === selectedId;
         const kit = kitOf(o, tracks);
         const color = chosen ? CHOSEN : ball ? BALL : (byTeam && kit !== null ? KIT_COLOUR[kit] : undefined) ?? NO_TEAM;
-        const name = ball ? "Ball" : named && tr ? (tr.label.split(" · ")[0] ?? "") : String(o.track_number);
+        const name = ball ? dict.body.processing.ball : named && tr ? (tr.label.split(" · ")[0] ?? "") : String(o.track_number);
         return (
           <g key={o.track_id} data-box-track={o.track_number} data-box-class={o.class_name} data-box-kit={kit ?? ""} data-box-exact={exact ? "1" : "0"}
-            data-box-state={exact ? "detected" : glided ? "estimated" : "nearest"}
+            data-box-state={exact ? dict.body.studio.detectedWord : glided ? "estimated" : "nearest"}
             onClick={onSelect ? () => onSelect(o.track_id) : undefined} style={onSelect ? { pointerEvents: "all", cursor: "pointer" } : undefined}>
             <rect x={o.x * W} y={o.y * H} width={o.w * W} height={o.h * H} fill="transparent" stroke={color} strokeWidth={chosen ? H * 0.0045 : H * 0.0025}
               {...(exact || glided ? {} : { strokeDasharray: `${H * 0.006} ${H * 0.004}` })} />

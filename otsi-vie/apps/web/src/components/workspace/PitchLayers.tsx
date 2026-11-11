@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { AnalysisWorkspaceState } from "@/components/analysis/AnalysisWorkspace";
 import { KIT_COLOUR, kitOf } from "@/components/analysis/TrackOverlay";
+import { useLocale } from "@/lib/i18n";
 
 const TRAIL_US = 3_000_000;
 const NO_TEAM = "#19a0ff";
@@ -41,6 +42,7 @@ function useHeat(ws: AnalysisWorkspaceState, on: boolean): { group: number | nul
 export function PitchLayers({ ws, W, H, teamGroups, onNote }: {
   ws: AnalysisWorkspaceState; W: number; H: number; teamGroups: Set<number> | null; onNote?: (note: string | null) => void;
 }) {
+  const { t: dict } = useLocale();
   const L = ws.layers, t = ws.timeUs;
   const any = !!(L.trails || L.shapes || L.heat || L.passes);
   const cal = any ? ws.calibrationAt(t) : null;
@@ -96,13 +98,13 @@ export function PitchLayers({ ws, W, H, teamGroups, onNote }: {
     return from && to ? { id: p.id, from, to, colour: p.key ? "#f5b82e" : colourOf(p.kit_group), key: p.key } : null;
   }).filter((x): x is NonNullable<typeof x> => !!x) : [];
 
-  const note = !any ? null : !ws.run ? "No analysis: nothing to place on the pitch" : !cal ? "Pitch not calibrated at this moment: trails, shapes, heat and passes are not drawn"
-    : L.heat && !heat.length ? "Heat: loading or nothing measured" : null;
+  const note = !any ? null : !ws.run ? dict.body.workspace.noAnalysisPlace : !cal ? dict.body.workspace.pitchNotCalMoment
+    : L.heat && !heat.length ? dict.body.workspace.heatLoadingNone : null;
   useEffect(() => { onNote?.(note); }, [note, onNote]);
   if (!any || !cal) return null;
   const sw = H * 0.003;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Pitch overlays" data-pitch-layers
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={dict.body.workspace.pitchOverlays} data-pitch-layers
       data-trails={trails.length} data-shapes={shapes.length} data-heat={quads.length} data-passes={arrows.length}
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "hidden" }}>
       <defs>
@@ -115,7 +117,7 @@ export function PitchLayers({ ws, W, H, teamGroups, onNote }: {
         <g key={s.g} data-shape={s.g}>
           <polygon points={s.pts} fill={colourOf(s.g)} fillOpacity={0.14} stroke={colourOf(s.g)} strokeWidth={sw} strokeDasharray={`${sw * 4} ${sw * 2}`} />
           <text x={s.at[0] * W} y={s.at[1] * H - H * 0.01} fontSize={H * 0.022} fontWeight={700} fill={colourOf(s.g)} stroke="#000" strokeWidth={H * 0.002} paintOrder="stroke">
-            {`${s.n} on screen · ${s.area} m²`}</text>
+            {dict.body.workspace.onScreenArea.replace("{a}", String(s.n)).replace("{b}", String(s.area))}</text>
         </g>
       ))}
       {trails.map((x) => x.lines.map((l, i) => <polyline key={`${x.id}-${i}`} points={l.join(" ")} fill="none" stroke={x.colour} strokeWidth={sw} strokeOpacity={0.85} strokeLinecap="round" strokeLinejoin="round" />))}

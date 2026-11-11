@@ -12,11 +12,13 @@ import { useEffect, useState } from "react";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { Box, Head, Sel } from "./kit";
+import { useLocale } from "@/lib/i18n";
 
 /** a chosen player: their registry identity (a roster entry carries the same three fields) */
 type Picked = Pick<PlayerIdentity, "player_id" | "display_name" | "canonical_otsi_id">;
 
 function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: boolean; onOpenChange: (o: boolean) => void; onChoose: (p: Picked) => void; title: string; match: Match | null }) {
+  const { t: dict } = useLocale();
   const [q, setQ] = useState("");
   const [found, setFound] = useState<PlayerIdentity[] | null>(null);
   useEffect(() => {
@@ -30,11 +32,11 @@ function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: bo
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(480px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
           <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="mb-3 text-xs text-muted">Search the player registry by name or OTSI Player ID.</Dialog.Description>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="At least 2 characters" aria-label="Player name or OTSI Player ID"
+          <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.tactics.searchRegistryHint}</Dialog.Description>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.tactics.atLeast2Chars} aria-label={dict.body.tactics.playerNameOrId}
             className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-ink" />
           {match && match.roster.length > 0 && !found && (
-            <ul className="mb-2 max-h-72 space-y-1 overflow-y-auto" aria-label="Players in this match">
+            <ul className="mb-2 max-h-72 space-y-1 overflow-y-auto" aria-label={dict.body.tactics.playersInMatch}>
               {match.roster.map((r) => (
                 <li key={r.player_id}>
                   <button type="button" onClick={() => { onChoose(r); onOpenChange(false); }}
@@ -46,13 +48,13 @@ function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: bo
               ))}
             </ul>
           )}
-          {found?.length === 0 && <p className="text-muted">No player found.</p>}
-          <ul className="max-h-72 space-y-1 overflow-y-auto" aria-label="Players">
+          {found?.length === 0 && <p className="text-muted">{dict.body.reports.noPlayerFound}</p>}
+          <ul className="max-h-72 space-y-1 overflow-y-auto" aria-label={dict.body.analysis.players}>
             {found?.map((p) => (
               <li key={p.player_id}>
                 <button type="button" onClick={() => { onChoose(p); onOpenChange(false); }}
                   className="flex w-full justify-between gap-2 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
-                  <span className="font-medium">{p.display_name}</span><span className="text-xs text-muted">{p.canonical_otsi_id ?? "provisional"}</span>
+                  <span className="font-medium">{p.display_name}</span><span className="text-xs text-muted">{p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span>
                 </button>
               </li>
             ))}
@@ -63,10 +65,11 @@ function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: bo
   );
 }
 
-const METRICS: [string, number][] = [["Passes", 1238], ["Pass Accuracy", 1270], ["Progressive Passes", 1302], ["Key Passes", 1334], ["Off-Ball Runs", 1366], ["Chances Created", 1397]];
 
 export function PlayerComparison({ focus, match }: { focus: boolean; match: Match | null }) {
+  const { t: dict } = useLocale();
   const [a, setA] = useState<Picked | null>(null);
+  const METRICS: [string, number][] = [[dict.body.processing.eventPasses, 1238], [dict.body.workspace.metricPassAccuracy, 1270], [dict.body.workspace.metricProgressivePasses, 1302], [dict.body.workspace.metricKeyPasses, 1334], [dict.body.tactics.offBallRuns, 1366], [dict.body.workspace.metricChancesCreated, 1397]];
   const [b, setB] = useState<Picked | null>(null);
   const entry = (p: Picked | null) => (p && match ? match.roster.find((r) => r.player_id === p.player_id) ?? null : null);
   const [picking, setPicking] = useState<"A" | "B" | null>(null);
@@ -76,7 +79,7 @@ export function PlayerComparison({ focus, match }: { focus: boolean; match: Matc
         style={{ left: u(card[0]), top: u(1230 - 101), width: u(card[1]), height: u(160), borderRadius: u(6), background: card[2], border: 0, padding: 0, cursor: "pointer" }} />
       <T x={tx} y={1244} size={20} weight={700}>{`Player ${k}`}</T>
       <T x={nx} y={1277} size={17} color="#cfdcf0" style={{ maxWidth: u(170), overflow: "hidden", textOverflow: "ellipsis" }}>
-        <span title={p?.canonical_otsi_id ?? undefined}>{p?.display_name ?? "No player selected"}</span>
+        <span title={p?.canonical_otsi_id ?? undefined}>{p?.display_name ?? dict.body.workspace.noPlayerSelected}</span>
       </T>
       <T x={tx} y={1311} size={19} color="#cfdcf0">{`Position ${entry(p)?.position ? `${entry(p)!.position}${entry(p)!.verified ? " ✓" : ""}` : "—"}`}</T>
       <B x={num[0]} y={1350} w={num[1]} h={36} style={{ background: num[2], color: num[3], borderRadius: u(4), fontSize: u(22), fontWeight: 700, textAlign: "center", lineHeight: u(36) }}>
@@ -85,15 +88,15 @@ export function PlayerComparison({ focus, match }: { focus: boolean; match: Matc
     </div>
   );
   return (
-    <section id="p05-s09" aria-label="Player comparison" data-section="p05-s09" data-a={a?.player_id ?? ""} data-b={b?.player_id ?? ""}>
+    <section id="p05-s09" aria-label={dict.body.tactics.playerComparison} data-section="p05-s09" data-a={a?.player_id ?? ""} data-b={b?.player_id ?? ""}>
       <Box x={1462} y={1162} w={1070} h={258} />
       {focus && <B x={1462} y={1162} w={1070} h={258} style={{ outline: `${u(3)} solid #33a8ff`, outlineOffset: u(2), borderRadius: u(10), pointerEvents: "none" }} />}
-      <Head x={1462} y={1193} title="Player Comparison" />
-      <Sel x={2074} y={1176} w={216} h={38} label="Compared position" value="AM"
-        options={([["AM", "Attacking Midfielder"], ["CM", "Central Midfielder"], ["DM", "Defensive Midfielder"], ["ST", "Striker"], ["W", "Winger"], ["FB", "Full-back"],
-          ["CB", "Centre-back"], ["GK", "Goalkeeper"]] as [string, string][]).map(([v, l]): [string, string] => [v, l])} />
-      <Sel x={2317} y={1176} w={197} h={38} label="Comparison period" value="30"
-        options={[["30", "Last 30 Minutes", "match periods not recorded"], ["full", "Full match"], ["h1", "1st half", "match periods not recorded"], ["h2", "2nd half", "match periods not recorded"]]} />
+      <Head x={1462} y={1193} title={dict.body.workspace.playerComparisonMode} />
+      <Sel x={2074} y={1176} w={216} h={38} label={dict.body.tactics.comparedPosition} value="AM"
+        options={([["AM", dict.body.tactics.posAttackingMid], ["CM", dict.body.tactics.posCentralMid], ["DM", dict.body.tactics.posDefensiveMid], ["ST", dict.body.tactics.posStriker], ["W", "Winger"], ["FB", "Full-back"],
+          ["CB", "Centre-back"], ["GK", dict.body.workspace.goalkeeper]] as [string, string][]).map(([v, l]): [string, string] => [v, l])} />
+      <Sel x={2317} y={1176} w={197} h={38} label={dict.body.tactics.comparisonPeriod} value="30"
+        options={[["30", "Last 30 Minutes", "match periods not recorded"], ["full", "Full match"], ["h1", dict.body.workspace.firstHalfLower, "match periods not recorded"], ["h2", dict.body.workspace.secondHalfLower, "match periods not recorded"]]} />
       {side("A", a, [1489, 133, "linear-gradient(135deg,#5a6f8c,#2a4a78)"], 1638, 1660, [1638, 46, "#1580ff", "#fff"])}
       {side("B", b, [2215, 127, "linear-gradient(135deg,#6a5f5a,#3a2a28)"], 2357, 2378, [2358, 44, "#fff", "#07152b"])}
       <dl style={{ margin: 0 }}>
