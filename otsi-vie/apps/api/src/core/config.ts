@@ -65,7 +65,7 @@ export interface LocalAuthConfig {
   /** browser origins allowed to call the cookie endpoints (refresh, logout): CSRF defence together with SameSite=Strict */
   allowedOrigins: string[];
   /** WebAuthn (passkeys, ADR-143): the relying-party id — the loopback host the desktop app runs on
-   *  (OTSI_VIE_WEBAUTHN_RP_ID, default "127.0.0.1"). A passkey created here cannot sign in to any other site. */
+   *  (OTSI_VIE_WEBAUTHN_RP_ID, default "localhost"). A passkey created here cannot sign in to any other site. */
   webauthnRpId?: string;
   /** WebAuthn relying-party name shown to the person (OTSI_VIE_WEBAUTHN_RP_NAME, default "OTSI VIE"). */
   webauthnRpName?: string;
@@ -95,7 +95,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       refreshReuseGraceSeconds: Number(env.OTSI_VIE_REFRESH_REUSE_GRACE_SECONDS ?? 20),
       secureCookies: env.OTSI_VIE_INSECURE_COOKIES !== "yes",
       allowedOrigins: (env.OTSI_VIE_WEB_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean),
-      webauthnRpId: (env.OTSI_VIE_WEBAUTHN_RP_ID ?? "127.0.0.1").trim(),
+      webauthnRpId: (env.OTSI_VIE_WEBAUTHN_RP_ID ?? "localhost").trim(),
       webauthnRpName: (env.OTSI_VIE_WEBAUTHN_RP_NAME ?? "OTSI VIE").trim(),
     };
     cfg.jwtPublicKeyPem ??= publicKeyOf(signingKeyPem);

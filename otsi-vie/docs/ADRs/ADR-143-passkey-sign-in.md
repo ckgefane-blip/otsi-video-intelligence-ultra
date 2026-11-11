@@ -32,10 +32,15 @@ a migration that has run anywhere.
 
 ### Relying party (RP)
 
-- The desktop app runs on `http://127.0.0.1:4311`, a loopback origin, which is a secure context for WebAuthn.
-- RP ID is configurable (`OTSI_VIE_WEBAUTHN_RP_ID`, default `127.0.0.1`); RP name is "OTSI VIE"
-  (`OTSI_VIE_WEBAUTHN_RP_NAME`). The RP ID is the loopback host, never a public domain, so a passkey created here
-  cannot be used to sign in to any other site.
+- The desktop app runs on `http://localhost:4311`, a loopback origin, which is a secure context for WebAuthn.
+- RP ID is configurable (`OTSI_VIE_WEBAUTHN_RP_ID`, default `localhost`); RP name is "OTSI VIE"
+  (`OTSI_VIE_WEBAUTHN_RP_NAME`). The RP ID is `localhost` — **never `127.0.0.1`: Chromium rejects `127.0.0.1` as a
+  WebAuthn RP ID (`SecurityError: 127.0.0.1 is an invalid domain`), while `localhost` is a valid domain.** The app
+  therefore serves the web and the API on `localhost` (not `127.0.0.1`) — `backend.js` `WEB_URL`/`API_URL`,
+  `local_stack.py` `OTSI_VIE_API_INTERNAL_URL`, and this RP ID all use `localhost`. (MySQL stays on `127.0.0.1` — it
+  is plain TCP and WebAuthn never sees it. The JWT issuer is also left on `127.0.0.1` so existing sessions keep working.)
+  The RP ID is a loopback host, never a public domain, so a passkey created here cannot be used to sign in to any
+  other site.
 - Expected origin = the configured `allowedOrigins`, else the request's loopback origin, else `http://127.0.0.1:4311`.
 - No `authenticatorAttachment` restriction (platform and cross-platform authenticators both allowed);
   `userVerification: required`; attestation `none` (no attestation statement is collected or stored).

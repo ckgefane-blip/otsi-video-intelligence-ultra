@@ -29,8 +29,8 @@
  * cannot sign them in. A passkey is possession + a biometric/PIN (userVerification required), which is at least as
  * strong as password + authenticator code, so a passkey login does not ask for a two-step code.
  *
- * RP (relying party): the desktop app runs on http://127.0.0.1:4311, a loopback origin, which is a secure context
- * for WebAuthn. The RP ID is configurable (OTSI_VIE_WEBAUTHN_RP_ID, default "127.0.0.1") and the RP name is
+ * RP (relying party): the desktop app runs on http://localhost:4311, a loopback origin, which is a secure context
+ * for WebAuthn. The RP ID is configurable (OTSI_VIE_WEBAUTHN_RP_ID, default "localhost") and the RP name is
  * "OTSI VIE". The RP ID is the loopback host, never a public domain, so a passkey created here cannot be used to
  * sign in to any other site.
  *
@@ -76,7 +76,7 @@ export class WebAuthnService {
 
   constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db, private readonly auth: AuthService) {
     if (!cfg.localAuth) throw new Error("passkey sign-in needs local sign-in (OTSI_VIE_LOCAL_SIGNING_KEY_FILE)");
-    this.rpId = cfg.localAuth.webauthnRpId ?? "127.0.0.1";
+    this.rpId = cfg.localAuth.webauthnRpId ?? "localhost";
     this.rpName = cfg.localAuth.webauthnRpName ?? "OTSI VIE";
     this.allowedOrigins = cfg.localAuth.allowedOrigins;
   }
@@ -86,7 +86,7 @@ export class WebAuthnService {
   private expectedOrigins(reqOrigin?: string): string[] {
     if (this.allowedOrigins.length > 0) return this.allowedOrigins;
     if (reqOrigin && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(reqOrigin)) return [reqOrigin];
-    return ["http://127.0.0.1:4311"];
+    return ["http://localhost:4311"];
   }
 
   private async storeChallenge(purpose: "register" | "login", userId: string | null, email: string | null, challenge: string): Promise<void> {

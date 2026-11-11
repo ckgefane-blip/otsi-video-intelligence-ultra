@@ -9,7 +9,9 @@
  *   find Python -> ensure the engine repo -> pnpm install -> prepare
  *   (portable MySQL, no Docker) -> build if needed -> owner account ->
  *   start `local_stack.py run --no-build --mysql portable` -> wait for
- *   http://127.0.0.1:4311.
+ *   http://localhost:4311. (localhost, not 127.0.0.1: the browser rejects
+ *   127.0.0.1 as a WebAuthn RP ID — "127.0.0.1 is an invalid domain" —
+ *   while localhost is a valid domain, so passkeys only work on localhost.)
  *
  * Everything runs through child_process directly (no shell), so there are no
  * cmd.exe quoting problems. All output goes to a caller-supplied log
@@ -29,8 +31,8 @@ const BRANCH = 'muse/ultra-main';
 // original engine (web 4310, API 4520, MySQL 3508).
 const WEB_PORT = 4311;
 const API_PORT = 4521;
-const API_URL = `http://127.0.0.1:${API_PORT}`;
-const WEB_URL = `http://127.0.0.1:${WEB_PORT}`;
+const API_URL = `http://localhost:${API_PORT}`;
+const WEB_URL = `http://localhost:${WEB_PORT}`;
 const DOCKER_CONTAINER = 'otsi-vie-v2-mysql';
 
 /* ------------------------------------------------------------------ */

@@ -184,7 +184,7 @@ def prepare(name: str, mysql_mode: str = "docker") -> dict[str, str]:
         "OTSI_VIE_INSECURE_COOKIES": "yes",                   # plain HTTP on this machine only
         "OTSI_VIE_WEB_ORIGINS": web_origins_for(web_port),
         "OTSI_VIE_API_PORT": str(api_port),
-        "OTSI_VIE_API_INTERNAL_URL": f"http://127.0.0.1:{api_port}",   # the web app proxies /api/* here (next.config); must match the API port
+        "OTSI_VIE_API_INTERNAL_URL": f"http://localhost:{api_port}",   # the web app proxies /api/* here (next.config); must match the API port. localhost, not 127.0.0.1: the browser rejects 127.0.0.1 as a WebAuthn RP ID.
         "OTSI_VIE_STORAGE_DIR": str(storage),
         "OTSI_VIE_MEDIA_SIGNING_KEY": s["MEDIA_SIGNING_KEY"],
         "OTSI_VIE_CREDENTIAL_KEY": s["CREDENTIAL_KEY"],               # seals users' provider tokens between the API and the worker
