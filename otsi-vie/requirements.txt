@@ -1,7 +1,6 @@
 # Python dependencies of OTSI VIE v2 (workers, CV, database tooling, tests): exact versions of everything installed, transitive included.
 # Install into D:\OTSI-Workspace\VIE-Engine-v2\.venv with caches on D: (workspace rule):
 #   .venv\Scripts\python.exe -m pip install --cache-dir D:/OTSI-Workspace/_tmp/pip-cache --extra-index-url https://download.pytorch.org/whl/cpu -r otsi-vie\requirements.txt
-equirements.txt
 # torch is the CPU build. Licences: docs/legal/DEPENDENCY_LICENSES.md (generated) and LICENSE_REGISTER.md.
 anyio==4.16.0
 av==13.1.0   # DEVELOPER TOOLS ONLY (tools/models/sampling_study.py): bundles a GPL FFmpeg; the product uses the LGPL build (ADR-029, test_media_licensing.py)
