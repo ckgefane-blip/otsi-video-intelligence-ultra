@@ -26,6 +26,54 @@ Heavy work runs on the user's own PC. Accounts, licences and money live on one s
 - The data folder is user-chosen and defaults to a non-system drive when one exists. No caches go on C: unless it is the only drive.
 - No git, pnpm, Node or Python is required on the user's machine.
 
+### 1b. Packaging — the professional way (owner direction 2026-11-11)
+- **Ship one AI runtime.** PyTorch and PaddlePaddle are training frameworks; don't ship them to users.
+  - Export every model once, at build time, to ONNX (and OpenVINO IR).
+  - Run inference on the user's PC with **ONNX Runtime + DirectML**. That's free (MIT) and uses any Windows GPU: NVIDIA, AMD or Intel. Add the **OpenVINO** runtime for Intel CPUs and GPUs.
+  - CPU stays as the fallback.
+  - This cuts the ~450 MB Python bundle to roughly 100–150 MB and makes analysis faster on more PCs.
+  - Gate: the exported models must match the originals' accuracy on the evaluation set before switching (record the numbers).
+- **Local database: SQLite** for each user's on-PC project data; that's the standard for desktop creative apps. **MySQL** stays on the central server (accounts, licences, billing, audit).
+  - **Needs the owner's written approval**, because the project rule says MySQL.
+  - Until approved, keep portable MySQL bundled.
+- **Small installer + component manager.** The installer has the app, the runtimes and the core model pack. Heavier model packs and future language packs install from inside the app: chosen by the user, resumable, SHA-256 checked, signed manifest.
+- **Small updates.** electron-updater differential (blockmap) updates, so a code update is megabytes, not the whole installer.
+- **Signed releases.** An unsigned app triggers SmartScreen and looks amateur.
+  - Evaluate Microsoft Store (MSIX) distribution, where Microsoft signs the package; check the current developer-account fee.
+  - Record any cost for owner approval (zero-cost rule).
+- **Hardware check at first run.** Detect the GPU, RAM and disk, pick the fastest runtime automatically, and show the user the expected speed. Don't fail silently on weak PCs.
+- **Later, macOS.** ONNX Runtime with CoreML runs the same models on Mac. Design paths, codecs and the runtime choice so a Mac build is possible.
+
+### 1c. Native and protected (owner direction 2026-11-11)
+
+**URGENT — source code is public.** `ckgefane-blip/otsi-video-intelligence-ultra` is a PUBLIC GitHub repo (checked 2026-11-11 via the GitHub API: `"visibility": "public"`). Anyone can copy the whole engine.
+- The owner makes it private (GitHub → Settings → Danger zone → Change visibility).
+- The current test app clones it without signing in, so it will stop updating until the new installer (no git on user PCs) replaces it. That's acceptable.
+
+**Native code, no readable source on user PCs:**
+- **Engine (Python):** compile it to native machine code with **Nuitka** (free, Apache-2.0) before packaging, so no `.py` files ship. Move speed-critical parts (tracking, spotlight compositing) to C++ or Rust over time.
+- **AI inference:** ONNX Runtime and OpenVINO are native C++ already.
+- **API and UI (JavaScript):**
+  - Bundle and minify them, and compile the main-process code to V8 bytecode (bytenode, free).
+  - Enable Electron fuses: disable `RunAsNode` and the Node inspector, and turn on ASAR integrity.
+  - Pack everything in an integrity-checked ASAR.
+- **Shell:** Electron for now (fastest path). Record an ADR on a later move to a native shell (Qt/C++, as DaVinci uses, or Tauri/Rust with WebView2), with a cost and effort estimate. Don't switch without owner approval.
+- **AI model files:** encrypt them at rest. The app decrypts them in memory only with a valid licence. Each model has a checksum.
+- **Licence enforcement:** a server-signed licence token (Ed25519) checked inside the compiled native code, plus tamper detection. Never trust a plain flag.
+- **Code-signed** installer and binaries (see 1b).
+
+**Clean ownership (so it can be protected):**
+- Keep `docs/legal/LICENSE_REGISTER.md` current. Ship **nothing AGPL or GPL**.
+- **Prefer SQLite (public domain) over bundling MySQL.** The register itself says embedding/distributing MySQL needs Oracle commercial terms; this is another reason for the SQLite decision.
+- Ship third-party notices (MIT/Apache attributions) in the app's About → Licences.
+- Add a proprietary EULA in the installer, plus a copyright notice ("© Osio & Tee Solutions International Ltd") in the app, the files and the exports.
+- Make sure every contributor (people and AI-assisted work) assigns rights to the company in writing.
+
+**Legal protection (owner + counsel; may cost fees, so owner decides):**
+- **Copyright:** automatic. Keep dated records (git history, release archives). Optional: voluntary notification with the Nigerian Copyright Commission.
+- **Trademark:** register "OTSI VIE" and the logo, first in Nigeria, then via WIPO Madrid for key markets.
+- **Patent:** software patents are hard to get and costly. Have counsel assess whether any novel method (e.g. identity-confirmed spotlight tracking) qualifies before any public disclosure. Until then, keep those methods as trade secrets: compiled, private repo, NDAs.
+
 ### 2. Central server — the owner's existing hosting (subdomain + MySQL)
 - Accounts, sign-in, passkeys, organisations and teams.
 - Licences and entitlements: which plan, which features, the token wallet and seats.
