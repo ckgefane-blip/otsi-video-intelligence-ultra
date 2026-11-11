@@ -10,6 +10,7 @@ import { commands, KEYMAP_HREF, matchCommands } from "@/lib/commands";
 import { openKeymap } from "@/lib/keymap";
 import { PAGES } from "@/lib/pages";
 import { LocalAssistant } from "./LocalAssistant";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { EMPTY_CTX, readCtx } from "@/lib/workContext";
 
 /**
@@ -26,10 +27,44 @@ import { EMPTY_CTX, readCtx } from "@/lib/workContext";
  * Analysis at that time) and people's markers, and understands filters typed in the field (type:, event:, is:). A filter it does not
  * understand is said back, never guessed.
  */
-const GROUP: Record<SearchKind, string> = { MATCH: "Matches", PLAYER: "Players", REEL: "Reels", PROJECT: "Projects", MOMENT: "Moments", MARKER: "Markers" };
+/** the group heading for each kind of recorded hit (ADR-139) */
+const groupLabel = (t: Dictionary, k: SearchKind): string => ({
+  MATCH: t.body.shell.groupMatch, PLAYER: t.body.shell.groupPlayer, REEL: t.body.shell.groupReel,
+  PROJECT: t.body.shell.groupProject, MOMENT: t.body.shell.groupMoment, MARKER: t.body.shell.groupMarker,
+})[k];
+
+/** the command's label and hint as the person reads them; the English label/hint in lib/commands.ts stay for matching */
+const cmdLabel = (t: Dictionary, c: { id: string }): { label: string; hint: string } => ({
+  upload: { label: t.body.shell.cmdUpload, hint: t.body.shell.cmdUploadHint },
+  players: { label: t.body.shell.cmdPlayers, hint: t.body.shell.cmdPlayersHint },
+  matches: { label: t.body.shell.cmdMatches, hint: t.body.shell.cmdMatchesHint },
+  admin: { label: t.body.shell.cmdAdmin, hint: t.body.shell.cmdAdminHint },
+  wallet: { label: t.body.shell.cmdWallet, hint: t.body.shell.cmdWalletHint },
+  billing: { label: t.body.shell.cmdBilling, hint: t.body.shell.cmdBillingHint },
+  team: { label: t.body.shell.cmdTeam, hint: t.body.shell.cmdTeamHint },
+  keys: { label: t.body.shell.cmdKeys, hint: t.body.shell.cmdKeysHint },
+  security: { label: t.body.shell.cmdSecurity, hint: t.body.shell.cmdSecurityHint },
+  continue: { label: t.body.shell.cmdContinue, hint: t.body.shell.cmdContinueHint },
+  studio: { label: t.body.shell.cmdStudio, hint: t.body.shell.cmdStudioHint },
+}[c.id] ?? { label: c.id, hint: "" });
+
+/** the page's title and subtitle as the person reads them, keyed by route */
+const pageLabel = (t: Dictionary, href: string): { label: string; hint: string } => ({
+  "/dashboard": { label: t.pages.home.title, hint: t.pages.home.subtitle },
+  "/upload": { label: t.pages.upload.title, hint: t.pages.upload.subtitle },
+  "/processing": { label: t.pages.processing.title, hint: t.pages.processing.subtitle },
+  "/analysis": { label: t.pages.analysis.title, hint: t.pages.analysis.subtitle },
+  "/tactics": { label: t.pages.tactical.title, hint: t.pages.tactical.subtitle },
+  "/reels": { label: t.pages.reels.title, hint: t.pages.reels.subtitle },
+  "/studio": { label: t.pages.studio.title, hint: t.pages.studio.subtitle },
+  "/reports": { label: t.pages.reports.title, hint: t.pages.reports.subtitle },
+  "/library": { label: t.pages.library.title, hint: t.pages.library.subtitle },
+  "/exports": { label: t.pages.exports.title, hint: t.pages.exports.subtitle },
+}[href] ?? { label: href, hint: "" });
 interface Row { key: string; group: string; label: string; hint: string | null; href: string; mono?: boolean }
 
 export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolean; onOpenChange?: (o: boolean) => void } = {}) {
+  const { t } = useLocale();
   const [openSelf, setOpenSelf] = useState(false);
   const open = openProp ?? openSelf;
   const setOpen = (o: boolean | ((x: boolean) => boolean)) => {
@@ -69,21 +104,21 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
 
   const rows = useMemo<Row[]>(() => {
     const n = q.trim().toLowerCase();
-    const cmd = matchCommands(commands(ctx), organization?.role, q).map((c) => ({ key: `c-${c.id}`, group: "Commands", label: c.label, hint: c.hint, href: c.href }));
-    const pages = Object.values(PAGES).map((p) => ({ key: `p-${p.href}`, group: "Pages", label: p.label, hint: p.subtitle, href: p.href }));
+    const cmd = matchCommands(commands(ctx), organization?.role, q).map((c) => ({ key: `c-${c.id}`, group: t.body.shell.groupCommands, ...cmdLabel(t, c), href: c.href }));
+    const pages = Object.values(PAGES).map((p) => ({ key: `p-${p.href}`, group: t.body.shell.groupPages, ...pageLabel(t, p.href), href: p.href }));
     const byLabel = pages.filter((r) => r.label.toLowerCase().includes(n));
     const pg = !n ? pages : [...byLabel, ...pages.filter((r) => !byLabel.includes(r) && r.hint.toLowerCase().includes(n))];
     const found = (hits ?? []).map((h) => ({
       key: `${h.kind}-${h.id}`,
-      group: GROUP[h.kind],
+      group: groupLabel(t, h.kind),
       label: h.title,
       hint: h.period ? `${h.period} · ${h.detail ?? ""}` : h.detail,
       href: hitHref(h),
       mono: h.kind === "PLAYER" && !!h.ref,
     }));
-    const lib = n.length >= 2 ? [{ key: "lib", group: "Library", label: `Search the Library for “${q.trim()}”`, hint: "Matches, reels, files and folders, with filters", href: `/library?q=${encodeURIComponent(q.trim())}` }] : [];
+    const lib = n.length >= 2 ? [{ key: "lib", group: t.body.shell.groupLibrary, label: t.body.shell.paletteLibrary.replace("{a}", q.trim()), hint: t.body.shell.paletteLibraryHint, href: `/library?q=${encodeURIComponent(q.trim())}` }] : [];
     return [...cmd, ...pg, ...found, ...lib];
-  }, [q, hits, ctx, organization?.role]);
+  }, [q, hits, ctx, organization?.role, t]);
 
   useEffect(() => setCursor(0), [q, hits]);
   useEffect(() => { if (!open) { setQ(""); setHits(null); setAssistant(false); } }, [open]);
@@ -104,22 +139,22 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
             if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
             if (e.key === "Enter" && rows[cursor]) { e.preventDefault(); go(rows[cursor].href); }
           }}>
-          <Dialog.Title className="sr-only">Search and commands</Dialog.Title>
-          <Dialog.Description className="sr-only">Find matches, players, reels and projects, open a page or run a command.</Dialog.Description>
+          <Dialog.Title className="sr-only">{t.body.shell.paletteTitle}</Dialog.Title>
+          <Dialog.Description className="sr-only">{t.body.shell.paletteDesc}</Dialog.Description>
           <div className="flex gap-2 border-b border-line px-2 pb-2">
-            <button type="button" aria-pressed={!assistant} onClick={() => setAssistant(false)} className="rounded-ctl px-2 py-1 text-sm aria-pressed:bg-raised">Search and commands</button>
-            <button type="button" aria-pressed={assistant} onClick={() => setAssistant(true)} className="rounded-ctl px-2 py-1 text-sm aria-pressed:bg-raised">Assistant</button>
+            <button type="button" aria-pressed={!assistant} onClick={() => setAssistant(false)} className="rounded-ctl px-2 py-1 text-sm aria-pressed:bg-raised">{t.body.shell.paletteTitle}</button>
+            <button type="button" aria-pressed={assistant} onClick={() => setAssistant(true)} className="rounded-ctl px-2 py-1 text-sm aria-pressed:bg-raised">{t.body.shell.paletteAssistant}</button>
           </div>
           {assistant ? <LocalAssistant key={organization?.organization_id} navigate={go} /> : <>
           <div className="flex items-center gap-2 border-b border-line px-2 pb-2">
             <Search className="h-4 w-4 text-muted" />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search matches, players, moments, reels, or a command…"
-              aria-label="Search" role="combobox" aria-expanded="true" aria-controls="palette-results" data-palette-input
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.body.shell.palettePlaceholder}
+              aria-label={t.body.shell.paletteSearchAria} role="combobox" aria-expanded="true" aria-controls="palette-results" data-palette-input
               aria-activedescendant={rows[cursor] ? `palette-${cursor}` : undefined}
               className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-muted" />
             <kbd className="rounded border border-line bg-raised px-1.5 py-0.5 text-[11px] text-muted">Esc</kbd>
           </div>
-          <ul id="palette-results" role="listbox" aria-label="Results" className="max-h-[60vh] overflow-auto py-1">
+          <ul id="palette-results" role="listbox" aria-label={t.body.shell.paletteResultsAria} className="max-h-[60vh] overflow-auto py-1">
             {rows.map((r, i) => (
               <li key={r.key} className="contents">
                 {(i === 0 || rows[i - 1]!.group !== r.group) && <p role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{r.group}</p>}
@@ -132,12 +167,14 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
             ))}
           </ul>
           <p className="border-t border-line px-3 pt-2 text-xs text-muted" data-palette-state>
-            {n.length < 2 ? "Type 2 or more letters to search what your organization recorded."
-              : failed ? "The search could not be reached; pages and commands still work."
-              : hits === null ? "Searching…"
-              : hits.length === 0 ? `Nothing recorded matches “${n}”.` : `${hits.length} recorded item${hits.length > 1 ? "s" : ""} match “${n}”.`}
-            {" "}↑ ↓ to move, Enter to open.
-            {unknown.length > 0 && <span data-palette-unknown className="block text-amber">Not understood, left out: {unknown.join(" ")}.</span>}
+            {n.length < 2 ? t.body.shell.paletteTypeMore
+              : failed ? t.body.shell.paletteUnreachable
+              : hits === null ? t.body.shell.paletteSearching
+              : hits.length === 0 ? t.body.shell.paletteNoMatch.replace("{a}", n)
+              : hits.length === 1 ? t.body.shell.paletteMatchOne.replace("{a}", String(hits.length)).replace("{b}", n)
+              : t.body.shell.paletteMatchMany.replace("{a}", String(hits.length)).replace("{b}", n)}
+            {" "}{t.body.shell.paletteKeys}
+            {unknown.length > 0 && <span data-palette-unknown className="block text-amber">{t.body.shell.paletteUnknown.replace("{a}", unknown.join(" "))}</span>}
             <span className="block">{SMART_HINT}</span>
           </p>
           </>}

@@ -89,7 +89,81 @@ describe("dictionaries (ADR-139)", () => {
     // Every same-as-English leaf must be on this list — a new one means a
     // translation was left as an English copy. Group B (2026-11-11) added
     // the studio/workspace/tactics cognates below.
+    // Group D (2026-11-11) added the library/reports/players/matches
+    // cognates below: genuine loanwords/cognates ("Video", "Status",
+    // "Tags", "Match", "Reels", "clip", "Pass", "Design"), placeholder-only
+    // templates ("{a} · {b}", "{a} / 10") and metric abbreviations ("xG", "xA").
     const COGNATES = new Set([
+      "body.library.assetAria",
+      "body.library.binGroupMoments",
+      "body.library.binNameLabel",
+      "body.library.clipsMany",
+      "body.library.clipsOne",
+      "body.library.colStatus",
+      "body.library.groupMoments",
+      "body.library.kindLabelMatch",
+      "body.library.kindLabelReel",
+      "body.library.kindLabelVideo",
+      "body.library.kindPluralVideo",
+      "body.library.kindVideos",
+      "body.library.matchSubFallback",
+      "body.library.metaTags",
+      "body.library.overlayHeatmaps",
+      "body.library.pagesAria",
+      "body.library.panelTabsAria",
+      "body.library.permEditor",
+      "body.library.permManager",
+      "body.library.projectDescAria",
+      "body.library.tabExports",
+      "body.library.tabReels",
+      "body.library.tableStatus",
+      "body.library.teamsNoneLabel",
+      "body.library.withReelsMany",
+      "body.library.withReelsOne",
+      "body.matches.positionAria",
+      "body.matches.positionPlaceholder",
+      "body.matches.provisionalShort",
+      "body.matches.roleStarter",
+      "body.reports.actFilterPasses",
+      "body.reports.assessRatingValue",
+      "body.reports.assessTraits",
+      "body.reports.cmpPasses",
+      "body.reports.coverTime",
+      "body.reports.criterionScore",
+      "body.reports.designTitle",
+      "body.reports.evFilterPasses",
+      "body.reports.evLengthM",
+      "body.reports.evPass",
+      "body.reports.heatModeTouches",
+      "body.reports.kpiPasses",
+      "body.reports.kpiSprints",
+      "body.reports.kpiXa",
+      "body.reports.kpiXg",
+      "body.reports.minSuffix",
+      "body.reports.notesHeading",
+      "body.reports.notesTags",
+      "body.reports.playerInDossier",
+      "body.reports.railHeatmaps",
+      "body.reports.railPerformance",
+      "body.reports.spCorner",
+      "body.reports.spPenalty",
+      "body.library.colType",
+      "body.library.deleteNounMatch",
+      "body.library.deleteNounReel",
+      "body.library.filterTeam",
+      "body.library.filterTeamsNone",
+      "body.library.filterType",
+      "body.library.newProjectDescAria",
+      "body.library.rowInFolder",
+      "body.library.rowTitle",
+      "body.library.selMatch",
+      "body.library.selNameAria",
+      "body.library.selTags",
+      "body.library.tabCountAria",
+      "body.library.tableHeadStatus",
+      "body.library.tableHeadType",
+      "body.library.trashWithReelMany",
+      "body.library.trashWithReelOne",
       "body.analysis.kitTeam1",
       "body.analysis.kitTeam2",
       "body.analysis.match",
@@ -339,6 +413,68 @@ describe("dictionaries (ADR-139)", () => {
       "pages.exports.title",
       "pages.reels.title",
       "webauthn.passkeysTitle",
+      // Group E (2026-11-11): Admin / Settings / Wallet / Shell / Home / Auth
+      // cognates below — genuine loanwords and football/infra terms shared
+      // with English ("Reels", "Export", "Upload", "Pause", "Normal", "App",
+      // "Pro", "Code", "Match", "Workers", "Videos", "Governance", "Status",
+      // "Adapter", "Details", "Name", "Analyst", "Scout", "Editor", "Actor",
+      // "Tokens", "Naira (₦)"), severity codes ("INFO"), technical names
+      // ("CPU / DirectML"), placeholder-only templates (", {a}", "{a}: {b}"),
+      // punctuation ("—"), a query-syntax placeholder and the OTSI Player ID.
+      "body.home.heroMetricPasses",
+      "body.home.heroPlayerAriaId",
+      "body.admin.severityInfo",
+      "body.admin.metricWorkers",
+      "body.admin.metricVideos",
+      "body.admin.sysGpuFallback",
+      "body.admin.auditColActor",
+      "body.admin.auditColDetails",
+      "body.admin.colAdapter",
+      "body.admin.colStatus",
+      "body.admin.gatesCatGovernance",
+      "body.admin.gatesCatInfrastructure",
+      "body.admin.modelAbsent",
+      "body.admin.queueActiveWord",
+      "body.admin.gdprAction",
+      "body.admin.gdprColDate",
+      "body.admin.auditColAction",
+      "body.admin.workerOnline",
+      "body.admin.workerCountOne",
+      "body.settings.emailPlaceholder",
+      "body.settings.roleSummaryLine",
+      "body.settings.roleEditor",
+      "body.settings.roleAnalyst",
+      "body.settings.roleScout",
+      "body.settings.colName",
+      "body.settings.colEmail",
+      "body.wallet.tokensUnit",
+      "body.wallet.currencyNaira",
+      "body.wallet.colTokens",
+      "body.wallet.billingTopUpTokensPh",
+      "body.wallet.billingWalletSection",
+      "body.wallet.billingLedgerAria",
+      "body.wallet.colNote",
+      "body.shell.modePro",
+      "body.shell.groupReel",
+      "body.shell.groupPages",
+      "body.shell.groupMoment",
+      "body.shell.ctxNonePlayer",
+      "body.shell.ctxProvisional",
+      "body.shell.ctxOtsiId",
+      "body.shell.ctxReel",
+      "body.shell.ctxMatch",
+      "body.shell.jobPriorityNormal",
+      "body.shell.jobPause",
+      "body.shell.keyGroupApp",
+      "body.shell.assistantCommandPh",
+      "body.shell.pageNameUpload",
+      "body.shell.pageNameExport",
+      "body.shell.scopeExports",
+      "body.shell.paletteAssistant",
+      "body.shell.notifTitle",
+      "body.shell.notifTitleFallback",
+      "body.auth.code",
+      "body.auth.inviteTitle",
     ]);
     for (const locale of ["ru", "es", "de", "fr"] as const) {
       const dict = getDictionary(locale);
@@ -355,7 +491,19 @@ describe("dictionaries (ADR-139)", () => {
       // Group C (2026-11-11) raised it from 100 to 180 as the Reel Builder
       // and Export keys landed: ~1,100 new keys, many of them loanwords
       // (Clip, Reel, Spotlight), formats (4K, MP4, fps, LUFS) and role names.
-      expect(same.length, locale).toBeLessThan(180);
+      // Group D (2026-11-11) raised it from 180 to 210 as the Library /
+      // Reports / Players / Matches keys landed: ~970 new keys, many of them
+      // football loanwords in French (Match, Reels, Passes, Corner, Penalty,
+      // Performance, Heatmaps) and placeholder-only templates. French is the
+      // highest at 193.
+      // Group E (2026-11-11) raised it from 210 to 250 as the Admin /
+      // Settings / Wallet / Shell / Home / Auth keys landed: ~710 new keys,
+      // many of them admin/infra loanwords (Workers, Videos, Governance,
+      // Status, Adapter, Export, Upload, Pause, Normal, App, Pro, Code,
+      // Match, Reels, Moments, Pages, Notifications, Assistant) and
+      // placeholder-only templates. French is the highest at 235, German
+      // at 216, Spanish at 167, Russian at 36.
+      expect(same.length, locale).toBeLessThan(250);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -368,14 +516,15 @@ describe("page bodies (ADR-139 follow-up)", () => {
 
   it("covers the in-scope page groups, with the expected key counts", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
-    expect(bodyKeys("home").length).toBe(43);
+    expect(bodyKeys("home").length).toBe(97);
     expect(bodyKeys("analysis").length).toBe(208);
     expect(bodyKeys("reels").length).toBe(212);
     expect(bodyKeys("studio").length).toBe(723);
-    expect(bodyKeys("reports").length).toBe(17);
-    expect(bodyKeys("library").length).toBe(25);
+    expect(bodyKeys("reports").length).toBe(338);
+    expect(bodyKeys("library").length).toBe(650);
     expect(bodyKeys("exports").length).toBe(32);
-    expect(bodyKeys("players").length).toBe(44);
+    expect(bodyKeys("players").length).toBe(110);
+    expect(bodyKeys("matches").length).toBe(108);
     expect(bodyKeys("upload").length).toBe(435);
     expect(bodyKeys("processing").length).toBe(302);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
@@ -384,6 +533,14 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // Group C (2026-11-11): Reel Builder + Export pages.
     expect(bodyKeys("reelstage").length).toBe(435);
     expect(bodyKeys("exportstage").length).toBe(515);
+    // Group E (2026-11-11): Admin + Settings + Wallet + Shell + Auth, and
+    // the Home extension (KPI cards, capability tiles, hero metrics, hero
+    // player card, review inbox, active jobs).
+    expect(bodyKeys("admin").length).toBe(168);
+    expect(bodyKeys("settings").length).toBe(74);
+    expect(bodyKeys("wallet").length).toBe(90);
+    expect(bodyKeys("shell").length).toBe(244);
+    expect(bodyKeys("auth").length).toBe(79);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {
@@ -447,8 +604,49 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(deC.exportstage.workflowTitle).toBe("Export & Lieferung");
     const frC = getDictionary("fr").body;
     expect(frC.reels.clubLeague).toBe("Club et championnat");
+    // Group D spot checks (2026-11-11): Library / Reports / Players / Matches.
+    const ruD = getDictionary("ru").body;
+    const esD = getDictionary("es").body;
+    const deD = getDictionary("de").body;
+    const frD = getDictionary("fr").body;
+    expect(ruD.library.manageAccess).toBe("Управление доступом");
+    expect(ruD.players.photoTooBig).toBe("Изображение больше 512 КБ.");
+    expect(ruD.reports.kpiXg).toBe("xG");
+    expect(esD.matches.addBtn).toBe("Añadir");
+    expect(esD.library.tabReels).toBe("Reels");
+    expect(deD.players.detailsSaved).toBe("Profildetails gespeichert.");
+    expect(deD.reports.coverTime).toBe("{a} · {b}");
+    expect(frD.reports.notesTitle).toBe("Notes et étiquettes · {a}");
+    expect(frD.library.clipsOne).toBe("1 clip");
+    expect(frD.matches.rosterSaved).toBe("Effectif enregistré.");
     expect(frC.reelstage.stepSelectPlayer).toBe("Sélectionner le joueur");
     expect(frC.exportstage.workflowTitle).toBe("Export et livraison");
+    // Group E spot checks (2026-11-11): Admin / Settings / Wallet / Shell / Home / Auth.
+    const ruE = getDictionary("ru").body;
+    const esE = getDictionary("es").body;
+    const deE = getDictionary("de").body;
+    const frE = getDictionary("fr").body;
+    expect(ruE.admin.title).toBe("Консоль администратора");
+    expect(ruE.settings.teamTitle).toBe("Команда и роли");
+    expect(ruE.wallet.title).toBe("Кошелёк токенов");
+    expect(ruE.shell.jobsTitle).toBe("Задания");
+    expect(ruE.auth.signIn).toBe("Войти");
+    expect(ruE.home.kpiMatchesAnalyzed).toBe("Матчей проанализировано");
+    expect(esE.admin.title).toBe("Consola de administración");
+    expect(esE.settings.teamTitle).toBe("Equipo y roles");
+    expect(esE.wallet.title).toBe("Billetera de tokens");
+    expect(esE.shell.paletteTitle).toBe("Buscar y comandos");
+    expect(esE.auth.signIn).toBe("Iniciar sesión");
+    expect(esE.home.kpiMatchesAnalyzed).toBe("Partidos analizados");
+    expect(deE.admin.title).toBe("Admin-Konsole");
+    expect(deE.shell.paletteTitle).toBe("Suche und Befehle");
+    expect(deE.auth.signIn).toBe("Anmelden");
+    expect(deE.home.kpiMatchesAnalyzed).toBe("Analysierte Spiele");
+    expect(frE.settings.teamTitle).toBe("Équipe et rôles");
+    expect(frE.wallet.title).toBe("Portefeuille de jetons");
+    expect(frE.shell.paletteTitle).toBe("Recherche et commandes");
+    expect(frE.auth.signIn).toBe("Se connecter");
+    expect(frE.home.kpiMatchesAnalyzed).toBe("Matchs analysés");
   });
 
   it("a body key missing from a partial still falls back to English", () => {

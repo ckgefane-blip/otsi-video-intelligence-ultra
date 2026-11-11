@@ -7,31 +7,31 @@
  */
 import Link from "next/link";
 import { ACC, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
-/** icon, title, two description lines, tile x, tile y, icon colour, destination */
-const TILES: [string, string, [string, string], number, number, string, string][] = [
-  ["scan", "AI Player Detection", ["Automatically identify", "and track all players"], 1855, 815, "#33a8ff", "/processing"],
-  ["tac", "Tactical Analysis", ["Team shape, transitions", "and tactical patterns"], 2180, 815, "#f5b82e", "/tactics"],
-  ["clap", "Custom Reels", ["Create player highlights", "in minutes"], 1855, 930, "#8a6cff", "/reels"],
-  ["doc", "Detailed Reports", ["Export shareable", "PDF reports"], 2180, 930, "#3ee6a8", "/reports"],
-  ["bars", "Team & Player Stats", ["Distances, speeds,", "actions and more"], 1855, 1045, "#33a8ff", "/analysis"],
-  ["ppl", "Collaborate & Share", ["Work with your team", "and clients"], 2180, 1045, "#e84aa8", "/exports"],
+/** icon, title, two description lines, tile x, tile y, icon colour, destination; the words as the person reads them (ADR-139) */
+const tiles = (t: Dictionary): [string, string, [string, string], number, number, string, string][] => [
+  ["scan", t.body.home.capDetectTitle, [t.body.home.capDetectA, t.body.home.capDetectB], 1855, 815, "#33a8ff", "/processing"],
+  ["tac", t.body.home.capTacticsTitle, [t.body.home.capTacticsA, t.body.home.capTacticsB], 2180, 815, "#f5b82e", "/tactics"],
+  ["clap", t.body.home.capReelsTitle, [t.body.home.capReelsA, t.body.home.capReelsB], 1855, 930, "#8a6cff", "/reels"],
+  ["doc", t.body.home.capReportsTitle, [t.body.home.capReportsA, t.body.home.capReportsB], 2180, 930, "#3ee6a8", "/reports"],
+  ["bars", t.body.home.capStatsTitle, [t.body.home.capStatsA, t.body.home.capStatsB], 1855, 1045, "#33a8ff", "/analysis"],
+  ["ppl", t.body.home.capShareTitle, [t.body.home.capShareA, t.body.home.capShareB], 2180, 1045, "#e84aa8", "/exports"],
 ];
 
 export function Capabilities() {
   const { t } = useLocale();
   return (
-    <section aria-label="Platform capabilities grid" data-section="p01-s08">
+    <section aria-label={t.body.home.capGridAria} data-section="p01-s08">
       <P x={1841} y={757} w={681} h={405} />
       <ACC x={1857} y={771} h={26} />
       <T x={1880} y={784} size={27} weight={600} as="h2">{t.body.home.capabilities}</T>
-      <Link href="/processing" className={s.cta} aria-label="View all capabilities on AI Processing"
+      <Link href="/processing" className={s.cta} aria-label={t.body.home.capViewAllAria}
         style={{ left: u(2380), top: u(770 - 101), width: u(124), height: u(34) }}>
         <T o={[2380, 770]} x={2474} y={786} size={21} color="#33a8ff" align="right" as="span">{t.body.home.viewAll}</T>
         <Ic o={[2380, 770]} x={2489} y={786} k="arr" size={20} color="#33a8ff" />
       </Link>
-      {TILES.map(([icon, title, [l1, l2], x, y, colour, href]) => {
+      {tiles(t).map(([icon, title, [l1, l2], x, y, colour, href]) => {
         const o: [number, number] = [x, y];
         return (
           <Link key={title} href={href} className={`${s.cta} ${s.framed}`} aria-label={`${title}: ${l1} ${l2}`}

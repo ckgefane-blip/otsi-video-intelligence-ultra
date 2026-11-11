@@ -41,19 +41,19 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-player">
           <Dialog.Title className="text-base font-semibold">{dict.body.reports.choosePlayer}</Dialog.Title>
-          <Dialog.Description className="mb-3 text-xs text-muted">Players in your organization's registry. A report is addressed by the permanent OTSI Player ID.
+          <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.reports.pickerDesc}
             {" "}<Link href="/players" className="text-primary hover:underline">{dict.body.reports.playersListLink}</Link></Dialog.Description>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder={dict.body.reports.searchPlayers} className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-          {hits === undefined && <p className="text-muted">Loading…</p>}
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label={dict.body.reports.pickerSearchAria} placeholder={dict.body.reports.searchPlayers} className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+          {hits === undefined && <p className="text-muted">{dict.common.loading}</p>}
           {hits === null && <p role="alert" className="text-danger">{dict.body.reports.playersNotLoaded}</p>}
           {hits?.length === 0 && <p className="text-muted">{dict.body.reports.noPlayerFound}</p>}
-          <ul aria-label="Players" className="space-y-1">
+          <ul aria-label={dict.body.players.playersListAria} className="space-y-1">
             {hits?.map((p) => (
               <li key={p.player_id}>
                 <button type="button" data-player={p.player_id} onClick={() => { onOpenChange(false); router.push(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`); }}
                   className="flex w-full items-center justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
                   <span className="min-w-0 truncate font-medium">{p.display_name}</span>
-                  <span className="shrink-0 text-xs text-muted" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? "provisional, no ID yet"}{p.canonical_state === "RETIRED" ? " · retired" : ""}</span>
+                  <span className="shrink-0 text-xs text-muted" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? dict.body.reports.provisionalNoIdShort}{p.canonical_state === "RETIRED" ? dict.body.reports.retiredSuffix : ""}</span>
                 </button>
               </li>
             ))}
@@ -65,6 +65,7 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
 }
 
 export function ReportStage({ playerRef }: { playerRef?: string }) {
+  const { t: dict } = useLocale();
   const ref: PlayerRef | null = playerRef ? parsePlayerRef(playerRef) : null;
   const [player, setPlayer] = useState<PlayerIdentity | null>(null);
   const [missing, setMissing] = useState<string | null>(null);
@@ -98,7 +99,7 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
     setPlayer(null); setMissing(null);
     if (!ref) return;
     const path = ref.kind === "canonical" ? `/v1/players/by-otsi-id/${ref.id}` : `/v1/players/${ref.id}`;
-    void api<PlayerIdentity>(path).then(setPlayer, (x) => setMissing(x instanceof ApiProblem && x.status === 404 ? "No such player in your registry." : "The player could not be loaded."));
+    void api<PlayerIdentity>(path).then(setPlayer, (x) => setMissing(x instanceof ApiProblem && x.status === 404 ? dict.body.reports.noSuchPlayer : dict.body.reports.playerLoadFailed));
   }, [key]);   // eslint-disable-line react-hooks/exhaustive-deps
   const go = useCallback((i: number) => {
     setSelected(i);

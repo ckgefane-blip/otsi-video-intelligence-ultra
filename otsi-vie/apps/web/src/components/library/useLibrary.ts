@@ -9,10 +9,15 @@
 import type { FolderItemKind, FolderMembership, LibraryFolder, Match, Project, Reel, Video, OrgTemplate } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
 export type Kind = "Reel" | "Report" | "Folder" | "Project" | "Match" | "Export" | "Video" | "Template";
 /** the API name of each kind that can be filed in a folder (Library › Move to folder) */
 export const ITEM_KIND: Partial<Record<Kind, FolderItemKind>> = { Reel: "reel", Export: "render", Video: "video", Match: "match", Project: "project" };
+
+/** the asset kind and status as words, in the person's language */
+export const kindLabel = (k: Kind, d: Dictionary): string => ({ Reel: d.body.library.kindLabelReel, Report: d.body.library.kindLabelReport, Folder: d.body.library.kindLabelFolder, Project: d.body.library.kindLabelProject, Match: d.body.library.kindLabelMatch, Export: d.body.library.kindLabelRender, Video: d.body.library.kindLabelVideo, Template: d.body.library.kindLabelTemplate })[k];
+export const statusLabel = (s: Asset["status"], d: Dictionary): string => ({ Published: d.body.library.statusPublished, Ready: d.body.library.statusReady, Draft: d.body.library.statusDraft, Archived: d.body.library.statusArchived, Shared: d.body.library.statusShared, Exported: d.body.library.statusExported, Processing: d.body.library.statusProcessing, Failed: d.body.library.statusFailed })[s];
 export interface Asset {
   key: string; id: string; kind: Kind; title: string; sub: string; durationUs: number | null; updated: string; created: string;
   status: "Published" | "Draft" | "Shared" | "Exported" | "Ready" | "Archived" | "Processing" | "Failed";
@@ -38,7 +43,7 @@ export const NO_FILTERS: Filters = { q: "", type: "all", competition: "all", tea
 const club = (m: Match, side: "home" | "away") => m[side]?.short_name ?? m[side]?.name ?? null;
 const matchTitle = (m: Match) => `${club(m, "home") ?? "—"} vs ${club(m, "away") ?? "—"}`;
 
-function assets(reels: Reel[], matches: Match[], projects: Project[], videos: Video[], folders: LibraryFolder[], filed: FolderMembership[], templates: OrgTemplate[] = []): Asset[] {
+function assets(reels: Reel[], matches: Match[], projects: Project[], videos: Video[], folders: LibraryFolder[], filed: FolderMembership[], templates: OrgTemplate[] = [], d: Dictionary): Asset[] {
   const byMatch = new Map(matches.map((m) => [m.id, m]));
   const vidMatch = new Map(videos.map((v) => [v.id, v.match_id]));
   const byProject = new Map(projects.map((p) => [p.id, p]));
@@ -51,41 +56,41 @@ function assets(reels: Reel[], matches: Match[], projects: Project[], videos: Vi
     const res = (good?.result ?? {}) as { height?: number; width?: number; duration_s?: number; bytes?: number };
     const base = { videoId: r.video_id, matchId: m?.id ?? null, competition: m?.competition ?? null, teams: m ? [club(m, "home"), club(m, "away")].filter(Boolean) as string[] : [],
       player: r.player?.display_name ?? null, created: r.created_at, raw: r, createdBy: r.created_by ?? null };
-    out.push({ ...base, key: `reel-${r.id}`, id: r.id, kind: "Reel", title: r.name, sub: `${r.player?.display_name ?? "—"} · ${r.clips.length} clips`,
+    out.push({ ...base, key: `reel-${r.id}`, id: r.id, kind: "Reel", title: r.name, sub: `${r.player?.display_name ?? "—"} · ${r.clips.length === 1 ? d.body.library.clipsOne : d.body.library.clipsMany.replace("{a}", String(r.clips.length))}`,
       durationUs: r.duration_us || null, updated: r.updated_at, status: r.latest_render && ["QUEUED", "RUNNING"].includes(r.latest_render.state) ? "Processing" : rendered ? "Exported" : "Draft",
       bytes: null, width: null, height: null, href: `/reels/${r.id}`, renderId: null, folderId: null });
     if (rendered) {
-      out.push({ ...base, key: `export-${good!.id}`, id: good!.id, kind: "Export", title: `${r.name} · rendered`, sub: `${r.player?.display_name ?? "—"} · MP4`,
+      out.push({ ...base, key: `export-${good!.id}`, id: good!.id, kind: "Export", title: `${r.name} ${d.body.library.exportRenderedSuffix}`, sub: `${r.player?.display_name ?? "—"} · MP4`,
         durationUs: res.duration_s ? Math.round(res.duration_s * 1e6) : r.duration_us || null, updated: good!.completed_at ?? r.updated_at, status: "Exported",
         bytes: res.bytes ?? null, width: res.width ?? null, height: res.height ?? null, href: `/reels/${r.id}`, renderId: good!.id, folderId: null });
     }
   }
   for (const m of matches) {
     const when = m.kickoff_at ?? null;
-    out.push({ key: `match-${m.id}`, id: m.id, kind: "Match", title: matchTitle(m), sub: [m.competition, when ? new Date(when).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null].filter(Boolean).join(" · ") || "Match",
+    out.push({ key: `match-${m.id}`, id: m.id, kind: "Match", title: matchTitle(m), sub: [m.competition, when ? new Date(when).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null].filter(Boolean).join(" · ") || d.body.library.matchSubFallback,
       durationUs: null, updated: when ?? "", created: when ?? "", status: m.video_ids.length ? "Ready" : "Draft", player: null, videoId: m.video_ids[0] ?? null, matchId: m.id,
       competition: m.competition, teams: [club(m, "home"), club(m, "away")].filter(Boolean) as string[], bytes: null, width: null, height: null,
       href: m.video_ids[0] ? `/videos/${m.video_ids[0]}/analyze` : null, renderId: null, raw: m, createdBy: null, folderId: null });
   }
   for (const fo of folders) {
-    out.push({ key: `folder-${fo.id}`, id: fo.id, kind: "Folder", title: fo.name, sub: `${fo.item_count} item${fo.item_count === 1 ? "" : "s"}`, durationUs: null,
+    out.push({ key: `folder-${fo.id}`, id: fo.id, kind: "Folder", title: fo.name, sub: fo.item_count === 1 ? d.body.library.folderSubOne : d.body.library.folderSubMany.replace("{a}", String(fo.item_count)), durationUs: null,
       updated: fo.updated_at, created: fo.created_at, status: "Ready", player: null, videoId: null, matchId: null, competition: null, teams: [], bytes: null,
       width: null, height: null, href: null, renderId: null, raw: fo, createdBy: fo.created_by, folderId: null });
   }
   for (const p of projects) {
-    out.push({ key: `project-${p.id}`, id: p.id, kind: "Project", title: p.name, sub: `${p.video_count} video${p.video_count === 1 ? "" : "s"}${p.description ? ` · ${p.description}` : ""}`,
+    out.push({ key: `project-${p.id}`, id: p.id, kind: "Project", title: p.name, sub: `${p.video_count === 1 ? d.body.library.projectSubOne : d.body.library.projectSubMany.replace("{a}", String(p.video_count))}${p.description ? ` · ${p.description}` : ""}`,
       durationUs: null, updated: p.updated_at, created: p.created_at, status: p.status === "ARCHIVED" ? "Archived" : "Ready", player: null, videoId: null, matchId: null,
       competition: null, teams: [], bytes: null, width: null, height: null, href: `/upload?project=${p.id}`, renderId: null, raw: p, createdBy: p.created_by ?? null, folderId: null });
   }
   for (const v of videos) {
     const m = byMatch.get(v.match_id ?? "") ?? null;
-    out.push({ key: `video-${v.id}`, id: v.id, kind: "Video", title: v.title ?? v.original_filename ?? "Untitled video", sub: m ? matchTitle(m) : "Not linked to a match",
+    out.push({ key: `video-${v.id}`, id: v.id, kind: "Video", title: v.title ?? v.original_filename ?? d.body.library.untitledVideo, sub: m ? matchTitle(m) : d.body.library.videoNotLinked,
       durationUs: v.duration_us, updated: v.updated_at, created: v.created_at, status: v.state === "INGESTED" ? "Ready" : v.state === "FAILED" || v.state === "QUARANTINED" ? "Failed" : "Processing",
       player: null, videoId: v.id, matchId: v.match_id, competition: m?.competition ?? null, teams: m ? [club(m, "home"), club(m, "away")].filter(Boolean) as string[] : [],
       bytes: v.byte_size, width: v.width, height: v.height, href: `/videos/${v.id}/analyze`, renderId: null, raw: v, createdBy: v.created_by ?? null, folderId: null });
   }
   for (const t of templates) {
-    out.push({ key: `template-${t.id}`, id: t.id, kind: "Template", title: t.name, sub: `${t.kind} · ${t.description || (t.is_builtin ? "Built-in preset" : "Organization template")}`,
+    out.push({ key: `template-${t.id}`, id: t.id, kind: "Template", title: t.name, sub: `${t.kind} · ${t.description || (t.is_builtin ? d.body.library.templateBuiltin : d.body.library.templateOrg)}`,
       durationUs: null, updated: t.updated_at, created: t.created_at, status: "Ready", player: null, videoId: null, matchId: null,
       competition: null, teams: [], bytes: null, width: null, height: null, href: "/studio", renderId: null, raw: t, createdBy: t.created_by, folderId: null });
   }
@@ -98,14 +103,15 @@ function assets(reels: Reel[], matches: Match[], projects: Project[], videos: Vi
 }
 
 export function useLibrary() {
+  const { t: dict } = useLocale();
   const [all, setAll] = useState<Asset[] | null | undefined>(undefined);
   const load = useCallback(async () => {
     try {
       const [reels, matches, projects, videos, folders, filed, templates] = await Promise.all([api<Reel[]>("/v1/reels"), api<Match[]>("/v1/matches"), api<Project[]>("/v1/projects"),
         api<Video[]>("/v1/videos"), api<LibraryFolder[]>("/v1/library/folders"), api<FolderMembership[]>("/v1/library/folder-items"), api<OrgTemplate[]>("/v1/templates").catch(() => [])]);
-      setAll(assets(reels, matches, projects, videos, folders, filed, templates));
+      setAll(assets(reels, matches, projects, videos, folders, filed, templates, dict));
     } catch { setAll(null); }
-  }, []);
+  }, [dict]);
   useEffect(() => { void load(); }, [load]);
   const competitions = useMemo(() => [...new Set((all ?? []).map((a) => a.competition).filter((c): c is string => !!c))].sort(), [all]);
   const teams = useMemo(() => [...new Set((all ?? []).flatMap((a) => a.teams))].sort(), [all]);

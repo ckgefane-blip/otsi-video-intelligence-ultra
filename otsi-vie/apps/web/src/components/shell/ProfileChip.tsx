@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
-import { PAGE_NAME, useUiMode } from "@/lib/uiMode";
+import { useUiMode } from "@/lib/uiMode";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLocale } from "@/lib/i18n";
+import { guidedHides, pageName } from "@/lib/uiMode";
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
-const roleLabel = (r: string) => r.charAt(0) + r.slice(1).toLowerCase();
+const roleLabel = (t: { body: { settings: Record<string, string> } }, r: string) => ({ OWNER: t.body.settings.roleOwner, ADMIN: t.body.settings.roleAdmin, ANALYST: t.body.settings.roleAnalyst, EDITOR: t.body.settings.roleEditor, SCOUT: t.body.settings.roleScout, VIEWER: t.body.settings.roleViewer } as Record<string, string>)[r] ?? (r.charAt(0) + r.slice(1).toLowerCase());
 
 /** shrink a chosen picture to a centred 256 x 256 JPEG (well under the 400 KB limit) before it is sent */
 async function squarePhoto(file: File): Promise<Blob> {
@@ -44,6 +46,7 @@ function usePhoto(version: string | null): string | null {
  */
 export function ProfileChip({ styles }: { styles: Record<string, string> }) {
   const { status, me, organization, chooseOrganization, signOut, updateMe } = useAuth();
+  const { t } = useLocale();
   const ui = useUiMode();
   const router = useRouter();
   const photo = usePhoto(me?.user.avatar_updated_at ?? null);
@@ -62,24 +65,24 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
     <Dialog.Root>
       <span className={cls("abs", "account")} data-account-wrap>
         <button type="button" className={styles.avatar} data-has-photo={photo ? "1" : "0"} disabled={photoBusy} data-account-photo
-          aria-label={photo ? "Change your profile photo" : "Add your profile photo"} title={photo ? "Change your photo" : "Add your photo"} onClick={() => pick.current?.click()}>
+          aria-label={photo ? t.body.shell.changePhoto : t.body.shell.addPhoto} title={photo ? t.body.shell.changePhotoTitle : t.body.shell.addPhotoTitle} onClick={() => pick.current?.click()}>
           {photo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={photo} alt="" className={styles.photo} draggable={false} /> : initials(me.user.display_name)}
         </button>
         <span className={styles.camera} aria-hidden>{photoBusy ? "…" : "+"}</span>
-        <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Choose a profile photo" hidden
+        <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label={t.body.shell.choosePhoto} hidden
           onChange={(e) => {
             const f = e.target.files?.[0]; e.target.value = "";
             if (!f) return;
             setPhotoBusy(true); setPhotoMsg(null);
             void squarePhoto(f).then((b) => api<Me>("/v1/me/avatar", { method: "PUT", body: b, headers: { "content-type": "image/jpeg" }, organization: false }))
-              .then((m) => { updateMe(m); setPhotoMsg({ ok: true, text: "Photo saved." }); },
-                (x) => setPhotoMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "That picture could not be used." }))
+              .then((m) => { updateMe(m); setPhotoMsg({ ok: true, text: t.body.shell.photoSaved }); },
+                (x) => setPhotoMsg({ ok: false, text: x instanceof ApiProblem ? x.message : t.body.shell.photoFailed }))
               .finally(() => setPhotoBusy(false));
           }} />
         <Dialog.Trigger asChild>
-          <button type="button" className={styles.nameBtn} aria-label={`Account: ${me.user.display_name}`} data-account>
+          <button type="button" className={styles.nameBtn} aria-label={t.body.shell.accountAria.replace("{a}", me.user.display_name)} data-account>
             <span className={styles.name}>{me.user.display_name}</span>
-            <span className={styles.sub}>{organization ? roleLabel(organization.role) : "No organization"}</span>
+            <span className={styles.sub}>{organization ? roleLabel(t, organization.role) : t.body.shell.noOrg}</span>
           </button>
         </Dialog.Trigger>
       </span>
@@ -92,16 +95,16 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
           {photo && (
             <button type="button" disabled={photoBusy} data-photo-remove onClick={() => {
               setPhotoBusy(true); setPhotoMsg(null);
-              void api<Me>("/v1/me/avatar", { method: "DELETE", organization: false }).then((m) => { updateMe(m); setPhotoMsg({ ok: true, text: "Photo removed." }); },
-                (x) => setPhotoMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "The photo was not removed." })).finally(() => setPhotoBusy(false));
-            }} className="mt-2 text-xs text-muted underline hover:text-danger">Remove my photo</button>
+              void api<Me>("/v1/me/avatar", { method: "DELETE", organization: false }).then((m) => { updateMe(m); setPhotoMsg({ ok: true, text: t.body.shell.photoRemoved }); },
+                (x) => setPhotoMsg({ ok: false, text: x instanceof ApiProblem ? x.message : t.body.shell.photoRemoveFailed })).finally(() => setPhotoBusy(false));
+            }} className="mt-2 text-xs text-muted underline hover:text-danger">{t.body.shell.removePhoto}</button>
           )}
           {photoMsg && <p role={photoMsg.ok ? "status" : "alert"} className={`mt-1 text-xs ${photoMsg.ok ? "text-ok" : "text-danger"}`}>{photoMsg.text}</p>}
           {ui.page && (
             <fieldset className="mt-3" data-ui-mode-switch={ui.mode}>
-              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{PAGE_NAME[ui.page]}: how much to show</legend>
-              <div role="radiogroup" aria-label={`${PAGE_NAME[ui.page]}: Guided or Pro`} className="mt-1 grid grid-cols-2 gap-1">
-                {([["GUIDED", "Guided", "The main actions"], ["PRO", "Pro", "Every control"]] as const).map(([m, l, d]) => (
+              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{t.body.shell.pageHowMuch.replace("{a}", pageName(t, ui.page))}</legend>
+              <div role="radiogroup" aria-label={t.body.shell.guidedOrProAria.replace("{a}", pageName(t, ui.page))} className="mt-1 grid grid-cols-2 gap-1">
+                {([["GUIDED", t.body.shell.modeGuided, t.body.shell.guidedDesc], ["PRO", t.body.shell.modePro, t.body.shell.proDesc]] as const).map(([m, l, d]) => (
                   <button key={m} type="button" role="radio" aria-checked={ui.mode === m} disabled={ui.saving} data-ui-mode-option={m} onClick={() => void ui.setMode(m)}
                     className={`rounded-ctl border px-2 py-1.5 text-left text-sm ${ui.mode === m ? "border-primary bg-primary/15" : "border-line hover:border-primary/60"}`}>
                     <span className="block font-medium">{l}</span><span className="block text-[11px] text-muted">{d}</span>
@@ -109,7 +112,7 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
                 ))}
               </div>
               <p className="mt-1 text-[11px] text-muted">
-                {ui.hides ? `Guided hides ${ui.hides}. Nothing is lost: results and data are the same.` : "This page looks the same in both modes for now."} Remembered for you, per page.
+                {ui.hides ? t.body.shell.guidedHides.replace("{a}", ui.hides) : t.body.shell.sameModes} {t.body.shell.rememberedPerPage}
               </p>
               {ui.error && <p role="alert" className="mt-1 text-xs text-danger">{ui.error}</p>}
             </fieldset>
@@ -117,13 +120,13 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
           <LanguageSwitcher />
           {me.memberships.length > 0 && (
             <fieldset className="mt-3">
-              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">Organization</legend>
+              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{t.body.shell.orgLegend}</legend>
               {me.memberships.map((m) => (
                 <label key={m.organization_id} className="mt-1 flex cursor-pointer items-center gap-2 rounded-ctl px-2 py-1.5 text-sm hover:bg-raised/60">
                   <input type="radio" name="organization" checked={m.organization_id === organization?.organization_id}
                     onChange={() => { chooseOrganization(m.organization_id); router.refresh(); }} />
                   <span className="flex-1">{m.organization_name}</span>
-                  <span className="text-xs text-muted">{roleLabel(m.role)}</span>
+                  <span className="text-xs text-muted">{roleLabel(t, m.role)}</span>
                 </label>
               ))}
             </fieldset>
@@ -133,13 +136,13 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
               <Dialog.Close asChild>
                 <button type="button" data-admin-open onClick={() => router.push("/settings/admin")}
                   className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-                  <Sliders className="h-4 w-4" /> Admin console
+                  <Sliders className="h-4 w-4" /> {t.body.shell.adminConsole}
                 </button>
               </Dialog.Close>
               <Dialog.Close asChild>
                 <button type="button" data-team-open onClick={() => router.push("/settings/team")}
                   className="mt-2 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-                  <Users className="h-4 w-4" /> Team and roles
+                  <Users className="h-4 w-4" /> {t.body.shell.teamRoles}
                 </button>
               </Dialog.Close>
             </>
@@ -147,22 +150,22 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
           <Dialog.Close asChild>
             <button type="button" data-two-step-open onClick={() => router.push("/settings/security")}
               className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-              <ShieldCheck className="h-4 w-4" /> 2-step sign-in
+              <ShieldCheck className="h-4 w-4" /> {t.body.shell.twoStep}
             </button>
           </Dialog.Close>
           <Dialog.Close asChild>
             <button type="button" data-wallet-open onClick={() => router.push("/settings/wallet")}
               className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-              <Wallet className="h-4 w-4" /> Token Wallet
+              <Wallet className="h-4 w-4" /> {t.body.shell.tokenWallet}
             </button>
           </Dialog.Close>
           <button type="button" data-welcome-replay onClick={() => router.push("/welcome")}
             className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-            Welcome tour
+            {t.body.shell.welcomeTour}
           </button>
           <button type="button" onClick={() => void signOut().then(() => router.replace("/login"))}
             className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" /> {t.common.signOut}
           </button>
         </Dialog.Content>
       </Dialog.Portal>

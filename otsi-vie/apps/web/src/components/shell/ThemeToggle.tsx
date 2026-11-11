@@ -2,9 +2,11 @@
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
+import { useLocale } from "@/lib/i18n";
 
 /** Light / dark switch (page 01 section 1: "theme respects saved preference"). */
 export function ThemeToggle() {
+  const { t } = useLocale();
   const [theme, setTheme] = useState<Theme>("dark");
   useEffect(() => setTheme(readTheme()), []);
   const next: Theme = theme === "dark" ? "light" : "dark";
@@ -13,8 +15,8 @@ export function ThemeToggle() {
       type="button"
       role="switch"
       aria-checked={theme === "dark"}
-      aria-label="Dark theme"
-      title={`Switch to the ${next} theme`}
+      aria-label={t.body.shell.themeDark}
+      title={t.body.shell.themeSwitch.replace("{a}", next === "light" ? t.body.shell.themeLightName : t.body.shell.themeDarkName)}
       onClick={() => { applyTheme(next); setTheme(next); }}
       className="flex items-center gap-2 rounded-full px-1 py-1 text-ink/80 hover:text-ink"
     >

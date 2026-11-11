@@ -12,7 +12,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
-import { STATE_COLOR, STATE_LABEL } from "@/lib/jobs";
+import { jobStateLabel, STATE_COLOR } from "@/lib/jobs";
 import { Capabilities } from "./Capabilities";
 import { useLocale } from "@/lib/i18n";
 import { HowItWorks } from "./HowItWorks";
@@ -61,14 +61,14 @@ export function HomeGuidance() {
 function ReviewInbox({ inbox }: { inbox: HomeInbox }) {
   const { t } = useLocale();
   return (
-    <section aria-label="Review inbox" data-section="p01-inbox">
+    <section aria-label={t.body.home.reviewInbox} data-section="p01-inbox">
       <P x={1841} y={757} w={681} h={405} />
       <ACC x={1857} y={771} h={26} />
       <T x={1880} y={784} size={27} weight={600} as="h2">{t.body.home.reviewInbox}</T>
-      <T x={2504} y={786} size={19} color="#8ea3bf" align="right">{inbox.items.length ? `${inbox.items.length} to do` : "All clear"}</T>
+      <T x={2504} y={786} size={19} color="#8ea3bf" align="right">{inbox.items.length ? t.body.home.inboxToDo.replace("{a}", String(inbox.items.length)) : t.body.home.inboxAllClear}</T>
       {inbox.items.length === 0 && (
         <T x={1880} y={850} size={20} color="#b9cbe2" style={{ maxWidth: u(600), whiteSpace: "normal", lineHeight: 1.4 }}>
-          Nothing waits for you: no identity suggestion, team sheet, out-of-date reel or failed job.
+          {t.body.home.inboxNothingWaits}
         </T>
       )}
       {inbox.items.slice(0, 5).map((it, i) => {
@@ -101,21 +101,21 @@ function ActiveJobs() {
   const active = list?.jobs.filter((j) => j.state === "RUNNING" || j.state === "QUEUED" || j.state === "PAUSED") ?? [];
   const shown = (active.length ? active : list?.jobs ?? []).slice(0, 4);
   return (
-    <section aria-label="Active jobs" data-section="p01-jobs">
+    <section aria-label={t.body.home.activeJobs} data-section="p01-jobs">
       <P x={39} y={1180} w={2483} h={247} />
       <ACC x={63} y={1213} h={49} />
       <T x={87} y={1238} size={34} weight={700} as="h2">{t.body.home.activeJobs}</T>
-      <T x={86} y={1291} size={22} color="#cfe0f5">{list ? `${list.running} running · ${list.active - list.running} waiting or paused` : "Reading…"}</T>
-      <T x={86} y={1325} size={19} color="#8ea3bf">{active.length ? "Manage them from the jobs icon in the top bar." : list?.jobs.length ? "Nothing runs now; the last day's jobs:" : "No engine job in the last day."}</T>
+      <T x={86} y={1291} size={22} color="#cfe0f5">{list ? t.body.home.inboxRunning.replace("{a}", String(list.running)).replace("{b}", String(list.active - list.running)) : t.body.home.inboxReading}</T>
+      <T x={86} y={1325} size={19} color="#8ea3bf">{active.length ? t.body.home.inboxManageJobs : list?.jobs.length ? t.body.home.inboxLastDayJobs : t.body.home.inboxNoJobs}</T>
       {shown.map((j, i) => {
         const x = 520 + i * 495, y = 1205;
         const card = (
           <>
             <T o={[x, y]} x={x + 20} y={y + 30} size={21} weight={600} as="span" style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.kind_label}</T>
-            <T o={[x, y]} x={x + 455} y={y + 30} size={18} color={STATE_COLOR[j.state]} align="right" as="span">{STATE_LABEL[j.state]}</T>
+            <T o={[x, y]} x={x + 455} y={y + 30} size={18} color={STATE_COLOR[j.state]} align="right" as="span">{jobStateLabel(t, j.state)}</T>
             <T o={[x, y]} x={x + 20} y={y + 62} size={17} color="#b9cbe2" as="span" style={{ maxWidth: u(435), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.subject_title ?? "—"}</T>
             <T o={[x, y]} x={x + 20} y={y + 92} size={16} color={j.state === "FAILED" ? "#ff8a8a" : "#8ea3bf"} as="span"
-              style={{ maxWidth: u(435), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.state === "FAILED" ? (j.error ?? "Failed") : (j.stage ?? "")}</T>
+              style={{ maxWidth: u(435), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.state === "FAILED" ? (j.error ?? t.body.home.inboxJobFailed) : (j.stage ?? "")}</T>
             <B o={[x, y]} x={x + 20} y={y + 125} w={360} h={8} style={{ background: "#17304f", borderRadius: u(4) }}>
               <i style={{ display: "block", height: "100%", width: `${Math.max(0, Math.min(100, j.progress))}%`, background: STATE_COLOR[j.state], borderRadius: u(4) }} />
             </B>

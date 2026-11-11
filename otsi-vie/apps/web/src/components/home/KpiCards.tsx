@@ -14,16 +14,22 @@ import type { OverviewStats } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { memo, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { Evidence } from "@/components/evidence/Evidence";
 import { B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 
 /** icon, stat, label, link, panel x, panel w, icon box x0, x1, text x, change x (right edge), first trend bar x */
 type Stat = Exclude<keyof OverviewStats, "weekly">;
-const CARDS: [string, Stat, string, string | null, number, number, number, number, number, number, number][] = [
-  ["cam", "matches_analyzed", "Matches Analyzed", "/matches", 39, 413, 60, 145, 172, 428, 365],
-  ["ppl", "players_tracked", "Players Tracked", null, 470, 408, 499, 584, 609, 855, 782],
-  ["reel", "reels_generated", "Reels Generated", "/reels", 896, 399, 917, 1000, 1027, 1270, 1195],
-  ["doc", "reports_created", "Reports Created", "/reports", 1314, 401, 1339, 1422, 1444, 1689, 1615],
+/** the card's label as the person reads it (ADR-139) */
+const cardLabel = (t: Dictionary, stat: Stat): string => ({
+  matches_analyzed: t.body.home.kpiMatchesAnalyzed, players_tracked: t.body.home.kpiPlayersTracked,
+  reels_generated: t.body.home.kpiReelsGenerated, reports_created: t.body.home.kpiReportsCreated,
+}[stat]);
+const CARDS: [string, Stat, string | null, number, number, number, number, number, number, number][] = [
+  ["cam", "matches_analyzed", "/matches", 39, 413, 60, 145, 172, 428, 365],
+  ["ppl", "players_tracked", null, 470, 408, 499, 584, 609, 855, 782],
+  ["reel", "reels_generated", "/reels", 896, 399, 917, 1000, 1027, 1270, 1195],
+  ["doc", "reports_created", "/reports", 1314, 401, 1339, 1422, 1444, 1689, 1615],
 ];
 
 const Y = 602;
@@ -45,22 +51,23 @@ interface KpiCardProps {
 }
 
 const KpiCard = memo(function KpiCard({ icon, stat, label, href, px, pw, i0, i1, tx, cx, bx, stats, failed }: KpiCardProps) {
+  const { t } = useLocale();
   const weeks = stats?.weekly[stat] ?? null;
   const peak = useMemo(() => (weeks ? Math.max(...weeks) : 0), [weeks]);
   const value = stats ? stats[stat].toLocaleString("en-GB") : "—";
   const o: [number, number] = [px, Y];
   const ariaLabel = failed
-    ? `${label}: totals could not be read`
+    ? t.body.home.kpiAriaFailed.replace("{label}", label)
     : stats
-      ? `${label}: ${stats[stat]}, ${weeks![4]} in the last 7 days`
-      : `${label}: unknown`;
+      ? t.body.home.kpiAriaValue.replace("{label}", label).replace("{n}", String(stats[stat])).replace("{w}", String(weeks![4]))
+      : t.body.home.kpiAriaUnknown.replace("{label}", label);
   const body = (
     <>
       <B o={o} x={i0} y={623} w={i1 - i0} h={86} style={{ background: "#0a2b55", borderRadius: u(12) }} />
       <Ic o={o} x={(i0 + i1) / 2} y={666} k={icon} size={44} color="#33a8ff" />
       <T o={o} x={tx} y={649} size={36} weight={700} as="span">{value}</T>
       <T o={o} x={tx} y={687} size={22} color="#cfe0f5" as="span">{label}</T>
-      {stat === "players_tracked" && <B o={o} x={tx + 172} y={677} w={20} h={20}><Evidence level="CONFIRMED" compact size={12} why="a person confirmed each of them on a track" /></B>}
+      {stat === "players_tracked" && <B o={o} x={tx + 172} y={677} w={20} h={20}><Evidence level="CONFIRMED" compact size={12} why={t.body.home.kpiPlayersWhy} /></B>}
       <T o={o} x={cx} y={646} size={19} weight={600} color={weeks && weeks[4]! > 0 ? "#3ee6a8" : "#8ea3bf"} align="right" as="span">
         {weeks ? `+${weeks[4]}` : "—"}
       </T>
@@ -79,6 +86,7 @@ const KpiCard = memo(function KpiCard({ icon, stat, label, href, px, pw, i0, i1,
 });
 
 export function KpiCards() {
+  const { t } = useLocale();
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -89,9 +97,9 @@ export function KpiCards() {
   }, []);
 
   return (
-    <section aria-label="Headline KPI strip" data-section="p01-s04" data-loaded={stats ? "yes" : "no"} aria-busy={!stats && !failed}>
-      {CARDS.map(([icon, key, label, href, px, pw, i0, i1, tx, cx, bx]) => (
-        <KpiCard key={key} icon={icon} stat={key} label={label} href={href} px={px} pw={pw} i0={i0} i1={i1} tx={tx} cx={cx} bx={bx} stats={stats} failed={failed} />
+    <section aria-label={t.body.home.kpiStripAria} data-section="p01-s04" data-loaded={stats ? "yes" : "no"} aria-busy={!stats && !failed}>
+      {CARDS.map(([icon, key, href, px, pw, i0, i1, tx, cx, bx]) => (
+        <KpiCard key={key} icon={icon} stat={key} label={cardLabel(t, key)} href={href} px={px} pw={pw} i0={i0} i1={i1} tx={tx} cx={cx} bx={bx} stats={stats} failed={failed} />
       ))}
     </section>
   );

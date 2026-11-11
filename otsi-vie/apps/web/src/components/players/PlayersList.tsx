@@ -12,14 +12,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
-export const POSITION_NAMES: Record<string, string> = {
-  GK: "Goalkeeper", RB: "Right back", CB: "Centre back", LB: "Left back", RWB: "Right wing-back", LWB: "Left wing-back", DM: "Defensive midfielder",
-  CM: "Central midfielder", AM: "Attacking midfielder", RM: "Right midfielder", LM: "Left midfielder", RW: "Right winger", LW: "Left winger",
-  CF: "Centre forward", ST: "Striker", DF: "Defender", MF: "Midfielder", FW: "Forward",
-};
-export const FOOT_NAMES: Record<string, string> = { LEFT: "Left", RIGHT: "Right", BOTH: "Both", UNKNOWN: "Unknown" };
+export const POSITION_NAMES = (d: Dictionary): Record<string, string> => ({
+  GK: d.body.players.posGk, RB: d.body.players.posRb, CB: d.body.players.posCb, LB: d.body.players.posLb, RWB: d.body.players.posRwb, LWB: d.body.players.posLwb, DM: d.body.players.posDm,
+  CM: d.body.players.posCm, AM: d.body.players.posAm, RM: d.body.players.posRm, LM: d.body.players.posLm, RW: d.body.players.posRw, LW: d.body.players.posLw,
+  CF: d.body.players.posCf, ST: d.body.players.posSt, DF: d.body.players.posDf, MF: d.body.players.posMf, FW: d.body.players.posFw,
+});
+export const FOOT_NAMES = (d: Dictionary): Record<string, string> => ({ LEFT: d.body.players.footLeft, RIGHT: d.body.players.footRight, BOTH: d.body.players.footBoth, UNKNOWN: d.body.players.footUnknown });
 
 type Draft = { nationality: string; foot: string; birth: string; position: string };
 const draftOf = (p: PlayerProfile): Draft => ({ nationality: p.nationality?.code ?? "", foot: p.preferred_foot ?? "", birth: p.birth_date ?? "", position: p.position ?? "" });
@@ -27,8 +27,8 @@ const draftOf = (p: PlayerProfile): Draft => ({ nationality: p.nationality?.code
 /** base64url, as the brand music / video uploads send it in `x-asset-meta` (MusicPicker, ReelExtras) */
 const b64url = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-const RIGHTS_BASIS: [BrandRightsBasis, string][] = [["OWN_BRAND", "It is our own photo"], ["LICENSED", "We have a licence for it"],
-  ["FREE_LICENCE", "A free licence allows it"], ["PERMISSION", "The owner gave us written permission"]];
+const RIGHTS_BASIS = (d: Dictionary): [BrandRightsBasis, string][] => [["OWN_BRAND", d.body.players.rightsOwnPhoto], ["LICENSED", d.body.players.rightsLicensed],
+  ["FREE_LICENCE", d.body.players.rightsFreeLicence], ["PERMISSION", d.body.players.rightsPermission]];
 
 /** the profile-details form, as the person typed it (strings: an empty field clears to null, never to 0 or a guess) */
 export type DetailsDraft = { height: string; weight: string; strengths: string[]; summary: string; club: string; league: string; country: string; caps: string; goals: string };
@@ -81,13 +81,13 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
   const capsOk = dd.caps.trim() === "" || (/^\d+$/.test(dd.caps.trim()) && Number(dd.caps) >= 0);
   const goalsOk = dd.goals.trim() === "" || (/^\d+$/.test(dd.goals.trim()) && Number(dd.goals) >= 0);
   const strengthsOk = dd.strengths.every((x) => x.length <= 60);
-  const detailsError = !heightOk ? dict.body.players.heightError : !weightOk ? dict.body.players.weightError : !capsOk ? "Caps is a whole number, 0 or more."
-    : !goalsOk ? "International goals is a whole number, 0 or more." : !strengthsOk ? "Each strength is at most 60 characters." : null;
+  const detailsError = !heightOk ? dict.body.players.heightError : !weightOk ? dict.body.players.weightError : !capsOk ? dict.body.players.capsError
+    : !goalsOk ? dict.body.players.intlGoalsError : !strengthsOk ? dict.body.players.strengthsError : null;
   const saveDetails = async () => {
     setDetailsState({ busy: true });
     try {
       const p = await api<PlayerProfile>(`/v1/players/${e.player_id}/profile-details`, { method: "PATCH", json: detailsPatch });
-      onSaved(p); setDetailsState({ ok: "Profile details saved." });
+      onSaved(p); setDetailsState({ ok: dict.body.players.detailsSaved });
     } catch (x) {
       setDetailsState({ err: x instanceof ApiProblem ? x.message : dict.body.players.couldNotSave });
     }
@@ -99,8 +99,8 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
   const [basis, setBasis] = useState<BrandRightsBasis | "">("");
   const [confirmRights, setConfirmRights] = useState(false);
   const [photoState, setPhotoState] = useState<{ busy?: boolean; ok?: string; err?: string }>({});
-  const photoErr = photo && photo.size > BRAND_MAX_BYTES ? "The picture is larger than 512 KB."
-    : photo && !/^image\/(png|jpeg)$/.test(photo.type) ? "Choose a PNG or JPEG picture." : null;
+  const photoErr = photo && photo.size > BRAND_MAX_BYTES ? dict.body.players.photoTooBig
+    : photo && !/^image\/(png|jpeg)$/.test(photo.type) ? dict.body.players.photoTypeError : null;
   const photoReady = !!photo && !photoErr && holder.trim().length >= 2 && !!basis && confirmRights && !photoState.busy;
   const uploadPhoto = async () => {
     if (!photo || !basis) return;
@@ -111,7 +111,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
       onSaved(p); setPhoto(null); setHolder(""); setBasis(""); setConfirmRights(false);
       setPhotoState({ ok: dict.body.players.photoSaved });
     } catch (x) {
-      setPhotoState({ err: x instanceof ApiProblem ? x.message : "The upload failed." });
+      setPhotoState({ err: x instanceof ApiProblem ? x.message : dict.body.players.photoUploadFailed });
     }
   };
   const saved = draftOf(e.profile);
@@ -139,9 +139,9 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
     setState({ busy: true });
     try {
       const p = await api<PlayerProfile>(`/v1/players/${e.player_id}/profile`, { method: "PATCH", json: { confirm_role: true } });
-      onSaved(p); setState({ ok: "Role confirmed." });
+      onSaved(p); setState({ ok: dict.body.players.roleConfirmed });
     } catch (x) {
-      setState({ err: x instanceof ApiProblem ? x.message : "Could not confirm role." });
+      setState({ err: x instanceof ApiProblem ? x.message : dict.body.players.roleConfirmFailed });
     }
   };
   const field = "w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 disabled:opacity-60";
@@ -164,7 +164,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
           <span className="block text-xs text-muted">{dict.body.players.position}</span>
           {e.profile.position && (
             e.profile.role_confirmed ? (
-              <span className="rounded bg-ok/20 px-1 py-0.5 text-[10px] font-semibold text-ok" title={e.profile.role_confirmed_by_name ? `Confirmed by ${e.profile.role_confirmed_by_name}` : "Confirmed by analyst"}>{dict.body.players.confirmed}</span>
+              <span className="rounded bg-ok/20 px-1 py-0.5 text-[10px] font-semibold text-ok" title={e.profile.role_confirmed_by_name ? dict.body.players.confirmedBy.replace("{a}", e.profile.role_confirmed_by_name) : dict.body.players.confirmedByAnalyst}>{dict.body.players.confirmed}</span>
             ) : (
               <div className="flex items-center gap-1">
                 <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-400">{dict.body.players.provisional}</span>
@@ -173,25 +173,25 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
             )
           )}
         </div>
-        <select aria-label={`${e.display_name} position`} value={d.position} disabled={!can} onChange={(x) => setD({ ...d, position: x.target.value })} className={field}>
+        <select aria-label={dict.body.players.posAria.replace("{a}", e.display_name)} value={d.position} disabled={!can} onChange={(x) => setD({ ...d, position: x.target.value })} className={field}>
           <option value="">{dict.body.players.notRecorded}</option>
-          {Object.entries(POSITION_NAMES).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
+          {Object.entries(POSITION_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
         </select>
       </label>
       <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.nationality}</span>
-        <select aria-label={`${e.display_name} nationality`} value={d.nationality} disabled={!can} onChange={(x) => setD({ ...d, nationality: x.target.value })} className={field}>
+        <select aria-label={dict.body.players.natAria.replace("{a}", e.display_name)} value={d.nationality} disabled={!can} onChange={(x) => setD({ ...d, nationality: x.target.value })} className={field}>
           <option value="">{dict.body.players.notRecorded}</option>
           {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
       </label>
       <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.preferredFoot}</span>
-        <select aria-label={`${e.display_name} preferred foot`} value={d.foot} disabled={!can} onChange={(x) => setD({ ...d, foot: x.target.value })} className={field}>
+        <select aria-label={dict.body.players.footAria.replace("{a}", e.display_name)} value={d.foot} disabled={!can} onChange={(x) => setD({ ...d, foot: x.target.value })} className={field}>
           <option value="">{dict.body.players.notRecorded}</option>
-          {Object.entries(FOOT_NAMES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(FOOT_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.birthDate}{e.profile.age !== null ? ` (age ${e.profile.age})` : ""}</span>
-        <input type="date" aria-label={`${e.display_name} birth date`} value={d.birth} disabled={!can} max={new Date().toISOString().slice(0, 10)} min="1900-01-01"
+      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.birthDate}{e.profile.age !== null ? dict.body.players.ageSuffix.replace("{a}", String(e.profile.age)) : ""}</span>
+        <input type="date" aria-label={dict.body.players.birthAria.replace("{a}", e.display_name)} value={d.birth} disabled={!can} max={new Date().toISOString().slice(0, 10)} min="1900-01-01"
           onChange={(x) => setD({ ...d, birth: x.target.value })} className={field} />
       </label>
       <div className="flex flex-col items-start gap-1 md:items-end">
@@ -214,42 +214,42 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
         {detailsOpen && (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.height}</span>
-              <input inputMode="numeric" aria-label={`${e.display_name} height in centimetres`} value={dd.height} disabled={!can} placeholder="e.g. 182"
+              <input inputMode="numeric" aria-label={dict.body.players.heightAria.replace("{a}", e.display_name)} value={dd.height} disabled={!can} placeholder={dict.body.players.heightExample}
                 onChange={(x) => setDd({ ...dd, height: x.target.value })} className={field} /></label>
             <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.weight}</span>
-              <input inputMode="decimal" aria-label={`${e.display_name} weight in kilograms`} value={dd.weight} disabled={!can} placeholder="e.g. 73"
+              <input inputMode="decimal" aria-label={dict.body.players.weightAria.replace("{a}", e.display_name)} value={dd.weight} disabled={!can} placeholder={dict.body.players.weightExample}
                 onChange={(x) => setDd({ ...dd, weight: x.target.value })} className={field} /></label>
             <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.club}</span>
-              <input aria-label={`${e.display_name} club`} value={dd.club} disabled={!can} maxLength={255}
+              <input aria-label={dict.body.players.clubAria.replace("{a}", e.display_name)} value={dd.club} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, club: x.target.value })} className={field} /></label>
             <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.league}</span>
-              <input aria-label={`${e.display_name} league`} value={dd.league} disabled={!can} maxLength={255}
+              <input aria-label={dict.body.players.leagueAria.replace("{a}", e.display_name)} value={dd.league} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, league: x.target.value })} className={field} /></label>
             <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCountry}</span>
-              <select aria-label={`${e.display_name} international country`} value={dd.country} disabled={!can}
+              <select aria-label={dict.body.players.intlCountryAria.replace("{a}", e.display_name)} value={dd.country} disabled={!can}
                 onChange={(x) => setDd({ ...dd, country: x.target.value })} className={field}>
                 <option value="">{dict.body.players.notRecorded}</option>
                 {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select></label>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCaps}</span>
-                <input inputMode="numeric" aria-label={`${e.display_name} international caps`} value={dd.caps} disabled={!can} placeholder="Not entered"
+                <input inputMode="numeric" aria-label={dict.body.players.capsAria.replace("{a}", e.display_name)} value={dd.caps} disabled={!can} placeholder={dict.body.players.notEnteredPlaceholder}
                   onChange={(x) => setDd({ ...dd, caps: x.target.value })} className={field} /></label>
               <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlGoals}</span>
-                <input inputMode="numeric" aria-label={`${e.display_name} international goals`} value={dd.goals} disabled={!can} placeholder="Not entered"
+                <input inputMode="numeric" aria-label={dict.body.players.goalsAria.replace("{a}", e.display_name)} value={dd.goals} disabled={!can} placeholder={dict.body.players.notEnteredPlaceholder}
                   onChange={(x) => setDd({ ...dd, goals: x.target.value })} className={field} /></label>
             </div>
             <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted">{dict.body.players.summary}</span>
-              <textarea aria-label={`${e.display_name} summary`} value={dd.summary} disabled={!can} maxLength={600} rows={3}
+              <textarea aria-label={dict.body.players.summaryAria.replace("{a}", e.display_name)} value={dd.summary} disabled={!can} maxLength={600} rows={3}
                 onChange={(x) => setDd({ ...dd, summary: x.target.value })} className={field} /></label>
             <fieldset className="text-sm sm:col-span-2 lg:col-span-1">
               <legend className="mb-1 text-xs text-muted">{dict.body.players.strengths}</legend>
               <div className="space-y-1.5">
                 {dd.strengths.map((s, i) => (
                   <div key={i} className="flex gap-1.5">
-                    <input aria-label={`${e.display_name} strength ${i + 1}`} value={s} disabled={!can} maxLength={60}
+                    <input aria-label={dict.body.players.strengthAria.replace("{a}", e.display_name).replace("{b}", String(i + 1))} value={s} disabled={!can} maxLength={60}
                       onChange={(x) => setDd({ ...dd, strengths: dd.strengths.map((y, j) => (j === i ? x.target.value : y)) })} className={field} />
-                    <button type="button" aria-label={`Remove strength ${i + 1}`} disabled={!can || dd.strengths.length <= 1}
+                    <button type="button" aria-label={dict.body.players.removeStrengthAria.replace("{a}", String(i + 1))} disabled={!can || dd.strengths.length <= 1}
                       onClick={() => setDd({ ...dd, strengths: dd.strengths.filter((_, j) => j !== i) })}
                       className="rounded-ctl border border-line px-2 disabled:opacity-40">✕</button>
                   </div>
@@ -262,27 +262,27 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
               <span className="mb-1 block text-xs text-muted">{dict.body.players.photo}</span>
               {savedDetails?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={savedDetails.photo_url} alt={`Photo of ${e.display_name}`} className="mb-1.5 h-16 w-16 rounded-ctl border border-line object-cover" />
+                <img src={savedDetails.photo_url} alt={dict.body.players.photoAlt.replace("{a}", e.display_name)} className="mb-1.5 h-16 w-16 rounded-ctl border border-line object-cover" />
               ) : <p className="mb-1.5 text-xs text-muted">{dict.body.players.noPhotoYet}</p>}
-              <input type="file" accept="image/png,image/jpeg" aria-label={`${e.display_name} photo`} disabled={!can}
+              <input type="file" accept="image/png,image/jpeg" aria-label={dict.body.players.photoAria.replace("{a}", e.display_name)} disabled={!can}
                 onChange={(x) => setPhoto(x.target.files?.[0] ?? null)} className="w-full text-xs" />
               {photoErr && <p className="mt-1 text-xs text-danger">{photoErr}</p>}
-              <input aria-label={`${e.display_name} photo rights holder`} value={holder} disabled={!can} placeholder="Who owns this photo?"
+              <input aria-label={dict.body.players.photoHolderAria.replace("{a}", e.display_name)} value={holder} disabled={!can} placeholder={dict.body.players.photoHolderPlaceholder}
                 onChange={(x) => setHolder(x.target.value)} className={`${field} mt-1.5`} />
-              <select aria-label={`${e.display_name} photo rights basis`} value={basis} disabled={!can}
+              <select aria-label={dict.body.players.photoBasisAria.replace("{a}", e.display_name)} value={basis} disabled={!can}
                 onChange={(x) => setBasis(x.target.value as BrandRightsBasis)} className={`${field} mt-1.5`}>
-                <option value="">Why may we use it?</option>
-                {RIGHTS_BASIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                <option value="">{dict.body.players.photoBasisPlaceholder}</option>
+                {RIGHTS_BASIS(dict).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
               <label className="mt-1.5 flex items-start gap-2 text-xs"><input type="checkbox" checked={confirmRights} disabled={!can}
                 onChange={(x) => setConfirmRights(x.target.checked)} className="mt-0.5" />
-                <span>I confirm we have the right to show this photo in our reels.</span></label>
+                <span>{dict.body.players.photoConfirm}</span></label>
               {photoState.err && <p role="alert" className="mt-1 text-xs text-danger">{photoState.err}</p>}
               {photoState.ok && <p role="status" className="mt-1 text-xs text-ok">{photoState.ok}</p>}
               <button type="button" disabled={!can || !photoReady} onClick={() => void uploadPhoto()}
                 className="mt-1.5 rounded-ctl border border-primary/70 bg-primary/20 px-3 py-1.5 text-xs font-semibold hover:bg-primary/30 disabled:opacity-40">
                 {photoState.busy ? dict.body.players.uploading : dict.body.players.uploadPhoto}</button>
-              <p className="mt-1 text-[11px] text-muted">PNG or JPEG, up to 512 KB. Your statement is recorded with your name.</p>
+              <p className="mt-1 text-[11px] text-muted">{dict.body.players.photoNote}</p>
             </div>
             <div className="flex flex-col items-start gap-1 sm:col-span-2 lg:col-span-3">
               {detailsError && <p role="alert" className="text-xs text-danger">{detailsError}</p>}
@@ -337,23 +337,23 @@ export function PlayersList() {
           <p className="text-sm text-muted">{dict.body.players.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by position"
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label={dict.body.players.filterPositionAria}
             className="rounded-ctl border border-line bg-canvas px-3 py-2 text-sm">
             <option value="">{dict.body.players.allPositions}</option>
-            {Object.entries(POSITION_NAMES).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
+            {Object.entries(POSITION_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
           </select>
           <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
             <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} className="rounded border-line" />
             <span>{dict.body.players.confirmedRolesOnly}</span>
           </label>
-          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder={dict.body.players.searchPlaceholder}
+          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label={dict.body.players.searchPlayersAria} placeholder={dict.body.players.searchPlaceholder}
             className="w-full max-w-xs rounded-ctl border border-line bg-canvas px-3 py-2 text-sm" />
         </div>
       </div>
       {list === undefined && <p className="text-muted">{dict.common.loading}</p>}
       {list === null && <p role="alert" className="text-danger">{dict.body.reports.playersNotLoaded}</p>}
       {list && shown.length === 0 && <p className="text-muted">{list.length ? dict.body.players.noMatch : dict.body.players.noPlayersYet}</p>}
-      <ul aria-label="Players" className="space-y-3">
+      <ul aria-label={dict.body.players.playersListAria} className="space-y-3">
         {shown.map((e) => (
           <Row key={e.player_id} e={e} countries={countries} focus={focus === e.player_id}
             onSaved={(p) => setList((l) => l?.map((x) => (x.player_id === e.player_id ? { ...x, profile: p } : x)))} />

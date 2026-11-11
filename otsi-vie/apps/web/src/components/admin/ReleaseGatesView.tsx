@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLocale } from "@/lib/i18n";
 import type { ReleaseGatesReport, GateCategory, ReleaseGateRecord } from "@otsi-vie/contracts";
 import {
   CheckCircle2,
@@ -29,12 +30,13 @@ const CATEGORY_ICONS: Record<GateCategory, React.ComponentType<{ className?: str
 };
 
 export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
+  const { t } = useLocale();
   const [selectedCategory, setSelectedCategory] = useState<GateCategory | "ALL">("ALL");
 
   if (!report) {
     return (
       <div className="rounded-card border border-line bg-panel p-6 text-center text-muted">
-        Loading release gates status...
+        {t.body.admin.gatesLoading}
       </div>
     );
   }
@@ -55,25 +57,24 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded bg-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
-                Master Release Policy
+                {t.body.admin.gatesPolicy}
               </span>
               <span className="text-xs text-muted">
-                Last evaluated: {new Date(report.timestamp).toLocaleTimeString()}
+                {t.body.admin.gatesLastEvaluated.replace("{a}", new Date(report.timestamp).toLocaleTimeString())}
               </span>
             </div>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
-              Release Gates (G01–G15) Status
+              {t.body.admin.gatesTitle}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Non-negotiable acceptance criteria from 09_RELEASE_AND_TEST_MATRIX.md. AI evaluation gates (G05–G08) display
-              &ldquo;accuracy not yet measured&rdquo; until ground-truth benchmark passes.
+              {t.body.admin.gatesSubtitle}
             </p>
           </div>
 
           <div className="flex flex-col items-end gap-1.5 min-w-[200px]">
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-extrabold text-white">{passedCount}</span>
-              <span className="text-sm font-medium text-muted">/ {totalCount} Gates Passed</span>
+              <span className="text-sm font-medium text-muted">{t.body.admin.gatesPassedCount.replace("{a}", String(totalCount))}</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-line">
               <div
@@ -81,7 +82,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-xs text-muted">{progressPercent}% Production Acceptance</span>
+            <span className="text-xs text-muted">{t.body.admin.gatesAcceptance.replace("{a}", String(progressPercent))}</span>
           </div>
         </div>
 
@@ -90,9 +91,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
           <div className="mt-5 flex items-start gap-3 rounded-ctl border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-300">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
             <div>
-              <span className="font-semibold text-amber-200">Evaluation Gates G05–G08 In Progress:</span> Accuracy
-              banners remain active across all video analysis screens in accordance with the &ldquo;unknown beats wrong&rdquo; truth
-              policy. Evaluation evidence must be recorded on licensed holdouts before marking passed.
+              <span className="font-semibold text-amber-200">{t.body.admin.gatesInProgress}</span> {t.body.admin.gatesInProgressBody}
             </div>
           </div>
         )}
@@ -109,7 +108,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
               : "border border-line bg-panel text-muted hover:text-white"
           }`}
         >
-          All Gates ({report.gates.length})
+          {t.body.admin.gatesAll.replace("{a}", String(report.gates.length))}
         </button>
         {(["INFRASTRUCTURE", "SECURITY", "MEDIA", "AI_ACCURACY", "GOVERNANCE"] as GateCategory[]).map((cat) => {
           const count = report.gates.filter((g) => g.category === cat).length;
@@ -126,7 +125,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              <span>{cat.replace("_", " ")}</span>
+              <span>{({ INFRASTRUCTURE: t.body.admin.gatesCatInfrastructure, SECURITY: t.body.admin.gatesCatSecurity, MEDIA: t.body.admin.gatesCatMedia, AI_ACCURACY: t.body.admin.gatesCatAiAccuracy, GOVERNANCE: t.body.admin.gatesCatGovernance } as Record<GateCategory, string>)[cat]}</span>
               <span className="opacity-75">({count})</span>
             </button>
           );
@@ -163,12 +162,12 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
                   {isPassed ? (
                     <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      PASSED
+                      {t.body.admin.gatePassed}
                     </span>
                   ) : isMeasuring ? (
                     <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
                       <Clock className="h-3.5 w-3.5" />
-                      MEASURING
+                      {t.body.admin.gateMeasuring}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 rounded-full border border-line bg-line/20 px-2.5 py-0.5 text-xs font-semibold text-muted">
@@ -183,16 +182,16 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
                 <div className="mt-4 space-y-2 border-t border-line/60 pt-3 text-xs">
                   <div>
-                    <span className="font-medium text-muted">Evidence Required: </span>
+                    <span className="font-medium text-muted">{t.body.admin.gateEvidence}</span>
                     <span className="text-slate-200">{gate.evidence_required}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-muted">Release Rule: </span>
+                    <span className="font-medium text-muted">{t.body.admin.gateRule}</span>
                     <span className="text-slate-200">{gate.release_rule}</span>
                   </div>
                   {gate.evidence_reference && (
                     <div>
-                      <span className="font-medium text-muted">Evidence Ref: </span>
+                      <span className="font-medium text-muted">{t.body.admin.gateRef}</span>
                       <span className="font-mono text-cyan-400">{gate.evidence_reference}</span>
                     </div>
                   )}
@@ -201,7 +200,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
               {gate.notes && (
                 <div className="mt-4 rounded border border-line/40 bg-surface/50 p-2 text-2xs text-muted">
-                  <span className="font-semibold text-slate-400">Note: </span>
+                  <span className="font-semibold text-slate-400">{t.body.admin.gateNote}</span>
                   {gate.notes}
                 </div>
               )}

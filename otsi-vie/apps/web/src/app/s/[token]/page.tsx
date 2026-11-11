@@ -8,11 +8,13 @@
  */
 import type { SharedComment, SharedView } from "@otsi-vie/contracts";
 import { useParams } from "next/navigation";
+import { useLocale } from "@/lib/i18n";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 const post = (path: string, json: unknown) => fetch(`/api/v1/public/share/${path}`, { method: "POST", credentials: "omit", headers: { "content-type": "application/json" }, body: JSON.stringify(json) });
 
 export default function SharedReelPage() {
+  const { t } = useLocale();
   const { token } = useParams<{ token: string }>();
   const [view, setView] = useState<SharedView | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -25,8 +27,8 @@ export default function SharedReelPage() {
     const r = await post(`${encodeURIComponent(token)}/open`, { password: pw }).catch(() => null);
     const body = await r?.json().catch(() => null);
     if (r?.ok) { opened.current = pw; setView(body as SharedView); setLocked(null); }
-    else if (r?.status === 401 || r?.status === 429) setLocked(body?.message ?? "That password is not right.");
-    else setProblem(body?.message ?? "This video is not available.");
+    else if (r?.status === 401 || r?.status === 429) setLocked(body?.message ?? t.body.auth.sharedPwWrong);
+    else setProblem(body?.message ?? t.body.auth.sharedUnavailable);
   };
   useEffect(() => {
     let live = true;
@@ -35,37 +37,37 @@ export default function SharedReelPage() {
       if (!live) return;
       if (r.ok) setView(body as SharedView);
       else if (r.status === 401 && body?.code === "PASSWORD_REQUIRED") setLocked("");
-      else if (r.status === 429) setLocked(body?.message ?? "Too many wrong passwords. Try again later.");
-      else setProblem(r.status === 404 ? "This link does not exist." : body?.message ?? "This video is not available.");
-    }, () => { if (live) setProblem("The video could not be reached."); });
+      else if (r.status === 429) setLocked(body?.message ?? t.body.auth.sharedTooMany);
+      else setProblem(r.status === 404 ? t.body.auth.sharedNoLink : body?.message ?? t.body.auth.sharedUnavailable);
+    }, () => { if (live) setProblem(t.body.auth.sharedUnreachable); });
     return () => { live = false; };
   }, [token]);
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-3 py-8" data-shared-page>
-      <p className="text-xs font-semibold tracking-wide text-muted">OTSI VIE · {view?.kind === "REPORT" ? "shared player report" : "shared video"}</p>
+      <p className="text-xs font-semibold tracking-wide text-muted">OTSI VIE · {view?.kind === "REPORT" ? t.body.auth.sharedReport : t.body.auth.sharedVideo}</p>
       {problem ? (
         <div role="alert" className="rounded-card border border-line bg-panel p-6 text-sm">{problem}</div>
       ) : locked !== null && !view ? (
         <form onSubmit={(e) => void unlock(e)} className="grid max-w-sm gap-2 rounded-card border border-line bg-panel p-6 text-sm" data-share-password>
-          <label className="grid gap-1">This video is protected by a password
+          <label className="grid gap-1">{t.body.auth.sharedProtected}
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus autoComplete="current-password" maxLength={128}
-              className="rounded-ctl border border-line bg-canvas px-2 py-1.5" aria-label="Password" />
+              className="rounded-ctl border border-line bg-canvas px-2 py-1.5" aria-label={t.body.auth.sharedPasswordAria} />
           </label>
           {locked && <p role="alert" className="text-danger">{locked}</p>}
-          <button type="submit" disabled={!pw} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">Open</button>
+          <button type="submit" disabled={!pw} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{t.body.auth.sharedOpen}</button>
         </form>
       ) : !view ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-muted">{t.body.auth.loading}</p>
       ) : (
         <>
           <h1 className="text-xl font-semibold">{view.title}</h1>
           {view.player_name && <p className="text-sm text-muted">{view.player_name}</p>}
           {view.kind === "REPORT"
-            ? <iframe data-shared-report src={view.url} title={`Player report${view.player_name ? `: ${view.player_name}` : ""}`} className="h-[80vh] w-full rounded-card border border-line bg-white" />
+            ? <iframe data-shared-report src={view.url} title={view.player_name ? t.body.auth.sharedReportTitlePlayer.replace("{a}", view.player_name) : t.body.auth.sharedReportTitle} className="h-[80vh] w-full rounded-card border border-line bg-white" />
             : <Player view={view} token={token} password={opened.current} onComments={(comments) => setView({ ...view, comments })} />}
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-            {view.download_url && <a href={view.download_url} className="rounded-ctl border border-line px-3 py-1.5 text-fg">Download</a>}
-            {view.link_expires_at && <span>Link valid until {new Date(view.link_expires_at).toLocaleString()}</span>}
+            {view.download_url && <a href={view.download_url} className="rounded-ctl border border-line px-3 py-1.5 text-fg">{t.body.auth.sharedDownload}</a>}
+            {view.link_expires_at && <span>{t.body.auth.sharedValidUntil.replace("{a}", new Date(view.link_expires_at).toLocaleString())}</span>}
           </div>
           <p className="text-xs text-muted">{view.notice}</p>
         </>
@@ -75,6 +77,7 @@ export default function SharedReelPage() {
 }
 /** the shared video and, when the link allows it, its comments and a field to add one */
 function Player({ view, token, password, onComments }: { view: SharedView; token: string; password: string | null; onComments: (c: SharedComment[]) => void }) {
+  const { t } = useLocale();
   const ref = useRef<HTMLVideoElement>(null);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
@@ -88,7 +91,7 @@ function Player({ view, token, password, onComments }: { view: SharedView; token
     const r = await post(`${encodeURIComponent(token)}/comments`, { password, name: name.trim(), body: text.trim(), at_s: at }).catch(() => null);
     const body = await r?.json().catch(() => null);
     setBusy(false);
-    if (r?.ok) { setText(""); onComments(body as SharedComment[]); } else setErr(body?.message ?? "The comment could not be sent.");
+    if (r?.ok) { setText(""); onComments(body as SharedComment[]); } else setErr(body?.message ?? t.body.auth.sharedCommentFailed);
   };
   const seek = (s: number) => { if (ref.current) { ref.current.currentTime = s; void ref.current.play().catch(() => undefined); } };
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -96,14 +99,14 @@ function Player({ view, token, password, onComments }: { view: SharedView; token
     <>
       <video ref={ref} data-shared-video src={view.url} controls playsInline className="w-full rounded-card bg-black" />
       {view.can_comment && (
-        <section aria-label="Comments" className="grid gap-2 rounded-card border border-line bg-panel p-4 text-sm" data-shared-comments={String(view.comments.length)}>
-          <h2 className="font-semibold">Comments</h2>
-          {!view.comments.length ? <p className="text-xs text-muted">No comments yet.</p> : (
+        <section aria-label={t.body.auth.sharedComments} className="grid gap-2 rounded-card border border-line bg-panel p-4 text-sm" data-shared-comments={String(view.comments.length)}>
+          <h2 className="font-semibold">{t.body.auth.sharedComments}</h2>
+          {!view.comments.length ? <p className="text-xs text-muted">{t.body.auth.sharedNoComments}</p> : (
             <ul className="grid gap-2">
               {view.comments.map((c) => (
                 <li key={c.id}>
                   <span className="font-semibold">{c.name}</span>
-                  {c.at_s !== null && <button type="button" onClick={() => seek(c.at_s!)} className="ml-1 text-xs text-primary">at {clock(c.at_s)}</button>}
+                  {c.at_s !== null && <button type="button" onClick={() => seek(c.at_s!)} className="ml-1 text-xs text-primary">{t.body.auth.sharedAt.replace("{a}", clock(c.at_s))}</button>}
                   <span className="text-xs text-muted"> · {new Date(c.created_at).toLocaleString()}</span>
                   <p>{c.body}</p>
                 </li>
@@ -111,11 +114,11 @@ function Player({ view, token, password, onComments }: { view: SharedView; token
             </ul>
           )}
           <form onSubmit={(e) => void send(e)} className="grid gap-2 border-t border-line pt-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Your name" aria-label="Your name" className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={255} rows={2} placeholder="Your comment" aria-label="Your comment" className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-            <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={atNow} onChange={(e) => setAtNow(e.target.checked)} />Pin it to the moment the video is at</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t.body.auth.sharedYourName} aria-label={t.body.auth.sharedYourName} className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={255} rows={2} placeholder={t.body.auth.sharedYourComment} aria-label={t.body.auth.sharedYourComment} className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+            <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={atNow} onChange={(e) => setAtNow(e.target.checked)} />{t.body.auth.sharedPin}</label>
             {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-            <button type="submit" disabled={busy || !name.trim() || !text.trim()} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? "Sending…" : "Send comment"}</button>
+            <button type="submit" disabled={busy || !name.trim() || !text.trim()} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? t.body.auth.sharedSending : t.body.auth.sharedSend}</button>
           </form>
         </section>
       )}

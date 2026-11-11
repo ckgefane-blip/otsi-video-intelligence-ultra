@@ -166,7 +166,7 @@ export function PreviewPanel() {
   const prof = player?.profile ?? null;
   const sheet = reel?.player_roster ?? prof?.latest_team ?? null;           // this match's team sheet first, else his latest one
   const code_ = sheet?.position ?? prof?.position ?? null;                  // his position in this match, else his usual one
-  const pos = code_ ? POSITION_NAMES[code_] ?? code_ : "—";
+  const pos = code_ ? POSITION_NAMES(dict)[code_] ?? code_ : "—";
   const target = reel?.targets[0] ?? null;
   const ready = !!src;
   const hasClip = !!clip;
@@ -219,7 +219,7 @@ export function PreviewPanel() {
 
         <PlayerCard name={player?.display_name ?? dict.body.workspace.noPlayerSelected} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? dict.body.reelstage.teamDash}
           nationality={prof?.nationality?.name ?? dict.body.reelstage.nationalityDash} pos={pos === "—" ? dict.body.reelstage.positionDash : pos}
-          foot={prof?.preferred_foot ? FOOT_NAMES[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
+          foot={prof?.preferred_foot ? FOOT_NAMES(dict)[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
           playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
 
         {isCross && kind === "render" ? <AllMatchesNote /> : <Scoreboard match={match} />}

@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useLocale } from "@/lib/i18n";
 import { api, ApiProblem } from "@/lib/api";
 
 type Tab = "overview" | "gates" | "members" | "models" | "workers" | "retention" | "audit";
@@ -77,6 +78,7 @@ function formatDate(iso: string): string {
 
 export function AdminConsole() {
   const { organization } = useAuth();
+  const { t } = useLocale();
   const myRole = organization?.role;
   const isAuthorized = myRole === "OWNER" || myRole === "ADMIN";
 
@@ -157,7 +159,7 @@ export function AdminConsole() {
         setReleaseGates(gatesRes);
       }
     } catch (err) {
-      setError(err instanceof ApiProblem ? err.message : "Failed to load admin console data");
+      setError(err instanceof ApiProblem ? err.message : t.body.admin.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -194,7 +196,7 @@ export function AdminConsole() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof ApiProblem ? err.message : "Failed to update concurrency");
+      setError(err instanceof ApiProblem ? err.message : t.body.admin.concurrencyFailed);
     } finally {
       setSavingConcurrency(false);
     }
@@ -213,7 +215,7 @@ export function AdminConsole() {
       setPolicySaved(true);
       setTimeout(() => setPolicySaved(false), 3000);
     } catch (err) {
-      setError(err instanceof ApiProblem ? err.message : "Failed to update retention policy");
+      setError(err instanceof ApiProblem ? err.message : t.body.admin.policyFailed);
     } finally {
       setSavingPolicy(false);
     }
@@ -228,10 +230,10 @@ export function AdminConsole() {
         method: "POST",
         json: {},
       });
-      setPurgeResult(`Purged ${res.purged_count} items (freed ${formatBytes(res.freed_bytes)})`);
+      setPurgeResult(t.body.admin.purged.replace("{a}", String(res.purged_count)).replace("{b}", formatBytes(res.freed_bytes)));
       await loadData();
     } catch (err) {
-      setError(err instanceof ApiProblem ? err.message : "Failed to purge expired trash");
+      setError(err instanceof ApiProblem ? err.message : t.body.admin.purgeFailed);
     } finally {
       setPurgingTrash(false);
     }
@@ -251,12 +253,12 @@ export function AdminConsole() {
           reason: erasureReason.trim() || undefined,
         },
       });
-      setErasureSuccess(`Erased ${res.subject_ref}: pseudonymized as "${res.summary.pseudonymized_name}"`);
+      setErasureSuccess(t.body.admin.erased.replace("{a}", res.subject_ref ?? "").replace("{b}", res.summary.pseudonymized_name));
       setErasureSubjectId("");
       setErasureReason("");
       await loadData();
     } catch (err) {
-      setError(err instanceof ApiProblem ? err.message : "Failed to execute subject erasure");
+      setError(err instanceof ApiProblem ? err.message : t.body.admin.erasureFailed);
     } finally {
       setExecutingErasure(false);
     }
@@ -268,9 +270,9 @@ export function AdminConsole() {
         <div className="flex items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
           <ShieldAlert className="h-6 w-6 shrink-0" />
           <div>
-            <h2 className="font-semibold">Administrator Access Required</h2>
+            <h2 className="font-semibold">{t.body.admin.accessRequired}</h2>
             <p className="text-sm opacity-90">
-              Only organization Owners and Admins have permission to access the Admin Console.
+              {t.body.admin.accessOnly}
             </p>
           </div>
         </div>
@@ -295,13 +297,13 @@ export function AdminConsole() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Admin Console</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t.body.admin.title}</h1>
             <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
               v3 Phase D.3
             </span>
           </div>
           <p className="text-sm text-muted">
-            Governance, model registry, worker concurrency, and security audit log.
+            {t.body.admin.subtitle}
           </p>
         </div>
         <button
@@ -311,7 +313,7 @@ export function AdminConsole() {
           className="flex items-center gap-2 rounded-ctl border border-line bg-panel px-3 py-1.5 text-sm font-medium hover:border-primary/50 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t.body.admin.refresh}
         </button>
       </div>
 
@@ -341,13 +343,13 @@ export function AdminConsole() {
                   <div className="mt-0.5 opacity-90">{alt.message}</div>
                   {alt.suggested_action && (
                     <div className="mt-1 font-mono text-[11px] opacity-80">
-                      Recommendation: {alt.suggested_action}
+                      {t.body.admin.recommendation.replace("{a}", alt.suggested_action)}
                     </div>
                   )}
                 </div>
               </div>
               <span className="rounded bg-canvas/60 px-2 py-0.5 font-mono text-[10px] uppercase font-semibold">
-                {alt.severity}
+                {({ INFO: t.body.admin.severityInfo, WARNING: t.body.admin.severityWarning, CRITICAL: t.body.admin.severityCritical } as Record<string, string>)[alt.severity] ?? alt.severity}
               </span>
             </div>
           ))}
@@ -357,13 +359,13 @@ export function AdminConsole() {
       {/* Navigation Tabs */}
       <div className="mb-6 flex gap-1 border-b border-line">
         {[
-          { id: "overview", label: "Overview", icon: Activity },
-          { id: "gates", label: "Release Gates (G01–G15)", icon: ShieldCheck },
-          { id: "members", label: "Members & Roles", icon: Users },
-          { id: "models", label: "Model Registry", icon: Database },
-          { id: "workers", label: "Concurrency & Workers", icon: Sliders },
-          { id: "retention", label: "Retention & Privacy", icon: Archive },
-          { id: "audit", label: "Security & Audit", icon: Shield },
+          { id: "overview", label: t.body.admin.tabOverview, icon: Activity },
+          { id: "gates", label: t.body.admin.tabGates, icon: ShieldCheck },
+          { id: "members", label: t.body.admin.tabMembers, icon: Users },
+          { id: "models", label: t.body.admin.tabModels, icon: Database },
+          { id: "workers", label: t.body.admin.tabWorkers, icon: Sliders },
+          { id: "retention", label: t.body.admin.tabRetention, icon: Archive },
+          { id: "audit", label: t.body.admin.tabAudit, icon: Shield },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -395,85 +397,85 @@ export function AdminConsole() {
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">Members</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricMembers}</span>
                     <Users className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">{dashboard.organization.member_count}</div>
-                  <div className="text-[11px] text-muted">Active accounts</div>
+                  <div className="text-[11px] text-muted">{t.body.admin.metricActiveAccounts}</div>
                 </div>
 
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">Videos</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricVideos}</span>
                     <Layers className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">{dashboard.organization.video_count}</div>
-                  <div className="text-[11px] text-muted">{dashboard.organization.reel_count} reels cut</div>
+                  <div className="text-[11px] text-muted">{t.body.admin.metricReelsCut.replace("{a}", String(dashboard.organization.reel_count))}</div>
                 </div>
 
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">Storage</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricStorage}</span>
                     <HardDrive className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">
                     {formatBytes(dashboard.organization.storage_bytes)}
                   </div>
-                  <div className="text-[11px] text-muted">Footage & assets</div>
+                  <div className="text-[11px] text-muted">{t.body.admin.metricFootage}</div>
                 </div>
 
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">Workers</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricWorkers}</span>
                     <Cpu className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">
                     {dashboard.workers.reduce((acc, g) => acc + g.active_workers, 0)}
                   </div>
-                  <div className="text-[11px] text-muted">Running nodes</div>
+                  <div className="text-[11px] text-muted">{t.body.admin.metricRunningNodes}</div>
                 </div>
 
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">AI Models</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricModels}</span>
                     <Database className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">{dashboard.models.length}</div>
                   <div className="text-[11px] text-muted">
-                    {dashboard.models.filter((m) => m.files.every((f) => f.verified)).length} cached
+                    {t.body.admin.metricCached.replace("{a}", String(dashboard.models.filter((m) => m.files.every((f) => f.verified)).length))}
                   </div>
                 </div>
 
                 <div className="rounded-card border border-line bg-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">Queued</span>
+                    <span className="text-xs uppercase font-medium">{t.body.admin.metricQueued}</span>
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">
                     {dashboard.workers.reduce((acc, g) => acc + g.queued_jobs, 0)}
                   </div>
-                  <div className="text-[11px] text-muted">Pending jobs</div>
+                  <div className="text-[11px] text-muted">{t.body.admin.metricPendingJobs}</div>
                 </div>
               </div>
 
               {/* System & Runtime Host Specs */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  System Runtime & Host
+                  {t.body.admin.sysRuntime}
                 </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                   <div>
-                    <div className="text-xs text-muted">Host Machine</div>
+                    <div className="text-xs text-muted">{t.body.admin.sysHost}</div>
                     <div className="font-medium">{dashboard.system_resources.host ?? "localhost"}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">CPU Status</div>
+                    <div className="text-xs text-muted">{t.body.admin.sysCpu}</div>
                     <div className="font-medium">
-                      {dashboard.system_resources.cpu_count ?? "—"} cores ({dashboard.system_resources.cpu_percent != null ? `${dashboard.system_resources.cpu_percent}%` : "—"})
+                      {t.body.admin.sysCores.replace("{a}", String(dashboard.system_resources.cpu_count ?? "—")).replace("{b}", dashboard.system_resources.cpu_percent != null ? String(dashboard.system_resources.cpu_percent) : "—")}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">Host Memory</div>
+                    <div className="text-xs text-muted">{t.body.admin.sysMemory}</div>
                     <div className="font-medium">
                       {dashboard.system_resources.memory_used_bytes && dashboard.system_resources.memory_total_bytes
                         ? `${formatBytes(dashboard.system_resources.memory_used_bytes)} / ${formatBytes(dashboard.system_resources.memory_total_bytes)}`
@@ -481,9 +483,9 @@ export function AdminConsole() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">GPU Acceleration</div>
+                    <div className="text-xs text-muted">{t.body.admin.sysGpu}</div>
                     <div className="font-medium">
-                      {dashboard.system_resources.gpu_name ?? "CPU / DirectML"}
+                      {dashboard.system_resources.gpu_name ?? t.body.admin.sysGpuFallback}
                     </div>
                   </div>
                 </div>
@@ -492,7 +494,7 @@ export function AdminConsole() {
               {/* Quick Worker Groups Summary */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  Active Worker Groups
+                  {t.body.admin.workerGroups}
                 </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {dashboard.workers.map((group) => (
@@ -502,13 +504,13 @@ export function AdminConsole() {
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           group.active_workers > 0 ? "bg-ok/10 text-ok" : "bg-muted/20 text-muted"
                         }`}>
-                          {group.active_workers} online
+                          {t.body.admin.workerOnline.replace("{a}", String(group.active_workers))}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted truncate">Kinds: {group.kinds.join(", ")}</p>
+                      <p className="mt-1 text-xs text-muted truncate">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
                       <div className="mt-3 flex justify-between text-xs">
-                        <span>Running: <strong>{group.running_jobs}</strong></span>
-                        <span>Queued: <strong>{group.queued_jobs}</strong></span>
+                        <span>{t.body.admin.workerRunning}: <strong>{group.running_jobs}</strong></span>
+                        <span>{t.body.admin.workerQueued}: <strong>{group.queued_jobs}</strong></span>
                       </div>
                     </div>
                   ))}
@@ -529,9 +531,9 @@ export function AdminConsole() {
             <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-members">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-semibold">Organization Members</h2>
+                  <h2 className="text-base font-semibold">{t.body.admin.membersTitle}</h2>
                   <p className="text-xs text-muted">
-                    Total: {dashboard.members.length} registered accounts in {dashboard.organization.name}.
+                    {t.body.admin.membersTotal.replace("{a}", String(dashboard.members.length)).replace("{b}", dashboard.organization.name)}
                   </p>
                 </div>
               </div>
@@ -540,10 +542,10 @@ export function AdminConsole() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">Member</th>
-                      <th className="pb-3 font-medium">Role</th>
-                      <th className="pb-3 font-medium">2FA Status</th>
-                      <th className="pb-3 font-medium">Joined</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colMember}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colRole}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colTwoFa}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colJoined}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
@@ -569,11 +571,11 @@ export function AdminConsole() {
                         <td className="py-3">
                           {m.two_step ? (
                             <span className="inline-flex items-center gap-1 text-xs text-ok">
-                              <ShieldCheck className="h-3.5 w-3.5" /> Enforced
+                              <ShieldCheck className="h-3.5 w-3.5" /> {t.body.admin.twoFaEnforced}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs text-muted">
-                              Off
+                              {t.body.admin.twoFaOff}
                             </span>
                           )}
                         </td>
@@ -590,9 +592,9 @@ export function AdminConsole() {
           {activeTab === "models" && (
             <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-models">
               <div className="mb-4">
-                <h2 className="text-base font-semibold">Model Registry & Artifact Introspection</h2>
+                <h2 className="text-base font-semibold">{t.body.admin.modelsTitle}</h2>
                 <p className="text-xs text-muted">
-                  Computer vision, pitch calibration, tracking, and audio models registered in the worker pipeline.
+                  {t.body.admin.modelsSubtitle}
                 </p>
               </div>
 
@@ -600,12 +602,12 @@ export function AdminConsole() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">Model Key</th>
-                      <th className="pb-3 font-medium">Family / Task</th>
-                      <th className="pb-3 font-medium">License</th>
-                      <th className="pb-3 font-medium">Adapter</th>
-                      <th className="pb-3 font-medium">Weights Files</th>
-                      <th className="pb-3 font-medium">Status</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colModelKey}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colFamilyTask}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colLicense}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colAdapter}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colWeights}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.colStatus}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
@@ -625,16 +627,16 @@ export function AdminConsole() {
                           <td className="py-3 text-xs text-muted">{mod.weights_license}</td>
                           <td className="py-3 text-xs font-mono">{mod.adapter}</td>
                           <td className="py-3 text-xs text-muted">
-                            {mod.files.length} file{mod.files.length === 1 ? "" : "s"} ({presentCount} on disk)
+                            {mod.files.length === 1 ? t.body.admin.modelFilesOne.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount)) : t.body.admin.modelFilesMany.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount))}
                           </td>
                           <td className="py-3">
                             {allVerified ? (
                               <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
-                                <CheckCircle2 className="h-3 w-3" /> Ready
+                                <CheckCircle2 className="h-3 w-3" /> {t.body.admin.modelReady}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 rounded bg-muted/20 px-2 py-0.5 text-xs font-medium text-muted">
-                                <XCircle className="h-3 w-3" /> Absent
+                                <XCircle className="h-3 w-3" /> {t.body.admin.modelAbsent}
                               </span>
                             )}
                           </td>
@@ -653,22 +655,22 @@ export function AdminConsole() {
               {/* Concurrency Sliders */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <div className="mb-4">
-                  <h2 className="text-base font-semibold">Worker Job Concurrency Caps</h2>
+                  <h2 className="text-base font-semibold">{t.body.admin.concurrencyTitle}</h2>
                   <p className="text-xs text-muted">
-                    Regulate maximum simultaneous jobs scheduled across queues to match host CPU/GPU capacity.
+                    {t.body.admin.concurrencySubtitle}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Render Concurrency</span>
+                      <span className="text-sm font-semibold">{t.body.admin.concRender}</span>
                       <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
                         {renderConcurrency}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted">
-                      Max parallel reel video renders, snapshot extractions & beat grids.
+                      {t.body.admin.concRenderDesc}
                     </p>
                     <input
                       type="range"
@@ -687,13 +689,13 @@ export function AdminConsole() {
 
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Analysis Concurrency</span>
+                      <span className="text-sm font-semibold">{t.body.admin.concAnalysis}</span>
                       <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
                         {analysisConcurrency}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted">
-                      Max simultaneous YOLO / tracking & pitch calibration jobs.
+                      {t.body.admin.concAnalysisDesc}
                     </p>
                     <input
                       type="range"
@@ -712,13 +714,13 @@ export function AdminConsole() {
 
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Ingest Concurrency</span>
+                      <span className="text-sm font-semibold">{t.body.admin.concIngest}</span>
                       <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
                         {ingestConcurrency}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted">
-                      Max parallel ingest transcode & proxy file generation jobs.
+                      {t.body.admin.concIngestDesc}
                     </p>
                     <input
                       type="range"
@@ -747,18 +749,18 @@ export function AdminConsole() {
                     }`}
                   >
                     {queuePaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
-                    {queuePaused ? "Queue Paused (Click to Resume)" : "Pause Queue Execution"}
+                    {queuePaused ? t.body.admin.queuePausedBtn : t.body.admin.queuePauseBtn}
                   </button>
                 </div>
 
                 <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
                   <div className="text-xs text-muted">
-                    Queue status: {queuePaused ? "Paused" : "Active"}
+                    {t.body.admin.queueStatus.replace("{a}", queuePaused ? t.body.admin.queuePausedWord : t.body.admin.queueActiveWord)}
                   </div>
                   <div className="flex items-center gap-3">
                     {saveSuccess && (
                       <span className="flex items-center gap-1 text-xs text-ok">
-                        <CheckCircle2 className="h-4 w-4" /> Concurrency updated
+                        <CheckCircle2 className="h-4 w-4" /> {t.body.admin.concUpdated}
                       </span>
                     )}
                     <button
@@ -772,7 +774,7 @@ export function AdminConsole() {
                       ) : (
                         <Save className="h-4 w-4" />
                       )}
-                      Apply Concurrency Caps
+                      {t.body.admin.concApply}
                     </button>
                   </div>
                 </div>
@@ -781,7 +783,7 @@ export function AdminConsole() {
               {/* Worker Groups Status Detailed */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  Worker Group Queues & Topology
+                  {t.body.admin.workerTopology}
                 </h3>
                 <div className="space-y-3">
                   {dashboard.workers.map((group) => (
@@ -797,18 +799,18 @@ export function AdminConsole() {
                               group.active_workers > 0 ? "bg-ok/10 text-ok" : "bg-muted/20 text-muted"
                             }`}
                           >
-                            {group.active_workers} Worker{group.active_workers === 1 ? "" : "s"}
+                            {group.active_workers === 1 ? t.body.admin.workerCountOne.replace("{a}", String(group.active_workers)) : t.body.admin.workerCountMany.replace("{a}", String(group.active_workers))}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-muted">Kinds: {group.kinds.join(", ")}</p>
+                        <p className="mt-0.5 text-xs text-muted">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
                       </div>
                       <div className="flex items-center gap-6 text-sm">
                         <div>
-                          <span className="text-xs text-muted">Running</span>
+                          <span className="text-xs text-muted">{t.body.admin.workerRunning}</span>
                           <div className="font-semibold">{group.running_jobs}</div>
                         </div>
                         <div>
-                          <span className="text-xs text-muted">Queued</span>
+                          <span className="text-xs text-muted">{t.body.admin.workerQueued}</span>
                           <div className="font-semibold">{group.queued_jobs}</div>
                         </div>
                       </div>
@@ -825,15 +827,15 @@ export function AdminConsole() {
               {/* Retention Policy Settings */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <div className="mb-4">
-                  <h2 className="text-base font-semibold">Data Retention Schedules</h2>
+                  <h2 className="text-base font-semibold">{t.body.admin.retentionTitle}</h2>
                   <p className="text-xs text-muted">
-                    Configure retention lifetimes for deleted items, raw footage, rendered highlights, and audit logs.
+                    {t.body.admin.retentionSubtitle}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">Trash Retention (Days)</label>
+                    <label className="text-xs font-medium text-muted">{t.body.admin.retTrash}</label>
                     <input
                       type="number"
                       min={0}
@@ -842,11 +844,11 @@ export function AdminConsole() {
                       onChange={(e) => setRetentionDraft({ ...retentionDraft, trash_days: parseInt(e.target.value) || 0 })}
                       className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono text-sm outline-none focus:border-primary"
                     />
-                    <p className="mt-1 text-[11px] text-muted">Default 30 days before items can be purged</p>
+                    <p className="mt-1 text-[11px] text-muted">{t.body.admin.retTrashHint}</p>
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">Audit Log Retention (Days)</label>
+                    <label className="text-xs font-medium text-muted">{t.body.admin.retAudit}</label>
                     <input
                       type="number"
                       min={30}
@@ -855,11 +857,11 @@ export function AdminConsole() {
                       onChange={(e) => setRetentionDraft({ ...retentionDraft, audit_log_days: parseInt(e.target.value) || 365 })}
                       className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono text-sm outline-none focus:border-primary"
                     />
-                    <p className="mt-1 text-[11px] text-muted">Minimum 30 days; default 365 days</p>
+                    <p className="mt-1 text-[11px] text-muted">{t.body.admin.retAuditHint}</p>
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">Auto-Purge Expired Trash</label>
+                    <label className="text-xs font-medium text-muted">{t.body.admin.retAutoPurge}</label>
                     <div className="mt-3 flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -869,15 +871,15 @@ export function AdminConsole() {
                         className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
                       />
                       <label htmlFor="auto_purge" className="text-xs cursor-pointer select-none">
-                        {retentionDraft.auto_purge_enabled ? "Enabled" : "Disabled (Manual purge only)"}
+                        {retentionDraft.auto_purge_enabled ? t.body.admin.retEnabled : t.body.admin.retDisabled}
                       </label>
                     </div>
                   </div>
 
                   <div className="flex flex-col justify-between rounded-card border border-line bg-canvas p-4">
                     <div>
-                      <span className="text-xs font-medium text-muted">Maintenance Action</span>
-                      <p className="text-[11px] text-muted mt-1">Purge items exceeding trash retention threshold</p>
+                      <span className="text-xs font-medium text-muted">{t.body.admin.retMaintenance}</span>
+                      <p className="text-[11px] text-muted mt-1">{t.body.admin.retMaintenanceDesc}</p>
                     </div>
                     <button
                       type="button"
@@ -885,7 +887,7 @@ export function AdminConsole() {
                       onClick={handlePurgeTrash}
                       className="mt-2 rounded-ctl border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 disabled:opacity-50"
                     >
-                      {purgingTrash ? "Purging…" : "Purge Expired Trash Now"}
+                      {purgingTrash ? t.body.admin.retPurging : t.body.admin.retPurgeBtn}
                     </button>
                   </div>
                 </div>
@@ -898,12 +900,12 @@ export function AdminConsole() {
 
                 <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
                   <div className="text-xs text-muted">
-                    {retentionPolicy?.updated_at ? `Last updated: ${new Date(retentionPolicy.updated_at).toLocaleString()}` : ""}
+                    {retentionPolicy?.updated_at ? t.body.admin.retLastUpdated.replace("{a}", new Date(retentionPolicy.updated_at).toLocaleString()) : ""}
                   </div>
                   <div className="flex items-center gap-3">
                     {policySaved && (
                       <span className="flex items-center gap-1 text-xs text-ok">
-                        <CheckCircle2 className="h-4 w-4" /> Retention policy updated
+                        <CheckCircle2 className="h-4 w-4" /> {t.body.admin.retPolicyUpdated}
                       </span>
                     )}
                     <button
@@ -913,7 +915,7 @@ export function AdminConsole() {
                       className="flex items-center gap-2 rounded-ctl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                     >
                       {savingPolicy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      Save Retention Policy
+                      {t.body.admin.retSave}
                     </button>
                   </div>
                 </div>
@@ -922,57 +924,57 @@ export function AdminConsole() {
               {/* GDPR Subject Erasure */}
               <div className="rounded-card border border-line bg-panel p-5">
                 <div className="mb-4">
-                  <h2 className="text-base font-semibold">GDPR Data Subject Erasure (Right to be Forgotten)</h2>
+                  <h2 className="text-base font-semibold">{t.body.admin.gdprTitle}</h2>
                   <p className="text-xs text-muted">
-                    Permanently pseudonymize player or member identity records, clear scouting dossiers and ratings, and maintain cryptographic audit consistency.
+                    {t.body.admin.gdprSubtitle}
                   </p>
                 </div>
 
                 <div className="rounded-card border border-line bg-canvas p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div>
-                      <label className="text-xs font-medium text-muted">Subject Kind</label>
+                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprSubjectKind}</label>
                       <select
                         value={erasureSubjectKind}
                         onChange={(e) => setErasureSubjectKind(e.target.value as "PLAYER" | "USER")}
                         className="mt-1 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 text-xs outline-none focus:border-primary"
                       >
-                        <option value="PLAYER">Player (Athlete)</option>
-                        <option value="USER">User (Staff / Member)</option>
+                        <option value="PLAYER">{t.body.admin.gdprPlayer}</option>
+                        <option value="USER">{t.body.admin.gdprUser}</option>
                       </select>
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="text-xs font-medium text-muted">Subject UUID</label>
+                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprSubjectUuid}</label>
                       <input
                         type="text"
                         value={erasureSubjectId}
                         onChange={(e) => setErasureSubjectId(e.target.value)}
-                        placeholder="e.g. 018f76... (player_id or user_id)"
+                        placeholder={t.body.admin.gdprSubjectPlaceholder}
                         className="mt-1 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono text-xs outline-none focus:border-primary"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium text-muted">Action</label>
+                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprAction}</label>
                       <button
                         type="button"
                         disabled={executingErasure || !erasureSubjectId.trim()}
                         onClick={handleExecuteErasure}
                         className="mt-1 w-full rounded-ctl border border-danger/50 bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger/90 disabled:opacity-40"
                       >
-                        {executingErasure ? "Processing…" : "Execute Erasure"}
+                        {executingErasure ? t.body.admin.gdprProcessing : t.body.admin.gdprExecute}
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-3">
-                    <label className="text-xs font-medium text-muted">Legal / Request Reason (Optional)</label>
+                    <label className="text-xs font-medium text-muted">{t.body.admin.gdprReason}</label>
                     <input
                       type="text"
                       value={erasureReason}
                       onChange={(e) => setErasureReason(e.target.value)}
-                      placeholder="e.g. GDPR Article 17 request received 2026-11-09"
+                      placeholder={t.body.admin.gdprReasonPlaceholder}
                       className="mt-1 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 text-xs outline-none focus:border-primary"
                     />
                   </div>
@@ -987,19 +989,19 @@ export function AdminConsole() {
                 {/* Erasure Requests Audit List */}
                 <div className="mt-5">
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
-                    Executed Erasure Requests ({erasures.length})
+                    {t.body.admin.gdprExecuted.replace("{a}", String(erasures.length))}
                   </h3>
                   <div className="max-h-60 overflow-y-auto rounded-card border border-line bg-canvas">
                     {erasures.length === 0 ? (
-                      <p className="p-4 text-center text-xs text-muted">No subject erasure requests executed.</p>
+                      <p className="p-4 text-center text-xs text-muted">{t.body.admin.gdprNone}</p>
                     ) : (
                       <table className="w-full text-left text-xs">
                         <thead className="border-b border-line bg-panel/50 text-[11px] text-muted">
                           <tr>
-                            <th className="p-2.5">Date</th>
-                            <th className="p-2.5">Kind</th>
-                            <th className="p-2.5">Subject Ref</th>
-                            <th className="p-2.5">Summary / Pseudonym</th>
+                            <th className="p-2.5">{t.body.admin.gdprColDate}</th>
+                            <th className="p-2.5">{t.body.admin.gdprColKind}</th>
+                            <th className="p-2.5">{t.body.admin.gdprColSubject}</th>
+                            <th className="p-2.5">{t.body.admin.gdprColSummary}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-line">
@@ -1016,7 +1018,7 @@ export function AdminConsole() {
                               <td className="p-2.5 font-mono text-[11px]">{r.subject_ref ?? r.subject_id}</td>
                               <td className="p-2.5 text-muted">
                                 {r.summary?.pseudonymized_name}
-                                {r.summary?.cleared_identities ? ` · ${r.summary.cleared_identities} identities cleared` : ""}
+                                {r.summary?.cleared_identities ? t.body.admin.gdprCleared.replace("{a}", String(r.summary.cleared_identities)) : ""}
                               </td>
                             </tr>
                           ))}
@@ -1031,9 +1033,9 @@ export function AdminConsole() {
               <div className="rounded-card border border-line bg-panel p-5">
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-base font-semibold">Database Backups & Disaster Recovery</h2>
+                    <h2 className="text-base font-semibold">{t.body.admin.backupsTitle}</h2>
                     <p className="text-xs text-muted">
-                      Snapshot backups with isolated container verification and row-count consistency checks.
+                      {t.body.admin.backupsSubtitle}
                     </p>
                   </div>
                   {backupsStatus && (
@@ -1043,7 +1045,7 @@ export function AdminConsole() {
                       }`}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      {backupsStatus.healthy ? "Backups Healthy & Verified" : "Needs Verification"}
+                      {backupsStatus.healthy ? t.body.admin.backupsHealthy : t.body.admin.backupsNeeds}
                     </span>
                   )}
                 </div>
@@ -1051,19 +1053,19 @@ export function AdminConsole() {
                 <div className="rounded-card border border-line bg-canvas p-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
-                      <span className="text-xs text-muted">Total Available Backups</span>
+                      <span className="text-xs text-muted">{t.body.admin.backupsTotal}</span>
                       <div className="text-lg font-bold">{backupsStatus?.backups.length ?? 0}</div>
                     </div>
                     <div>
-                      <span className="text-xs text-muted">Latest Backup Snapshot</span>
+                      <span className="text-xs text-muted">{t.body.admin.backupsLatest}</span>
                       <div className="text-sm font-mono mt-0.5">
-                        {backupsStatus?.latest_backup_at ? new Date(backupsStatus.latest_backup_at).toLocaleString() : "None"}
+                        {backupsStatus?.latest_backup_at ? new Date(backupsStatus.latest_backup_at).toLocaleString() : t.body.admin.backupsNone}
                       </div>
                     </div>
                     <div>
-                      <span className="text-xs text-muted">Last Verified Drill</span>
+                      <span className="text-xs text-muted">{t.body.admin.backupsDrill}</span>
                       <div className="text-sm font-mono mt-0.5 text-ok">
-                        {backupsStatus?.latest_verified_at ? new Date(backupsStatus.latest_verified_at).toLocaleString() : "None"}
+                        {backupsStatus?.latest_verified_at ? new Date(backupsStatus.latest_verified_at).toLocaleString() : t.body.admin.backupsNone}
                       </div>
                     </div>
                   </div>
@@ -1072,15 +1074,15 @@ export function AdminConsole() {
                 {/* Backups Inventory Table */}
                 <div className="mt-4 max-h-60 overflow-y-auto rounded-card border border-line bg-canvas">
                   {!backupsStatus || backupsStatus.backups.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-muted">No backup archives discovered under .local/backups.</p>
+                    <p className="p-4 text-center text-xs text-muted">{t.body.admin.backupsNoArchives}</p>
                   ) : (
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-line bg-panel/50 text-[11px] text-muted">
                         <tr>
-                          <th className="p-2.5">Snapshot ID</th>
-                          <th className="p-2.5">Dump Size</th>
-                          <th className="p-2.5">Schema Counts</th>
-                          <th className="p-2.5">Verification</th>
+                          <th className="p-2.5">{t.body.admin.backupsColSnapshot}</th>
+                          <th className="p-2.5">{t.body.admin.backupsColSize}</th>
+                          <th className="p-2.5">{t.body.admin.backupsColSchema}</th>
+                          <th className="p-2.5">{t.body.admin.backupsColVerification}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -1089,20 +1091,20 @@ export function AdminConsole() {
                             <td className="p-2.5 font-mono text-[11px] font-semibold">{b.id}</td>
                             <td className="p-2.5 font-mono text-[11px] text-muted">{formatBytes(b.db_bytes)}</td>
                             <td className="p-2.5 text-muted">
-                              {b.tables} tables · {b.rows.toLocaleString()} rows
+                              {t.body.admin.backupsTables.replace("{a}", String(b.tables)).replace("{b}", b.rows.toLocaleString())}
                             </td>
                             <td className="p-2.5">
                               {b.verification_ok ? (
                                 <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-[10px] font-semibold text-ok border border-ok/20">
-                                  <CheckCircle2 className="h-3 w-3" /> VERIFIED (0 mismatches)
+                                  <CheckCircle2 className="h-3 w-3" /> {t.body.admin.backupsVerified}
                                 </span>
                               ) : b.verified ? (
                                 <span className="inline-flex items-center gap-1 rounded bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger border border-danger/20">
-                                  <XCircle className="h-3 w-3" /> MISMATCH
+                                  <XCircle className="h-3 w-3" /> {t.body.admin.backupsMismatch}
                                 </span>
                               ) : (
                                 <span className="rounded bg-panel px-2 py-0.5 text-[10px] text-muted border border-line">
-                                  PENDING DRILL
+                                  {t.body.admin.backupsPending}
                                 </span>
                               )}
                             </td>
@@ -1121,9 +1123,9 @@ export function AdminConsole() {
             <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-audit">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold">Security & Audit Trail</h2>
+                  <h2 className="text-base font-semibold">{t.body.admin.auditTitle}</h2>
                   <p className="text-xs text-muted">
-                    Immutable activity log recording state mutations, role changes, and admin interventions.
+                    {t.body.admin.auditSubtitle}
                   </p>
                 </div>
                 <div className="relative w-full sm:w-64">
@@ -1132,7 +1134,7 @@ export function AdminConsole() {
                     type="text"
                     value={auditFilter}
                     onChange={(e) => setAuditFilter(e.target.value)}
-                    placeholder="Filter actions or actors..."
+                    placeholder={t.body.admin.auditFilterPlaceholder}
                     className="w-full rounded-ctl border border-line bg-canvas py-1.5 pl-9 pr-3 text-xs outline-none focus:border-primary"
                   />
                 </div>
@@ -1142,18 +1144,18 @@ export function AdminConsole() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">Timestamp</th>
-                      <th className="pb-3 font-medium">Action</th>
-                      <th className="pb-3 font-medium">Actor</th>
-                      <th className="pb-3 font-medium">Entity</th>
-                      <th className="pb-3 font-medium">Details</th>
+                      <th className="pb-3 font-medium">{t.body.admin.auditColTimestamp}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.auditColAction}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.auditColActor}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.auditColEntity}</th>
+                      <th className="pb-3 font-medium">{t.body.admin.auditColDetails}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
                     {filteredAudits.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-6 text-center text-xs text-muted">
-                          No audit entries match your filter.
+                          {t.body.admin.auditNone}
                         </td>
                       </tr>
                     ) : (
@@ -1166,7 +1168,7 @@ export function AdminConsole() {
                             </span>
                           </td>
                           <td className="py-3">
-                            <div className="text-xs font-mono">{item.actor_name ?? item.actor_id ?? "system"}</div>
+                            <div className="text-xs font-mono">{item.actor_name ?? item.actor_id ?? t.body.admin.auditSystem}</div>
                             <div className="text-[10px] text-muted">{item.actor_kind}</div>
                           </td>
                           <td className="py-3 text-xs">

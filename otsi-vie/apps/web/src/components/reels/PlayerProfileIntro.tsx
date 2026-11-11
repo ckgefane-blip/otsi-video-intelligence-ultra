@@ -10,7 +10,7 @@
 import type { PlayerProfileIntro } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { FOOT_NAMES, POSITION_NAMES } from "@/components/players/PlayersList";
 import { HeatPitch } from "@/components/workspace/HeatPitch";
 
@@ -30,9 +30,9 @@ function heightText(cm: number | null): string | null {
   return `${Number.isInteger(m) ? m : m.toFixed(2)} m`;
 }
 
-function positionName(code: string | null): string | null {
+function positionName(code: string | null, d: Dictionary): string | null {
   if (!code) return null;
-  return POSITION_NAMES[code] ?? code;
+  return POSITION_NAMES(d)[code] ?? code;
 }
 
 /** a pitch outline with no measured time in it: the shape is real, the data is not */
@@ -68,10 +68,10 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
   const team = p.latest_team;
   const club = team?.team ?? d?.club_name ?? null;
   const clubFromRoster = !!team?.team;
-  const position = positionName(team?.position ?? p.position);
+  const position = positionName(team?.position ?? p.position, dict);
   const height = heightText(d?.height_cm ?? null);
   const weight = d?.weight_kg != null ? `${d.weight_kg} kg` : null;
-  const foot = p.preferred_foot ? FOOT_NAMES[p.preferred_foot] ?? p.preferred_foot : null;
+  const foot = p.preferred_foot ? FOOT_NAMES(dict)[p.preferred_foot] ?? p.preferred_foot : null;
   const age = p.age != null ? `${p.age}${p.birth_date ? dict.body.reels.ageBorn.replace("{a}", p.birth_date) : ""}` : p.birth_date ? dict.body.reels.bornOnly.replace("{a}", p.birth_date) : null;
   const intl = d?.international_country_code
     ? { country: d.international_country_name ?? d.international_country_code, caps: d.international_caps, goals: d.international_goals }

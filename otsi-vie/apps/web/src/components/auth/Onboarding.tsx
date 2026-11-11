@@ -11,31 +11,32 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
+import { useLocale } from "@/lib/i18n";
 
 const NAME = 4;
 const TOUR = ["01_TRACK_EVERY_PLAYER", "02_TACTICAL_INTELLIGENCE", "03_REELS_AND_REPORTS"];
 interface Screen {
-  file: string; alt: string;
-  skip?: CSSProperties; back?: CSSProperties & { arrow?: boolean }; next?: CSSProperties & { label: string };
+  file: string; altKey: "altSplash" | "altTrack" | "altTactics" | "altReels";
+  skip?: CSSProperties; back?: CSSProperties & { arrow?: boolean }; next?: CSSProperties & { label: "next" | "getStarted" };
   dots?: { top: string; size: string }; pause?: CSSProperties;
 }
 // positions and sizes as the owner's video pages set them (percent of the stage, cqw = 1 % of its width)
 const SCREENS: Screen[] = [
-  { file: "00_SPLASH", alt: "OTSI VIE: turn football video into insights" },
-  { file: "01_TRACK_EVERY_PLAYER", alt: "Track every player",
+  { file: "00_SPLASH", altKey: "altSplash" },
+  { file: "01_TRACK_EVERY_PLAYER", altKey: "altTrack",
     skip: { right: "2.8%", top: "7.2%", height: "2.4cqw" },
     back: { left: "3.05%", top: "88.5%", width: "12.44%", height: "6.38%" },
-    next: { left: "84.8%", top: "88.5%", width: "12.38%", height: "6.38%", label: "Next" },
+    next: { left: "84.8%", top: "88.5%", width: "12.38%", height: "6.38%", label: "next" },
     dots: { top: "91.3%", size: ".9cqw" }, pause: { left: "57.5%", top: "90%" } },
-  { file: "02_TACTICAL_INTELLIGENCE", alt: "Tactical intelligence",
+  { file: "02_TACTICAL_INTELLIGENCE", altKey: "altTactics",
     skip: { left: "88.52%", top: "7.44%", width: "8.97%", height: "5%", background: "rgba(8,24,48,.55)", border: "1px solid rgba(120,160,210,.5)", borderRadius: ".7cqw", color: "#e4eef8" },
     back: { left: "18.3%", top: "89.2%", width: "9.6%", height: "5.4%", arrow: true },
-    next: { left: "72.8%", top: "89.2%", width: "10.7%", height: "5.4%", label: "Next" },
+    next: { left: "72.8%", top: "89.2%", width: "10.7%", height: "5.4%", label: "next" },
     dots: { top: "91.9%", size: ".8cqw" }, pause: { left: "55.5%", top: "90.7%" } },
-  { file: "03_REELS_AND_REPORTS", alt: "Create reels and reports",
+  { file: "03_REELS_AND_REPORTS", altKey: "altReels",
     skip: { right: "2.4%", top: "6.7%", height: "2.4cqw" },
     back: { left: "3.05%", top: "90%", width: "9.93%", height: "5.5%", arrow: true },
-    next: { left: "84.27%", top: "90%", width: "13.28%", height: "5.5%", label: "Get Started" },
+    next: { left: "84.27%", top: "90%", width: "13.28%", height: "5.5%", label: "getStarted" },
     dots: { top: "92.8%", size: ".8cqw" }, pause: { left: "56%", top: "91.3%" } },
 ];
 // the name card keeps the sizes it was designed with on the 1672-pixel artwork
@@ -50,6 +51,7 @@ const Arrow = ({ back }: { back?: boolean }) => (
 );
 
 export function Onboarding() {
+  const { t } = useLocale();
   const { status, me, updateMe } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -111,16 +113,16 @@ export function Onboarding() {
     return () => document.removeEventListener("keydown", key);
   }, [step, go]);
 
-  if (status !== "signed-in" || !me) return <div className="grid min-h-screen place-items-center bg-[#000b18] text-sm text-muted" role="status">Loading…</div>;
+  if (status !== "signed-in" || !me) return <div className="grid min-h-screen place-items-center bg-[#000b18] text-sm text-muted" role="status">{t.body.auth.loading}</div>;
 
 
   const finish = () => {
     const n = name.trim();
-    if (n.length < 2) { setErr("Enter at least 2 characters."); return; }
+    if (n.length < 2) { setErr(t.body.auth.nameTooShort); return; }
     setBusy(true); setErr(null);
     void api<Me>("/v1/me", { method: "PATCH", json: { display_name: n, onboarding_done: true }, organization: false })
       .then((m) => { updateMe(m); router.replace("/dashboard"); },
-        (x) => { setErr(x instanceof ApiProblem ? x.message : "Your name could not be saved."); setBusy(false); });
+        (x) => { setErr(x instanceof ApiProblem ? x.message : t.body.auth.nameSaveFailed); setBusy(false); });
   };
   const s = SCREENS[Math.min(step, 3)]!;
   const tour = step >= 1 && step <= 3;
@@ -131,7 +133,7 @@ export function Onboarding() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={poster("00_SPLASH")} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", userSelect: "none", filter: "brightness(.45) blur(2px)" }} />
         ) : (
-          <video key={s.file} ref={video} src={src(s.file)} poster={poster(s.file)} muted playsInline autoPlay={!paused} loop={step !== 0} preload="auto" aria-label={s.alt}
+          <video key={s.file} ref={video} src={src(s.file)} poster={poster(s.file)} muted playsInline autoPlay={!paused} loop={step !== 0} preload="auto" aria-label={t.body.auth[s.altKey]}
             data-onboarding-video={s.file} onPlay={() => setPaused(false)} onEnded={() => { if (step === 0) setSplashOver(true); }}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         )}
@@ -141,14 +143,14 @@ export function Onboarding() {
             {/* the drawn bar drifts with the camera push-in, from 86 % to 91 % of the height over the 10 s: the cover spans its whole path */}
             <div style={{ position: "absolute", left: "33.2%", top: "84.6%", width: "33.6%", height: "11.6%", background: "#020c17", borderRadius: "1.2cqw",
               boxShadow: "0 0 1.6cqw 1.2cqw #020c17", pointerEvents: "none" }} aria-hidden />
-            <div role="progressbar" aria-label="Loading your workspace" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
+            <div role="progressbar" aria-label={t.body.auth.loadingWorkspaceAria} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
               style={{ position: "absolute", left: "35.25%", top: "88.6%", width: "29.5%", height: "1.6%", boxSizing: "border-box", border: `${q(2)} solid #1e90ff`, borderRadius: q(20), background: "#04182b", overflow: "hidden", pointerEvents: "none" }}>
               <div style={{ width: `${progress * 100}%`, height: "100%", borderRadius: q(20), background: "linear-gradient(90deg,#14c3ff,#1e90ff)", boxShadow: "0 0 12px #1e90ff", transition: "width .5s ease-out" }} />
             </div>
             <p role="status" style={{ position: "absolute", left: 0, width: "100%", top: "91.6%", margin: 0, textAlign: "center", fontSize: "1.1cqw", color: "#cfdcf0", pointerEvents: "none" }}>
-              {progress >= 1 ? "Ready" : "Loading workspace…"}
+              {progress >= 1 ? t.body.auth.ready : t.body.auth.loadingWorkspace}
             </p>
-            <button type="button" aria-label="Start the tour" onClick={() => go(1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
+            <button type="button" aria-label={t.body.auth.startTourAria} onClick={() => go(1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
               style={{ position: "absolute", inset: 0, background: "transparent", border: 0, padding: 0, cursor: "pointer" }} />
           </>
         )}
@@ -157,13 +159,13 @@ export function Onboarding() {
             {s.skip && (
               <button type="button" onClick={() => go(NAME)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
                 style={{ ...ctl, background: "none", border: 0, color: "#d6e6f5", fontSize: "1.1cqw", gap: ".9cqw", ...s.skip }}>
-                Skip tour <span style={{ color: "#33a8ff", display: "inline-flex" }}><Arrow /></span>
+                {t.body.auth.skipTour} <span style={{ color: "#33a8ff", display: "inline-flex" }}><Arrow /></span>
               </button>
             )}
             {s.back && (
               <button type="button" onClick={() => go(step - 1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
                 style={{ ...ctl, border: "1px solid rgba(80,130,190,.45)", borderRadius: ".8cqw", background: "rgba(8,24,48,.75)", color: "#9bb0c6", fontSize: "1.2cqw", gap: "1cqw", ...{ ...s.back, arrow: undefined } }}>
-                {s.back.arrow && <Arrow back />}Back
+                {s.back.arrow && <Arrow back />}{t.body.auth.back}
               </button>
             )}
             {s.dots && (
@@ -174,7 +176,7 @@ export function Onboarding() {
               </div>
             )}
             {s.pause && (
-              <button type="button" aria-label={paused ? "Play video" : "Pause video"} aria-pressed={paused} onClick={() => setPaused((p) => !p)}
+              <button type="button" aria-label={paused ? t.body.auth.playVideo : t.body.auth.pauseVideo} aria-pressed={paused} onClick={() => setPaused((p) => !p)}
                 className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
                 style={{ ...ctl, width: "2.2cqw", height: "2.2cqw", borderRadius: "50%", border: "1px solid rgba(80,130,190,.45)", background: "rgba(8,24,48,.6)", color: "#cfe3f7", ...s.pause }}>
                 <svg viewBox="0 0 10 10" aria-hidden style={{ width: "1cqw", height: "1cqw", fill: "currentColor" }}>
@@ -186,7 +188,7 @@ export function Onboarding() {
               <button type="button" onClick={() => go(step === 3 ? NAME : step + 1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
                 style={{ ...ctl, borderRadius: ".8cqw", border: 0, background: "linear-gradient(180deg,#14b3ff,#0a7fe8)", boxShadow: "0 0 1.8cqw rgba(30,160,255,.6),inset 0 0 0 1px rgba(150,220,255,.6)",
                   gap: ".8cqw", fontSize: "1.3cqw", ...{ ...s.next, label: undefined } }}>
-                {s.next.label} <Arrow />
+                {s.next.label === "next" ? t.body.auth.next : t.body.auth.getStarted} <Arrow />
               </button>
             )}
             {/* the next screen's video loads while this one plays, so Next opens it at once */}
@@ -197,17 +199,17 @@ export function Onboarding() {
           <form onSubmit={(e) => { e.preventDefault(); finish(); }} aria-labelledby="welcome-title" data-welcome-name
             style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: q(640), padding: q(40), boxSizing: "border-box", borderRadius: q(18),
               background: "linear-gradient(180deg,#081a35,#06122a)", border: `${q(2)} solid #12335f`, boxShadow: "0 0 60px rgba(30,144,255,.25)", color: "#fff" }}>
-            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(44), fontWeight: 700 }}>Welcome to OTSI <span style={{ color: "#fff" }}>VIE</span></h1>
-            <p style={{ margin: `${q(10)} 0 ${q(26)}`, fontSize: q(22), color: "#cfe0f5" }}>What should we call you? This is the name your team will see.</p>
-            <label htmlFor="welcome-name" style={{ fontSize: q(19), color: "#8ea3bf" }}>Your name</label>
-            <input id="welcome-name" name="display_name" autoComplete="name" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="For example: Edmond Osio"
+            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(44), fontWeight: 700 }}>{t.body.auth.welcome}</h1>
+            <p style={{ margin: `${q(10)} 0 ${q(26)}`, fontSize: q(22), color: "#cfe0f5" }}>{t.body.auth.welcomeNameQ}</p>
+            <label htmlFor="welcome-name" style={{ fontSize: q(19), color: "#8ea3bf" }}>{t.body.auth.yourName}</label>
+            <input id="welcome-name" name="display_name" autoComplete="name" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.body.auth.nameExample}
               style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: q(8), height: q(62), padding: `0 ${q(18)}`, fontSize: q(26), color: "#fff", background: "#041022", border: `${q(1.5)} solid #17406f`, borderRadius: q(10), outline: "none" }} />
             {err && <p role="alert" style={{ margin: `${q(10)} 0 0`, fontSize: q(19), color: "#ff8a8a" }}>{err}</p>}
             <button type="submit" disabled={busy} style={{ marginTop: q(30), width: "100%", height: q(66), fontSize: q(26), fontWeight: 700, color: "#fff", background: "#0a84ff", border: 0, borderRadius: q(10), cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1 }}>
-              {busy ? "Saving…" : "Start using OTSI VIE"}
+              {busy ? t.body.auth.saving : t.body.auth.startUsing}
             </button>
-            <button type="button" onClick={() => setStep(3)} style={{ marginTop: q(14), width: "100%", fontSize: q(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer" }}>← Back to the tour</button>
-            {done && <button type="button" onClick={() => router.replace("/dashboard")} style={{ marginTop: q(6), width: "100%", fontSize: q(19), color: "#8ea3bf", background: "transparent", border: 0, cursor: "pointer" }}>Cancel</button>}
+            <button type="button" onClick={() => setStep(3)} style={{ marginTop: q(14), width: "100%", fontSize: q(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.backTour}</button>
+            {done && <button type="button" onClick={() => router.replace("/dashboard")} style={{ marginTop: q(6), width: "100%", fontSize: q(19), color: "#8ea3bf", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.cancel}</button>}
           </form>
         )}
       </div>

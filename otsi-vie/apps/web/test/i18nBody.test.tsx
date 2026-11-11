@@ -36,6 +36,17 @@ function ProbeB() {
   );
 }
 
+/** Group E probe: Admin / Settings / Wallet / Shell / Home / Auth body strings. */
+function ProbeE() {
+  const { t } = useLocale();
+  return (
+    <p>
+      {t.body.admin.title} | {t.body.settings.teamTitle} | {t.body.wallet.title} |{" "}
+      {t.body.shell.jobsTitle} | {t.body.auth.signIn} | {t.body.home.kpiMatchesAnalyzed}
+    </p>
+  );
+}
+
 describe("page bodies through the provider (ADR-139 follow-up)", () => {
   it("a component reads body strings from the stored locale (Russian)", () => {
     localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
@@ -96,5 +107,25 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
       </LocaleProvider>,
     );
     expect(screen.getByText("Dividir (S) | Eliminar en cadena | Velocidad | Onda | Encuadre | Eliminar | Grupo de color 2 | 3 momentos sugeridos añadidos | Home vs Away")).toBeDefined();
+  });
+
+  it("Group E strings read from the stored locale (Russian)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
+    render(
+      <LocaleProvider>
+        <ProbeE />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Консоль администратора | Команда и роли | Кошелёк токенов | Задания | Войти | Матчей проанализировано")).toBeDefined();
+  });
+
+  it("Group E strings read from the stored locale (Spanish)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "es");
+    render(
+      <LocaleProvider>
+        <ProbeE />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Consola de administración | Equipo y roles | Billetera de tokens | Trabajos | Iniciar sesión | Partidos analizados")).toBeDefined();
   });
 });

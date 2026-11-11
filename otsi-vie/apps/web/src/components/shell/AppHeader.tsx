@@ -38,18 +38,18 @@ const NAV_KEY: Record<string, "home" | "upload" | "processing" | "analysis" | "t
 };
 
 /** The display class this screen gives the design stage (physical pixels): a fact about this device, not a setting. */
-function useDisplayClass(): { label: string; detail: string } {
+function useDisplayClass(template: string): { label: string; detail: string } {
   const [d, setD] = useState({ label: "QHD", detail: "" });
   useEffect(() => {
     const measure = () => {
       const w = Math.round(window.screen.width * window.devicePixelRatio), h = Math.round(window.screen.height * window.devicePixelRatio);
       const label = w >= 3840 ? "4K" : w >= 2560 ? "QHD" : w >= 1920 ? "FHD" : "HD";
-      setD({ label, detail: `Display ${w} × ${h}; this layout is designed for 2560 × 1440 (QHD)` });
+      setD({ label, detail: template.replace("{a}", String(w)).replace("{b}", String(h)) });
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [template]);
   return d;
 }
 
@@ -58,19 +58,19 @@ export function AppHeader() {
   const { t } = useLocale();
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
-  const display = useDisplayClass();
+  const display = useDisplayClass(t.body.shell.displayDetail);
   const [search, setSearch] = useState(false);
   return (
     <header className={styles.bar} data-section="shell-header">
       <div className={styles.stage}>
-        <Link href="/dashboard" className={styles.brand} aria-label="OTSI VIE home" data-owner-asset="logo">
+        <Link href="/dashboard" className={styles.brand} aria-label={t.body.shell.brandAria} data-owner-asset="logo">
           {/* the OTSI brand logo (owner-supplied asset, 2026-10-30) followed by the product name */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/otsi-logo.png" alt="OTSI" className={styles.logo} draggable={false} />
           <span className={`${styles.word} ${styles.wordVie}`}>VIE</span>
           <span className={styles.tagline}>VIDEO INTELLIGENCE ENGINE</span>
         </Link>
-        <nav aria-label="Main" className={styles.nav}>
+        <nav aria-label={t.body.shell.navAria} className={styles.nav}>
           {items.map((item) => {
             const [x, w] = TABS[item.label] ?? [0, 0];
             const navKey = NAV_KEY[item.label];

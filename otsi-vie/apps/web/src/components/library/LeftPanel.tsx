@@ -17,7 +17,7 @@ import Link from "next/link";
 import { memo, useEffect, useState, type ReactNode } from "react";
 import { KIND, marksOf, type Kind } from "@/components/workspace/TimelinePanel";
 import { api } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { MoreMenu } from "@/components/stage/MoreMenu";
 import { videoActions } from "@/lib/actions";
@@ -25,11 +25,11 @@ import { useOverlayPrefs, type OverlayPrefs } from "@/lib/overlayPrefs";
 import { NOT_YET, notBuilt } from "@/lib/devMode";
 
 const crest = { background: "radial-gradient(circle,#f2c56b 0,#6cc4ff 50%,#fff 56%)", borderRadius: "50%" };
-const OVERLAYS: [string, string, number, keyof OverlayPrefs | null, string][] = [
-  ["box", "Player Boxes", 674, "boxes", ""], ["ids", "Player IDs", 715, "ids", ""], ["trk", "Player Tracks", 756, "trails", ""],
-  ["shp", "Team Shapes", 797, "shapes", ""], ["trk", "Heatmaps", 838, "heat", ""],
-  ["ball", "Ball Tracking", 879, "ball", ""], ["pass", "Pass Arrows", 921, "passes", ""]];
-const TABS: [string, number, number][] = [["View", 33, 67], ["Filters", 108, 76], ["Events", 197, 78], ["AI Tools", 290, 96]];
+const OVERLAYS = (d: Dictionary): [string, string, number, keyof OverlayPrefs | null, string][] => [
+  ["box", d.body.library.overlayBoxes, 674, "boxes", ""], ["ids", d.body.library.overlayIds, 715, "ids", ""], ["trk", d.body.library.overlayTracks, 756, "trails", ""],
+  ["shp", d.body.library.overlayShapes, 797, "shapes", ""], ["trk", d.body.library.overlayHeatmaps, 838, "heat", ""],
+  ["ball", d.body.library.overlayBall, 879, "ball", ""], ["pass", d.body.library.overlayPasses, 921, "passes", ""]];
+const TAB_LABELS = (d: Dictionary): [string, number, number][] => [[d.body.library.panelView, 33, 67], [d.body.library.panelFilters, 108, 76], [d.body.library.events, 197, 78], [d.body.library.panelAiTools, 290, 96]];
 const plain = { position: "absolute" as const, padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" };
 
 export type TeamSide = "all" | "home" | "away";
@@ -54,17 +54,17 @@ function EventCounts({ videoId, span, rangeLabel }: { videoId: string | null; sp
   const all = ev ? marksOf(ev) : null;
   const marks = all && span ? Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v.filter((m) => m.at >= span.start_us && m.at < span.end_us)])) as typeof all : all;
   const total = marks ? EVENT_KINDS.filter((k) => k !== "Key Passes" && k !== "Tackles" && k !== "Interceptions" && k !== "Fouls").reduce((n, k) => n + marks[k].length, 0) : 0;
-  const msg = !videoId ? dict.body.library.selectAsset : ev === undefined ? "Loading the events…" : ev === null ? "The events could not be loaded."
-    : !total ? "No events found yet. Events are found once the ball is followed (Analysis › AI Tools › Ball)." : null;
+  const msg = !videoId ? dict.body.library.selectAsset : ev === undefined ? dict.body.library.eventsLoading : ev === null ? dict.body.library.eventsLoadFailed
+    : !total ? dict.body.library.eventsNone : null;
   if (msg) return <T x={37} y={668} size={18} color="#8ea3bf" style={{ maxWidth: u(345), whiteSpace: "normal" }}>{msg}</T>;
   return (
-    <nav aria-label="Events found" data-events={String(total)} className="absolute" style={{ left: u(34), top: u(650 - 101), width: u(356), display: "flex", flexDirection: "column" }}>
-      <span style={{ fontSize: u(16), color: "#8ea3bf", paddingBottom: u(6) }}>The engine's reading of this video{rangeLabel ? `, ${rangeLabel}` : ""}. Click a kind to watch them.</span>
+    <nav aria-label={dict.body.library.eventsFoundAria} data-events={String(total)} className="absolute" style={{ left: u(34), top: u(650 - 101), width: u(356), display: "flex", flexDirection: "column" }}>
+      <span style={{ fontSize: u(16), color: "#8ea3bf", paddingBottom: u(6) }}>{dict.body.library.eventsReading.replace("{a}", rangeLabel ? `, ${rangeLabel}` : "")}</span>
       {EVENT_KINDS.map((k) => (
         <Link key={k} href={`/videos/${videoId}/analyze`} data-kind={k}
           style={{ display: "flex", alignItems: "center", gap: u(10), height: u(38), borderBottom: `${u(1)} solid #12305a`, fontSize: u(20), color: "#d6e4f7" }}>
           <span style={{ width: u(12), height: u(12), borderRadius: "50%", background: KIND(dict)[k].color, flex: "none" }} />
-          <span style={{ flex: 1 }}>{k}</span>
+          <span style={{ flex: 1 }}>{KIND(dict)[k].plural}</span>
           <span style={{ fontWeight: 700, color: marks![k].length ? "#fff" : "#8ea3bf" }}>{marks![k].length}</span>
         </Link>
       ))}
@@ -85,30 +85,31 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
   useEffect(() => { setRange("full"); }, [videoId]);
   const span = halfOf(periods, range);
   const proposed = periods?.state === "PROPOSED";
-  const rangeLabel = range === "full" ? null : `${range === "h1" ? "1st" : "2nd"} half${proposed ? " (proposed by the engine)" : ""}`;
+  const rangeLabel = range === "full" ? null : `${range === "h1" ? dict.body.library.halfFirst : dict.body.library.halfSecond}${proposed ? dict.body.library.halfProposedSuffix : ""}`;
   const pickRange = (r: TimeRange, l: string) => {
-    if (r === "full") { setRange(r); return say("The whole match: the Events tab counts every event"); }
-    if (!videoId) return say("Select an asset with a video in the table first");
+    if (r === "full") { setRange(r); return say(dict.body.library.sayWholeMatch); }
+    if (!videoId) return say(dict.body.library.saySelectAssetFirst);
     const h = halfOf(periods, r);
-    if (!h) return say(`${l}: the halves of this video are not known yet (set them in Analysis › Match halves)`);
+    if (!h) return say(dict.body.library.sayHalvesUnknown.replace("{a}", l));
     setRange(r);
-    say(`${l}${proposed ? ", as the engine proposed it (not confirmed)" : ""}: the Events tab counts this half only`);
+    say(dict.body.library.sayHalfCounts.replace("{a}", l).replace("{b}", proposed ? dict.body.library.sayHalfProposed : ""));
   };
   const score = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
-  const teamRows: [TeamSide, string, number][] = [["all", "All Players", 1025], ["home", match?.home?.name ?? "Home team", 1071], ["away", match?.away?.name ?? "Away team", 1114]];
+  const teamRows: [TeamSide, string, number][] = [["all", dict.body.library.teamAllPlayers, 1025], ["home", match?.home?.name ?? dict.body.library.homeTeam, 1071], ["away", match?.away?.name ?? dict.body.library.awayTeam, 1114]];
   const teamY = teamRows.find((r) => r[0] === team)![2];
   const pickTeam = (t: TeamSide) => {
-    if (t !== "all" && !match) return say("Select an asset that is linked to a match first");
+    if (t !== "all" && !match) return say(dict.body.library.saySelectLinkedFirst);
     setTeam(t);
   };
   // the tabs below the match card: View and Filters show the reference's two groups; Events and AI Tools their own content
+  const TABS = TAB_LABELS(dict);
   const showView = side === 0, showFilters = side === 0 || side === 1;
   const fy = side === 1 ? -335 : 0;                                     // on the Filters tab the filters move up into the free space
 
   const switcher = (
-    <div role="radiogroup" aria-label="Left panel" data-left-view={browse ? "browse" : "match"} className="absolute"
+    <div role="radiogroup" aria-label={dict.body.library.leftPanelAria} data-left-view={browse ? "browse" : "match"} className="absolute"
       style={{ left: u(150), top: u(139 - 101), display: "flex", gap: u(4), padding: u(3), background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8) }}>
-      {([[false, "Match", "The selected asset's match"], [true, "Browse", "Folders, Shared With Me and Trash"]] as const).map(([b, l, t]) => (
+      {([[false, dict.body.analysis.match, dict.body.library.switcherMatchTitle], [true, dict.body.library.libraryBrowse, dict.body.library.switcherBrowseTitle]] as const).map(([b, l, t]) => (
         <button key={l} type="button" role="radio" aria-checked={browse === b} title={t} onClick={() => setBrowse(b)}
           style={{ height: u(28), padding: `0 ${u(12)}`, border: 0, borderRadius: u(6), background: browse === b ? "#0f4f9a" : "transparent", color: browse === b ? "#fff" : "#cfe0f5",
             font: "inherit", fontSize: u(17), cursor: "pointer" }}>{l}</button>
@@ -117,9 +118,9 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
   );
   if (browse) {
     return (
-      <aside aria-label="Library tree panel">
+      <aside aria-label={dict.body.library.browsePanelAria}>
         <P x={20} y={121} w={381} h={1294} />
-        <T x={39} y={156} size={24} weight={700} as="h2">Library</T>
+        <T x={39} y={156} size={24} weight={700} as="h2">{dict.pages.library.title}</T>
         {switcher}
         <div className="absolute" style={{ left: u(28), top: u(190 - 101), width: u(366), maxHeight: u(1210), overflowY: "auto", overflowX: "hidden" }}>{tree}</div>
       </aside>
@@ -127,31 +128,31 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
   }
 
   return (
-    <aside aria-label="Match context of the selected asset">
+    <aside aria-label={dict.body.library.matchPanelAria}>
       <P x={20} y={121} w={381} h={1294} />
       <T x={39} y={156} size={24} weight={700} as="h2">{dict.body.analysis.match}</T>
       {switcher}
-      <MoreMenu x={325} y={156} k="hdots" size={24} label="More for this match" side="right"
-        items={videoId ? [...videoActions(videoId), { label: "Set score and match details", href: `/upload?video=${videoId}` }] : []}
-        empty="Select an asset with a video in the table first" />
+      <MoreMenu x={325} y={156} k="hdots" size={24} label={dict.body.library.moreForMatch} side="right"
+        items={videoId ? [...videoActions(videoId, dict), { label: dict.body.library.setScoreDetails, href: `/upload?video=${videoId}` }] : []}
+        empty={dict.body.library.saySelectAssetFirst} />
       <Ic x={366} y={156} k="chev" size={20} />
       <T x={39} y={201} size={22} weight={700} style={{ maxWidth: u(340), overflow: "hidden", textOverflow: "ellipsis" }}>
-        {match ? `${match.home?.name ?? "—"} vs ${match.away?.name ?? "—"}` : "No match selected"}
+        {match ? `${match.home?.name ?? "—"} vs ${match.away?.name ?? "—"}` : dict.body.library.noMatchSelected}
       </T>
       <T x={39} y={234} size={21} color="#8ea3bf">{match?.competition ?? "—"}</T>
       <B x={42} y={275} w={48} h={48} style={crest} />
-      <T x={109} y={301} size={24} style={{ maxWidth: u(220), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.home?.name ?? "Home team"}</T>
+      <T x={109} y={301} size={24} style={{ maxWidth: u(220), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.home?.name ?? dict.body.library.homeTeam}</T>
       <T x={363} y={300} size={32} weight={600} align="center">{score(match?.home_score)}</T>
       <B x={42} y={346} w={48} h={48} style={crest} />
-      <T x={109} y={370} size={24} style={{ maxWidth: u(220), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.away?.name ?? "Away team"}</T>
+      <T x={109} y={370} size={24} style={{ maxWidth: u(220), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.away?.name ?? dict.body.library.awayTeam}</T>
       <T x={363} y={370} size={32} weight={600} align="center">{score(match?.away_score)}</T>
       <B x={35} y={421} w={352} h={96} style={{ background: "#052a28", border: `${u(1.5)} solid #14705a`, borderRadius: u(10) }} />
       <Ic x={70} y={455} k="shield" size={38} color="#8ea3bf" fill="#2a4a78" />
-      <T x={106} y={447} size={22} weight={600} color="#cfe0f5">{analysed ? "Analysis available" : "No analysis available"}</T>
-      <T x={106} y={474} size={16} color="#b9cbe2">{analysed ? "Open it in the Analysis workspace." : "Tracking data, events and models"}</T>
-      <T x={106} y={494} size={16} color="#b9cbe2">{analysed ? "Events: the Events tab below." : "appear after processing completes."}</T>
+      <T x={106} y={447} size={22} weight={600} color="#cfe0f5">{analysed ? dict.body.library.analysisAvailable : dict.body.library.analysisUnavailable}</T>
+      <T x={106} y={474} size={16} color="#b9cbe2">{analysed ? dict.body.library.analysisOpen : dict.body.library.analysisProcessingLine1}</T>
+      <T x={106} y={494} size={16} color="#b9cbe2">{analysed ? dict.body.library.analysisEventsLine : dict.body.library.analysisProcessingLine2}</T>
 
-      <div role="tablist" aria-label="Panel">
+      <div role="tablist" aria-label={dict.body.library.panelTabsAria}>
         {TABS.map(([l, x, w], i) => (
           <button key={l} type="button" role="tab" aria-selected={side === i} onClick={() => setSide(i)}
             style={{ ...plain, left: u(x - 12), top: u(541 - 101), width: u(w), height: u(50) }}>
@@ -165,11 +166,11 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       {showView && (
         <>
           <T x={37} y={630} size={20} weight={600} as="h3">{dict.body.analysis.visualOverlays}</T>
-          {OVERLAYS.map(([k, l, y, key, why]) => {
+          {OVERLAYS(dict).map(([k, l, y, key, why]) => {
             const on = key ? prefs[key] : false;
             return (
-              <button key={l} type="button" role="switch" aria-checked={on} aria-disabled={!key || undefined} aria-label={`${l}: default for the video pages`}
-                title={key ? (["trails", "shapes", "heat", "passes"].includes(key) ? "Your default for the Analysis video: drawn on the pitch where it is calibrated" : "Your default for the video pages (Analysis, Tactical)") : why}
+              <button key={l} type="button" role="switch" aria-checked={on} aria-disabled={!key || undefined} aria-label={dict.body.library.overlayDefaultAria.replace("{a}", l)}
+                title={key ? (["trails", "shapes", "heat", "passes"].includes(key) ? dict.body.library.overlayPitchTitle : dict.body.library.overlayVideoTitle) : why}
                 onClick={() => (key ? savePrefs({ ...prefs, [key]: !on }) : say(why))}
                 style={{ ...plain, left: u(34), top: u(y - 18 - 101), width: u(356), height: u(36) }}>
                 <Ic o={[34, y - 18]} x={50} y={y} k={k} size={28} color={on ? "#33a8ff" : "#cfe0f5"} />
@@ -186,12 +187,12 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
         <div style={{ transform: fy ? `translateY(${u(fy)})` : undefined }}>
           <T x={37} y={980} size={20} weight={600} as="h3">{dict.body.analysis.teamFilter}</T>
           <B x={34} y={teamY - 21} w={353} h={42} style={{ background: "#0a2b55", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(8) }} />
-          <div role="radiogroup" aria-label="Team filter for the asset table">
+          <div role="radiogroup" aria-label={dict.body.library.teamFilterAria}>
             {teamRows.map(([t, l, y]) => {
               const on = team === t;
               return (
                 <button key={t} type="button" role="radio" aria-checked={on} onClick={() => pickTeam(t)}
-                  title={t === "all" ? "Show assets of every team" : match ? `Show only assets of ${l}` : "Select an asset linked to a match first"}
+                  title={t === "all" ? dict.body.library.teamShowAll : match ? dict.body.library.teamShowOnly.replace("{a}", l) : dict.body.library.teamNeedMatchTitle}
                   style={{ ...plain, left: u(34), top: u(y - 21 - 101), width: u(353), height: u(42) }}>
                   {on ? (
                     <>
@@ -209,23 +210,23 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
           </div>
           <T x={37} y={1170} size={20} weight={600} as="h3">{dict.body.analysis.timeRange}</T>
           {(() => {
-            const rows: [TimeRange | "custom", string, number][] = [["full", "Full Match", 1218], ["h1", "1st Half", 1261], ["h2", "2nd Half", 1302], ["custom", "Custom Range", 1343]];
+            const rows: [TimeRange | "custom", string, number][] = [["full", dict.body.library.rangeFull, 1218], ["h1", dict.body.library.rangeH1, 1261], ["h2", dict.body.library.rangeH2, 1302], ["custom", dict.body.library.rangeCustom, 1343]];
             const y0 = rows.find((r) => r[0] === range)![2];
             return (
               <>
                 <B x={34} y={y0 - 23} w={353} h={46} style={{ background: "#0a2b55", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(8) }} />
                 <B x={45} y={y0 - 11} w={22} h={22} style={{ background: "#1e90ff", borderRadius: "50%" }} />
                 <Ic x={56} y={y0} k="chk" size={14} />
-                <div role="radiogroup" aria-label="Time range" data-range={range}>
+                <div role="radiogroup" aria-label={dict.body.library.timeRangeAria} data-range={range}>
                   {rows.map(([k, l, y]) => {
                     const on = k === range, off = k === "custom" || (k !== "full" && !halfOf(periods, k));
-                    const why = k === "custom" ? notBuilt("custom ranges") : off ? "The halves of this video are not known yet" : undefined;
+                    const why = k === "custom" ? notBuilt("custom ranges") : off ? dict.body.library.halvesUnknown : undefined;
                     return (
                       <button key={k} type="button" role="radio" aria-checked={on} aria-disabled={off || undefined} title={why}
-                        onClick={() => (k === "custom" ? say(`Custom Range: ${NOT_YET}, choose the whole match or a half`) : pickRange(k, l))}
+                        onClick={() => (k === "custom" ? say(dict.body.library.customRangeNotYet.replace("{a}", NOT_YET)) : pickRange(k, l))}
                         style={{ ...plain, left: u(34), top: u(y - 23 - 101), width: u(353), height: u(46) }}>
                         {!on && <Ic o={[34, y - 23]} x={56} y={y} k="cir" size={24} color="#8ea3bf" />}
-                        <T o={[34, y - 23]} x={86} y={y} size={21} color={on ? undefined : off ? "#6a7f9c" : "#d6e4f7"} as="span">{l}{k !== "full" && k !== "custom" && proposed && !off ? " (proposed)" : ""}</T>
+                        <T o={[34, y - 23]} x={86} y={y} size={21} color={on ? undefined : off ? "#6a7f9c" : "#d6e4f7"} as="span">{l}{k !== "full" && k !== "custom" && proposed && !off ? dict.body.library.rangeProposed : ""}</T>
                       </button>
                     );
                   })}
@@ -244,16 +245,16 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       )}
       {side === 3 && (
         <>
-        <T x={37} y={630} size={20} weight={600} as="h3">AI Tools</T>
-        <nav aria-label="Open the selected asset" className="absolute" style={{ left: u(37), top: u(660 - 101), display: "flex", flexDirection: "column", gap: u(14), fontSize: u(20) }}>
+        <T x={37} y={630} size={20} weight={600} as="h3">{dict.body.library.panelAiTools}</T>
+        <nav aria-label={dict.body.library.openAssetAria} className="absolute" style={{ left: u(37), top: u(660 - 101), display: "flex", flexDirection: "column", gap: u(14), fontSize: u(20) }}>
           {videoId ? (
             <div style={{ display: "flex", flexDirection: "column", gap: u(12) }}>
-              <Link href={`/processing?video=${videoId}`} style={{ color: "#33a8ff" }}>Processing (detection and tracking) →</Link>
-              <Link href={`/videos/${videoId}/analyze`} style={{ color: "#33a8ff" }}>Analysis workspace →</Link>
-              <Link href={`/tactics?video=${videoId}`} style={{ color: "#33a8ff" }}>Tactical view →</Link>
-              <Link href={reelId ? `/studio?reel=${reelId}` : "/reels"} style={{ color: "#33a8ff" }}>{reelId ? "Clip Studio (this reel) →" : "Make a reel →"}</Link>
+              <Link href={`/processing?video=${videoId}`} style={{ color: "#33a8ff" }}>{dict.body.library.aiProcessing}</Link>
+              <Link href={`/videos/${videoId}/analyze`} style={{ color: "#33a8ff" }}>{dict.body.library.aiAnalysis}</Link>
+              <Link href={`/tactics?video=${videoId}`} style={{ color: "#33a8ff" }}>{dict.body.library.aiTactical}</Link>
+              <Link href={reelId ? `/studio?reel=${reelId}` : "/reels"} style={{ color: "#33a8ff" }}>{reelId ? dict.body.library.aiClipStudio : dict.body.library.aiMakeReel}</Link>
             </div>
-          ) : <span style={{ color: "#8ea3bf" }}>Select an asset with a video in the table.</span>}
+          ) : <span style={{ color: "#8ea3bf" }}>{dict.body.library.selectAssetVideo}</span>}
         </nav>
         </>
       )}

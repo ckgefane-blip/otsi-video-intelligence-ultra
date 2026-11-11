@@ -13,6 +13,7 @@ import { memo, useEffect, useState, type CSSProperties, type ReactNode } from "r
 import { api } from "@/lib/api";
 import { u } from "@/components/stage/DesignStage";
 import { TABS, type Asset } from "./useLibrary";
+import { useLocale } from "@/lib/i18n";
 import { SmartBinsTree } from "./SmartBins";
 
 export const SHARED_TAB = TABS.findIndex(([, l]) => l === "Shared With Me");
@@ -53,34 +54,35 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
   /** changes when the Library is reloaded, so the Trash count is read again */
   version: unknown;
 }) {
+  const { t: dict } = useLocale();
   const [trash, setTrash] = useState<number | null>(null);
   useEffect(() => { void api<TrashEntry[]>("/v1/library/trash").then((r) => setTrash(r.length), () => setTrash(null)); }, [version]);
-  if (all === undefined) return <p style={{ fontSize: u(20), color: "#8ea3bf", padding: u(8) }}>Loading the Library…</p>;
-  if (all === null) return <p style={{ fontSize: u(20), color: "#ff9aa8", padding: u(8) }}>The Library could not be loaded.</p>;
+  if (all === undefined) return <p style={{ fontSize: u(20), color: "#8ea3bf", padding: u(8) }}>{dict.body.library.loadingLibrary}</p>;
+  if (all === null) return <p style={{ fontSize: u(20), color: "#ff9aa8", padding: u(8) }}>{dict.body.library.libraryLoadFailed}</p>;
   const c = treeCounts(all);
   const go = (t: number, f: string | null) => { setFolder(f); setTab(t); };
   return (
-    <nav aria-label="Library tree" data-library-tree style={{ display: "flex", flexDirection: "column" }}>
+    <nav aria-label={dict.body.library.treeNavAria} data-library-tree style={{ display: "flex", flexDirection: "column" }}>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        <Item data="all" on={folder === null && tab === 0} label="All assets" n={c.all} icon="▦" onClick={() => go(0, null)} />
+        <Item data="all" on={folder === null && tab === 0} label={dict.body.library.treeAll} n={c.all} icon="▦" onClick={() => go(0, null)} />
       </ul>
       <div style={head}>
-        <span>Folders</span>
-        <button type="button" data-tree="new-folder" onClick={() => (canWrite ? newFolder() : say("Your role can view the Library but not make folders"))}
-          aria-label="New folder" title={canWrite ? "Make a folder" : "Your role cannot make folders"}
-          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: u(18), cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
+        <span>{dict.body.library.treeFolders}</span>
+        <button type="button" data-tree="new-folder" onClick={() => (canWrite ? newFolder() : say(dict.body.library.newFolderRoleSay))}
+          aria-label={dict.body.library.newFolder} title={canWrite ? dict.body.library.treeMakeFolder : dict.body.library.treeRoleNoFolders}
+          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: u(18), cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>{dict.body.library.treeNew}</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {c.folders.length === 0 && <li style={{ fontSize: u(18), color: "#8ea3bf", padding: `${u(4)} ${u(12)}` }}>No folders yet.{canWrite ? " + New makes one; items go in with their ⋯ menu › Move to folder." : ""}</li>}
+        {c.folders.length === 0 && <li style={{ fontSize: u(18), color: "#8ea3bf", padding: `${u(4)} ${u(12)}` }}>{dict.body.library.treeNoFolders}{canWrite ? dict.body.library.treeNoFoldersHint : ""}</li>}
         {c.folders.map((fo) => <Item key={fo.id} data={`folder-${fo.id}`} on={folder === fo.id} label={fo.name} n={fo.item_count} icon={<span style={{ color: "#f5b82e" }}>▰</span>} onClick={() => go(0, fo.id)} />)}
       </ul>
-      <div style={head}><span>People</span></div>
+      <div style={head}><span>{dict.body.library.treePeople}</span></div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        <Item data="shared" on={folder === null && tab === SHARED_TAB} label="Shared With Me" n={c.shared} icon="👤" onClick={() => go(SHARED_TAB, null)} />
+        <Item data="shared" on={folder === null && tab === SHARED_TAB} label={dict.body.library.tabShared} n={c.shared} icon="👤" onClick={() => go(SHARED_TAB, null)} />
       </ul>
-      <div style={head}><span>Deleted</span></div>
+      <div style={head}><span>{dict.body.library.treeDeleted}</span></div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        <Item data="trash" on={false} label="Trash" n={trash} icon="🗑" onClick={openTrash} />
+        <Item data="trash" on={false} label={dict.body.library.trash} n={trash} icon="🗑" onClick={openTrash} />
       </ul>
       <SmartBinsTree head={head} row={row} count={count} />
     </nav>
