@@ -46,6 +46,12 @@ function execFileAsync(cmd, args, options = {}) {
  */
 function runCommand(cmd, args, options = {}) {
   const { cwd, log, env } = options;
+  // On Windows, newer Node (including the Node inside this Electron
+  // version) refuses to start .cmd/.bat files directly and fails with
+  // `spawn EINVAL` (CVE-2024-27980). Run those through the Windows
+  // command shell instead, with the path quoted. This is the only
+  // place a .cmd is started: corepack.cmd (via resolveCorepack).
+  const isWindowsScript = process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd);
   return new Promise((resolve, reject) => {
     let child;
     try {
@@ -53,6 +59,7 @@ function runCommand(cmd, args, options = {}) {
         cwd,
         env: env || process.env,
         windowsHide: true,
+        ...(isWindowsScript ? { shell: true } : {}),
       });
     } catch (err) {
       reject(new Error(`Could not start ${cmd}: ${err.message}`));
@@ -190,9 +197,13 @@ async function checkTools() {
   try {
     await runCommand(corepackCmd, ['pnpm', '--version'], {});
   } catch (err) {
+    // Do not claim pnpm is missing when the real cause may be that the
+    // check itself could not start (e.g. spawn EINVAL on corepack.cmd).
+    // Report the actual failure so the next diagnosis starts from it.
     throw new Error(
-      'pnpm was not found (it comes with Node.js).\nOpen a terminal once and run: corepack enable\nThen open OTSI VIE again.\n'
-      + `(${corepackCmd} pnpm --version: ${err.message})`,
+      'Could not run pnpm, so the app cannot start.\n'
+      + `(${corepackCmd} pnpm --version: ${err.message})\n`
+      + 'If pnpm is missing, open a terminal once and run: corepack enable, then open OTSI VIE again.',
     );
   }
 }
