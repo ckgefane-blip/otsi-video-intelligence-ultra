@@ -12,8 +12,8 @@ import { z } from "zod";
 export const WalletLedgerKind = z.enum(["PURCHASE", "FREE_GRANT", "SPEND", "REFUND", "ADJUSTMENT", "EXPIRY"]);
 export type WalletLedgerKind = z.infer<typeof WalletLedgerKind>;
 
-/** What a SPEND paid for. The job_id is the run / render / report / bundle id the spend references. */
-export const WalletJobType = z.enum(["ANALYSIS", "REEL_RENDER", "PLAYER_REPORT", "EXPORT_PACK"]);
+/** What a SPEND paid for. The job_id is the run / render / report / bundle / assessment id the spend references. */
+export const WalletJobType = z.enum(["ANALYSIS", "REEL_RENDER", "PLAYER_REPORT", "EXPORT_PACK", "AI_ANALYSIS"]);
 export type WalletJobType = z.infer<typeof WalletJobType>;
 
 /** One immutable ledger row. `amount` is signed: credits positive, debits negative. */
@@ -88,6 +88,8 @@ export const TokenPackCatalogue = z.object({
     reel_render: z.literal(10),
     player_report: z.literal(10),
     export_pack: z.literal(10),
+    /** ADR-141: one AI Analyst assessment costs 10 tokens, the same as a player report (scope §8). */
+    ai_analysis: z.literal(10),
   }),
   low_balance_threshold: z.literal(90),
 });
@@ -99,7 +101,7 @@ export function tokenPackCatalogue(): TokenPackCatalogue {
     free_grant_tokens: 25,
     free_grant_expiry_days: 30,
     pack_expiry_months: 12,
-    costs: { analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10 },
+    costs: { analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10, ai_analysis: 10 },
     low_balance_threshold: 90,
   });
 }
@@ -111,7 +113,7 @@ export function tokenPack(code: TokenPackCode): TokenPack {
 }
 
 /** Costs (scope §2). Analysis is 1 token per started minute of footage. */
-export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10 } as const;
+export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10, aiAnalysis: 10 } as const;
 /** Scope §7: low-balance warning below the cost of one full match. */
 export const LOW_BALANCE_THRESHOLD = 90;
 /** Scope §4: 25 free tokens, once, expiring 30 days after signup. */

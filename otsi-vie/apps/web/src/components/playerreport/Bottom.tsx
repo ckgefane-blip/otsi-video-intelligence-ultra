@@ -23,6 +23,7 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
 import { Hit } from "@/components/workspace/shared";
 import type { Report } from "./Top";
+import { AiAnalystPanel } from "./AiAnalystPanel";
 
 const hl = (on: boolean) => (on ? { borderColor: "#33a8ff" } : undefined);
 const sel: CSSProperties = { background: "#041022", borderColor: "#17406f", borderRadius: u(8) };
@@ -339,6 +340,10 @@ function LowerInner({ r }: { r: Report }) {
         <T x={2500} y={1373} size={16} color={pub ? "#f1a824" : "#8ea3bf"} align="right" style={{ fontStyle: "italic", maxWidth: u(440), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {pub ? `Analyst opinion · ${r.assessment?.published_by_name ?? ""}, ${r.assessment?.published_at?.slice(0, 10) ?? ""}` : "Awaiting a published scouting assessment"}</T>
       </section>
+
+      {/* AI Analyst (ADR-141): the assessment panel, below the reference's sections; the stage gets the
+          extra room from ReportStage. It renders only for a chosen player. */}
+      {r.player && <AiAnalystPanel playerId={r.player.player_id} canAssess={r.can.assess} />}
     </>
   );
 }

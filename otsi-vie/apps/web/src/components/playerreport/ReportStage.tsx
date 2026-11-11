@@ -127,7 +127,7 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
   const r: Report = useMemo(() => ({ player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, open: setDialog, can }),
     [player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, can]);
   return (
-    <DesignStage page="reports" background="#010812">
+    <DesignStage page="reports" background="#010812" extra={600}>
       <Rail r={r} />
       <Hero r={r} />
       <Kpis r={r} />

@@ -23,6 +23,22 @@ export interface Config {
   mediaSigningKey?: string;
   /** base64 AES-256 key sealing users' provider access tokens until the worker uses them (shared with the worker) */
   credentialKey?: string;
+  /** AI Analyst (ADR-141): the hosted reasoning model. Absent = the feature reports 'not configured' and never
+   *  fabricates output. The provider name and model are recorded with each assessment; the API key is read from
+   *  the environment only, never stored, never logged, never returned. */
+  aiAnalyst?: AiAnalystConfig;
+}
+
+export interface AiAnalystConfig {
+  /** human name of the provider (recorded with the assessment; the owner picks a provider that offers a
+   *  no-training-on-data option - scope section 7) */
+  provider: string;
+  /** OpenAI-compatible chat-completions endpoint URL (the only provider shape this build speaks) */
+  apiUrl: string;
+  /** bearer key for the endpoint (environment only) */
+  apiKey: string;
+  /** model id the provider should run */
+  model: string;
 }
 
 export interface StorageConfig {
@@ -89,6 +105,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   if (env.OTSI_VIE_MEDIA_SIGNING_KEY) cfg.mediaSigningKey = env.OTSI_VIE_MEDIA_SIGNING_KEY;
   if (env.OTSI_VIE_CREDENTIAL_KEY) cfg.credentialKey = env.OTSI_VIE_CREDENTIAL_KEY;
+  // AI Analyst (ADR-141): all three or none. A URL without a key or model fails at start-up rather than
+  // half-configuring the feature; no URL at all means 'not configured' (the API answers 503, the UI says so).
+  if (env.OTSI_VIE_AI_ANALYST_API_URL) {
+    cfg.aiAnalyst = {
+      provider: (env.OTSI_VIE_AI_ANALYST_PROVIDER ?? "hosted-llm").trim(),
+      apiUrl: required(env, "OTSI_VIE_AI_ANALYST_API_URL"),
+      apiKey: required(env, "OTSI_VIE_AI_ANALYST_API_KEY"),
+      model: required(env, "OTSI_VIE_AI_ANALYST_MODEL"),
+    };
+  }
   if (!cfg.jwksUrl && !cfg.jwtPublicKeyPem) throw new Error("set OTSI_VIE_JWKS_URL or OTSI_VIE_JWT_PUBLIC_KEY_PEM");
   checkDsn(cfg.dbDsn, env);
   return cfg;

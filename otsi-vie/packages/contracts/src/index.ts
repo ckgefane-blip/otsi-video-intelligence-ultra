@@ -64,3 +64,4 @@ export * from "./pressing";
 export * from "./formations";
 export * from "./evidence-rules";
 export * from "./wallet";
+export * from "./ai-analyst";

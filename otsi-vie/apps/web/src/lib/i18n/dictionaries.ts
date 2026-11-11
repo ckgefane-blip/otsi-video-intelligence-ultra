@@ -198,6 +198,39 @@ export interface Dictionary {
       viewFullReport: string;
       playersListLink: string;
     };
+    /** AI Analyst panel (ADR-141): fixed labels come from here, never from the model. */
+    aiAnalyst: {
+      title: string;
+      aiGeneratedDraft: string;
+      suggestionNotFact: string;
+      strengths: string;
+      developmentAreas: string;
+      recommendations: string;
+      tacticalFit: string;
+      scoutBrief: string;
+      whatToWatch: string;
+      keyClips: string;
+      confidenceHigh: string;
+      confidenceMedium: string;
+      confidenceLow: string;
+      lowConfidenceWarning: string;
+      notMeasured: string;
+      evidence: string;
+      generate: string;
+      regenerate: string;
+      publish: string;
+      unpublish: string;
+      published: string;
+      draft: string;
+      costNote: string;
+      privacyNote: string;
+      consent: string;
+      notConfigured: string;
+      couldNotVerify: string;
+      stale: string;
+      noAssessment: string;
+      notEnoughData: string;
+    };
     library: {
       newProject: string;
       searchLibrary: string;
@@ -492,6 +525,38 @@ export const en: Dictionary = {
       viewFullReport: "View Full Report",
       playersListLink: "Players list: enter their profiles ›",
     },
+    aiAnalyst: {
+      title: "AI Analyst",
+      aiGeneratedDraft: "AI-generated — draft until published",
+      suggestionNotFact: "Suggestion, not a fact",
+      strengths: "Strengths",
+      developmentAreas: "Development areas",
+      recommendations: "Recommendations",
+      tacticalFit: "Tactical fit",
+      scoutBrief: "Scout brief",
+      whatToWatch: "What to watch",
+      keyClips: "Key clips",
+      confidenceHigh: "High confidence",
+      confidenceMedium: "Medium confidence",
+      confidenceLow: "Low confidence",
+      lowConfidenceWarning: "Thin evidence — treat this claim with care.",
+      notMeasured: "Not measured",
+      evidence: "Evidence",
+      generate: "Generate AI assessment",
+      regenerate: "Regenerate (10 tokens)",
+      publish: "Publish",
+      unpublish: "Unpublish",
+      published: "Published",
+      draft: "Draft",
+      costNote: "Costs 10 tokens per assessment. A regeneration costs another 10.",
+      privacyNote: "Only this player's measured data is sent to the AI provider. No video leaves the machine.",
+      consent: "The organization agrees to send this player's measured data (never video) to the AI provider.",
+      notConfigured: "The AI Analyst is not set up on this server yet — no AI provider has been configured.",
+      couldNotVerify: "Analysis could not be verified — try again.",
+      stale: "Stale — a new match has been analysed since this was generated. Regenerate before publishing.",
+      noAssessment: "No AI assessment yet. Generate one to see strengths, development areas and recommendations, each with its evidence.",
+      notEnoughData: "Not enough data",
+    },
     library: {
       newProject: "New Project",
       searchLibrary: "Search projects, players, tags, or content…",
@@ -782,6 +847,38 @@ export const ru: DeepPartial<Dictionary> = {
       noScoutNotes: "Скаутских заметок нет.",
       viewFullReport: "Полный отчёт",
       playersListLink: "Список игроков: заполните их профили ›",
+    },
+    aiAnalyst: {
+      title: "ИИ-аналитик",
+      aiGeneratedDraft: "Сгенерировано ИИ — черновик до публикации",
+      suggestionNotFact: "Предложение, а не факт",
+      strengths: "Сильные стороны",
+      developmentAreas: "Зоны развития",
+      recommendations: "Рекомендации",
+      tacticalFit: "Тактическая пригодность",
+      scoutBrief: "Бриф для скаута",
+      whatToWatch: "На что обратить внимание",
+      keyClips: "Ключевые моменты",
+      confidenceHigh: "Высокая уверенность",
+      confidenceMedium: "Средняя уверенность",
+      confidenceLow: "Низкая уверенность",
+      lowConfidenceWarning: "Мало данных — относитесь к этому утверждению с осторожностью.",
+      notMeasured: "Не измерено",
+      evidence: "Доказательства",
+      generate: "Сгенерировать оценку ИИ",
+      regenerate: "Сгенерировать заново (10 токенов)",
+      publish: "Опубликовать",
+      unpublish: "Снять с публикации",
+      published: "Опубликовано",
+      draft: "Черновик",
+      costNote: "Стоит 10 токенов за оценку. Повторная генерация — ещё 10.",
+      privacyNote: "Поставщику ИИ отправляются только измеренные данные игрока. Видео не покидает устройство.",
+      consent: "Организация согласна отправить измеренные данные игрока (никогда не видео) поставщику ИИ.",
+      notConfigured: "ИИ-аналитик ещё не настроен на этом сервере — поставщик ИИ не подключён.",
+      couldNotVerify: "Анализ не удалось проверить — попробуйте снова.",
+      stale: "Устарело — с момента генерации проанализирован новый матч. Сгенерируйте заново перед публикацией.",
+      noAssessment: "Оценки ИИ пока нет. Сгенерируйте её, чтобы увидеть сильные стороны, зоны развития и рекомендации — каждую с доказательствами.",
+      notEnoughData: "Недостаточно данных",
     },
     library: {
       newProject: "Новый проект",
@@ -1074,6 +1171,38 @@ export const es: DeepPartial<Dictionary> = {
       viewFullReport: "Ver informe completo",
       playersListLink: "Lista de jugadores: completa sus perfiles ›",
     },
+    aiAnalyst: {
+      title: "Analista de IA",
+      aiGeneratedDraft: "Generado por IA — borrador hasta su publicación",
+      suggestionNotFact: "Sugerencia, no un hecho",
+      strengths: "Fortalezas",
+      developmentAreas: "Áreas de mejora",
+      recommendations: "Recomendaciones",
+      tacticalFit: "Ajuste táctico",
+      scoutBrief: "Informe para el ojeador",
+      whatToWatch: "Qué observar",
+      keyClips: "Momentos clave",
+      confidenceHigh: "Confianza alta",
+      confidenceMedium: "Confianza media",
+      confidenceLow: "Confianza baja",
+      lowConfidenceWarning: "Poca evidencia — trate esta afirmación con cautela.",
+      notMeasured: "No medido",
+      evidence: "Evidencia",
+      generate: "Generar evaluación de IA",
+      regenerate: "Regenerar (10 tokens)",
+      publish: "Publicar",
+      unpublish: "Despublicar",
+      published: "Publicado",
+      draft: "Borrador",
+      costNote: "Cuesta 10 tokens por evaluación. Regenerar cuesta otros 10.",
+      privacyNote: "Solo se envían al proveedor de IA los datos medidos del jugador. Ningún vídeo sale de la máquina.",
+      consent: "La organización acepta enviar los datos medidos del jugador (nunca vídeo) al proveedor de IA.",
+      notConfigured: "El Analista de IA aún no está configurado en este servidor — no hay proveedor de IA.",
+      couldNotVerify: "No se pudo verificar el análisis — inténtelo de nuevo.",
+      stale: "Desactualizado — se ha analizado un partido nuevo desde que se generó. Regenere antes de publicar.",
+      noAssessment: "Aún no hay evaluación de IA. Genere una para ver fortalezas, áreas de mejora y recomendaciones, cada una con su evidencia.",
+      notEnoughData: "Datos insuficientes",
+    },
     library: {
       newProject: "Nuevo proyecto",
       searchLibrary: "Buscar proyectos, jugadores, etiquetas o contenido…",
@@ -1364,6 +1493,38 @@ export const de: DeepPartial<Dictionary> = {
       noScoutNotes: "Keine Scout-Notizen erfasst.",
       viewFullReport: "Vollständigen Bericht ansehen",
       playersListLink: "Spielerliste: Profile eintragen ›",
+    },
+    aiAnalyst: {
+      title: "KI-Analyst",
+      aiGeneratedDraft: "KI-generiert — Entwurf bis zur Veröffentlichung",
+      suggestionNotFact: "Vorschlag, keine Tatsache",
+      strengths: "Stärken",
+      developmentAreas: "Entwicklungsbereiche",
+      recommendations: "Empfehlungen",
+      tacticalFit: "Taktische Eignung",
+      scoutBrief: "Scout-Briefing",
+      whatToWatch: "Worauf achten",
+      keyClips: "Schlüsselmomente",
+      confidenceHigh: "Hohe Zuversicht",
+      confidenceMedium: "Mittlere Zuversicht",
+      confidenceLow: "Geringe Zuversicht",
+      lowConfidenceWarning: "Dünne Beweislage — diese Aussage mit Vorsicht behandeln.",
+      notMeasured: "Nicht gemessen",
+      evidence: "Belege",
+      generate: "KI-Bewertung erstellen",
+      regenerate: "Neu erstellen (10 Token)",
+      publish: "Veröffentlichen",
+      unpublish: "Veröffentlichung zurücknehmen",
+      published: "Veröffentlicht",
+      draft: "Entwurf",
+      costNote: "Kostet 10 Token pro Bewertung. Eine Neuerstellung kostet weitere 10.",
+      privacyNote: "Nur die gemessenen Daten des Spielers werden an den KI-Anbieter gesendet. Kein Video verlässt die Maschine.",
+      consent: "Die Organisation stimmt zu, die gemessenen Daten des Spielers (niemals Video) an den KI-Anbieter zu senden.",
+      notConfigured: "Der KI-Analyst ist auf diesem Server noch nicht eingerichtet — kein KI-Anbieter konfiguriert.",
+      couldNotVerify: "Analyse konnte nicht verifiziert werden — bitte erneut versuchen.",
+      stale: "Veraltet — seit der Erstellung wurde ein neues Spiel analysiert. Vor der Veröffentlichung neu erstellen.",
+      noAssessment: "Noch keine KI-Bewertung. Erstellen Sie eine, um Stärken, Entwicklungsbereiche und Empfehlungen zu sehen — jede mit ihren Belegen.",
+      notEnoughData: "Nicht genug Daten",
     },
     library: {
       newProject: "Neues Projekt",
@@ -1656,6 +1817,38 @@ export const fr: DeepPartial<Dictionary> = {
       viewFullReport: "Voir le rapport complet",
       playersListLink: "Liste des joueurs : complétez leurs profils ›",
     },
+    aiAnalyst: {
+      title: "Analyste IA",
+      aiGeneratedDraft: "Généré par l’IA — brouillon jusqu’à publication",
+      suggestionNotFact: "Suggestion, pas un fait",
+      strengths: "Points forts",
+      developmentAreas: "Axes de progression",
+      recommendations: "Recommandations",
+      tacticalFit: "Adéquation tactique",
+      scoutBrief: "Briefing scout",
+      whatToWatch: "À surveiller",
+      keyClips: "Moments clés",
+      confidenceHigh: "Confiance élevée",
+      confidenceMedium: "Confiance moyenne",
+      confidenceLow: "Confiance faible",
+      lowConfidenceWarning: "Preuves limitées — considérez cette affirmation avec prudence.",
+      notMeasured: "Non mesuré",
+      evidence: "Preuves",
+      generate: "Générer l’évaluation IA",
+      regenerate: "Régénérer (10 jetons)",
+      publish: "Publier",
+      unpublish: "Dépublier",
+      published: "Publié",
+      draft: "Brouillon",
+      costNote: "Coûte 10 jetons par évaluation. Une régénération coûte 10 de plus.",
+      privacyNote: "Seules les données mesurées du joueur sont envoyées au fournisseur d’IA. Aucune vidéo ne quitte la machine.",
+      consent: "L’organisation accepte d’envoyer les données mesurées du joueur (jamais de vidéo) au fournisseur d’IA.",
+      notConfigured: "L’Analyste IA n’est pas encore configuré sur ce serveur — aucun fournisseur d’IA.",
+      couldNotVerify: "L’analyse n’a pas pu être vérifiée — réessayez.",
+      stale: "Obsolète — un nouveau match a été analysé depuis la génération. Régénérez avant de publier.",
+      noAssessment: "Pas encore d’évaluation IA. Générez-en une pour voir les points forts, les axes de progression et les recommandations — chacun avec ses preuves.",
+      notEnoughData: "Données insuffisantes",
+    },
     library: {
       newProject: "Nouveau projet",
       searchLibrary: "Rechercher des projets, joueurs, tags ou contenus…",
@@ -1787,6 +1980,7 @@ export function mergeDictionary(base: Dictionary, override: DeepPartial<Dictiona
       reels: { ...base.body.reels, ...override.body?.reels },
       studio: { ...base.body.studio, ...override.body?.studio },
       reports: { ...base.body.reports, ...override.body?.reports },
+      aiAnalyst: { ...base.body.aiAnalyst, ...override.body?.aiAnalyst },
       library: { ...base.body.library, ...override.body?.library },
       exports: { ...base.body.exports, ...override.body?.exports },
       players: { ...base.body.players, ...override.body?.players },
