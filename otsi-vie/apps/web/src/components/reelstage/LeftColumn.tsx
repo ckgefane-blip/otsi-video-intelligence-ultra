@@ -121,11 +121,14 @@ export function LeftColumn() {
           {...(r?.canEdit && reel && draft ? { onClick: () => setMusicOpen(true) } : { reason: reel ? "You cannot edit this reel" : "Open a reel first" })} />
         {musicOpen && draft && <MusicPicker settings={draft} onChange={setDraft} onClose={() => setMusicOpen(false)} />}
         {/* ADR-131: which matches this reel covers — "All matches" makes a NEW cross-match reel and opens it; this reel is untouched.
-            For a cross-match reel the row is a read-only summary (length + rule version). The row ends at y1414, inside the panel. */}
-        <T x={40} y={1360} size={19} color="#8ea3bf">{dict.body.reels.matches}</T>
-        <div className="absolute" style={{ left: u(38), top: u(1378 - 101), width: u(363) }}>
-          <ReelSourceChoice compact />
-        </div>
+            For a cross-match reel the row is a read-only summary (length + rule version). The row ends at y1414, inside the panel.
+            Hidden when no reel is open: ReelSourceChoice needs the ReelBuilder context, which only exists with a reel open. */}
+        {r && (<>
+          <T x={40} y={1360} size={19} color="#8ea3bf">{dict.body.reels.matches}</T>
+          <div className="absolute" style={{ left: u(38), top: u(1378 - 101), width: u(363) }}>
+            <ReelSourceChoice compact />
+          </div>
+        </>)}
       </section>
     </>
   );
