@@ -336,10 +336,35 @@ async function ensureRepo(engineDir, log) {
 }
 
 async function ensureJsDeps(otsiVieDir, log) {
-  if (fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
-  log('Installing the engine packages (first time, a few minutes)...\n');
+  // Install whenever the dependencies changed, not only the first time.
+  // The old check returned as soon as node_modules existed, so a pulled
+  // update that adds a package (e.g. @simplewebauthn/server for passkeys)
+  // was never installed and the build then failed with "Cannot find
+  // module". Record a hash of the lockfile + the workspace package.json
+  // files (.local/js-deps, git-ignored) and reinstall when it changes.
+  const depFiles = ['pnpm-lock.yaml', 'package.json', 'apps/api/package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json'];
+  let depHash = null;
+  try {
+    const h = crypto.createHash('sha256');
+    for (const f of depFiles) h.update(fs.readFileSync(path.join(otsiVieDir, f)));
+    depHash = h.digest('hex');
+  } catch {
+    // A dependency file cannot be read: fall back to the old behaviour
+    // (install only when node_modules is missing).
+    depHash = null;
+  }
+  const marker = path.join(otsiVieDir, '.local', 'js-deps');
+  let installedHash = null;
+  try { installedHash = fs.readFileSync(marker, 'utf8').trim(); } catch { /* no marker yet */ }
+  if (depHash && installedHash === depHash && fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
+  if (!depHash && fs.existsSync(path.join(otsiVieDir, 'node_modules'))) return;
+  log(installedHash ? 'Installing the new engine packages (the dependencies changed)...\n' : 'Installing the engine packages (first time, a few minutes)...\n');
   await resolveCorepack();
   await runCommand(corepackCmd, ['pnpm', 'install'], { cwd: otsiVieDir, log });
+  if (depHash) {
+    fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
+    fs.writeFileSync(marker, depHash + '\n', 'utf8');
+  }
 }
 
 // The video workers need the full CV/AI stack (requirements.txt, ~45
