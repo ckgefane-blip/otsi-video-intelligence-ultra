@@ -7,12 +7,18 @@
 -- track; history is linear (each decision can be superseded once) and append-only (0005). A reel target pins the exact decision version it
 -- was built on, for the SAME track and player, so a reused or reassigned track can never carry the spotlight to someone else.
 
+-- MySQL 8.4 refuses to add a FOREIGN KEY in the same ALTER TABLE that
+-- creates the UNIQUE key it references (error 1215 'Cannot add foreign
+-- key constraint'). Add the unique keys (and the column) first, then the
+-- foreign key in a second statement once the referenced unique key exists.
 ALTER TABLE `track_identity_decisions`
   ADD CONSTRAINT `uq_tid_id_track` UNIQUE (`id`, `track_id`),
   ADD CONSTRAINT `uq_tid_id_track_player` UNIQUE (`id`, `track_id`, `player_id`),
   ADD CONSTRAINT `uq_tid_supersedes_once` UNIQUE (`supersedes_id`),
-  ADD CONSTRAINT `fk_tid_supersedes_same_track` FOREIGN KEY (`supersedes_id`, `track_id`) REFERENCES `track_identity_decisions` (`id`, `track_id`),
   ADD COLUMN `reason` TEXT NULL COMMENT 'why this decision was made (required for a human correction)';
+
+ALTER TABLE `track_identity_decisions`
+  ADD CONSTRAINT `fk_tid_supersedes_same_track` FOREIGN KEY (`supersedes_id`, `track_id`) REFERENCES `track_identity_decisions` (`id`, `track_id`);
 
 ALTER TABLE `reel_targets`
   ADD CONSTRAINT `fk_reel_target_decision_same_track_player` FOREIGN KEY (`identity_decision_id`, `track_id`, `player_id`)
