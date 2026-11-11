@@ -27,6 +27,8 @@ const BRANCH = 'muse/ultra-main';
 // (web 4311, API 4521, MySQL 3510) so it can run side by side with the
 // original engine (web 4310, API 4520, MySQL 3508).
 const WEB_PORT = 4311;
+const API_PORT = 4521;
+const API_URL = `http://127.0.0.1:${API_PORT}`;
 const WEB_URL = `http://127.0.0.1:${WEB_PORT}`;
 const DOCKER_CONTAINER = 'otsi-vie-v2-mysql';
 
@@ -313,17 +315,52 @@ async function ensureJsDeps(otsiVieDir, log) {
   await runCommand(corepackCmd, ['pnpm', 'install'], { cwd: otsiVieDir, log });
 }
 
+// The web build bakes the API address into its /api proxy at build time
+// (next.config reads OTSI_VIE_API_INTERNAL_URL). If the baked address does
+// not match this stack's API, a stale build would keep proxying sign-in
+// (and every API call) to the wrong API — e.g. the original engine's on
+// 4520 — which rejects the request because it comes from an unfamiliar
+// origin. Rebuild the web when the baked address is wrong.
+function webBuildPointsAtApi(otsiVieDir) {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(otsiVieDir, 'apps', 'web', '.next', 'routes-manifest.json'), 'utf8'));
+    const rewrites = Array.isArray(manifest.rewrites)
+      ? manifest.rewrites
+      : [...(manifest.rewrites?.beforeFiles ?? []), ...(manifest.rewrites?.afterFiles ?? []), ...(manifest.rewrites?.fallback ?? [])];
+    const apiRewrite = rewrites.find((r) => typeof r.source === 'string' && r.source.startsWith('/api/'));
+    return !!apiRewrite && typeof apiRewrite.destination === 'string' && apiRewrite.destination.startsWith(API_URL);
+  } catch {
+    return false; // no readable manifest: build.
+  }
+}
+
 async function ensureBuilds(otsiVieDir, log) {
   const apiDist = path.join(otsiVieDir, 'apps', 'api', 'dist', 'main.js');
   const webBuild = path.join(otsiVieDir, 'apps', 'web', '.next', 'BUILD_ID');
   const contractsDist = path.join(otsiVieDir, 'packages', 'contracts', 'dist');
-  if (fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist)) return;
+  const buildsExist = fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist);
+  if (buildsExist && webBuildPointsAtApi(otsiVieDir)) return;
+  // The web build must know the API address or it bakes in the default
+  // (4520, the original engine's API). Pass it explicitly; runCommand
+  // replaces the env when one is given, so merge with the current env.
+  const buildEnv = { ...process.env, OTSI_VIE_API_INTERNAL_URL: API_URL };
+  if (buildsExist) {
+    log('Rebuilding the website: its built-in API address is out of date...\n');
+    await resolveCorepack();
+    await runCommand(corepackCmd, ['pnpm', 'build'], {
+      cwd: path.join(otsiVieDir, 'apps', 'web'),
+      log,
+      env: buildEnv,
+    });
+    return;
+  }
   log('Building the engine (first time, a few minutes)...\n');
   await resolveCorepack();
   for (const pkg of ['packages/contracts', 'apps/api', 'apps/web']) {
     await runCommand(corepackCmd, ['pnpm', 'build'], {
       cwd: path.join(otsiVieDir, pkg),
       log,
+      env: buildEnv,
     });
   }
 }
