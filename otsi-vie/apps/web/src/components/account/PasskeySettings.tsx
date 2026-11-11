@@ -50,7 +50,11 @@ export function PasskeySettings() {
     } catch (err) {
       // closing the Windows Hello prompt is not an error: nothing to say
       if (err instanceof Error && err.name === "NotAllowedError") return;
-      setError(err instanceof ApiProblem ? err.message : w.passkeyAddFailed);
+      // Show the real reason (e.g. a browser WebAuthn error) instead of only the generic line: the generic
+      // line hides whether the browser, Windows Hello or the server refused the registration.
+      if (err instanceof ApiProblem) setError(err.message);
+      else if (err instanceof Error) setError(`${w.passkeyAddFailed} (${err.name}: ${err.message})`);
+      else setError(w.passkeyAddFailed);
     } finally {
       setBusy(false);
     }

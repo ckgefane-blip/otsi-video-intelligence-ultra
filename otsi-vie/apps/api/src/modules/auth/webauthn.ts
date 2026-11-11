@@ -144,7 +144,7 @@ export class WebAuthnService {
       rpID: this.rpId,
       userName: user.email as string,
       userID: new TextEncoder().encode(userId),
-      userDisplayName: user.display_name as string,
+      userDisplayName: (user.display_name as string | null) || (user.email as string),
       attestationType: "none",
       authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
       excludeCredentials: existing.map((c) => credentialRef(c.credential_id as string, c.transports as string | null)),
