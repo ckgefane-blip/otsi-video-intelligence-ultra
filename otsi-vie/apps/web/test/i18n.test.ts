@@ -338,6 +338,7 @@ describe("dictionaries (ADR-139)", () => {
       "nav.export",
       "pages.exports.title",
       "pages.reels.title",
+      "webauthn.passkeysTitle",
     ]);
     for (const locale of ["ru", "es", "de", "fr"] as const) {
       const dict = getDictionary(locale);

@@ -32,6 +32,7 @@ export * from "./playerreport";
 export * from "./access";
 export * from "./exports";
 export * from "./scouting-pack";
+export * from "./webauthn";
 export * from "./jobs";
 export * from "./home";
 export * from "./gates";

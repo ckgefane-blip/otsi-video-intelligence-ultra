@@ -1,25 +1,32 @@
 "use client";
 import type { MfaChallenge } from "@otsi-vie/contracts";
-import { Eye, EyeOff, KeyRound, Loader2, LogIn } from "lucide-react";
+import { Eye, EyeOff, Fingerprint, KeyRound, Loader2, LogIn } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { safeNext } from "@/lib/safe-next";
 
 function LoginForm() {
-  const { status, signIn, signInWithCode } = useAuth();
+  const { status, signIn, signInWithCode, signInWithPasskey } = useAuth();
+  const { t } = useLocale();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  /** null until the browser has been asked: the button shows only when passkeys work here. */
+  const [passkeySupported, setPasskeySupported] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<MfaChallenge | null>(null);
   const [code, setCode] = useState("");
 
   useEffect(() => { if (status === "signed-in") router.replace(next); }, [status, next, router]);
+  useEffect(() => { setPasskeySupported(browserSupportsWebAuthn()); }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -38,6 +45,21 @@ function LoginForm() {
       if (challenge) setCode(""); else setPassword("");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function passkeySignIn() {
+    if (!email.trim()) { setError(t.webauthn.passkeyNeedEmail); return; }
+    setPasskeyBusy(true);
+    setError(null);
+    try {
+      await signInWithPasskey(email.trim());
+    } catch (err) {
+      // closing the Windows Hello prompt is not an error: nothing to say
+      if (err instanceof Error && err.name === "NotAllowedError") return;
+      setError(err instanceof ApiProblem ? err.message : t.webauthn.passkeyFailed);
+    } finally {
+      setPasskeyBusy(false);
     }
   }
 
@@ -82,6 +104,20 @@ function LoginForm() {
       <button type="submit" disabled={busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-ctl bg-primary px-4 py-2.5 font-semibold text-white disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} Sign in
       </button>
+      {passkeySupported === true && (
+        <>
+          <div className="mt-4 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" /><span>{t.webauthn.passkeyOr}</span><span className="h-px flex-1 bg-line" />
+          </div>
+          <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-ctl border border-line bg-canvas px-4 py-2.5 font-semibold disabled:opacity-60">
+            {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+            {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskey}
+          </button>
+        </>
+      )}
+      {passkeySupported === false && (
+        <p className="mt-4 text-xs text-muted">{t.webauthn.passkeyUnavailable}</p>
+      )}
       <p className="mt-4 text-xs text-muted">
         Invited by your club? Open the invitation link you were sent to choose your password.
       </p>

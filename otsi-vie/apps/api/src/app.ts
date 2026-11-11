@@ -67,6 +67,7 @@ import { IdentityImpactController, IdentityImpactService } from "./modules/track
 import { CollabController, CollabService } from "./modules/collab/collab";
 import { InvitationJoinController, PublicInvitationController, TeamController, TeamService } from "./modules/team/team";
 import { TwoStepController, TwoStepService } from "./modules/auth/two-step";
+import { WebAuthnController, WebAuthnService } from "./modules/auth/webauthn";
 import { AdminController, AdminService } from "./modules/admin/admin";
 import { RetentionController, RetentionService } from "./modules/retention/retention";
 import { MonitoringController, MonitoringService } from "./modules/monitoring/monitoring";
@@ -76,7 +77,7 @@ import { ScoutingPackController, ScoutingPackService } from "./modules/scoutingp
 
 export function appModule(cfg: Config) {
   // local sign-in is mounted only when this API is also the token issuer (ADR-021); with an external OIDC provider it does not exist
-  const local = cfg.localAuth ? { controllers: [AuthController, TwoStepController], providers: [AuthService, TwoStepService] } : { controllers: [], providers: [] };
+  const local = cfg.localAuth ? { controllers: [AuthController, TwoStepController, WebAuthnController], providers: [AuthService, TwoStepService, WebAuthnService] } : { controllers: [], providers: [] };
   @Module({
     controllers: [EvidenceAuditController, FormationsController, PressingController, TransitionsController, AdminController, RetentionController, MonitoringController, WalletController, AdminWalletController, AiAnalystController, AssistantController, AccountController, ProjectsController, MediaController, AnalysisController, AssessmentController, PitchCalibrationController, HeatZonesController, BallMarksController, LineupsController, MatchPeriodsController, MatchEventsController, SharingController, PublicShareController, PlayersController, PlayerListController, CountriesController, TrackIdentityController, CrossMatchController, TrackLinksController, IdentityEvidenceController, MatchesController, ReelsController, BrandController, ReelTemplatesController, ReelHistoryController, PlayerReportController, ProfileIntroController, ExportsController, ScoutingPackController, ArchiveController, BeatGridController, JobsController, HomeInboxController, OverviewController, WorkContextController, SearchController, SmartBinsController, NotificationsController, MediaInfoController, LanesController, SnapshotsController, IdentityImpactController, CollabController, TeamController, PublicInvitationController, InvitationJoinController, AuditController, LibraryRemovalController, LibraryFoldersController, LibraryFactsController, RenderEstimateController, BlocksController, ExportPresetsController, OrgTemplatesController, ...local.controllers],
     providers: [

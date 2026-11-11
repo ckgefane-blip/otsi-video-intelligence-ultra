@@ -85,6 +85,18 @@ export class AuthService {
     };
   }
 
+  /**
+   * Issue a fresh session for a user who has already been verified by another factor (a passkey, webauthn.ts).
+   * The same issue() path as password sign-in, so the session, the refresh cookie and the access token are
+   * identical - only the factor differs. The caller is responsible for the verification: the user must exist
+   * and have completed account setup (a row in local_credentials), the same bar password sign-in sets.
+   */
+  async issueSession(userId: string, client: ClientInfo): Promise<IssuedSession> {
+    const u = await this.db.one<RowDataPacket>("SELECT external_subject FROM users WHERE id = ?", [userId]);
+    if (!u) throw BAD_LOGIN();
+    return this.issue(userId, u.external_subject as string, uuidv7(), client);
+  }
+
   async login(email: string, password: string, client: ClientInfo): Promise<IssuedSession | PendingSecondStep> {
     const row = await this.db.one<RowDataPacket>(
       `SELECT c.user_id, c.password_hash, c.failed_attempts, c.locked_until > CURRENT_TIMESTAMP(6) AS locked, u.external_subject

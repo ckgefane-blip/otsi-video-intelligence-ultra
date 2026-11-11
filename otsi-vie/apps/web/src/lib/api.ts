@@ -3,7 +3,8 @@
  * localStorage), the selected organization in `X-Organization-Id`, and one silent refresh through the HttpOnly cookie when the token
  * has expired. Errors arrive as the API's Problem shape ({code, message, request_id}).
  */
-import type { AcceptInvitationRequest, InvitationPreview, LoginResponse, Me, MfaChallenge, SessionResponse } from "@otsi-vie/contracts";
+import type { AcceptInvitationRequest, InvitationPreview, LoginResponse, Me, MfaChallenge, SessionResponse, WebAuthnCredential, WebAuthnCredentialListResponse } from "@otsi-vie/contracts";
+import type { AuthenticationResponseJSON, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/browser";
 
 export class ApiProblem extends Error {
   constructor(readonly status: number, readonly code: string, message: string, readonly requestId?: string) {
@@ -61,6 +62,31 @@ async function sessionCall(path: string, body: unknown): Promise<SessionResponse
 
 /** step 2: the code from the authenticator app (or a recovery code) */
 export const loginTwoStep = (mfaToken: string, code: string) => sessionCall("login/two-step", { mfa_token: mfaToken, code });
+
+/** passkey sign-in, step 1: the request options for an email. */
+export async function webauthnLoginOptions(email: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  const r = await cookieCall("webauthn/login/options", { email });
+  if (!r.ok) throw await problemOf(r);
+  return (await r.json()) as PublicKeyCredentialRequestOptionsJSON;
+}
+
+/** passkey sign-in, step 2: the browser's assertion. On success the session is set, like password sign-in. */
+export const webauthnLoginVerify = (response: AuthenticationResponseJSON) => sessionCall("webauthn/login/verify", { response });
+
+/** passkey registration, step 1: the creation options. */
+export const webauthnRegisterOptions = () =>
+  api<PublicKeyCredentialCreationOptionsJSON>("/v1/auth/webauthn/register/options", { method: "POST", organization: false });
+
+/** passkey registration, step 2: the browser's attestation, plus the name the person gave the passkey. */
+export const webauthnRegisterVerify = (response: RegistrationResponseJSON, device_name?: string) =>
+  api<WebAuthnCredential>("/v1/auth/webauthn/register/verify", { method: "POST", organization: false, json: { response, ...(device_name ? { device_name } : {}) } });
+
+/** the person's passkeys (never the public key). */
+export const webauthnCredentials = () => api<WebAuthnCredentialListResponse>("/v1/auth/webauthn/credentials", { organization: false });
+
+/** remove one passkey. */
+export const webauthnDeleteCredential = (id: string) =>
+  api<{ deleted: boolean }>(`/v1/auth/webauthn/credentials/${encodeURIComponent(id)}`, { method: "DELETE", organization: false });
 
 /** a new person accepts an invitation with their name and password, and is signed in */
 export const acceptInvitation = (body: AcceptInvitationRequest) => sessionCall("invitations/accept", body);

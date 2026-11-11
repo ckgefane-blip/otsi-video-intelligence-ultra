@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { PasskeySettings } from "@/components/account/PasskeySettings";
 import { TwoStepSettings } from "@/components/account/TwoStepSettings";
 
-export const metadata: Metadata = { title: "2-step sign-in" };
+export const metadata: Metadata = { title: "Security" };
 
-/** Account menu > 2-step sign-in: the signed-in person's own authenticator-app code. Not one of the ten numbered pages. */
+/** Account menu > Security: the signed-in person's own 2-step sign-in (authenticator-app code) and passkeys
+ *  (Windows Hello). Not one of the ten numbered pages. */
 export default function Page() {
-  return <TwoStepSettings />;
+  return (
+    <div className="space-y-10 py-6">
+      <TwoStepSettings />
+      <PasskeySettings />
+    </div>
+  );
 }

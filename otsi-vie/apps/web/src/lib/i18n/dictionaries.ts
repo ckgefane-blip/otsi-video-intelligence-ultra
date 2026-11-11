@@ -4019,6 +4019,30 @@ export interface Dictionary {
       heatmapsLabel: string;
     };
   };
+  /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
+  webauthn: {
+    signInWithPasskey: string;
+    passkeyOr: string;
+    passkeyNeedEmail: string;
+    passkeyUnavailable: string;
+    passkeyWaiting: string;
+    passkeyFailed: string;
+    passkeysTitle: string;
+    passkeysIntro: string;
+    deviceName: string;
+    deviceNamePlaceholder: string;
+    addPasskey: string;
+    passkeyAdded: string;
+    passkeyRemoved: string;
+    passkeyRemove: string;
+    passkeyNone: string;
+    passkeyUnnamed: string;
+    passkeyLastUsed: string;
+    passkeyNeverUsed: string;
+    passkeyAddedOn: string;
+    passkeyAddFailed: string;
+    passkeyRemoveFailed: string;
+  };
 }
 
 /** A dictionary that may leave any leaf untranslated (it then falls back to English). */
@@ -8033,6 +8057,29 @@ export const en: Dictionary = {
       heatmapsLabel: "Heatmaps",
     },
   },
+  webauthn: {
+    signInWithPasskey: "Sign in with Windows Hello",
+    passkeyOr: "or",
+    passkeyNeedEmail: "Enter your email first, then use your passkey.",
+    passkeyUnavailable: "This browser does not support passkeys here. Use your password.",
+    passkeyWaiting: "Waiting for Windows Hello…",
+    passkeyFailed: "Could not sign in with your passkey. Try your password.",
+    passkeysTitle: "Passkeys",
+    passkeysIntro: "Sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Your password still works.",
+    deviceName: "Name this passkey",
+    deviceNamePlaceholder: "e.g. My Windows laptop",
+    addPasskey: "Add a passkey",
+    passkeyAdded: "Passkey added.",
+    passkeyRemoved: "Passkey removed.",
+    passkeyRemove: "Remove",
+    passkeyNone: "No passkeys yet.",
+    passkeyUnnamed: "Unnamed passkey",
+    passkeyLastUsed: "Last used {a}",
+    passkeyNeverUsed: "Never used",
+    passkeyAddedOn: "Added {a}",
+    passkeyAddFailed: "Could not add this passkey. Try again.",
+    passkeyRemoveFailed: "Could not remove this passkey. Try again.",
+  },
 };
 
 export const ru: DeepPartial<Dictionary> = {
@@ -12043,6 +12090,29 @@ export const ru: DeepPartial<Dictionary> = {
       shirtColourDiffers: "Цвет его формы отличается от других треков {a}: проверьте, что это он.",
       heatmapsLabel: "Тепловые карты",
     },
+  },
+  webauthn: {
+    signInWithPasskey: "Войти с Windows Hello",
+    passkeyOr: "или",
+    passkeyNeedEmail: "Сначала введите адрес электронной почты, затем используйте ключ доступа.",
+    passkeyUnavailable: "Этот браузер не поддерживает ключи доступа здесь. Используйте пароль.",
+    passkeyWaiting: "Ожидание Windows Hello…",
+    passkeyFailed: "Не удалось войти с ключом доступа. Попробуйте пароль.",
+    passkeysTitle: "Ключи доступа",
+    passkeysIntro: "Входите с Windows Hello (отпечаток пальца, лицо или ПИН-код) вместо ввода пароля. Пароль по-прежнему работает.",
+    deviceName: "Название ключа доступа",
+    deviceNamePlaceholder: "например, Мой ноутбук Windows",
+    addPasskey: "Добавить ключ доступа",
+    passkeyAdded: "Ключ доступа добавлен.",
+    passkeyRemoved: "Ключ доступа удалён.",
+    passkeyRemove: "Удалить",
+    passkeyNone: "Ключей доступа пока нет.",
+    passkeyUnnamed: "Ключ доступа без названия",
+    passkeyLastUsed: "Использовался {a}",
+    passkeyNeverUsed: "Не использовался",
+    passkeyAddedOn: "Добавлен {a}",
+    passkeyAddFailed: "Не удалось добавить ключ доступа. Попробуйте ещё раз.",
+    passkeyRemoveFailed: "Не удалось удалить ключ доступа. Попробуйте ещё раз.",
   },
 };
 
@@ -16055,6 +16125,29 @@ export const es: DeepPartial<Dictionary> = {
       heatmapsLabel: "Mapas de calor",
     },
   },
+  webauthn: {
+    signInWithPasskey: "Iniciar sesión con Windows Hello",
+    passkeyOr: "o",
+    passkeyNeedEmail: "Escribe tu correo electrónico primero y luego usa tu clave de acceso.",
+    passkeyUnavailable: "Este navegador no admite claves de acceso aquí. Usa tu contraseña.",
+    passkeyWaiting: "Esperando a Windows Hello…",
+    passkeyFailed: "No se pudo iniciar sesión con tu clave de acceso. Prueba con tu contraseña.",
+    passkeysTitle: "Claves de acceso",
+    passkeysIntro: "Inicia sesión con Windows Hello (huella, rostro o PIN) en lugar de escribir tu contraseña. Tu contraseña sigue funcionando.",
+    deviceName: "Nombre de esta clave de acceso",
+    deviceNamePlaceholder: "p. ej., Mi portátil Windows",
+    addPasskey: "Añadir una clave de acceso",
+    passkeyAdded: "Clave de acceso añadida.",
+    passkeyRemoved: "Clave de acceso eliminada.",
+    passkeyRemove: "Eliminar",
+    passkeyNone: "Aún no hay claves de acceso.",
+    passkeyUnnamed: "Clave de acceso sin nombre",
+    passkeyLastUsed: "Último uso {a}",
+    passkeyNeverUsed: "Nunca usada",
+    passkeyAddedOn: "Añadida {a}",
+    passkeyAddFailed: "No se pudo añadir esta clave de acceso. Inténtalo de nuevo.",
+    passkeyRemoveFailed: "No se pudo eliminar esta clave de acceso. Inténtalo de nuevo.",
+  },
 };
 
 export const de: DeepPartial<Dictionary> = {
@@ -20065,6 +20158,29 @@ export const de: DeepPartial<Dictionary> = {
       shirtColourDiffers: "Seine Trikotfarbe unterscheidet sich von den anderen Tracks von {a}: Prüfe, ob er es ist.",
       heatmapsLabel: "Heatmaps",
     },
+  },
+  webauthn: {
+    signInWithPasskey: "Mit Windows Hello anmelden",
+    passkeyOr: "oder",
+    passkeyNeedEmail: "Gib zuerst deine E-Mail-Adresse ein und verwende dann deinen Passkey.",
+    passkeyUnavailable: "Dieser Browser unterstützt hier keine Passkeys. Verwende dein Passwort.",
+    passkeyWaiting: "Warten auf Windows Hello…",
+    passkeyFailed: "Anmeldung mit deinem Passkey fehlgeschlagen. Versuche es mit deinem Passwort.",
+    passkeysTitle: "Passkeys",
+    passkeysIntro: "Melde dich mit Windows Hello (Fingerabdruck, Gesicht oder PIN) an, statt dein Passwort einzugeben. Dein Passwort funktioniert weiterhin.",
+    deviceName: "Name für diesen Passkey",
+    deviceNamePlaceholder: "z. B. Mein Windows-Laptop",
+    addPasskey: "Passkey hinzufügen",
+    passkeyAdded: "Passkey hinzugefügt.",
+    passkeyRemoved: "Passkey entfernt.",
+    passkeyRemove: "Entfernen",
+    passkeyNone: "Noch keine Passkeys.",
+    passkeyUnnamed: "Passkey ohne Namen",
+    passkeyLastUsed: "Zuletzt verwendet {a}",
+    passkeyNeverUsed: "Nie verwendet",
+    passkeyAddedOn: "Hinzugefügt {a}",
+    passkeyAddFailed: "Dieser Passkey konnte nicht hinzugefügt werden. Versuche es erneut.",
+    passkeyRemoveFailed: "Dieser Passkey konnte nicht entfernt werden. Versuche es erneut.",
   },
 };
 
@@ -24077,6 +24193,29 @@ export const fr: DeepPartial<Dictionary> = {
       heatmapsLabel: "Cartes de chaleur",
     },
   },
+  webauthn: {
+    signInWithPasskey: "Se connecter avec Windows Hello",
+    passkeyOr: "ou",
+    passkeyNeedEmail: "Saisissez d’abord votre adresse e-mail, puis utilisez votre clé d’accès.",
+    passkeyUnavailable: "Ce navigateur ne prend pas en charge les clés d’accès ici. Utilisez votre mot de passe.",
+    passkeyWaiting: "En attente de Windows Hello…",
+    passkeyFailed: "Impossible de vous connecter avec votre clé d’accès. Essayez votre mot de passe.",
+    passkeysTitle: "Clés d’accès",
+    passkeysIntro: "Connectez-vous avec Windows Hello (empreinte, visage ou code PIN) au lieu de saisir votre mot de passe. Votre mot de passe fonctionne toujours.",
+    deviceName: "Nom de cette clé d’accès",
+    deviceNamePlaceholder: "p. ex. Mon ordinateur portable Windows",
+    addPasskey: "Ajouter une clé d’accès",
+    passkeyAdded: "Clé d’accès ajoutée.",
+    passkeyRemoved: "Clé d’accès supprimée.",
+    passkeyRemove: "Supprimer",
+    passkeyNone: "Aucune clé d’accès pour l’instant.",
+    passkeyUnnamed: "Clé d’accès sans nom",
+    passkeyLastUsed: "Dernière utilisation {a}",
+    passkeyNeverUsed: "Jamais utilisée",
+    passkeyAddedOn: "Ajoutée {a}",
+    passkeyAddFailed: "Impossible d’ajouter cette clé d’accès. Réessayez.",
+    passkeyRemoveFailed: "Impossible de supprimer cette clé d’accès. Réessayez.",
+  },
 };
 
 const PARTIALS: Record<Exclude<Locale, "en">, DeepPartial<Dictionary>> = { ru, es, de, fr };
@@ -24120,6 +24259,7 @@ export function mergeDictionary(base: Dictionary, override: DeepPartial<Dictiona
       tactics: { ...base.body.tactics, ...override.body?.tactics },
       workspace: { ...base.body.workspace, ...override.body?.workspace },
     },
+    webauthn: { ...base.webauthn, ...override.webauthn },
   };
 }
 

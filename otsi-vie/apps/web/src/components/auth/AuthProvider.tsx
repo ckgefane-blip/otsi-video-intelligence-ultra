@@ -5,7 +5,8 @@
  */
 import type { Me, MfaChallenge, SessionResponse } from "@otsi-vie/contracts";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { login as apiLogin, loginTwoStep, logout as apiLogout, refresh, session } from "@/lib/api";
+import { login as apiLogin, loginTwoStep, logout as apiLogout, refresh, session, webauthnLoginOptions, webauthnLoginVerify } from "@/lib/api";
+import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 
 type Status = "loading" | "signed-out" | "signed-in";
 interface AuthState {
@@ -15,6 +16,8 @@ interface AuthState {
   /** null: signed in. A challenge: two-step sign-in is on, call `signInWithCode` next. */
   signIn(email: string, password: string): Promise<MfaChallenge | null>;
   signInWithCode(mfaToken: string, code: string): Promise<void>;
+  /** passkey sign-in (Windows Hello): the browser asks for the passkey, then the session is accepted. */
+  signInWithPasskey(email: string): Promise<void>;
   /** a session obtained elsewhere (accepting an invitation) */
   adoptSession(s: SessionResponse): void;
   signOut(): Promise<void>;
@@ -58,6 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     },
     async signInWithCode(mfaToken, code) { accept((await loginTwoStep(mfaToken, code)).me); },
+    async signInWithPasskey(email) {
+      if (!browserSupportsWebAuthn()) throw new Error("passkeys are not supported by this browser");
+      const options = await webauthnLoginOptions(email);
+      const assertion = await startAuthentication({ optionsJSON: options });
+      accept((await webauthnLoginVerify(assertion)).me);
+    },
     adoptSession(s) { accept(s.me); },
     async signOut() { await apiLogout(); accept(null); },
     updateMe(m) { setMe(m); },
