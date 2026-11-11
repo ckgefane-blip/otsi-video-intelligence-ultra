@@ -275,6 +275,10 @@ async function startup() {
   await backend.ensureJsDeps(otsiVie, log);
   checkAborted();
 
+  setStatus('Installing the video libraries (first time, a few minutes)...');
+  await backend.ensureWorkerDeps(otsiVie, python, log);
+  checkAborted();
+
   setStatus('Setting up the database...');
   await backend.prepareStack(python, otsiVie, engine, log);
   checkAborted();

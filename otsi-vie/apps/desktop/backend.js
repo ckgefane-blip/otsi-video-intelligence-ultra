@@ -17,6 +17,7 @@
  */
 
 const { spawn, execFile } = require('node:child_process');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
@@ -315,6 +316,55 @@ async function ensureJsDeps(otsiVieDir, log) {
   await runCommand(corepackCmd, ['pnpm', 'install'], { cwd: otsiVieDir, log });
 }
 
+// The video workers need the full CV/AI stack (requirements.txt, ~45
+// packages including the torch CPU build, OpenVINO, PaddleOCR and
+// pyarrow). First-run setup only installed pymysql (the database
+// driver), so the workers could never start — the Admin page showed
+// "No Active Workers Detected" and no video could be processed. Install
+// requirements.txt into the app's own venv on first run, and again when
+// requirements.txt changes (the marker records its hash). torch is the
+// CPU build, which lives on PyTorch's own index, so pass
+// --extra-index-url. This is a large download (several GB) and takes a
+// while; pip's output goes to the log so the loading window shows
+// progress. A failure does not stop the app from opening, but the
+// workers will not run until it succeeds — the marker is only written
+// on success, so the next launch retries.
+async function ensureWorkerDeps(otsiVieDir, venvPy, log) {
+  const reqFile = path.join(otsiVieDir, 'requirements.txt');
+  let reqHash = null;
+  try {
+    reqHash = crypto.createHash('sha256').update(fs.readFileSync(reqFile)).digest('hex');
+  } catch {
+    log('Could not read requirements.txt; the video libraries were not installed.\n');
+    return false;
+  }
+  const marker = path.join(otsiVieDir, '.local', 'worker-deps');
+  try {
+    if (fs.readFileSync(marker, 'utf8').trim() === reqHash) return true;
+  } catch {
+    // No marker yet: install.
+  }
+  log('Installing the video libraries (first time, a few minutes — several GB)...\n');
+  try {
+    await runCommand(venvPy, ['-m', 'pip', 'install', '--extra-index-url', 'https://download.pytorch.org/whl/cpu', '-r', reqFile], { log });
+  } catch {
+    log('The video libraries could not be installed, so video analysis will not run yet.\n' +
+      'Check the connection and disk space, then open OTSI VIE again to retry.\n');
+    return false;
+  }
+  // Verify the heavy imports the workers need, so a half-installed venv
+  // is not mistaken for a working one.
+  try {
+    await runCommand(venvPy, ['-c', 'import numpy, pyarrow, torch, openvino, PIL'], {});
+  } catch {
+    log('The video libraries installed but the check import failed; they will be retried next launch.\n');
+    return false;
+  }
+  fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
+  fs.writeFileSync(marker, reqHash + '\n', 'utf8');
+  return true;
+}
+
 // The web build bakes the API address into its /api proxy at build time
 // (next.config reads OTSI_VIE_API_INTERNAL_URL). If the baked address does
 // not match this stack's API, a stale build would keep proxying sign-in
@@ -556,6 +606,7 @@ module.exports = {
   ensureOwnVenv,
   ensureRepo,
   ensureJsDeps,
+  ensureWorkerDeps,
   ensureBuilds,
   prepareStack,
   bootstrapOwner,
