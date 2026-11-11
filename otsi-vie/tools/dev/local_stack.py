@@ -44,7 +44,21 @@ IMAGE = "mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb
 # One Python worker process per group: a 70-minute analysis must not hold up the verification of a new upload (one process runs one job at a time)
 WORKER_GROUPS = {"jobs-ingest": "INGEST_UPLOAD,INGEST_URL,ASSESS", "jobs-media": "PROXY,RENDER,CALIBRATE_PITCH,READ_LINEUPS,SNAPSHOT,BEAT_GRID", "jobs-analysis": "ANALYZE,TRACK_BALL"}   # TRACK_BALL: ~70 min on the GPU with the ball model
 API_PORT, WEB_PORT = 4520, 4310   # 4300 is taken on the dev machine by an unrelated, pre-existing process
-WEB_ORIGINS = f"http://127.0.0.1:{WEB_PORT},http://localhost:{WEB_PORT}"
+# Portable mode (the desktop app) gets its own ports so it can run side by
+# side with the original engine instead of clashing on 4310/4520 (web) and
+# 4520 (API). The database already did the same (portable 3510 vs Docker 3508).
+PORTABLE_API_PORT, PORTABLE_WEB_PORT = 4521, 4311
+
+
+def ports_for(mysql_mode: str) -> tuple[int, int]:
+    """(api_port, web_port) for a stack mode: portable gets its own ports."""
+    if mysql_mode == "portable":
+        return PORTABLE_API_PORT, PORTABLE_WEB_PORT
+    return API_PORT, WEB_PORT
+
+
+def web_origins_for(web_port: int) -> str:
+    return f"http://127.0.0.1:{web_port},http://localhost:{web_port}"
 NODE = shutil.which("node") or "node"
 COREPACK = shutil.which("corepack") or "corepack"
 
@@ -131,6 +145,7 @@ def prepare(name: str, mysql_mode: str = "docker") -> dict[str, str]:
     else:
         port, db, root_pw = TEST_PORT, f"vie_{name.replace('-', '_')}", test_root_password()
     assert port != 3306
+    api_port, web_port = ports_for(mysql_mode)
     d = stack_dir(name)
     s = env_file(d / "secrets.env")
     if "DB_PASSWORD" in s and ("MEDIA_SIGNING_KEY" not in s or "CREDENTIAL_KEY" not in s):    # stacks created before these keys existed
@@ -163,12 +178,13 @@ def prepare(name: str, mysql_mode: str = "docker") -> dict[str, str]:
         print(f"[{name}] applied migrations: {', '.join(applied) if isinstance(applied, list) else applied}")
     return {
         "OTSI_VIE_DB_DSN": f"mysql://{s['DB_USER']}:{s['DB_PASSWORD']}@127.0.0.1:{port}/{db}",
-        "OTSI_VIE_JWT_ISSUER": f"http://127.0.0.1:{WEB_PORT}/",
+        "OTSI_VIE_JWT_ISSUER": f"http://127.0.0.1:{web_port}/",
         "OTSI_VIE_JWT_AUDIENCE": "otsi-vie-api",
         "OTSI_VIE_LOCAL_SIGNING_KEY_FILE": str(key),
         "OTSI_VIE_INSECURE_COOKIES": "yes",                   # plain HTTP on this machine only
-        "OTSI_VIE_WEB_ORIGINS": WEB_ORIGINS,
-        "OTSI_VIE_API_PORT": str(API_PORT),
+        "OTSI_VIE_WEB_ORIGINS": web_origins_for(web_port),
+        "OTSI_VIE_API_PORT": str(api_port),
+        "OTSI_VIE_API_INTERNAL_URL": f"http://127.0.0.1:{api_port}",   # the web app proxies /api/* here (next.config); must match the API port
         "OTSI_VIE_STORAGE_DIR": str(storage),
         "OTSI_VIE_MEDIA_SIGNING_KEY": s["MEDIA_SIGNING_KEY"],
         "OTSI_VIE_CREDENTIAL_KEY": s["CREDENTIAL_KEY"],               # seals users' provider tokens between the API and the worker
@@ -201,6 +217,7 @@ def pump(prefix: str, stream) -> None:
 
 def run(name: str, build: bool, public_origin: str | None = None, mysql_mode: str = "docker") -> None:
     env = {**os.environ, **prepare(name, mysql_mode), "NEXT_TELEMETRY_DISABLED": "1", "NODE_ENV": "production"}
+    _, web_port = ports_for(mysql_mode)
     if public_origin:
         if not public_origin.startswith("https://"):
             raise SystemExit("--public-origin must be an https:// origin")
@@ -213,7 +230,9 @@ def run(name: str, build: bool, public_origin: str | None = None, mysql_mode: st
     procs = {
         "api": subprocess.Popen([NODE, "dist/main.js"], cwd=APP / "apps" / "api", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
         "worker": subprocess.Popen([NODE, "dist/workers/outbox-dispatcher.js"], cwd=APP / "apps" / "api", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
-        "web": subprocess.Popen([COREPACK, "pnpm", "start"], cwd=APP / "apps" / "web", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
+        # Start the web on the mode's port explicitly (do not use `pnpm start`:
+        # package.json hardcodes -p 4310, the original engine's port).
+        "web": subprocess.Popen([COREPACK, "pnpm", "exec", "next", "start", "-p", str(web_port), "-H", "127.0.0.1"], cwd=APP / "apps" / "web", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
         # the Python background worker (ingest today): claims worker_jobs created by the outbox dispatcher
         **{name_: subprocess.Popen([sys.executable, "-m", "vie_worker.main"], cwd=APP / "services" / "worker", env={**env, "OTSI_VIE_WORKER_KINDS": kinds}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) for name_, kinds in WORKER_GROUPS.items()},
     }
@@ -227,7 +246,7 @@ def run(name: str, build: bool, public_origin: str | None = None, mysql_mode: st
     reported_dead: set[str] = set()
     for k, p in procs.items():
         threading.Thread(target=pump, args=(k, p.stdout), daemon=True).start()
-    print(f"\nOTSI VIE is starting: open http://127.0.0.1:{WEB_PORT}  (Ctrl+C stops everything)\n")
+    print(f"\nOTSI VIE is starting: open http://127.0.0.1:{web_port}  (Ctrl+C stops everything)\n")
     try:
         while all(procs[k].poll() is None for k in critical):
             time.sleep(0.5)
@@ -256,6 +275,7 @@ def dev(name: str, public_origin: str | None = None, mysql_mode: str = "docker")
     """Development mode on the same ports and database: the web app runs `next dev` (React/CSS hot module replacement), the API is
     recompiled by `tsc --watch` and restarted by `node --watch` on every save. Bound to 127.0.0.1 only; nothing is public."""
     env = {**os.environ, **prepare(name, mysql_mode), "NEXT_TELEMETRY_DISABLED": "1"}
+    _, web_port = ports_for(mysql_mode)
     if public_origin:
         if not public_origin.startswith("https://"):
             raise SystemExit("--public-origin must be an https:// origin")
@@ -269,12 +289,12 @@ def dev(name: str, public_origin: str | None = None, mysql_mode: str = "docker")
         "api-build": subprocess.Popen([COREPACK, "pnpm", "exec", "tsc", "-p", "tsconfig.build.json", "--watch", "--preserveWatchOutput"], cwd=api, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
         "api": subprocess.Popen([NODE, "--watch-path=dist", "dist/main.js"], cwd=api, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
         "worker": subprocess.Popen([NODE, "dist/workers/outbox-dispatcher.js"], cwd=api, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
-        "web": subprocess.Popen([COREPACK, "pnpm", "exec", "next", "dev", "-p", str(WEB_PORT), "-H", "127.0.0.1"], cwd=APP / "apps" / "web", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
+        "web": subprocess.Popen([COREPACK, "pnpm", "exec", "next", "dev", "-p", str(web_port), "-H", "127.0.0.1"], cwd=APP / "apps" / "web", env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
         **{name_: subprocess.Popen([sys.executable, "-m", "vie_worker.main"], cwd=APP / "services" / "worker", env={**env, "OTSI_VIE_WORKER_KINDS": kinds}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) for name_, kinds in WORKER_GROUPS.items()},
     }
     for k, p in procs.items():
         threading.Thread(target=pump, args=(k, p.stdout), daemon=True).start()
-    print(f"\nOTSI VIE development: open http://127.0.0.1:{WEB_PORT}  (live reload on save; Ctrl+C stops everything)\n")
+    print(f"\nOTSI VIE development: open http://127.0.0.1:{web_port}  (live reload on save; Ctrl+C stops everything)\n")
     try:
         while all(p.poll() is None for p in procs.values()):
             time.sleep(0.5)

@@ -4,8 +4,10 @@ A real desktop app for OTSI VIE: its own window, no browser tab — like
 Filmora or DaVinci Resolve. The engine's screens (dashboard, analysis,
 timeline, reel builder, reports, library, export) run inside the app's
 window. The engine itself still runs on this machine, behind the window:
-the web app on http://127.0.0.1:4310, the API on 4520, portable MySQL on
-3508. Nothing opens in a browser and nothing is uploaded anywhere.
+the web app on http://127.0.0.1:4311, the API on 4521, portable MySQL on
+3510. These are the desktop app's own ports, so it can run side by side
+with the original engine (web 4310, API 4520, MySQL 3508). Nothing opens in
+a browser and nothing is uploaded anywhere.
 
 ## What it does on launch
 
@@ -20,7 +22,7 @@ The same flow as the OTSI-VIE.exe launcher, but shown in a window:
 6. First time: a form in the window asks for the owner account
    (email, name, organisation).
 7. Starts the engine, waits for it to answer, then opens the main window
-   on http://127.0.0.1:4310.
+   on http://127.0.0.1:4311.
 8. Closing the main window stops the engine.
 
 Progress, errors and the owner form all appear in the window. There is no

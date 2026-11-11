@@ -9,7 +9,7 @@
  *   find Python -> ensure the engine repo -> pnpm install -> prepare
  *   (portable MySQL, no Docker) -> build if needed -> owner account ->
  *   start `local_stack.py run --no-build --mysql portable` -> wait for
- *   http://127.0.0.1:4310.
+ *   http://127.0.0.1:4311.
  *
  * Everything runs through child_process directly (no shell), so there are no
  * cmd.exe quoting problems. All output goes to a caller-supplied log
@@ -23,7 +23,10 @@ const path = require('node:path');
 
 const REPO_URL = 'https://github.com/ckgefane-blip/otsi-video-intelligence-ultra.git';
 const BRANCH = 'muse/ultra-main';
-const WEB_PORT = 4310;
+// The desktop app always runs the portable stack, which uses its own ports
+// (web 4311, API 4521, MySQL 3510) so it can run side by side with the
+// original engine (web 4310, API 4520, MySQL 3508).
+const WEB_PORT = 4311;
 const WEB_URL = `http://127.0.0.1:${WEB_PORT}`;
 const DOCKER_CONTAINER = 'otsi-vie-v2-mysql';
 

@@ -5,7 +5,7 @@
  * The app is a window around the local engine (same engine the browser
  * version runs). On launch it shows a small loading window, gets the engine
  * ready (repo, packages, database, builds, owner account), starts it, and
- * then opens the main window on http://127.0.0.1:4310. Closing the main
+ * then opens the main window on http://127.0.0.1:4311. Closing the main
  * window stops the engine. Nothing opens in a browser.
  *
  * First run: if no owner account exists yet, the loading window shows a
