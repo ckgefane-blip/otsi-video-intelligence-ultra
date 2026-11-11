@@ -36,6 +36,7 @@ let cfg: Config;
 let owner: { email: string; organizationId: string; userId: string };
 let accessToken: string;
 let refreshCookie: string;
+let signingKeyPem: string;
 
 const email = () => `owner-${key().slice(2, 14)}@test.invalid`;
 
@@ -62,7 +63,7 @@ function cookieValue(setCookie: string | string[] | undefined): string {
 describe("licence (ADR-144)", () => {
   beforeAll(async () => {
     const { privateKey: signingKey } = await generateKeyPair("RS256", { extractable: true });
-    const signingKeyPem = await exportPKCS8(signingKey);
+    signingKeyPem = await exportPKCS8(signingKey);
     // the licence key is a SEPARATE Ed25519 pair from the RS256 access-token key: a licence is a server
     // statement, not a session, and the access-token key must never be able to mint one
     const { privateKey: licenceKey, publicKey: licencePublicKey } = await generateKeyPair("EdDSA", { extractable: true });
@@ -136,6 +137,40 @@ describe("licence (ADR-144)", () => {
     const r = await post("/v1/licence/refresh", {}, authed());
     expect(r.status).toBe(401);
     expect(r.body.code).toBe("NO_SESSION");
+  });
+
+  it("a refresh with an EXPIRED access token (and a live refresh cookie) succeeds", async () => {
+    // the refresh authenticates on the refresh cookie alone: the access token's expiry must not matter
+    // (it expires 10 minutes after sign-in, and the licence must outlive it)
+    const sub = JSON.parse(Buffer.from(accessToken.split(".")[1]!, "base64url").toString("utf8")).sub as string;
+    const key = await importPKCS8(signingKeyPem, "RS256");
+    const expired = await new SignJWT({})
+      .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+      .setSubject(sub)
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setIssuedAt()
+      .setJti(uuidv7())
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 60)
+      .sign(key);
+    const r = await post("/v1/licence/refresh", {}, {
+      authorization: `Bearer ${expired}`,
+      "x-organization-id": owner.organizationId,
+      cookie: `otsi_vie_refresh=${encodeURIComponent(refreshCookie)}`,
+    });
+    expect(r.status).toBe(200);
+    expect(typeof r.body.licence_token).toBe("string");
+    const claims = await verifyLicenceToken(r.body.licence_token as string, cfg);
+    expect(claims.organization_id).toBe(owner.organizationId);
+  });
+
+  it("a refresh without X-Organization-Id is refused (the cookie alone names no organization)", async () => {
+    const r = await post("/v1/licence/refresh", {}, {
+      authorization: `Bearer ${accessToken}`,
+      cookie: `otsi_vie_refresh=${encodeURIComponent(refreshCookie)}`,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.code).toBe("ORGANIZATION_REQUIRED");
   });
 
   it("a tampered token fails verification with LICENCE_INVALID", async () => {

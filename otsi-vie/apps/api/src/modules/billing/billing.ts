@@ -32,7 +32,7 @@
  * optional — a JSON body ({}) marks "I have paid" with no file. A receipt upload with no storage configured
  * answers 503 STORAGE_NOT_CONFIGURED, like media uploads; marking paid without a file always works.
  */
-import { Body, Controller, Get, Inject, Injectable, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import {
   BankAccount,
   BankAccountUpsertRequest,
@@ -80,6 +80,9 @@ const PROOF_EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+/** The daily renewal job runs every 24 h in central mode (see BillingService.startRenewalScheduler). */
+const RENEWAL_JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** ADR-140 §8: this codebase has no platform-wide owner role — Admin is the organization's own OWNER / ADMIN.
  *  Billing Admin therefore acts only on the caller's own organization. In the current single-tenant deployment
@@ -151,8 +154,15 @@ async function readRawBody(body: unknown, maxBytes: number): Promise<Buffer> {
 }
 
 @Injectable()
-export class BillingService {
+export class BillingService implements OnModuleInit, OnModuleDestroy {
+  private readonly log = new Logger("BillingService");
   private readonly store: LocalStore | null;
+  /** Central mode only (OTSI_VIE_CENTRAL_MODE=yes): a local / vetting engine must never run renewals. */
+  private readonly centralMode: boolean;
+  /** The daily renewal job: one chained timer, first run at start-up (catch-up), then every interval. */
+  private renewalsTimer: NodeJS.Timeout | null = null;
+  private renewalsSchedulerOn = false;
+  private renewalsStopped = false;
 
   constructor(
     private readonly db: Db,
@@ -160,6 +170,56 @@ export class BillingService {
     @Inject(CONFIG) cfg: Config,
   ) {
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
+    this.centralMode = cfg.central?.centralMode === true;
+  }
+
+  /**
+   * Daily renewal job (Finding 4): POST /v1/admin/billing/renewals/run existed but nothing ever called
+   * it, so renewals never ran. In central mode the API itself runs it: once at start-up (catch-up after a
+   * restart or downtime) and then every 24 h. A local / vetting engine never starts it — centralMode is
+   * true only when OTSI_VIE_CENTRAL_MODE=yes; a local engine that only verifies licence tokens against
+   * the central server's key has centralMode false (see core/config.ts). A failed run is logged and the
+   * next run still happens — a billing failure must never take the API down with it. The timer is unref'd
+   * so it never keeps the process (or a test) alive on its own, and onModuleDestroy stops it.
+   */
+  async onModuleInit(): Promise<void> {
+    if (this.centralMode) this.startRenewalScheduler();
+  }
+
+  onModuleDestroy(): void {
+    this.stopRenewalScheduler();
+  }
+
+  /** Start the daily job; `intervalMs` exists only so tests can use a short interval. */
+  startRenewalScheduler(intervalMs: number = RENEWAL_JOB_INTERVAL_MS): void {
+    if (!this.centralMode || this.renewalsSchedulerOn) return;
+    this.renewalsSchedulerOn = true;
+    this.renewalsStopped = false;
+    // Chained, not setInterval: the next run is scheduled only after the current one finishes, so a
+    // slow run can never overlap the next one. A manual POST racing a tick is handled by the
+    // in-transaction re-check in createRenewalOrders, not here.
+    const tick = async (): Promise<void> => {
+      if (this.renewalsStopped) return;
+      try {
+        await this.runRenewals();
+      } catch (e) {
+        this.log.error(`daily renewal run failed: ${(e as Error).message}`);
+      }
+      if (this.renewalsStopped) return;
+      this.renewalsTimer = setTimeout(() => void tick(), intervalMs);
+      this.renewalsTimer.unref();
+    };
+    void tick();
+  }
+
+  /** Stop the daily job (no further runs; a run already in flight finishes). */
+  stopRenewalScheduler(): void {
+    this.renewalsStopped = true;
+    this.renewalsSchedulerOn = false;
+    if (this.renewalsTimer !== null) {
+      clearTimeout(this.renewalsTimer);
+      this.renewalsTimer = null;
+    }
   }
 
   // -- reads --
@@ -625,7 +685,12 @@ export class BillingService {
    * confirmed one. A renewal whose order was REJECTED or REFUNDED gets a fresh one on the next run, so a
    * "no" is never silently final. Subscriptions on the FREE plan never renew. A subscription whose period is
    * not 1 or 12 months (hand-made, not from an order) is skipped: its renewal period is not defined.
-   * Runs org-wide: the central server runs it daily (see the note on POST /v1/admin/billing/renewals/run).
+   * Runs org-wide: in central mode the API runs it daily itself (startRenewalScheduler, once at start-up
+   * then every 24 h); POST /v1/admin/billing/renewals/run is the manual trigger.
+   * Idempotency: the "already has an open renewal" check below runs outside the transaction as a fast
+   * path, and is repeated inside the transaction (after the org lock) before the insert — a concurrent
+   * run (the daily job racing a manual POST, or two manual POSTs) can pass the outer check at the same
+   * time, and only the in-transaction re-check keeps it from creating a second renewal order.
    */
   async createRenewalOrders(now: Date = new Date()): Promise<{ renewals_created: number; renewal_order_ids: string[]; skipped_subscription_ids: string[] }> {
     const nowIso = now.toISOString();
@@ -667,6 +732,12 @@ export class BillingService {
       const tokens = planTokens(planCode as "STARTER" | "CLUB" | "ACADEMY" | "SEASON", periodMonths as 1 | 12);
       const orderId = await this.db.tx(async (c) => {
         await this.lockOrg(c, orgId);
+        // Re-check inside the transaction: a concurrent run may have created the renewal after the
+        // outer check above. The org lock serialises the two runs, so the second one sees the first
+        // one's committed row here and creates nothing (returns null).
+        const raced = await this.db.one<RowDataPacket>(
+          "SELECT id FROM bank_transfer_orders WHERE renews_subscription_id = ? AND status IN ('ORDERED','AWAITING_CONFIRMATION','PARTIAL','CONFIRMED')", [subId], c);
+        if (raced) return null;
         const reference = await this.nextReference(c, now.getUTCFullYear());
         const id = uuidv7();
         await c.query(
@@ -681,6 +752,10 @@ export class BillingService {
         });
         return id;
       });
+      if (orderId === null) {
+        skipped.push(subId);
+        continue;
+      }
       created.push(orderId);
     }
     return { renewals_created: created.length, renewal_order_ids: created, skipped_subscription_ids: skipped };
@@ -828,10 +903,10 @@ export class AdminBillingController {
 
   /**
    * Trigger the daily billing run by hand: renewal orders for subscriptions expiring within 7 days, then
-   * expiry / grace handling. The central server runs this daily on its own (a cron hitting this endpoint
-   * with a service credential, or the outbox dispatcher — whichever the central-server build wires up); this
-   * endpoint exists so the owner can run it on demand and so the daily job has something to call. It runs
-   * org-wide (see the scoping note on ownOrgOrDeny): in multi-tenant use it needs a platform-owner role.
+   * expiry / grace handling. In central mode the API runs this daily on its own (BillingService
+   * .startRenewalScheduler — once at start-up, then every 24 h); this endpoint is the manual trigger,
+   * so the owner can run it on demand. It runs org-wide (see the scoping note on ownOrgOrDeny): in
+   * multi-tenant use it needs a platform-owner role.
    */
   @Post("billing/renewals/run")
   runRenewals(): Promise<RenewalRunResult> {

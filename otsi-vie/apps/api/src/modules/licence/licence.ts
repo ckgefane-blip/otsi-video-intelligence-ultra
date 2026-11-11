@@ -3,7 +3,7 @@
  * do — its plan, its features, its token balance, and how long the statement is good for.
  *
  *   GET  /v1/licence         (AuthGuard)                   the current licence snapshot for the caller's org
- *   POST /v1/licence/refresh (AuthGuard + refresh cookie)  a fresh signed licence token (JWT, Ed25519)
+ *   POST /v1/licence/refresh (refresh cookie, no Bearer)    a fresh signed licence token (JWT, Ed25519)
  *
  * The snapshot is DERIVED — this module needs no new tables: the plan and valid_until come from the active
  * subscription (subscriptions -> plan_versions -> plans), the features from the currently-valid entitlement
@@ -23,10 +23,14 @@
  * licence token. The token never claims entitlement past the paid period: it expires at the subscription's
  * valid_until when that is sooner than the 30-day token life.
  *
- * The refresh needs more than a Bearer token: the caller must also hold a live session (the refresh cookie),
- * checked read-only — an access token alone cannot mint a licence token. The session is NOT rotated here;
- * that is POST /v1/auth/refresh's job. Issuance is written to the audit log (licence.refreshed) and nothing
- * else: a refresh changes no business state.
+ * The refresh needs a live session, not a live access token: it authenticates on the refresh cookie alone
+ * (plus the CSRF header and the origin guard), so an access token that expired 15 minutes after sign-in
+ * does not break it — the session the cookie names is checked read-only, and the caller names the
+ * organization with X-Organization-Id (the same header AuthGuard reads). An access token alone cannot mint
+ * a licence token, and a refresh cookie without an organization cannot either: the membership check below
+ * is the same ACTIVE-membership check AuthGuard performs. The session is NOT rotated here; that is
+ * POST /v1/auth/refresh's job. Issuance is written to the audit log (licence.refreshed) and nothing else:
+ * a refresh changes no business state.
  *
  * Offline grace (ADR-144 §1.5): the token itself is strict — verifyLicenceToken() throws LICENCE_EXPIRED the
  * moment it expires. The grace is applied by the HOLDER (the desktop shell / native code): a token no more
@@ -41,7 +45,7 @@ import { createRemoteJWKSet, errors, importPKCS8, importSPKI, jwtVerify, JWTPayl
 import { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, userActor } from "../../core/audit";
-import { AuthGuard, CurrentPrincipal, Principal } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, Principal, Role } from "../../core/auth";
 import { CONFIG, Config, publicKeyOf } from "../../core/config";
 import { Db } from "../../core/db";
 import { ApiError } from "../../core/problem";
@@ -191,16 +195,43 @@ export class LicenceService {
     });
   }
 
+  /** The presented refresh cookie must belong to a live session: unrevoked, unrotated, unexpired. The check
+   *  is read-only — the session is not rotated here. Returns the session's user (and subject), so the
+   *  refresh endpoint can derive its principal from the session instead of from an access token. */
+  private async sessionUser(refreshToken: string | undefined): Promise<{ userId: string; subject: string }> {
+    if (!refreshToken) throw NO_SESSION();
+    const row = await this.db.one<RowDataPacket>(
+      `SELECT s.user_id AS user_id, u.external_subject AS subject FROM auth_sessions s
+         JOIN users u ON u.id = s.user_id
+        WHERE s.refresh_hash = ? AND s.revoked_at IS NULL AND s.rotated_at IS NULL
+          AND s.expires_at > CURRENT_TIMESTAMP(6)`,
+      [createHash("sha256").update(refreshToken).digest("hex")]);
+    if (!row) throw NO_SESSION();
+    return { userId: String(row.user_id), subject: String(row.subject) };
+  }
+
   /** The presented refresh cookie must belong to a live session of this user: unrevoked, unrotated, unexpired.
    *  The check is read-only — the session is not rotated here. */
   private async assertLiveSession(userId: string, refreshToken: string | undefined): Promise<void> {
-    if (!refreshToken) throw NO_SESSION();
-    const row = await this.db.one<RowDataPacket>(
-      `SELECT 1 AS x FROM auth_sessions
-        WHERE user_id = ? AND refresh_hash = ? AND revoked_at IS NULL AND rotated_at IS NULL
-          AND expires_at > CURRENT_TIMESTAMP(6)`,
-      [userId, createHash("sha256").update(refreshToken).digest("hex")]);
-    if (!row) throw NO_SESSION();
+    const session = await this.sessionUser(refreshToken);
+    if (session.userId !== userId) throw NO_SESSION();
+  }
+
+  /** Issue a fresh signed licence token from the refresh cookie alone (no live access token needed): the
+   *  user comes from the session row, and the organization from X-Organization-Id — the caller must be an
+   *  ACTIVE member of it, the same check AuthGuard performs. A missing or unknown organization is refused
+   *  the same way AuthGuard refuses it. */
+  async refreshFromSession(refreshToken: string | undefined, organizationId: string | undefined, requestId: string): Promise<LicenceRefreshResponse> {
+    if (!organizationId) throw new ApiError(400, "ORGANIZATION_REQUIRED", "Choose an organization (X-Organization-Id).");
+    const { userId, subject } = await this.sessionUser(refreshToken);
+    const m = await this.db.one<RowDataPacket>(
+      `SELECT m.role AS role FROM users u JOIN memberships m ON m.user_id = u.id
+        WHERE u.id = ? AND m.organization_id = ? AND m.status = 'ACTIVE'`,
+      [userId, organizationId]);
+    // the same answer whether the organization does not exist or the user is not in it: no probing of other tenants
+    if (!m) throw new ApiError(403, "NOT_A_MEMBER", "You are not an active member of that organization.");
+    const p: Principal = { userId, subject, organizationId, role: m.role as Role, requestId };
+    return this.refresh(p, refreshToken);
   }
 
   /** Issue a fresh signed licence token for the caller's organization, and audit the issuance. The token's
@@ -239,7 +270,6 @@ export class LicenceService {
 }
 
 @Controller("v1/licence")
-@UseGuards(AuthGuard)
 export class LicenceController {
   constructor(private readonly licence: LicenceService) {}
 
@@ -261,14 +291,15 @@ export class LicenceController {
   }
 
   @Get()
+  @UseGuards(AuthGuard)
   snapshot(@CurrentPrincipal() p: Principal): Promise<LicenceSnapshot> {
     return this.licence.snapshot(p);
   }
 
   @Post("refresh")
   @HttpCode(200)
-  refresh(@CurrentPrincipal() p: Principal, @Headers(CSRF_HEADER) csrf: string | undefined, @Req() req: FastifyRequest): Promise<LicenceRefreshResponse> {
+  refresh(@Headers("x-organization-id") orgId: string | undefined, @Headers(CSRF_HEADER) csrf: string | undefined, @Req() req: FastifyRequest): Promise<LicenceRefreshResponse> {
     this.guard(req, csrf);
-    return this.licence.refresh(p, readCookie(req, this.cookieName(req)));
+    return this.licence.refreshFromSession(readCookie(req, this.cookieName(req)), orgId, String(req.id));
   }
 }

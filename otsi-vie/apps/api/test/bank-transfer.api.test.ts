@@ -17,7 +17,8 @@ import { randomUUID } from "node:crypto";
 import type mysql from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Member, rootDb, seedMember, startApi, token } from "./helpers";
+import { Member, rootDb, seedMember, sleep, startApi, token } from "./helpers";
+import { BillingService } from "../src/modules/billing/billing";
 
 let app: NestFastifyApplication;
 let root: mysql.Connection;
@@ -263,6 +264,59 @@ describe("bank-transfer billing", () => {
     expect(plan[0]?.code).toBe("FREE");
     const [projectsAfter] = await root.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM projects WHERE organization_id = ?", [m.orgId]);
     expect(projectsAfter[0]?.n).toBe(projectsBefore[0]?.n);
+  });
+
+  it("two renewal runs at the same time still create only one renewal order", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-4" });
+    const subId = confirmed.body.subscription_id as string;
+    await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
+    const [runA, runB] = await Promise.all([
+      call(m, "POST", "/v1/admin/billing/renewals/run"),
+      call(m, "POST", "/v1/admin/billing/renewals/run"),
+    ]);
+    expect(runA.status).toBe(201);
+    expect(runB.status).toBe(201);
+    expect((runA.body.renewals_created as number) + (runB.body.renewals_created as number)).toBe(1);
+    const [renewals] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
+    expect(renewals).toHaveLength(1);
+  });
+
+  it("the central-mode daily job runs renewals at start-up, and later ticks plus a manual run create no duplicates", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-5" });
+    const subId = confirmed.body.subscription_id as string;
+    await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
+    // the daily job's start-up run fires inside createApp (onModuleInit, not awaited), so poll until it lands
+    const centralApp = await startApi({ centralMode: true });
+    try {
+      const deadline = Date.now() + 10_000;
+      let renewals: mysql.RowDataPacket[] = [];
+      while (Date.now() < deadline) {
+        [renewals] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
+        if (renewals.length === 1) break;
+        await sleep(100);
+      }
+      expect(renewals).toHaveLength(1);
+      // short-interval ticks, then a manual run: still exactly one renewal order
+      const billing = centralApp.get(BillingService);
+      billing.stopRenewalScheduler();
+      billing.startRenewalScheduler(50);
+      await sleep(250);
+      billing.stopRenewalScheduler();
+      const manual = await call(m, "POST", "/v1/admin/billing/renewals/run");
+      expect(manual.body.renewals_created).toBe(0);
+      const [after] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
+      expect(after).toHaveLength(1);
+    } finally {
+      await centralApp.close();
+    }
   });
 
   it("keeps viewers and other organizations out of billing admin", async () => {

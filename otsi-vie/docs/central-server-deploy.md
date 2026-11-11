@@ -117,6 +117,32 @@ value, and tokens issued under it would not be the central server's tokens.
 5. Register a passkey on the staging domain and sign in with it (Windows Hello) — this is the real-domain
    passkey test, and it must pass on staging before production exists.
 6. Confirm the refresh cookie is `Secure` and `__Host-` prefixed in the browser.
+7. Billing renewals run on their own — see "Daily billing renewals" below: create a paid
+   subscription expiring within 7 days, restart the API, and check exactly one renewal order exists;
+   run `POST /v1/admin/billing/renewals/run` again and check `renewals_created` is 0.
+
+## Daily billing renewals
+
+In central mode the API runs the billing renewal job **itself** — no cron, no separate worker, nothing
+to install on the server. `BillingService` starts it when the API starts (`onModuleInit`): one run at
+start-up (catch-up after a restart or downtime), then one run every 24 hours
+(`startRenewalScheduler` in `apps/api/src/modules/billing/billing.ts`). A failed run is logged and the
+next run still happens. A local / vetting engine never runs it: the job starts only when
+`OTSI_VIE_CENTRAL_MODE=yes`.
+
+Each run does two things, for every organisation:
+
+- **Renewal orders** — one renewal order (new `OTSI-INV-<year>-<seq>` reference) for every ACTIVE
+  subscription expiring within 7 days that has no renewal order yet. A second run — or two runs at the
+  same time, e.g. the daily job racing a manual trigger — creates no duplicate: the run re-checks for
+  an existing renewal inside the same transaction that creates the order. A renewal whose order was
+  REJECTED or REFUNDED gets a fresh one on the next run; FREE subscriptions never renew.
+- **Expiry / grace** — a subscription past its period end goes PAST_DUE inside the 14-day grace period,
+  then drops to the free tier (state CANCELED, FREE plan). Projects are kept.
+
+**Manual trigger:** `POST /v1/admin/billing/renewals/run` (OWNER / ADMIN) runs the same job on demand and
+returns `{ renewals_created, renewal_order_ids, past_due, downgraded_to_free }`. Use it to run renewals
+early, or to check the job is working without waiting a day or restarting the API.
 
 ## Step 7 — Production: repeat steps 1–6 with production values
 

@@ -19,9 +19,9 @@
     "predist": "npm install",
     "predist:portable": "npm install",
     "predist:nsis": "npm install",
-    "dist": "electron-builder --win",
-    "dist:portable": "electron-builder --win portable",
-    "dist:nsis": "electron-builder --win nsis"
+    "dist": "electron-builder --win --publish never",
+    "dist:portable": "electron-builder --win portable --publish never",
+    "dist:nsis": "electron-builder --win nsis --publish never"
   },
   "version": "0.1.0"
 }

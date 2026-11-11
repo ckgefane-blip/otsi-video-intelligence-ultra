@@ -7,15 +7,15 @@ connects as root without a database selected.
 
   db_setup            create the database + app user (env-driven, no args)
 
-MySQL backend (OTSI_VIE_DB_BACKEND=mysql, the default until the staged
-SQLite switch in docs/sqlite-rollout.md reaches a machine):
+MySQL backend (select with OTSI_VIE_DB_BACKEND=mysql; SQLite is the default
+for a fresh desktop install):
   OTSI_VIE_ADMIN_HOST (default 127.0.0.1), OTSI_VIE_ADMIN_PORT (default 3510),
   OTSI_VIE_ADMIN_USER (default root), OTSI_VIE_ADMIN_PASSWORD (required),
   OTSI_VIE_APP_DB (default otsi_owner_vie),
   OTSI_VIE_APP_DB_USER, OTSI_VIE_APP_DB_PASSWORD (required).
 
 SQLite backend (OTSI_VIE_DB_BACKEND=sqlite, the default for a fresh desktop
-install once the rollout reaches it):
+install):
   OTSI_VIE_SQLITE_PATH (required, e.g. D:\\OTSI-VIE\\db\\otsi-vie.sqlite).
   There is no server, no user and no role to create: the file is created
   from database/sqlite-bootstrap.sql (all 74 migrations recorded as

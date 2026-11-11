@@ -6,8 +6,10 @@
 # decision is approved), and the core model pack. No git, pnpm, Node or
 # Python is required on the user's PC, and no .py file ships.
 #
-# Target size ~300–400 MB (plan v3). That assumes the SQLite decision is
-# approved; with portable MySQL bundled (+249 MB) it is roughly ~550–650 MB.
+# Target size ~500–650 MB (ADR-144 §1.1, corrected from the old ~300–400 MB
+# figure: the component estimates sum to ~480–660 MB). With portable MySQL
+# bundled (+249 MB) it is roughly ~750–900 MB; the bundle stays until the
+# staged SQLite rollout reaches the owner's PC (ADR-144 §1.2).
 # The first real installer build must record the actual size.
 #
 # What the build machine must stage first (see apps/desktop/README.md,

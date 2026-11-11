@@ -63,7 +63,7 @@ class _PytestStub:
 
 sys.modules.setdefault("pytest", _PytestStub())
 
-MODULES = sys.argv[1:] or ["test_sqlite_db", "test_job_lease", "test_profile_intro", "test_cross_match_render"]
+MODULES = sys.argv[1:] or ["test_sqlite_db", "test_job_lease", "test_profile_intro", "test_cross_match_render", "test_licence"]
 
 # fixture functions defined in a test module, by name (called with stack/root by parameter name)
 FIXTURES: dict[str, dict] = {}

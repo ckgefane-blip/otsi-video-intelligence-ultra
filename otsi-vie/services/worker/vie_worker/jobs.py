@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .db import connect, is_sqlite_conn, is_sqlite_dsn, now_ms, tx
+from .licence import LicenceError, check_licence_for_job
 
 log = logging.getLogger("vie_worker.jobs")
 
@@ -204,6 +205,13 @@ class JobRunner:
         job = self.claim()
         if job is None:
             return None
+        # Licence (ADR-144 1.5): paid work is refused at job start when the licence does not verify - no token in central
+        # mode, or a token whose signature, expiry or organisation fails (see vie_worker/licence.py). Not retried: a licence
+        # refusal cannot succeed until the shell has refreshed the token and this worker has restarted with the new environment.
+        try:
+            check_licence_for_job(job)
+        except LicenceError as e:
+            return self.fail(job, e.code, str(e), retryable=False)
         stop = threading.Event()
         beat = threading.Thread(target=self.heartbeat, args=(job, stop), daemon=True)
         beat.start()

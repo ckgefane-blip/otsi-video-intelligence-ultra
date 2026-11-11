@@ -18,7 +18,7 @@
 
 ## 1. Decisions
 
-### 1.1 The installer ships pre-built code, never source — target ~300–400 MB
+### 1.1 The installer ships pre-built code, never source — target ~500–650 MB (~750–900 MB with portable MySQL)
 
 - The installer contains the **built** engine: the API (built, plus its production dependencies), the web app as a
   Next.js standalone server (`.next/standalone`, which needs `output: 'standalone'` in `apps/web/next.config`), the
@@ -36,12 +36,16 @@
   electron-builder drops the transitive dependencies that exist only inside `.pnpm/` when it copies the
   standalone tree as extraResources, so the packaged web server would die with `Cannot find module` at
   runtime. Hoisted fixes both, and Developer Mode is not needed for the build. (Audit, 2026-11-11.)
-- **Installer size, target ~300–400 MB** (plan v3; the v2 estimate of ~1.0–1.3 GB is superseded). Rough component
+- **Installer size, target ~500–650 MB without the portable-MySQL bundle, ~750–900 MB with it** (plan v3; the v2 estimate of ~1.0–1.3 GB is superseded). Rough component
   sizes, not a measurement: Electron runtime ~150 MB, pre-built web ~50–80 MB, pre-built API plus production
   dependencies ~100–120 MB, the single AI runtime (ONNX Runtime + DirectML + OpenVINO, §1.2) ~100–150 MB, the
-  Nuitka-compiled engine ~30–60 MB, the core model pack ~50–100 MB. The first real installer build must record the
-  actual size. **SQLite is APPROVED (owner, 2026-11-11 — see §1.2), so the ~300–400 MB target applies;** the
-  ~550–650 MB figure was the fallback while portable MySQL stayed bundled pending that approval.
+  Nuitka-compiled engine ~30–60 MB, the core model pack ~50–100 MB — 480–660 MB in total, so the old ~300–400 MB
+  target does not match the component math. The web figure is overstated: the built web output measures ~11 MB
+  (.next 6.7 MB + static 4.6 MB, excluding the standalone tree's node_modules and public/ assets). The first real
+  installer build must record the actual size. **SQLite is APPROVED (owner, 2026-11-11 — see §1.2), but the
+  portable-MySQL bundle (+249 MB) stays in the installer until the staged rollout reaches the owner's PC (§1.2),
+  so the ~750–900 MB figure applies until then;** the ~550–650 MB figure was the old fallback estimate, not the
+  current size.
 - Heavier model packs and future language packs are **not** in the installer: they install from inside the app via
   a component manager (chosen by the user, resumable, SHA-256 checked, signed manifest).
 
@@ -63,7 +67,7 @@
 - **SQLite APPROVED by the owner, 2026-11-11 (written approval, in chat):** the project rule says MySQL, so this
   needed the owner's written approval — now given. Reasons: the licence register says shipping MySQL inside the
   app needs Oracle's commercial terms (a legal risk carried into every sale), SQLite is public domain (nothing to
-  license or pay), it makes the installer ~250 MB smaller (~300–400 MB instead of ~550–650 MB), it is how
+  license or pay), it makes the installer ~250 MB smaller (~500–650 MB instead of ~750–900 MB), it is how
   professional desktop apps store each user's own project data, and MySQL stays on the central server for
   accounts, licences, billing and payments either way. The conversion risk is controlled by the eight safeguards
   in the plan v4 §1d (one database layer; every test on both databases; known differences handled explicitly with
@@ -80,7 +84,7 @@
   6. **Users' data protected — BUILT + TESTED.** The migration runner backs up the local database file (copy + WAL, SHA-256 in a manifest) before applying any migration, applies migrations inside a transaction, and on failure restores the backup and reports plainly. Tested (16-test suite): backup exists and matches, a deliberately failing migration leaves the DB byte-identical and the error reported. Desktop wiring: SQLite by default (`<data>/db/otsi-vie.sqlite`, D: when one exists), MySQL path kept working and selectable (`OTSI_VIE_DB_BACKEND`); the portable MySQL bundle is NOT removed yet.
   7. **Staged switch — PLAN WRITTEN, not executed.** `otsi-vie/docs/sqlite-rollout.md`: gate (all eight safeguards) → stage 1 the owner's PC (exact steps Claude Code runs) → stage 2 beta users → stage 3 everyone, with entry criteria and rollback (delete SQLite files, flip the flag back to MySQL) per stage. The rollout happens on the owner's machine, not here.
   8. **Evidence — THIS ADR + `docs/IMPLEMENTATION_STATUS.md`.** Each check above records its command and result. Host-only items (MySQL half of every suite, real-match load test, real-match comparison, desktop app starting with SQLite on Windows, installer build + clean install) are listed as NOT verified here and must be run on the owner's host before the switch.
-  - **Open items from the build (for the parent/host):** (a) the `--experimental-sqlite` flag: Node 22.11–22.12 need it as the first arg when spawning the API/outbox; the owner's Node 22.23.2 does not, and the desktop shell does not pass it today — either set the engines floor to >=22.13.0 or add the flag in `backend.js` `spawnChild` for older bundled Node versions; (b) the roles provisioning must be re-run on existing installs after the roles.py change; (c) `electron-builder.yml` lists no `database/` resource — the installer must ship `otsi-vie/database/` (MySQL migrations + `migrations-sqlite/` + `sqlite-bootstrap.sql`) under `engine/otsi-vie/database/`; (d) `analyze.py:364` `ON DUPLICATE KEY UPDATE` is the one remaining untranslated worker MySQL-ism (follow-up, not claimed done).
+  - **Open items from the build (for the parent/host):** (a) the `--experimental-sqlite` flag: Node 22.11–22.12 need it as the first arg when spawning the API/outbox; the owner's Node 22.23.2 does not, and the desktop shell does not pass it today — either set the engines floor to >=22.13.0 or add the flag in `backend.js` `spawnChild` for older bundled Node versions; (b) the roles provisioning must be re-run on existing installs after the roles.py change; (c) DONE — `electron-builder.yml` lists a `database/` extraResource shipping `otsi-vie/database/` (`sqlite-bootstrap.sql` + `sqlite_triggers.sql` + `migrations-sqlite/`) under `engine/otsi-vie/database/` (verified 2026-11-11; the MySQL migrations are deliberately not shipped — the desktop never runs them); (d) `analyze.py:364` `ON DUPLICATE KEY UPDATE` is the one remaining untranslated worker MySQL-ism (follow-up, not claimed done).
 - **Hardware check at first run.** The app detects the GPU, RAM and disk, picks the fastest runtime automatically
   (DirectML GPU → OpenVINO → CPU), and shows the user the expected speed. It does not fail silently on a weak PC.
 - **Mac later.** ONNX Runtime with CoreML runs the same models on Mac. Paths, codecs and the runtime choice are
@@ -90,14 +94,15 @@
   only drive. Videos, tracks, renders, project metadata, the local database, the runtimes, and the AI models all
   live under the data folder.
 
-### 1.3 AI models: exported once, encrypted at rest, component-managed
+### 1.3 AI models: exported once, component-managed (encryption not built yet)
 
 - Models are exported to ONNX (and OpenVINO IR) at build time and verified against the SHA-256 pins in
   `services/worker/vie_worker/models/registry.json`. The core model pack ships in the installer; heavier packs
   install from inside the app via the component manager (resumable, SHA-256 checked, signed manifest). Models are
   never copied from the developer's workspace (the old README claim that models are "copied from the original
   workspace's `.local/models`" was wrong and is corrected as part of this build).
-- **Model files are encrypted at rest.** The app decrypts them in memory only with a valid licence. Each model has
+- **Model files are NOT encrypted at rest yet.** Encryption at rest (decrypt in memory only with a valid licence)
+  is a follow-up to the ONNX export, not built. Each model has
   a checksum. The minimum set for a first analysis is the same as before: detector `rtdetr_v2_r18vd`, embedder
   `dinov2_small`, jersey OCR `ppocr_v4_det` + `ppocr_v4_en_rec`, pitch `pnlcalib_sv_kp`, lineup OCR
   `ppocr_v5_cyrillic_rec` + `ppocr_v5_latin_rec` (deferred: `rtdetr_v2_r50vd`, `dinov2_base`, `siglip_base_224`,

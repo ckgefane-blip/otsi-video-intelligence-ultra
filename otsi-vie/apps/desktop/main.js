@@ -525,6 +525,28 @@ ipcMain.on('owner-have-account', () => {
   }
 });
 
+// Central sign-in (licence.js): the renderer collects the email/password — the central server is the API
+// only, so there is no sign-in page to open in a window; the shell signs in to the API directly — and
+// hands them here. The session is stored for licence refreshes; with two-step sign-in on, step 1
+// returns a challenge and the renderer calls 'licence-sign-in-two-step' with the code. The live flow
+// cannot be tested here (no central server is deployed yet); the first live test is on the owner's host.
+ipcMain.handle('licence-sign-in', async (_event, credentials) => {
+  const centralUrl = backend.licence.centralServerUrl();
+  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL).');
+  const session = await backend.licence.signInToCentral(centralUrl, credentials || {});
+  if (session.mfa_required) return { mfa_required: true, mfa_token: session.mfa_token, expires_in: session.expires_in };
+  const stored = backend.licence.storeCentralSession(app.getPath('userData'), session);
+  return { ok: true, organization_id: stored.organization_id || null };
+});
+
+ipcMain.handle('licence-sign-in-two-step', async (_event, details) => {
+  const centralUrl = backend.licence.centralServerUrl();
+  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL).');
+  const session = await backend.licence.completeCentralTwoStep(centralUrl, details || {});
+  const stored = backend.licence.storeCentralSession(app.getPath('userData'), session);
+  return { ok: true, organization_id: stored.organization_id || null };
+});
+
 ipcMain.on('close-app', () => {
   startupAborted = true;
   app.quit();

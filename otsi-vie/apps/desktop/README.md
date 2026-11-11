@@ -190,8 +190,8 @@ first signed release.
 - **Shell:** Electron for now (fastest path). A later move to a native
   shell (Qt/C++ or Tauri/Rust) is a separate ADR with a cost and effort
   estimate — do not switch without owner approval.
-- **Model files** are encrypted at rest (plan v3 §1c); the app decrypts
-  them in memory only with a valid licence. Each model has a checksum.
+- **Model files** are NOT encrypted at rest yet (plan v3 §1c — decrypt in memory only with a valid licence);
+  model encryption is not built. Each model has a checksum.
   The encryption wiring is a follow-up to the ONNX export.
 - **Copyright:** "© Osio & Tee Solutions International Ltd" is in the
   installer config, the loading window, the app, the files and the
@@ -247,7 +247,12 @@ run on Windows without Developer Mode, and what keeps the packaged web
 server's dependencies intact (a symlinked install drops transitive
 dependencies when electron-builder copies the standalone tree). After
 pulling any change to `.npmrc`, reinstall from the repo root
-(`pnpm install`) before staging.
+(`pnpm install`) before staging — but a plain reinstall only repairs an
+intact install. If the install is damaged (for example, packages missing
+from `node_modules/.pnpm` after a build cleared the old symlinked
+standalone tree), delete the `otsi-vie/node_modules` folder first — the
+folder only, NOT the pnpm store — then run `pnpm install` from the repo
+root.
 
 1. **Engine builds** (from the repo root):
    `pnpm --filter @otsi-vie/contracts build`,
