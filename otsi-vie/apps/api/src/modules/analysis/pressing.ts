@@ -320,7 +320,7 @@ export class PressingService {
           const passKit = pr.kit_group != null ? Number(pr.kit_group) : null;
           if (passKit === null || passKit === kg) continue; // only opponent passes
           const startUs = Number(pr.start_pts_us);
-          const slice = sliceFor(startUs);
+          const slice = sliceAt(startUs);
           if (!slice) continue;
           const half = mp && mp.second_start_us && startUs >= Number(mp.second_start_us) ? 2 : 1;
           const defendsLeft = half === 1 ? passKit === 0 : passKit !== 0;

@@ -210,7 +210,7 @@ export class ExportsService {
         WHERE v.id = ? AND v.organization_id = ?`, [reel.video_id, p.organizationId]);
     const events = reel.player ? (await this.heat.playerEvents(reel.player.player_id, p)).items : [];
     const who = await this.who(reel, p);
-    const rights = await this.sharing.rights(reel.video_id, p).catch(() => null);
+    const rights = reel.video_id ? await this.sharing.rights(reel.video_id, p).catch(() => null) : null;
     return buildInterchangeExport({
       reel,
       video: {
