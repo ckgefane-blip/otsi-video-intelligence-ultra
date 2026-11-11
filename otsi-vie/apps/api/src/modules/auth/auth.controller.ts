@@ -17,7 +17,13 @@ export const CSRF_HEADER = "x-otsi-csrf";
 function readCookie(req: FastifyRequest, name: string): string | undefined {
   for (const part of (req.headers.cookie ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0 && part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0 && part.slice(0, i).trim() === name) {
+      try {
+        return decodeURIComponent(part.slice(i + 1).trim());
+      } catch {
+        return undefined;   // a malformed cookie is no session, not a server error (was: URIError -> 500)
+      }
+    }
   }
   return undefined;
 }

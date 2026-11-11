@@ -144,6 +144,12 @@ describe("sessions", () => {
     expect((await post("/v1/auth/refresh")).body.code).toBe("NO_SESSION");
   });
 
+  it("a malformed refresh cookie is no session (401), not a server error (500)", async () => {
+    const r = await post("/v1/auth/refresh", undefined, { cookie: "otsi_vie_refresh=%zz" });
+    expect(r.status).toBe(401);
+    expect(r.body.code).toBe("NO_SESSION");
+  });
+
   it("stores only the hash of a refresh token", async () => {
     const c = cookieValue((await login(owner.email)).cookie).split("=")[1]!;
     const [rows] = await root.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM auth_sessions WHERE refresh_hash = ?", [c]);
