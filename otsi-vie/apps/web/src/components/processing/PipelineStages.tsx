@@ -5,7 +5,9 @@
  * identity is assigned; a player is named only after a person confirms it), then Ball, Pitch, Team sheets and Football facts. Each shows
  * waiting, running, done, not run, failed, cancelled or out of date (done on an older analysis). A click on a step filters the log to it.
  */
+"use client";
 import { B, T, u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 import { pct, RIBBON_PILL, type RibbonStep } from "./model";
 
 const X0 = 43, W = 1938, N = 8, CELL = W / N;
@@ -32,8 +34,10 @@ function Ring({ cx, s }: { cx: number; s: RibbonStep }) {
 }
 
 export function PipelineStages({ steps, selected, onSelect }: { steps: RibbonStep[]; selected: string | null; onSelect: (key: string | null) => void }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.processing;
   return (
-    <section aria-label="Engine steps for this video" data-section="p03-s02">
+    <section aria-label={d.engineStepsForVideo} data-section="p03-s02">
       <B x={X0} y={293} w={W} h={230} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
       <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
         {steps.map((s, i) => {
@@ -41,8 +45,8 @@ export function PipelineStages({ steps, selected, onSelect }: { steps: RibbonSte
           return (
             <li key={s.key} data-stage-step={s.key} data-stage-state={s.state}>
               <button type="button" aria-pressed={on} onClick={() => onSelect(on ? null : s.key)}
-                aria-label={`${i + 1}. ${s.title}: ${s.label}${s.progress !== null ? `, ${Math.round(s.progress)}%` : ""}. ${on ? "Show every step in the log" : "Show only this step in the log"}`}
-                title={on ? "Showing only this step in the log; click again for all" : "Show only this step in the log"}
+                aria-label={`${i + 1}. ${s.title}: ${s.label}${s.progress !== null ? `, ${Math.round(s.progress)}%` : ""}. ${on ? d.showEveryStep : d.showOnlyStep}`}
+                title={on ? d.showingOnlyStep : d.showOnlyStep}
                 className="absolute" style={{ left: u(x + 6), top: u(299 - 101), width: u(CELL - 12), height: u(218), padding: 0, cursor: "pointer", fontFamily: "inherit",
                   background: on ? "rgba(30,144,255,.10)" : "transparent", border: on ? `${u(1.5)} solid #1e6fb0` : `${u(1.5)} solid transparent`, borderRadius: u(8) }} />
               <div style={{ pointerEvents: "none" }}>

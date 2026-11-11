@@ -15,6 +15,7 @@ import type { AnalysisWorkspaceState } from "@/components/analysis/AnalysisWorks
 import { B, T, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, fitFull, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { kitOf, TrackOverlay } from "@/components/analysis/TrackOverlay";
 
 type View = "all" | "people" | "ball" | "none";
@@ -55,6 +56,9 @@ const glyph = (x: number, size: number, color = "#fff"): CSSProperties => ({
 
 /** `onPick`: opens the video chooser (used by the transport while no video is chosen) */
 export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null; onPick: () => void }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.processing;
+  const up = dict.body.upload;
   const [view, setView] = useState<View>("all");
   const [team, setTeam] = useState("all");
   const [overlay, setOverlay] = useState<Overlay>("ids");
@@ -79,9 +83,9 @@ export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null
     const open: [string, string][] = [];
     for (const g of kits?.groups ?? []) {
       if (g.assignment?.club_id) {
-        const c = byClub.get(g.assignment.club_id) ?? { name: g.assignment.club_name ?? "Team", groups: [] };
+        const c = byClub.get(g.assignment.club_id) ?? { name: g.assignment.club_name ?? d.teamFallback, groups: [] };
         c.groups.push(g.kit_group); byClub.set(g.assignment.club_id, c);
-      } else if (!g.assignment) open.push([String(g.kit_group), `Kit group ${g.kit_group} (not assigned)`]);
+      } else if (!g.assignment) open.push([String(g.kit_group), d.kitGroupNotAssigned.replace("{n}", String(g.kit_group))]);
     }
     return [...[...byClub.values()].map((c) => [c.groups.join(","), c.name] as [string, string]), ...open];
   }, [kits]);
@@ -108,27 +112,27 @@ export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null
     const r = e.currentTarget.getBoundingClientRect();
     ws.seek(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * durationUs);
   };
-  const message = !ws ? "No video loaded — detections appear here during processing"
-    : !playback ? "Loading the video…"
-    : !url ? `No playback yet: ${playback.reason ?? "the playback copy is being prepared"}`
+  const message = !ws ? d.noVideoLoaded
+    : !playback ? d.loadingVideo
+    : !url ? d.noPlaybackYet.replace("{reason}", playback.reason ?? d.playbackCopyPreparing)
     : null;
-  const note = ws && url && !ws.run ? "No finished analysis yet — boxes appear when the run completes" : null;
+  const note = ws && url && !ws.run ? d.noFinishedAnalysis : null;
 
   return (
-    <section aria-label="Main frame-level detection preview" data-section="p03-s03" data-boxes={String(shown.length)}>
+    <section aria-label={d.processingPreview} data-section="p03-s03" data-boxes={String(shown.length)}>
       <B x={43} y={545} w={1137} h={663} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
       <B x={58} y={565} w={7} h={50} style={{ background: "#1e90ff", borderRadius: u(3) }} />
-      <T x={75} y={576} size={25} weight={700} as="h2">Processing Preview</T>
-      <T x={75} y={607} size={20} color="#4db3ff">Live AI Analysis Output</T>
-      <Select x={512} w={195} label="View" value={view} onChange={setView}
-        options={[["all", "AI Detections"], ["people", "People only"], ["ball", "Ball only"], ["none", "Video only"]]} />
-      <Select x={744} w={187} label="Teams" value={team} onChange={setTeam}
-        options={[["all", "All Teams"], ...(teamOptions.length ? teamOptions
-          : [["none", "Teams", !ws ? "choose a video first" : !ws.run ? "no finished analysis yet" : "assign teams on the Analysis page"] as [string, string, string]])]} />
-      <Select x={958} w={195} label="Overlays" value={overlay} onChange={setOverlay}
-        options={[["ids", "Boxes + IDs"], ["boxes", "Boxes only"]]} />
+      <T x={75} y={576} size={25} weight={700} as="h2">{d.processingPreview}</T>
+      <T x={75} y={607} size={20} color="#4db3ff">{d.liveAiOutput}</T>
+      <Select x={512} w={195} label={d.viewLabel} value={view} onChange={setView}
+        options={[["all", d.viewAll], ["people", d.viewPeople], ["ball", d.viewBall], ["none", d.viewVideo]]} />
+      <Select x={744} w={187} label={d.teamsLabel} value={team} onChange={setTeam}
+        options={[["all", d.teamsAll], ...(teamOptions.length ? teamOptions
+          : [["none", d.teamsLabel, !ws ? d.teamsChooseVideo : !ws.run ? d.teamsNoAnalysis : d.teamsAssign] as [string, string, string]])]} />
+      <Select x={958} w={195} label={d.overlaysLabel} value={overlay} onChange={setOverlay}
+        options={[["ids", d.overlaysIds], ["boxes", d.overlaysBoxes]]} />
 
-      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label="Match video player" className="absolute" style={frameStyle(fs.on, { left: u(FRAME.x), top: u(FRAME.y - 101), width: u(FRAME.w), height: u(FRAME.h), overflow: "hidden",
+      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={d.matchVideoPlayer} className="absolute" style={frameStyle(fs.on, { left: u(FRAME.x), top: u(FRAME.y - 101), width: u(FRAME.w), height: u(FRAME.h), overflow: "hidden",
         background: url ? "#000" : "linear-gradient(180deg,#0a2a55 0,#10305c 22%,#1d5a2e 30%,#256b34 100%)" })}>
         {!url && (
           <>
@@ -145,7 +149,7 @@ export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null
         )}
         {url && ws && (
           <div className="absolute" style={fs.on ? fitFull(W, H) : { left: `calc(50% - ${u(fit.w / 2)})`, top: `calc(50% - ${u(fit.h / 2)})`, width: u(fit.w), height: u(fit.h) }}>
-            <video ref={ws.videoRef} src={url} preload="metadata" playsInline muted={muted} aria-label="Match video"
+            <video ref={ws.videoRef} src={url} preload="metadata" playsInline muted={muted} aria-label={d.matchVideo}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
             <TrackOverlay visible={shown} tracks={tracks} W={W} H={H} labels={overlay === "ids"} selectedId={ws.selectedId} />
           </div>
@@ -159,12 +163,12 @@ export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null
 
       {/* transport */}
       <B x={45} y={1145} w={1134} h={63} style={{ background: "#07142a" }} />
-      <button type="button" aria-label={url ? "Back one analysed frame" : "Choose a video"} onClick={url ? () => step(-1) : onPick} style={glyph(78, 24)}>⏮</button>
-      <button type="button" aria-label={!url ? "Choose a video to play" : ws?.playing ? "Pause" : "Play"} onClick={url ? toggle : onPick} style={glyph(133, 28)}>{ws?.playing ? "⏸" : "▶"}</button>
-      <button type="button" aria-label={url ? "Forward one analysed frame" : "Choose a video"} onClick={url ? () => step(1) : onPick} style={glyph(189, 22, "#8ea3bf")}>⏭</button>
+      <button type="button" aria-label={url ? d.backFrame : d.chooseVideoGeneric} onClick={url ? () => step(-1) : onPick} style={glyph(78, 24)}>⏮</button>
+      <button type="button" aria-label={!url ? d.chooseVideoPlay : ws?.playing ? up.pause : d.playBtn} onClick={url ? toggle : onPick} style={glyph(133, 28)}>{ws?.playing ? "⏸" : "▶"}</button>
+      <button type="button" aria-label={url ? d.forwardFrame : d.chooseVideoGeneric} onClick={url ? () => step(1) : onPick} style={glyph(189, 22, "#8ea3bf")}>⏭</button>
       <T x={228} y={1177} size={19}>{url ? `${clock(t)} / ${clock(durationUs)}` : "— / —"}</T>
-      <div role="slider" aria-label="Position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} tabIndex={0}
-        onClick={url ? scrub : onPick} title={url ? undefined : "Choose a video"} onKeyDown={(e) => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); }}
+      <div role="slider" aria-label={d.position} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} tabIndex={0}
+        onClick={url ? scrub : onPick} title={url ? undefined : d.chooseVideoGeneric} onKeyDown={(e) => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); }}
         className="absolute" style={{ left: u(358), top: u(1160 - 101), width: u(472), height: u(33), cursor: "pointer" }}>
         <B o={[358, 1160]} x={358} y={1173} w={472} h={7} style={{ background: "#17304f", borderRadius: u(4) }}>
           <i style={{ display: "block", height: "100%", width: `${progress * 100}%`, borderRadius: u(4), background: "#1a8cff" }} />
@@ -174,15 +178,15 @@ export function PreviewPanel({ ws, onPick }: { ws: AnalysisWorkspaceState | null
       <div className="absolute" style={{ left: u(855), top: u(1158 - 101), width: u(102), height: u(38), border: `${u(1.5)} solid #17355f`, borderRadius: u(6),
         background: "#0a1d38", color: "#dbe8f8", fontSize: u(18), display: "flex", alignItems: "center", padding: `0 ${u(12)}`, boxSizing: "border-box" }}>
         <span>{speed}x</span><span style={{ marginLeft: "auto" }}>⌄</span>
-        <select aria-label="Playback speed" value={speed} onChange={(e) => setSpeed(e.target.value)}
+        <select aria-label={d.playbackSpeed} value={speed} onChange={(e) => setSpeed(e.target.value)}
           style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
           {["0.25", "0.5", "1", "1.5", "2"].map((s) => <option key={s} value={s}>{s}x</option>)}
         </select>
       </div>
-      <button type="button" aria-label={muted ? "Unmute" : "Mute"} aria-pressed={!muted} onClick={() => setMuted((m) => !m)} style={glyph(990, 24)}>{muted ? "🔇" : "🔊"}</button>
-      <button type="button" aria-label={overlay === "ids" ? "Hide track labels" : "Show track labels"}
+      <button type="button" aria-label={muted ? d.unmute : d.mute} aria-pressed={!muted} onClick={() => setMuted((m) => !m)} style={glyph(990, 24)}>{muted ? "🔇" : "🔊"}</button>
+      <button type="button" aria-label={overlay === "ids" ? d.hideLabels : d.showLabels}
         onClick={() => setOverlay((o) => (o === "ids" ? "boxes" : "ids"))} style={glyph(1056, 26)}>⚙</button>
-      <button type="button" aria-label="Full screen" onClick={url ? fs.toggle : onPick} style={glyph(1124, 26)}>⛶</button>
+      <button type="button" aria-label={d.fullScreen} onClick={url ? fs.toggle : onPick} style={glyph(1124, 26)}>⛶</button>
     </section>
   );
 }

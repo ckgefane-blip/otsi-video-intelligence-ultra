@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { SOURCE_MODES, sourceMode, type SourceMode } from "@/components/page/SourceModeTabs";
 import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 import { IN } from "./page02";
 
 /** tab x origin, width, icon x, icon key, label x */
@@ -33,33 +34,38 @@ export function useSourceMode(): [SourceMode, (m: SourceMode) => void] {
 }
 
 export function UploadHeaderSection() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
+  // SourceModeTabs (components/page) is outside this scope: its English labels/notes are re-mapped here.
+  const LABEL: Record<SourceMode, string> = { file: d.sourceFile, url: "YouTube / URL", batch: d.sourceBatch };
+  const NOTE: Record<SourceMode, string> = { file: d.sourceFileNote, url: d.sourceUrlNote, batch: d.sourceBatchNote };
   const [mode, setMode] = useSourceMode();
   const [help, setHelp] = useState(false);
   return (
-    <section aria-label="Upload page header and source-mode tabs" data-section="p02-s01" data-mode={mode}>
+    <section aria-label={d.uploadHeaderAria} data-section="p02-s01" data-mode={mode}>
       <B x={442} y={128} w={50} h={50} style={{ border: `${u(2)} solid #33a8ff`, borderRadius: u(10) }} />
       <Ic x={468} y={153} k="hl" size={30} color="#33a8ff" />
-      <T x={513} y={150} size={46} weight={700} as="h1">Upload &amp; Ingest</T>
-      <T x={513} y={198} size={24} color="#cfe0f5">Bring your football footage into OTSI VIE. We automatically detect, track and analyse your video.</T>
+      <T x={513} y={150} size={46} weight={700} as="h1">{d.uploadIngest}</T>
+      <T x={513} y={198} size={24} color="#cfe0f5">{d.uploadSubtitle}</T>
       <button type="button" onClick={() => setHelp(true)} className={`${s.a} ${s.framed}`}
         style={{ left: u(1691), top: u(135 - 101), width: u(200), height: u(65), padding: 0, border: 0, color: "inherit", font: "inherit", cursor: "pointer", ...IN }}>
         <Ic o={[1691, 135]} x={1730} y={168} k="help" size={34} color="#cfe0f5" />
-        <T o={[1691, 135]} x={1760} y={168} size={22} color="#e3eefb" as="span">Need help?</T>
+        <T o={[1691, 135]} x={1760} y={168} size={22} color="#e3eefb" as="span">{d.needHelp}</T>
       </button>
 
       <B x={438} y={238} w={1453} h={73} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
       <B x={TAB[mode][0]} y={238} w={TAB[mode][1]} h={73} style={{ background: "linear-gradient(#0a2b55,#083a70)", borderBottom: `${u(4)} solid #1e90ff`,
         borderRadius: mode === "file" ? `${u(10)} 0 0 0` : mode === "batch" ? `0 ${u(10)} 0 0` : 0 }} />
       <B x={1409} y={255} w={1.5} h={40} style={{ background: "#12335f" }} />
-      <div role="tablist" aria-label="Source">
-        {SOURCE_MODES.map(({ mode: m, label }) => {
+      <div role="tablist" aria-label={d.source}>
+        {SOURCE_MODES.map(({ mode: m }) => {
           const [x, w, ix, icon, tx] = TAB[m], on = mode === m;
           return (
             <button key={m} type="button" role="tab" aria-selected={on} onClick={() => setMode(m)} className="absolute"
               style={{ left: u(x), top: u(238 - 101), width: u(w), height: u(73), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
               <Ic o={[x, 238]} x={ix} y={m === "file" ? 274 : 275} k={icon} size={m === "file" ? 44 : 40} color={on ? "#33a8ff" : m === "batch" ? "#cfe0f5" : "#33a8ff"}
                 {...(m === "file" && on ? { fill: "#33a8ff" } : {})} />
-              <T o={[x, 238]} x={tx} y={275} size={on ? 27 : 26} weight={on ? 600 : 400} color={on ? "#33a8ff" : "#e3eefb"} as="span">{label}</T>
+              <T o={[x, 238]} x={tx} y={275} size={on ? 27 : 26} weight={on ? 600 : 400} color={on ? "#33a8ff" : "#e3eefb"} as="span">{LABEL[m]}</T>
             </button>
           );
         })}
@@ -69,18 +75,18 @@ export function UploadHeaderSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">Bringing footage in</Dialog.Title>
-            <Dialog.Description className="mb-3 text-xs text-muted">What each source does, as the server runs it.</Dialog.Description>
+            <Dialog.Title className="text-base font-semibold">{d.bringingFootageIn}</Dialog.Title>
+            <Dialog.Description className="mb-3 text-xs text-muted">{d.whatEachSourceDoes}</Dialog.Description>
             <ul className="mb-3 space-y-2">
-              {SOURCE_MODES.map((m) => <li key={m.mode}><span className="font-semibold">{m.label}:</span> <span className="text-muted">{m.note}</span></li>)}
+              {SOURCE_MODES.map((m) => <li key={m.mode}><span className="font-semibold">{LABEL[m.mode]}:</span> <span className="text-muted">{NOTE[m.mode]}</span></li>)}
             </ul>
-            <p className="mb-1 font-semibold">Links that can be imported</p>
-            <ul className="space-y-1 text-xs" aria-label="Link support in help">
+            <p className="mb-1 font-semibold">{d.linksCanBeImported}</p>
+            <ul className="space-y-1 text-xs" aria-label={d.linkSupportHelp}>
               {IMPORT_PROVIDERS.map((p) => (
-                <li key={p.id}><span className="font-medium">{p.name}</span>: <span className="text-muted">{p.status === "supported" ? "works" : p.status === "needs_authorization" ? "with your own access token" : `not possible — ${p.alternative}`}</span></li>
+                <li key={p.id}><span className="font-medium">{p.name}</span>: <span className="text-muted">{p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerNeedsToken : d.providerNotPossible.replace("{alternative}", p.alternative ?? "")}</span></li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-muted">Every file is checksummed while it uploads, then verified, probed and test-decoded before anything uses it.</p>
+            <p className="mt-3 text-xs text-muted">{d.everyFileChecksummed}</p>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

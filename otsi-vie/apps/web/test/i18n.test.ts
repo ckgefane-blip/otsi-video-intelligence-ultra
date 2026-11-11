@@ -91,7 +91,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
   const bodyKeys = (group: string) =>
     leaves(en as unknown as Record<string, unknown>).map(([p]) => p).filter((p) => p.startsWith(`body.${group}.`));
 
-  it("covers the eight in-scope pages, with the expected key counts", () => {
+  it("covers the ten in-scope page groups, with the expected key counts", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     expect(bodyKeys("home").length).toBe(43);
     expect(bodyKeys("analysis").length).toBe(13);
@@ -101,6 +101,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("library").length).toBe(25);
     expect(bodyKeys("exports").length).toBe(23);
     expect(bodyKeys("players").length).toBe(44);
+    expect(bodyKeys("upload").length).toBe(435);
+    expect(bodyKeys("processing").length).toBe(255);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {
@@ -118,6 +120,13 @@ describe("page bodies (ADR-139 follow-up)", () => {
     const fr = getDictionary("fr").body;
     expect(fr.reports.choosePlayer).toBe("Choisissez un joueur");
     expect(fr.library.newProject).toBe("Nouveau projet");
+    expect(fr.upload.supportedFormats).toBe("Formats pris en charge");
+    const ruUp = getDictionary("ru").body.upload;
+    expect(ruUp.recentUploads).toBe("Недавние загрузки");
+    expect(ruUp.dragDropMatch).toBe("Перетащите сюда видео матча");
+    expect(getDictionary("ru").body.processing.jobs).toBe("Задания");
+    expect(getDictionary("es").body.upload.createProject).toBe("Crear proyecto");
+    expect(getDictionary("de").body.processing.jobs).toBe("Aufträge");
   });
 
   it("a body key missing from a partial still falls back to English", () => {

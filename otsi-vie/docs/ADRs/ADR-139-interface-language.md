@@ -218,3 +218,93 @@ Line endings preserved on every edited file (all 22 CRLF files still CRLF). Not 
 translated page in a running browser (no running engine here) — visual confirmation on the owner's host is the
 honest last step, as with every UI pass. The four translations were written by the author, not checked by a native
 speaker; a native-speaker review is still follow-up.
+
+## Follow-up done 2026-11-11: Upload + AI Processing bodies — Group A (Muse, `muse/ultra-main`)
+
+Every visible string on the Upload page (page 02) and the AI Processing page (page 03) was audited
+file by file, word by word, and wired to the dictionary. Two new `body` subsections:
+`body.upload` (435 leaves) and `body.processing` (255 leaves) — 690 new leaves, each with a real
+RU/ES/DE/FR hand translation in `otsi-vie/apps/web/src/lib/i18n/dictionaries.ts` (interface +
+`en` + four partials + `mergeDictionary` lines). The four in-scope pages
+(`(app)/upload`, `(app)/processing`, `videos/[videoId]/analyze`, `videos/[videoId]/processing`)
+contain no body strings at all — only `metadata` titles (`"Upload & Ingest"`, `"AI Processing"`,
+`"Analysis Workspace"`), which stay English: they are browser-tab text and the locale lives
+client-side in localStorage.
+
+Files wired (distinct capital-letter English literals removed from each file by the diff;
+some literals occur in several files, so the per-file sum exceeds the 324 unique literals removed
+overall — see the before/after count below):
+
+- **Upload:** `DropZoneSection` 26, `IngestConfigPanel` 25, `MatchContextSection` 15,
+  `PipelinePreviewSection` 50, `ProfileCard` 23, `RecentUploadsSection` 45, `RightsDialog` 21,
+  `SelectedPreviewSection` 24, `SupportedFormatsSection` 3, `UploadHeaderSection` 3,
+  `UploadWorkspace` 34 (incl. the provider's error strings and a localised twin of
+  `videoStatusLabel`, `videoStatusText(v, d)`), `UrlInputSection` 12, `page02` 6. `layout.ts`
+  has no UI strings.
+- **Processing:** `DetectionTiles` 40, `JobCard` 10, `JobTable` 33, `LogPanel` 50,
+  `PipelineStages` 4, `PreviewPanel` 32, `RunDialog` 9, `TimelineSummary` 15, `VideoPicker` 3,
+  `model.ts` 36 (English defaults kept for the unit tests: `stageView`/`runLabel`/`ribbon`
+  return the exact English strings when called with no dictionary).
+- `PipelineStages.tsx` and `TimelineSummary.tsx` gained `"use client"` (safe: their imports are
+  already client components); `ProcessingStage` passes the dict into `ribbon()`.
+
+Bugs found and fixed while wiring (not just translation):
+
+- The previous session's wiring aliased the upload dictionary as `u` in `JobCard`, `JobTable`,
+  `PreviewPanel` and `DetectionTiles`, shadowing DesignStage's pixel function `u()` — every
+  `u(…)` layout call in those files failed typecheck. Renamed the alias to `up`; the upload
+  dict is now `up` in those four files.
+- `JobCard` read `d.noVideoSelected` from the *processing* dictionary, which has no such key;
+  it now reads `up.noVideoSelected` from the upload dictionary.
+- `RecentUploadsSection` coloured a bar blue by comparing its label to the English string
+  `"Analysis"` — wrong in every other locale, since the label is now translated. It compares
+  against `d.analysisWord` instead.
+- `.replace()` calls passed possibly-null/undefined contract fields (`provider.reason`,
+  `provider.alternative`, `assessment.failure_code`); they now fall back to `""`.
+- Dead English labels removed: `JobTable`'s `FILTERS` and `LogPanel`'s `LOG_STEPS` carried
+  English label strings that were never rendered (only the keys were used); both are now plain
+  key arrays.
+- Four duplicate dictionary keys found and removed (the original inventory already had them):
+  `theVideo` and `viewVideosNoImport` (upload), `dragDropMatch` (upload) and `followBallEvents`
+  (processing). The kept copies are the originals, which were already the effective values.
+
+Deliberately left untranslated (residual English on these pages, and why):
+
+- **Metadata titles** (see above) and **format/codec names** (MP4, H.264/H.265, VP9, …).
+- **Server-provided text:** stage messages, failure details, issue text, `takes.blocked`,
+  job kind/stage/error labels, `playback.reason`, club/league/player names, OTSI PINs.
+- **Contract data:** `PROFILES[k].label`/`.summary` (ProfileCard, JobCard, RunDialog),
+  `IMPORT_PROVIDERS` name/method/reason/alternative (only the sentence frames around them are
+  translated); `"YouTube / URL"` tab label stays (product name).
+- **Dev-mode strings** from `src/lib/devMode.ts`: the Indexing stage status and the
+  `PipelineStrip` "not built yet (Block 07/08)" note.
+- **Shared lib helpers** (outside this scope): `JobTable` duration values ("3 s" / "5 min" /
+  "1.5 h") from `src/lib/jobs.ts`; `videoStatusLabel`/`duration()`/`ago()` from `src/lib/format.ts`
+  (the upload components now use the localised `videoStatusText` instead).
+- **Components outside Group A** that these pages open: `MediaInfoDialog`, `FullscreenBar`,
+  `MatchLinker`, `SourceModeTabs` (its labels/notes are re-mapped to dict keys in
+  `UploadHeaderSection`), `TrackOverlay`. The per-video pages (`videos/[videoId]/analyze`,
+  `videos/[videoId]/processing`) render `AnalysisWorkspace` / `ProcessingView` components,
+  which are outside Group A and stay English.
+- **English fallbacks in pure helpers:** `model.ts`, `LogPanel`'s `stepName`/`lines`,
+  `PipelinePreviewSection`'s `stepStage`, `ProfileCard`'s `PROFILE_CHOICES` /
+  `profileLabel`/`duration`/`estimateText`, `RightsDialog`'s `rightsSummary`/`questions`/
+  `minors` keep their English defaults when called with no dictionary — the unit tests assert
+  those defaults, and the running app always passes the dictionary. `data-stage` keys
+  (`"Upload"`, `"Verify & inspect"`, `"Detection & tracking"`, `"Identity"`, `"Indexing"`,
+  `"Uploading"`) stay English: they are test hooks, not rendered text.
+
+Verification (2026-11-11): web typecheck clean apart from the 1 pre-existing
+`test/formationsPanel.test.tsx` `assigned_by` error; full web vitest 78 files / 378 tests, all
+passing; `next build` succeeds 27/27 pages. Tests extended: `test/i18n.test.ts` now asserts the
+upload (435) and processing (255) key counts plus upload/processing spot checks in all four
+translations; `test/i18nBody.test.tsx`'s Probe now renders `t.body.upload.recentUploads` and
+`t.body.processing.jobs`. Before/after hardcoded-string count (distinct double-quoted literals
+starting with a capital letter across the in-scope files): 476 before, 153 after — 324 unique
+literals removed; the 153 that remain are the categories above (codes, proper nouns, format
+names, comments, data-stage keys, English fallback defaults). Line endings preserved on every
+edited file. Not verified: a click-through of a translated page in a running browser (no running
+engine here) — visual confirmation on the owner's host is the honest last step, as with every UI
+pass. The four translations were written by the author, not checked by a native speaker; a
+native-speaker review is still follow-up. Only **Tactical Intelligence** bodies remain of the
+original page-bodies gap.

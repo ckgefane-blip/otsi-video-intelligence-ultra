@@ -16,7 +16,8 @@ function Probe() {
   return (
     <p>
       {t.body.home.viewAll} | {t.body.reels.saveProject} | {t.body.players.position} |{" "}
-      {t.body.reports.notMeasured} | {t.body.exports.downloadAll}
+      {t.body.reports.notMeasured} | {t.body.exports.downloadAll} | {t.body.upload.recentUploads} |{" "}
+      {t.body.processing.jobs}
     </p>
   );
 }
@@ -29,7 +30,7 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
         <Probe />
       </LocaleProvider>,
     );
-    expect(screen.getByText("Смотреть все | Сохранить проект | Позиция | Не измерено | Скачать всё")).toBeDefined();
+    expect(screen.getByText("Смотреть все | Сохранить проект | Позиция | Не измерено | Скачать всё | Недавние загрузки | Задания")).toBeDefined();
   });
 
   it("a component reads body strings from the stored locale (Spanish)", () => {
@@ -39,7 +40,7 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
         <Probe />
       </LocaleProvider>,
     );
-    expect(screen.getByText("Ver todo | Guardar proyecto | Posición | No medido | Descargar todo")).toBeDefined();
+    expect(screen.getByText("Ver todo | Guardar proyecto | Posición | No medido | Descargar todo | Subidas recientes | Trabajos")).toBeDefined();
   });
 
   it("with no stored locale a component reads the English body strings", () => {
@@ -49,7 +50,7 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
         <Probe />
       </LocaleProvider>,
     );
-    expect(screen.getByText("View All | Save Project | Position | Not measured | Download All")).toBeDefined();
+    expect(screen.getByText("View All | Save Project | Position | Not measured | Download All | Recent Uploads | Jobs")).toBeDefined();
   });
 
   it("a wired page section shows its translated heading (Russian)", () => {

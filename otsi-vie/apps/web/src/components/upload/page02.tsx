@@ -17,8 +17,12 @@ import { useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale, type Locale } from "@/lib/i18n";
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type UploadPrefs } from "@/lib/uploadPrefs";
 import { useUpload } from "./UploadWorkspace";
+
+/** BCP 47 tag for a locale, for the dates and numbers shown beside translated words. */
+export const DATE_TAG: Record<Locale, string> = { en: "en-GB", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR" };
 
 /* ------------------------------------------------------------------ preferences */
 export type { UploadPrefs };
@@ -45,6 +49,8 @@ export function usePage02(): Page02 {
 }
 
 export function Page02Controller({ children }: { children: ReactNode }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const up = useUpload();
   const [prefs, setPrefsState] = useState<UploadPrefs>(DEFAULT_PREFS);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
@@ -81,15 +87,15 @@ export function Page02Controller({ children }: { children: ReactNode }) {
     try {
       await api(`/v1/videos/${videoId}/match`, { method: "POST", json: { match_id: mId } });
       await up.reloadVideos();
-      say("Linked to the match");
-    } catch (x) { say(x instanceof ApiProblem ? x.message : "The video could not be linked to the match", true); }
-  }, [up, say]);
+      say(d.linkedToMatch);
+    } catch (x) { say(x instanceof ApiProblem ? x.message : d.couldNotLinkMatch, true); }
+  }, [up, say, d]);
 
   const chooseMatch = (id: string | null) => {
     setMatchId(id);
     if (!id) return;
     if (up.selected) void link(up.selected.id, id);
-    else say("This match will be linked to your next upload");
+    else say(d.matchLinkedNextUpload);
   };
 
   // the selected video's analysis runs, followed every 2 s while one is queued or running
@@ -124,9 +130,9 @@ export function Page02Controller({ children }: { children: ReactNode }) {
     const v = up.selected, a = v?.ingest_options?.analysis;
     if (!v || !a || told.current.has(v.id)) return;
     told.current.add(v.id);
-    if (a.outcome === "STARTED") { say(`Analysis started by the server for ${v.title ?? v.original_filename ?? "this video"}`); void loadRuns(); }
-    else say(a.detail ?? "The automatic analysis was not started");
-  }, [up.selected, say, loadRuns]);
+    if (a.outcome === "STARTED") { say(d.analysisStartedServer.replace("{name}", v.title ?? v.original_filename ?? d.thisVideo)); void loadRuns(); }
+    else say(a.detail ?? d.autoAnalysisNotStarted);
+  }, [up.selected, say, loadRuns, d]);
 
   // ?video= (a three-dots menu's "Set score and match details") chooses that video once; otherwise the pipeline and the controls
   // follow the video that is busy: with nothing chosen, choose the one that is moving (else the newest)
@@ -183,11 +189,13 @@ export function ToggleRow({ x = 22, y, icon, label, on, kind, why, onToggle, say
   x?: number; y: number; icon: string; label: string; on: boolean; kind: "live" | "always" | "not-built"; why: string;
   onToggle?: () => void; say: (t: string) => void;
 }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const shownOn = kind === "always" ? true : on;
   const click = () => {
     if (kind === "always" || !onToggle) return say(`${label}: ${why}`);
     onToggle();
-    say(`${label} ${on ? "off" : "on"}: ${why}`);
+    say(`${label} ${on ? d.toggleOff : d.toggleOn}: ${why}`);
   };
   return (
     <button type="button" role="switch" aria-checked={shownOn} aria-disabled={kind === "always" || undefined} title={why} aria-label={`${label}: ${why}`}
@@ -195,7 +203,7 @@ export function ToggleRow({ x = 22, y, icon, label, on, kind, why, onToggle, say
       style={{ left: u(x), top: u(y - 20 - 101), width: u(383), height: u(40), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
       <Ic o={[x, y - 20]} x={61} y={y} k={icon} size={28} color="#cfe0f5" />
       <T o={[x, y - 20]} x={97} y={kind === "not-built" && on ? y - 5 : y} size={20} color="#d6e4f7" as="span">{label}</T>
-      {kind === "not-built" && on && <T o={[x, y - 20]} x={97} y={y + 14} size={13} color="#ffc66d" as="span">saved · not performed yet</T>}
+      {kind === "not-built" && on && <T o={[x, y - 20]} x={97} y={y + 14} size={13} color="#ffc66d" as="span">{d.savedNotPerformed}</T>}
       <B o={[x, y - 20]} x={337} y={y - 14} w={48} h={28} style={{ background: shownOn ? "#0481f9" : "#26364d", borderRadius: u(14), opacity: kind === "always" ? 0.7 : 1 }} />
       <B o={[x, y - 20]} x={337 + (shownOn ? 23 : 3)} y={y - 11} w={22} h={22} style={{ background: "#fff", borderRadius: "50%" }} />
       {kind === "always" && <Ic o={[x, y - 20]} x={326} y={y} k="chk" size={14} color="#3ee6a8" />}
@@ -214,14 +222,16 @@ export function mmss(us: number | null | undefined): string {
 
 /** the page's one status line (under the title): what just happened, or why a control could not act */
 export function StatusLine() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { note, undo, offerUndo, say } = usePage02();
   const up = useUpload();
   const restore = () => {
     if (!undo) return;
     const v = undo; offerUndo(null);
     void api(`/v1/library/video/${v.id}/restore`, { method: "POST" }).then(
-      async () => { await up.reloadVideos(); up.select(v.id); say(`Restored ${v.title}`); },
-      (x) => say(x instanceof ApiProblem ? x.message : "It could not be restored", true));
+      async () => { await up.reloadVideos(); up.select(v.id); say(d.restored.replace("{title}", v.title)); },
+      (x) => say(x instanceof ApiProblem ? x.message : d.couldNotRestore, true));
   };
   return (
     <>
@@ -231,9 +241,9 @@ export function StatusLine() {
         </T>
       ) : null}
       {undo ? (
-        <button type="button" onClick={restore} aria-label={`Undo: restore ${undo.title}`} className="absolute"
+        <button type="button" onClick={restore} aria-label={d.undoRestoreAria.replace("{title}", undo.title)} className="absolute"
           style={{ left: u(1530), top: u(224 - 101 - 14), height: u(28), padding: `0 ${u(14)}`, borderRadius: u(14), border: `${u(1.5)} solid #1e90ff`, background: "#04264a", color: "#cfe8ff",
-            fontSize: u(16), fontFamily: "inherit", cursor: "pointer", zIndex: 6 }}>Undo remove</button>
+            fontSize: u(16), fontFamily: "inherit", cursor: "pointer", zIndex: 6 }}>{d.undoRemove}</button>
       ) : null}
     </>
   );

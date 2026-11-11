@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import type { ProcessingState } from "@/components/analysis/ProcessingView";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { apiBlob, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { isActive, PILL, runLabel, runProgress, pct } from "./model";
 
 const plain = { position: "absolute" as const, padding: 0, border: 0, background: "transparent", font: "inherit", cursor: "pointer", textAlign: "left" as const };
@@ -29,21 +30,24 @@ function Thumb({ videoId, has }: { videoId: string | null; has: boolean }) {
 }
 
 export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | null; hasVideos: boolean | null; onPick: () => void; onRun: () => void }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.processing;
+  const up = dict.body.upload;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const video = p?.video ?? null, run = p?.run ?? null;
-  const status = runLabel(run);
+  const status = runLabel(run, d);
   const pillTone = run?.status === "SUCCEEDED" ? PILL.DONE : run?.status === "FAILED" ? PILL.FAILED
     : run && !isActive(run) ? PILL.WAITING : { background: "#1580ff", color: "#fff" };
   const progress = runProgress(run);
 
-  const line1 = p?.error ? p.error : !video ? "No processing job" : !run ? "Not analysed yet"
-    : `Analysis · ${run.config.profile ? PROFILES[run.config.profile].label : "custom"} · ${run.config.sample_fps} fps`;
-  const title = video ? (video.title ?? video.original_filename ?? "Untitled video") : p ? "Loading…" : "No video selected";
+  const line1 = p?.error ? p.error : !video ? d.noJob : !run ? d.notAnalysedYet
+    : d.analysisLine.replace("{profile}", run.config.profile ? PROFILES[run.config.profile].label : "custom").replace("{fps}", String(run.config.sample_fps));
+  const title = video ? (video.title ?? video.original_filename ?? up.untitledVideo) : p ? dict.common.loading : up.noVideoSelected;
 
   const cancel = () => {
     setBusy(true); setMsg(null);
-    void p!.cancel().catch((x) => setMsg(x instanceof ApiProblem ? x.message : "Could not cancel.")).finally(() => setBusy(false));
+    void p!.cancel().catch((x) => setMsg(x instanceof ApiProblem ? x.message : d.couldNotCancel)).finally(() => setBusy(false));
   };
 
   /** the blue action line */
@@ -51,39 +55,39 @@ export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | 
   const link = { left: u(1635), top: u(231 - 101 - 14), height: u(28), fontSize: u(20), color: "#4db3ff", whiteSpace: "nowrap" as const };
   if (!p) {
     action = hasVideos
-      ? <button type="button" onClick={onPick} style={{ ...plain, ...link }} data-action="choose">Choose a video to process</button>
-      : <Link href="/upload" className="absolute" style={{ ...link, textDecoration: "none" }} data-action="upload">Upload a video to begin</Link>;
+      ? <button type="button" onClick={onPick} style={{ ...plain, ...link }} data-action="choose">{d.chooseVideoProcess}</button>
+      : <Link href="/upload" className="absolute" style={{ ...link, textDecoration: "none" }} data-action="upload">{d.uploadToBegin}</Link>;
   } else if (!video) {
     action = null;
   } else if (video.state !== "INGESTED") {
-    action = <T x={1635} y={231} size={20} color="#b9cbe3">Not verified yet ({video.state.toLowerCase()})</T>;
+    action = <T x={1635} y={231} size={20} color="#b9cbe3">{d.notVerifiedYet.replace("{state}", video.state.toLowerCase())}</T>;
   } else if (isActive(run)) {
     action = p.canRun
-      ? <button type="button" disabled={busy} onClick={cancel} style={{ ...plain, ...link }} data-action="cancel">Cancel analysis</button>
-      : <T x={1635} y={231} size={20} color="#b9cbe3">Analysis in progress</T>;
+      ? <button type="button" disabled={busy} onClick={cancel} style={{ ...plain, ...link }} data-action="cancel">{up.cancelAnalysis}</button>
+      : <T x={1635} y={231} size={20} color="#b9cbe3">{d.analysisInProgress}</T>;
   } else if (run?.status === "SUCCEEDED") {
     action = (
       <span className="absolute" style={{ ...link, display: "flex", gap: u(14) }}>
-        <Link href={`/videos/${video.id}/analyze`} style={{ color: "#4db3ff", textDecoration: "none" }} data-action="open">Open Analysis Workspace →</Link>
-        {p.canRun && <button type="button" onClick={onRun} style={{ ...plain, position: "static", color: "#4db3ff", fontSize: "inherit" }} data-action="rerun">Re-run</button>}
+        <Link href={`/videos/${video.id}/analyze`} style={{ color: "#4db3ff", textDecoration: "none" }} data-action="open">{d.openWorkspace}</Link>
+        {p.canRun && <button type="button" onClick={onRun} style={{ ...plain, position: "static", color: "#4db3ff", fontSize: "inherit" }} data-action="rerun">{d.rerun}</button>}
       </span>
     );
   } else {
     action = p.canRun
-      ? <button type="button" onClick={onRun} style={{ ...plain, ...link }} data-action="start">{run ? "Analyse again →" : "Start analysis →"}</button>
-      : <T x={1635} y={231} size={20} color="#b9cbe3">Your role can view analyses only</T>;
+      ? <button type="button" onClick={onRun} style={{ ...plain, ...link }} data-action="start">{run ? d.analyseAgain : d.startAnalysis}</button>
+      : <T x={1635} y={231} size={20} color="#b9cbe3">{d.viewAnalysesOnly}</T>;
   }
 
   return (
-    <section aria-label="Run headline and selected media summary" data-section="p03-s01" data-run-status={run?.status ?? "NONE"}>
-      <T x={44} y={138} size={18} weight={600} ls={4.5} color="#2d9bff">FROM RAW VIDEO TO ACTIONABLE INSIGHTS</T>
-      <T x={44} y={192} size={72} weight={700} ls={-0.5} as="h1">AI Processing Pipeline</T>
-      <T x={44} y={249} size={25} color="#cdd9ec">Our AI automatically detects, tracks, and analyzes every moment of the match, turning video into structured data and insights.</T>
+    <section aria-label={d.jobCardAria} data-section="p03-s01" data-run-status={run?.status ?? "NONE"}>
+      <T x={44} y={138} size={18} weight={600} ls={4.5} color="#2d9bff">{d.heroEyebrow}</T>
+      <T x={44} y={192} size={72} weight={700} ls={-0.5} as="h1">{d.heroTitle}</T>
+      <T x={44} y={249} size={25} color="#cdd9ec">{d.heroSubtitle}</T>
 
       <B x={1500} y={123} w={1030} h={144} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
       <Thumb videoId={video?.id ?? null} has={!!video?.has_thumbnail} />
       <T x={1635} y={154} size={19} color={p?.error ? "#ff8a8a" : "#b9cbe3"} style={{ maxWidth: u(340), overflow: "hidden", textOverflow: "ellipsis" }}>{line1}</T>
-      <button type="button" onClick={onPick} aria-label={`${title}: choose another video`} data-action="pick"
+      <button type="button" onClick={onPick} aria-label={d.chooseAnotherVideo.replace("{title}", title)} data-action="pick"
         style={{ ...plain, left: u(1635), top: u(190 - 101 - 16), height: u(32), maxWidth: u(340), color: "#fff", fontSize: u(25), fontWeight: 700,
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>{title}</button>
       {action}

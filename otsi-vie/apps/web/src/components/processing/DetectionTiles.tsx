@@ -13,7 +13,8 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { api, apiBlob } from "@/lib/api";
-import { isActive } from "./model";
+import { useLocale } from "@/lib/i18n";
+import { DATE_TAG, isActive } from "./model";
 
 /** every event the engine found from the ball: passes, ball won, shots, pressures, set pieces */
 export const eventCount = (e: MatchEvents | null) => (e?.state === "READY" ? e.passes.length + e.changes.length + e.shots.length + e.pressures.length + e.set_pieces.length : null);
@@ -37,13 +38,15 @@ function TrackThumb({ track, x, y, w, h }: { track: TrackSummary; x: number; y: 
 
 function Tile({ x, y, w, h, title, sub, href, section, region, children }:
   { x: number; y: number; w: number; h: number; title: string; sub: string; href: string | null; section: string; region: string; children: ReactNode }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.processing;
   return (
     <section aria-label={region} data-section={section} aria-description={`${title}: ${sub}`}>
       <B x={x} y={y} w={w} h={h} style={box} />
       <T x={x + 18} y={y + 27} size={24} weight={700} as="h3">{title}</T>
       <T x={x + 18} y={y + 58} size={19} color="#b3c4dc">{sub}</T>
       {href ? (
-        <Link href={href} aria-label={`Open ${title} in the Analysis workspace`} className="absolute" style={{ left: u(x + w - 52), top: u(y + 22 - 101), width: u(34), height: u(34),
+        <Link href={href} aria-label={d.openInWorkspace.replace("{title}", title)} className="absolute" style={{ left: u(x + w - 52), top: u(y + 22 - 101), width: u(34), height: u(34),
           border: `${u(1.5)} solid #2a4f80`, borderRadius: u(6), background: "#0a1d38", color: "#cfe3ff", display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: u(16), textDecoration: "none", boxSizing: "border-box" }}>⤢</Link>
       ) : (
@@ -79,6 +82,10 @@ const Empty = ({ x, y, w, h, text, bg = placeholder }: { x: number; y: number; w
  *  5 000 tracks of a run, read in a few seconds on a long match), so a tile never counts a partial list (v3 Phase 0, P1) */
 export function DetectionTiles({ run, finishedRunId, tracks, videoId, events, totals }: { run: AnalysisRun | null; finishedRunId: string | null; tracks: TrackSummary[] | null; videoId: string | null;
   events: MatchEvents | null; totals: { people: number | null; ball: number | null } }) {
+  const { t: dict, locale } = useLocale();
+  const d = dict.body.processing;
+  const up = dict.body.upload;
+  const tag = DATE_TAG[locale];
   const finished = !!finishedRunId;
   const [teams, setTeams] = useState<RunTeams | null>(null);
   useEffect(() => {
@@ -89,47 +96,47 @@ export function DetectionTiles({ run, finishedRunId, tracks, videoId, events, to
   const balls = (tracks ?? []).filter((t) => t.class_name === "BALL").sort((a, b) => b.observation_count - a.observation_count);
   const groups = [...(teams?.groups ?? [])].sort((a, b) => b.tracks - a.tracks);
   const assigned = groups.filter((g) => g.assignment?.club_id).length;
-  const state = !run ? "Not started" : isActive(run) ? (run.status === "QUEUED" ? "Waiting for the worker…" : "Running…") : run.status === "FAILED" ? "Run failed" : null;
+  const state = !run ? up.notStarted : isActive(run) ? (run.status === "QUEUED" ? d.waitingWorkerDots : d.runningDots) : run.status === "FAILED" ? d.runFailed : null;
   const href = finished && videoId ? `/videos/${videoId}/analyze` : null;
 
   // never "0" for a number not read yet: a finished run whose tracks are still loading says so
   const nPeople = totals.people ?? (tracks ? people.length : null), nBall = totals.ball ?? (tracks ? balls.length : null);
-  const pSub = state && !finished ? state : nPeople === null ? "Loading…" : `${nPeople.toLocaleString("en-GB")} people tracks`;
-  const bSub = state && !finished ? state : nBall === null ? "Loading…" : `${nBall.toLocaleString("en-GB")} ball track${nBall === 1 ? "" : "s"}`;
-  const tSub = state && !finished ? state : !teams ? "Loading…" : groups.length === 0 ? "No kit colours measured"
-    : `${assigned} of ${groups.length} colour group${groups.length === 1 ? "" : "s"} assigned to a team`;
+  const pSub = state && !finished ? state : nPeople === null ? dict.common.loading : d.peopleTracks.replace("{n}", nPeople.toLocaleString(tag));
+  const bSub = state && !finished ? state : nBall === null ? dict.common.loading : (nBall === 1 ? d.ballTrackOne : d.ballTracksMany).replace("{n}", nBall.toLocaleString(tag));
+  const tSub = state && !finished ? state : !teams ? dict.common.loading : groups.length === 0 ? d.noKitColours
+    : (groups.length === 1 ? d.colourGroupOne : d.colourGroupsMany).replace("{a}", String(assigned)).replace("{g}", String(groups.length));
 
   return (
     <div data-people={String(people.length)} data-ball={String(balls.length)}>
-      <Tile x={1199} y={553} w={391} h={297} title="Player Detection" sub={pSub} href={href} section="p03-s04" region="Player detection inset">
+      <Tile x={1199} y={553} w={391} h={297} title={d.playerDetection} sub={pSub} href={href} section="p03-s04" region={d.playerDetection}>
         {finished && people.length ? <Gallery tracks={people} x={1204} y={635} w={379} h={206} cols={6} rows={3} />
-          : <Empty x={1204} y={635} w={379} h={206} text={!finished ? "No detections yet" : !tracks ? "Loading the tracks…" : "No people detected"} />}
+          : <Empty x={1204} y={635} w={379} h={206} text={!finished ? d.noDetections : !tracks ? d.loadingTracks : d.noPeople} />}
       </Tile>
-      <Tile x={1608} y={553} w={373} h={297} title="Ball Detection" sub={bSub} href={href} section="p03-s05" region="Ball detection inset">
+      <Tile x={1608} y={553} w={373} h={297} title={d.ballDetection} sub={bSub} href={href} section="p03-s05" region={d.ballDetection}>
         {finished && balls.length ? <Gallery tracks={balls} x={1613} y={635} w={359} h={206} cols={6} rows={3} />
-          : <Empty x={1613} y={635} w={359} h={206} text={!finished ? "No detections yet" : !tracks ? "Loading the tracks…" : "No ball detected"} bg="linear-gradient(135deg,#2a6a3a,#1d4a2a)" />}
+          : <Empty x={1613} y={635} w={359} h={206} text={!finished ? d.noDetections : !tracks ? d.loadingTracks : d.noBall} bg="linear-gradient(135deg,#2a6a3a,#1d4a2a)" />}
       </Tile>
-      <Tile x={1199} y={860} w={391} h={348} title="Team Identification" sub={tSub} href={href} section="p03-s06" region="Team identification inset">
+      <Tile x={1199} y={860} w={391} h={348} title={d.teamIdentification} sub={tSub} href={href} section="p03-s06" region={d.teamIdentification}>
         {finished && groups.length ? (
           <>
             <B x={1206} y={947} w={376} h={243} style={{ borderRadius: u(4), background: "#071a33" }} />
             {groups.slice(0, 5).map((g, i) => {
-              const label = g.assignment ? (g.assignment.club_name ?? "Not a team") : `Kit ${g.kit_group} · not assigned`;
+              const label = g.assignment ? (g.assignment.club_name ?? d.notATeam) : d.kitNotAssigned.replace("{n}", String(g.kit_group));
               return (
                 <div key={g.kit_group} data-kit-group={g.kit_group} data-team={g.assignment?.club_id ?? (g.assignment ? "none" : "")}>
                   <B x={1222} y={962 + i * 44} w={34} h={34} style={{ borderRadius: u(6), background: g.kit_rgb ?? "#2a4f80", border: `${u(1.5)} solid #cfe3ff` }} />
                   <T x={1270} y={979 + i * 44} size={19} color={g.assignment?.club_id ? undefined : "#b3c4dc"} style={{ maxWidth: u(175), overflow: "hidden", textOverflow: "ellipsis" }}>{label}</T>
-                  <T x={1566} y={979 + i * 44} size={19} color="#b3c4dc" align="right">{`${g.tracks.toLocaleString("en-GB")} tracks`}</T>
+                  <T x={1566} y={979 + i * 44} size={19} color="#b3c4dc" align="right">{d.tracksCount.replace("{n}", g.tracks.toLocaleString(tag))}</T>
                 </div>
               );
             })}
-            <T x={1222} y={1176} size={15} color="#8ea3bf">{assigned < groups.length ? "A person assigns teams on the Analysis page." : "Teams assigned by a person; colour alone proves nothing."}</T>
+            <T x={1222} y={1176} size={15} color="#8ea3bf">{assigned < groups.length ? d.assignTeamsNote : d.teamsAssignedNote}</T>
           </>
-        ) : <Empty x={1206} y={947} w={376} h={243} text={finished ? (teams ? "No kit colours measured" : "Loading…") : "No teams identified yet"} />}
+        ) : <Empty x={1206} y={947} w={376} h={243} text={finished ? (teams ? d.noKitColours : dict.common.loading) : d.noTeamsYet} />}
       </Tile>
-      <Tile x={1608} y={860} w={373} h={348} title="Event Markers (Live)" href={events?.state === "READY" ? href : null} section="p03-s07" region="Event marker inset"
-        sub={!events || events.state === "NONE" ? "Follow the ball in Analysis to find events" : events.state === "RUNNING" ? "Following the ball…" : `${eventCount(events)} events found from the ball`}>
-        <div aria-label={events?.state === "READY" ? `${eventCount(events)} events found from the followed ball` : "No events yet: the ball has not been followed"} role="img">
+      <Tile x={1608} y={860} w={373} h={348} title={d.eventMarkers} href={events?.state === "READY" ? href : null} section="p03-s07" region={d.eventMarkers}
+        sub={!events || events.state === "NONE" ? d.followBallEvents : events.state === "RUNNING" ? d.followingBall : d.eventsFound.replace("{n}", String(eventCount(events)))}>
+        <div aria-label={events?.state === "READY" ? d.eventsFoundBall.replace("{n}", String(eventCount(events))) : d.noEventsYet} role="img">
           <B x={1620} y={947} w={352} h={196} style={{ background: "#1f7a36", border: `${u(3)} solid #d7efe0` }} />
           <B x={1795} y={947} w={2} h={196} style={{ background: "#d7efe0" }} />
           {/* the centre circle sits on the halfway line (pitch x 1620..1972, centre 1796; vertical centre 1045) */}
@@ -137,8 +144,8 @@ export function DetectionTiles({ run, finishedRunId, tracks, videoId, events, to
           {events?.state === "READY" && (
             <B x={1632} y={975} w={328} h={140} style={{ background: "rgba(4,16,34,.72)", borderRadius: u(8), display: "grid", gridTemplateColumns: "1fr 1fr", alignContent: "center",
               gap: `${u(6)} ${u(14)}`, padding: `0 ${u(16)}`, boxSizing: "border-box", fontSize: u(18), color: "#e3eefb" }}>
-              {([["#1e90ff", "Passes", events.passes.length], ["#ff2a2a", "Shots", events.shots.length], ["#ffc41a", "Ball won", events.changes.length], ["#ff8a1a", "Pressures", events.pressures.length],
-                ["#d63aff", "Set pieces", events.set_pieces.length]] as const).map(([c, l, n]) => (
+              {([["#1e90ff", d.eventPasses, events.passes.length], ["#ff2a2a", d.eventShots, events.shots.length], ["#ffc41a", d.eventBallWon, events.changes.length], ["#ff8a1a", d.eventPressures, events.pressures.length],
+                ["#d63aff", d.eventSetPieces, events.set_pieces.length]] as const).map(([c, l, n]) => (
                 <span key={l} data-event-count={l} style={{ display: "flex", alignItems: "center", gap: u(8), whiteSpace: "nowrap" }}>
                   <i style={{ width: u(12), height: u(12), borderRadius: "50%", background: c, flex: "none" }} /><b>{n}</b> {l}
                 </span>
@@ -146,8 +153,8 @@ export function DetectionTiles({ run, finishedRunId, tracks, videoId, events, to
             </B>
           )}
           {/* what the engine finds (v3 Phase 0): fouls and offsides are not detected, so they are not in the legend */}
-          {([["#1e90ff", "Pass", events?.passes.length], ["#ff2a2a", "Shot", events?.shots.length], ["#ffc41a", "Won", events?.changes.length], ["#ff8a1a", "Press", events?.pressures.length],
-            ["#d63aff", "Set", events?.set_pieces.length]] as const).map(([c, l, n], i) => {
+          {([["#1e90ff", d.eventPass, events?.passes.length], ["#ff2a2a", d.eventShot, events?.shots.length], ["#ffc41a", d.eventWon, events?.changes.length], ["#ff8a1a", d.eventPress, events?.pressures.length],
+            ["#d63aff", d.eventSet, events?.set_pieces.length]] as const).map(([c, l, n], i) => {
             const lx = [1625, 1693, 1761, 1838, 1902][i]!;
             return (
               <div key={l} title={`${l}: ${events?.state === "READY" ? n ?? 0 : "—"}`}>

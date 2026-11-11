@@ -12,6 +12,7 @@ import { AnalysisWorkspace, useAnalysisWorkspace, type AnalysisWorkspaceState } 
 import { ProcessingProvider, useProcessing, type ProcessingState } from "@/components/analysis/ProcessingView";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { pickVideo } from "@/lib/currentVideo";
 import { DetectionTiles, eventCount } from "./DetectionTiles";
@@ -30,6 +31,7 @@ const num = (r: unknown, k: string) => { const v = (r as Record<string, unknown>
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function Sections({ p, ws }: { p: ProcessingState | null; ws: AnalysisWorkspaceState | null }) {
+  const { t: dict } = useLocale();
   const [picking, setPicking] = useState(false);
   const [running, setRunning] = useState(false);
   const [hasVideos, setHasVideos] = useState<boolean | null>(null);
@@ -37,7 +39,7 @@ function Sections({ p, ws }: { p: ProcessingState | null; ws: AnalysisWorkspaceS
   const jobs = useVideoJobs(p?.video?.id ?? null);
   const ev = ws?.events.data ?? null;
   const steps = ribbon({ run: p?.run ?? null, finishedRunId: ws?.run?.status === "SUCCEEDED" ? ws.run.id : null, ball: ws?.ball.path?.track ?? null,
-    pitch: ws?.pitch.list ?? null, events: ev ? { state: ev.state, ball_track_id: ev.ball_track_id } : null, jobs: jobs.list?.jobs ?? null });
+    pitch: ws?.pitch.list ?? null, events: ev ? { state: ev.state, ball_track_id: ev.ball_track_id } : null, jobs: jobs.list?.jobs ?? null }, dict.body.processing);
   useEffect(() => {
     if (p) return;
     void api<Video[]>("/v1/videos").then((v) => setHasVideos(v.length > 0), () => setHasVideos(null));

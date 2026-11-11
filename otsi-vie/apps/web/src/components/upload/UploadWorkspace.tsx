@@ -12,7 +12,9 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { MatchLinker } from "@/components/matches/MatchPanels";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
-import { formatBytes, formatDuration, formatFps, formatResolution, formatWhen, NOT_MEASURED, videoStatusLabel } from "@/lib/format";
+import { formatBytes, formatDuration, formatFps, formatResolution, formatWhen, NOT_MEASURED } from "@/lib/format";
+import { useLocale } from "@/lib/i18n";
+import type { UploadDict } from "./ProfileCard";
 import { cancelUpload, sendFile, type Progress } from "@/lib/upload";
 import { ingestOptions } from "@/lib/uploadPrefs";
 import { DEV_MODE, NOT_YET } from "@/lib/devMode";
@@ -49,6 +51,20 @@ interface Ctx {
   setRightsDialog(o: boolean): void;
 }
 
+/** Localised twin of videoStatusLabel (lib/format.ts): same states and tones, labels from the upload dictionary. */
+export function videoStatusText(v: { state: string; job: { state: string; progress: number; stage_message: string | null } | null; upload: { received_bytes: number; expected_bytes: number } | null }, d: UploadDict): { label: string; tone: "ok" | "busy" | "warn" | "bad" | "idle" } {
+  switch (v.state) {
+    case "INGESTED": return { label: d.statusReady, tone: "ok" };
+    case "QUARANTINED": return { label: d.statusQuarantined, tone: "bad" };
+    case "FAILED": return { label: d.statusRefused, tone: "bad" };
+    case "VALIDATING":
+      if (v.job?.state === "RUNNING") return { label: v.job.stage_message ?? d.statusCheckingPct.replace("{n}", String(Math.round(v.job.progress))), tone: "busy" };
+      return { label: d.statusWaitingCheck, tone: "busy" };
+    default:
+      return v.upload ? { label: d.statusUploadingPct.replace("{n}", String(Math.floor((100 * v.upload.received_bytes) / v.upload.expected_bytes))), tone: "warn" } : { label: d.statusNotUploaded, tone: "idle" };
+  }
+}
+
 const UploadCtx = createContext<Ctx | null>(null);
 /** Upload data and actions for any presentation layer (ADR-035). */
 export type UploadState = Ctx;
@@ -59,6 +75,8 @@ export function useUpload(): Ctx {
 }
 
 export function UploadWorkspace({ children }: { children: ReactNode }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { organization } = useAuth();
   const canWrite = !!organization && WRITERS.includes(organization.role);
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -78,8 +96,8 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       const [vs, ps] = await Promise.all([api<Video[]>("/v1/videos"), api<Project[]>("/v1/projects")]);    // project video counts change too
       setVideos(vs);
       setProjects(ps);
-    } catch (e) { setError(e instanceof ApiProblem ? e.message : "Could not load videos."); }
-  }, []);
+    } catch (e) { setError(e instanceof ApiProblem ? e.message : d.couldNotLoadVideos); }
+  }, [d]);
 
   useEffect(() => {
     void (async () => {
@@ -88,7 +106,7 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
         setProjects(ps);
         const active = ps.find((p) => p.status === "ACTIVE");
         setProjectIdState((cur) => cur ?? active?.id ?? null);
-      } catch (e) { setError(e instanceof ApiProblem ? e.message : "Could not load projects."); }
+      } catch (e) { setError(e instanceof ApiProblem ? e.message : d.couldNotLoadProjects); }
     })();
     void loadVideos();
   }, [organization?.organization_id, loadVideos]);
@@ -110,11 +128,11 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       (v) => { patch(t.id, { state: "done", videoId: v.id }); setSelectedId(v.id); void loadVideos(); },
       (e: unknown) => {
         if ((e as Error).name === "AbortError") return patch(t.id, { state: "paused" });
-        patch(t.id, { state: "error", error: e instanceof ApiProblem ? e.message : "The upload stopped. Check the connection and resume." });
+        patch(t.id, { state: "error", error: e instanceof ApiProblem ? e.message : d.uploadStopped });
         void loadVideos();
       });
     void loadVideos();
-  }, [loadVideos]);
+  }, [loadVideos, d]);
 
   const start = useCallback((files: File[], r: UploadRights | null, pid: string) => {
     const fresh = files.map((file) => ({ id: crypto.randomUUID(), file, projectId: pid, progress: null, state: "sending" as const, controller: new AbortController(), rights: r }));
@@ -141,7 +159,7 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       setProjectIdState(p.id);
     },
     addFiles(files) {
-      if (!projectId) { setError("Choose or create a project first."); return true; }
+      if (!projectId) { setError(d.chooseProjectFirst); return true; }
       if (needsRights()) { waiting.current = Array.from(files); setRightsDialog(true); return false; }
       start(Array.from(files), rights, projectId);
       return true;
@@ -155,8 +173,8 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       run(next);
     },
     async importLink(url, accessToken) {
-      if (!projectId) throw new ApiProblem(400, "PROJECT_REQUIRED", "Choose or create a project first.");
-      if (needsRights()) { setRightsDialog(true); throw new ApiProblem(409, "RIGHTS_REQUIRED", "Answer the rights questions first, then press Add URL again."); }
+      if (!projectId) throw new ApiProblem(400, "PROJECT_REQUIRED", d.chooseProjectFirst);
+      if (needsRights()) { setRightsDialog(true); throw new ApiProblem(409, "RIGHTS_REQUIRED", d.answerRightsFirstAddUrl); }
       const v = await api<Video>("/v1/imports", { method: "POST", headers: { "idempotency-key": `imp-${crypto.randomUUID()}` },
         json: { project_id: projectId, url, options: ingestOptions(), ...(rights ? { rights } : {}), ...(accessToken ? { access_token: accessToken } : {}) } });
       setSelectedId(v.id);
@@ -170,50 +188,52 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       void loadVideos();
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [projects, projectId, videos, transfers, canWrite, error, selectedId, run, loadVideos, rights, rightsDialog, start]);
+  }), [projects, projectId, videos, transfers, canWrite, error, selectedId, run, loadVideos, rights, rightsDialog, start, d]);
 
   return <UploadCtx.Provider value={value}>{children}</UploadCtx.Provider>;
 }
 
 /* ------------------------------------------------------------------ section 2: project (match context) */
 export function ProjectContext() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { projects, projectId, setProjectId, createProject, canWrite, selected, reloadVideos } = useUpload();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  if (projects === null) return <p className="text-sm text-muted" role="status">Loading projects...</p>;
+  if (projects === null) return <p className="text-sm text-muted" role="status">{dict.common.loading}</p>;
   const active = projects.filter((p) => p.status === "ACTIVE");
   return (
     <div className="space-y-3 text-sm">
       {active.length > 0 && (
         <label className="block">
-          <span className="text-xs text-muted">Project</span>
-          <select value={projectId ?? ""} onChange={(e) => setProjectId(e.target.value)} aria-label="Project"
+          <span className="text-xs text-muted">{d.projectLabel}</span>
+          <select value={projectId ?? ""} onChange={(e) => setProjectId(e.target.value)} aria-label={d.projectLabel}
             className="mt-1 w-full rounded-ctl border border-line bg-canvas px-2 py-2">
-            {active.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.video_count} {p.video_count === 1 ? "video" : "videos"})</option>)}
+            {active.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.video_count} {p.video_count === 1 ? d.video : d.videos})</option>)}
           </select>
         </label>
       )}
-      {active.length === 0 && <p className="text-muted">Videos belong to a project. Create your first project to start.</p>}
+      {active.length === 0 && <p className="text-muted">{d.videosBelongProject}</p>}
       {canWrite && (
         <form className="flex gap-2" onSubmit={(e) => {
           e.preventDefault();
           setBusy(true); setErr(null);
-          void createProject(name).then(() => setName(""), (x) => setErr(x instanceof ApiProblem ? x.message : "Could not create the project.")).finally(() => setBusy(false));
+          void createProject(name).then(() => setName(""), (x) => setErr(x instanceof ApiProblem ? x.message : d.couldNotCreateProject)).finally(() => setBusy(false));
         }}>
-          <input value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={255} required placeholder="New project name" aria-label="New project name"
+          <input value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={255} required placeholder={d.newProjectName} aria-label={d.newProjectName}
             className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-2 py-2" />
           <button type="submit" disabled={busy} className="flex items-center gap-1 rounded-ctl border border-line px-3 hover:border-primary/60 disabled:opacity-60">
-            <FolderPlus className="h-4 w-4" /> Create Project
+            <FolderPlus className="h-4 w-4" /> {d.createProject}
           </button>
         </form>
       )}
       {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       <div className="border-t border-line/60 pt-2">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Match</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.match}</p>
         {selected
           ? <MatchLinker key={selected.id} videoId={selected.id} matchId={selected.match_id} canWrite={canWrite} onLinked={() => void reloadVideos()} />
-          : <p className="text-xs text-muted">Select an upload to link it to a match (home and away team, competition, date).</p>}
+          : <p className="text-xs text-muted">{d.selectUploadForMatch}</p>}
       </div>
     </div>
   );
@@ -221,10 +241,12 @@ export function ProjectContext() {
 
 /* ------------------------------------------------------------------ section 5: drop zone */
 export function DropZone() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { addFiles, projectId, canWrite, transfers, pause, resume, cancel, error } = useUpload();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  if (!canWrite) return <p className="text-sm text-muted">Your role can view videos but not upload them.</p>;
+  if (!canWrite) return <p className="text-sm text-muted">{d.viewVideosOnly}</p>;
   return (
     <div className="space-y-3">
       <div
@@ -233,17 +255,17 @@ export function DropZone() {
         className={`flex flex-col items-center gap-3 rounded-card border-2 border-dashed px-4 py-8 text-center ${over ? "border-primary bg-primary/10" : "border-primary/50 bg-canvas/40"}`}
       >
         <UploadCloud className="h-12 w-12 text-primary" />
-        <p className="text-lg font-semibold">Drag and drop your match video here</p>
-        <p className="text-xs text-muted">{ACCEPTED_EXTENSIONS.map((e) => e.toUpperCase()).join(", ")} · full matches up to 64 GB · uploads resume after interruptions</p>
+        <p className="text-lg font-semibold">{d.dragDropMatch}</p>
+        <p className="text-xs text-muted">{ACCEPTED_EXTENSIONS.map((e) => e.toUpperCase()).join(", ")} · {d.dropSubtitlePlain}</p>
         <button type="button" disabled={!projectId} onClick={() => input.current?.click()}
-          className="rounded-ctl bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-50">Browse Files</button>
-        {!projectId && <p className="text-xs text-amber">Choose or create a project first.</p>}
-        <input ref={input} type="file" accept={ACCEPT} multiple hidden aria-label="Video files"
+          className="rounded-ctl bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-50">{d.browseFiles}</button>
+        {!projectId && <p className="text-xs text-amber">{d.chooseProjectFirst}</p>}
+        <input ref={input} type="file" accept={ACCEPT} multiple hidden aria-label={d.videoFilesLabel}
           onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }} />
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {transfers.length > 0 && (
-        <ul aria-label="Uploads in progress" className="space-y-2">
+        <ul aria-label={d.uploadsInProgress} className="space-y-2">
           {transfers.map((t) => {
             const pct = t.progress ? Math.floor((100 * t.progress.sentBytes) / t.progress.totalBytes) : 0;
             return (
@@ -251,15 +273,15 @@ export function DropZone() {
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-medium">{t.file.name}</span>
                   <span className="text-xs text-muted">{formatBytes(t.file.size)}</span>
-                  {t.state === "sending" && <button type="button" aria-label={`Pause ${t.file.name}`} onClick={() => pause(t.id)}><Pause className="h-4 w-4" /></button>}
-                  {(t.state === "paused" || t.state === "error") && <button type="button" aria-label={`Resume ${t.file.name}`} onClick={() => resume(t.id)}><Play className="h-4 w-4" /></button>}
-                  {t.state !== "done" && <button type="button" aria-label={`Cancel ${t.file.name}`} onClick={() => void cancel(t)}><X className="h-4 w-4" /></button>}
+                  {t.state === "sending" && <button type="button" aria-label={d.pauseFile.replace("{name}", t.file.name)} onClick={() => pause(t.id)}><Pause className="h-4 w-4" /></button>}
+                  {(t.state === "paused" || t.state === "error") && <button type="button" aria-label={d.resumeFile.replace("{name}", t.file.name)} onClick={() => resume(t.id)}><Play className="h-4 w-4" /></button>}
+                  {t.state !== "done" && <button type="button" aria-label={d.cancelFile.replace("{name}", t.file.name)} onClick={() => void cancel(t)}><X className="h-4 w-4" /></button>}
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${t.file.name} upload`}>
+                <div className="mt-1 h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${t.file.name} ${dict.nav.upload}`}>
                   <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  {t.state === "done" ? "Uploaded — now being checked by the ingest worker" : t.state === "paused" ? `Paused at ${pct}%` : t.state === "error" ? t.error : `Uploading ${pct}%`}
+                  {t.state === "done" ? d.uploadedVerifying : t.state === "paused" ? d.pausedAt.replace("{n}", String(pct)) : t.state === "error" ? t.error : d.uploadingPct.replace("{n}", String(pct))}
                 </p>
               </li>
             );
@@ -281,6 +303,8 @@ function providerOf(url: string): ImportProvider | null {
 }
 
 export function UrlImport() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { importLink, canWrite, projectId } = useUpload();
   const [url, setUrl] = useState("");
   const [token, setToken] = useState("");
@@ -288,50 +312,50 @@ export function UrlImport() {
   const [showList, setShowList] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const provider = providerOf(url);
-  if (!canWrite) return <p className="text-sm text-muted">Your role can view videos but not import them.</p>;
+  if (!canWrite) return <p className="text-sm text-muted">{d.viewVideosNoImport}</p>;
   return (
     <form className="space-y-2" onSubmit={(e) => {
       e.preventDefault();
       setBusy(true); setMsg(null);
       void importLink(url, provider?.status === "needs_authorization" ? token : undefined).then(
-        () => { setUrl(""); setToken(""); setMsg({ ok: true, text: "Import started: the server is fetching and checking the video. Follow it in Recent uploads." }); },
-        (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "The import could not be started." }),
+        () => { setUrl(""); setToken(""); setMsg({ ok: true, text: d.importStarted }); },
+        (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : d.couldNotStartImport }),
       ).finally(() => setBusy(false));
     }}>
       <div className="flex gap-2">
-        <input value={url} onChange={(e) => setUrl(e.target.value)} type="url" required placeholder="Paste a link to a match video" aria-label="Video URL"
+        <input value={url} onChange={(e) => setUrl(e.target.value)} type="url" required placeholder={d.pasteLink} aria-label={d.videoUrl}
           className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-3 py-2 text-sm" />
         <button type="submit" disabled={busy || !projectId || provider?.status === "unsupported"} className="rounded-ctl border border-line px-3 text-sm hover:border-primary/60 disabled:opacity-50">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add URL"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : d.addUrl}
         </button>
       </div>
       {provider && url.length > 10 && (
         <div data-provider={provider.id} data-provider-status={provider.status}
           className={`rounded-ctl border p-2 text-xs ${provider.status === "unsupported" ? "border-danger/40 bg-danger/10" : "border-line bg-raised/40"}`}>
-          <p className="font-semibold">{provider.name}: {provider.status === "supported" ? "can be imported" : provider.status === "needs_authorization" ? "needs your authorization" : "cannot be imported"}</p>
+          <p className="font-semibold">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
           <p className="mt-0.5 text-muted">{provider.status === "unsupported" ? `${provider.reason} ${provider.alternative}` : provider.method}</p>
           {provider.status === "needs_authorization" && (
             <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" required minLength={8}
-              placeholder={`Your ${provider.name} access token`} aria-label="Access token"
+              placeholder={d.yourAccessToken.replace("{name}", provider.name)} aria-label={d.accessToken}
               className="mt-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
           )}
         </div>
       )}
       {msg && <p role={msg.ok ? "status" : "alert"} className={`text-xs ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
-      <button type="button" className="text-xs text-primary underline" onClick={() => setShowList((v) => !v)} aria-expanded={showList}>Which links work?</button>
+      <button type="button" className="text-xs text-primary underline" onClick={() => setShowList((v) => !v)} aria-expanded={showList}>{d.whichLinksWork}</button>
       {showList && (
-        <ul aria-label="Link support" className="grid gap-1 text-xs">
+        <ul aria-label={d.linkSupport} className="grid gap-1 text-xs">
           {IMPORT_PROVIDERS.map((p) => (
             <li key={p.id} className="flex gap-2">
               <span className={`shrink-0 rounded px-1.5 ${p.status === "supported" ? "bg-ok/15 text-ok" : p.status === "needs_authorization" ? "bg-amber/15 text-amber" : "bg-danger/15 text-danger"}`}>
-                {p.status === "supported" ? "works" : p.status === "needs_authorization" ? "with your token" : "not possible"}
+                {p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerWithToken : d.providerNotPossibleShort}
               </span>
               <span><span className="font-medium">{p.name}</span> <span className="text-muted">{p.status === "unsupported" ? p.alternative : p.method}</span></span>
             </li>
           ))}
         </ul>
       )}
-      <p className="text-xs text-muted">Only video you have the rights to. The server downloads from public addresses only, never around a provider&apos;s restrictions or DRM, and checks the file like an upload.</p>
+      <p className="text-xs text-muted">{d.onlyVideoRights}</p>
     </form>
   );
 }
@@ -340,13 +364,15 @@ export function UrlImport() {
 const TONES = { ok: "text-ok border-ok/40 bg-ok/10", busy: "text-cyan border-cyan/40 bg-cyan/10", warn: "text-amber border-amber/40 bg-amber/10", bad: "text-danger border-danger/40 bg-danger/10", idle: "text-muted border-line" };
 
 export function RecentUploads() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { videos, select, selected } = useUpload();
-  if (videos === null) return <p className="text-sm text-muted" role="status">Loading...</p>;
-  if (videos.length === 0) return <p className="text-sm text-muted">No videos yet. Upload your first match video to begin.</p>;
+  if (videos === null) return <p className="text-sm text-muted" role="status">{dict.common.loading}</p>;
+  if (videos.length === 0) return <p className="text-sm text-muted">{d.noVideosYetUpload}</p>;
   return (
-    <ul aria-label="Recent uploads" className="divide-y divide-line/60">
+    <ul aria-label={d.recentUploadsPlain} className="divide-y divide-line/60">
       {videos.slice(0, 12).map((v) => {
-        const s = videoStatusLabel(v);
+        const s = videoStatusText(v, d);
         return (
           <li key={v.id}>
             <button type="button" onClick={() => select(v.id)} aria-pressed={selected?.id === v.id}
@@ -366,6 +392,8 @@ export function RecentUploads() {
 
 /* ------------------------------------------------------------------ section 9: the selected video, as measured */
 export function SelectedVideo() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { selected } = useUpload();
   const [thumb, setThumb] = useState<string | null>(null);
   useEffect(() => {
@@ -375,19 +403,19 @@ export function SelectedVideo() {
     void apiBlob(`/v1/videos/${selected.id}/thumbnail`).then((b) => { url = URL.createObjectURL(b); setThumb(url); }, () => setThumb(null));
     return () => { if (url) URL.revokeObjectURL(url); };
   }, [selected?.id, selected?.has_thumbnail]);
-  if (!selected) return <p className="text-sm text-muted">Select a video to see what was measured.</p>;
+  if (!selected) return <p className="text-sm text-muted">{d.selectVideoMeasured}</p>;
   const rows: [string, string][] = [
-    ["File name", selected.original_filename ?? NOT_MEASURED],
-    ["File size", formatBytes(selected.byte_size)],
-    ["Resolution", formatResolution(selected.width, selected.height)],
-    ["Frame rate", formatFps(selected.frame_rate, selected.is_variable_frame_rate)],
-    ["Duration", formatDuration(selected.duration_us)],
-    ["Container / codecs", selected.container_format ? `${selected.container_format} · ${selected.video_codec ?? NOT_MEASURED}${selected.audio_codec ? ` + ${selected.audio_codec}` : " (no audio)"}` : NOT_MEASURED],
+    [d.fileName, selected.original_filename ?? NOT_MEASURED],
+    [d.fileSize, formatBytes(selected.byte_size)],
+    [d.resolution, formatResolution(selected.width, selected.height)],
+    [d.frameRate, formatFps(selected.frame_rate, selected.is_variable_frame_rate)],
+    [d.duration, formatDuration(selected.duration_us)],
+    [d.containerCodecs, selected.container_format ? `${selected.container_format} · ${selected.video_codec ?? NOT_MEASURED}${selected.audio_codec ? ` + ${selected.audio_codec}` : " (no audio)"}` : NOT_MEASURED],
     ["SHA-256", selected.sha256 ? `${selected.sha256.slice(0, 16)}…` : NOT_MEASURED],
   ];
   return (
     <div className="space-y-3 text-sm" data-selected-video={selected.id}>
-      {thumb ? <img src={thumb} alt={`Frame from ${selected.title ?? "the video"}`} className="w-full rounded-ctl border border-line" /> : null}
+      {thumb ? <img src={thumb} alt={d.frameFrom.replace("{name}", selected.title ?? d.theVideo)} className="w-full rounded-ctl border border-line" /> : null}
       <p className="font-semibold">{selected.title ?? selected.original_filename}</p>
       {(selected.state === "FAILED" || selected.state === "QUARANTINED") && (
         <p role="alert" className="flex gap-2 rounded-ctl border border-danger/40 bg-danger/10 p-2 text-danger">
@@ -400,35 +428,37 @@ export function SelectedVideo() {
       </dl>
       {selected.state === "INGESTED" && (
         <p className="flex flex-wrap gap-2">
-          <Link href={`/videos/${selected.id}/processing`} className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white">Analyse this video</Link>
-          <Link href={`/videos/${selected.id}/analyze`} className="rounded-ctl border border-line px-3 py-1.5 text-sm hover:border-primary/60">Analysis Workspace</Link>
+          <Link href={`/videos/${selected.id}/processing`} className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white">{d.analyseThisVideo}</Link>
+          <Link href={`/videos/${selected.id}/analyze`} className="rounded-ctl border border-line px-3 py-1.5 text-sm hover:border-primary/60">{d.analysisWorkspace}</Link>
         </p>
       )}
-      <p className="text-xs text-muted">Detected teams and match details come from analysis (Blocks 05-07), not from the file.</p>
+      <p className="text-xs text-muted">{d.detectedTeamsNote}</p>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ section 10: the pipeline so far */
 export function PipelineStrip() {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
   const { selected } = useUpload();
-  const stages: { name: string; state: "done" | "busy" | "bad" | "todo" | "unbuilt"; note: string }[] = [];
+  const stages: { key: string; name: string; state: "done" | "busy" | "bad" | "todo" | "unbuilt"; note: string }[] = [];
   if (!selected) {
-    return <p className="text-sm text-muted">Select a video to follow its processing.</p>;
+    return <p className="text-sm text-muted">{d.selectVideoProcessing}</p>;
   }
   const uploaded = selected.state !== "PENDING";
-  stages.push({ name: "Upload", state: uploaded ? "done" : selected.upload ? "busy" : "todo", note: uploaded ? formatBytes(selected.byte_size) : "waiting for the file" });
+  stages.push({ key: "Upload", name: dict.nav.upload, state: uploaded ? "done" : selected.upload ? "busy" : "todo", note: uploaded ? formatBytes(selected.byte_size) : d.waitingForFile });
   const ingest = selected.state === "INGESTED" ? "done" : selected.state === "VALIDATING" ? "busy" : selected.state === "PENDING" ? "todo" : "bad";
-  stages.push({ name: "Verify & inspect", state: ingest, note: ingest === "done" ? "checksum, format and decode verified" : ingest === "busy" ? (selected.job?.stage_message ?? "queued") : ingest === "bad" ? (selected.failure_code ?? "refused") : "" });
-  if (selected.state === "INGESTED") stages.push({ name: "Detection & tracking", state: "todo", note: "start it with Analyse this video" });
-  for (const [name, block] of [["Identity", 7], ["Indexing", 8]] as const) {
-    stages.push({ name, state: "unbuilt", note: DEV_MODE ? `not built yet (Block ${String(block).padStart(2, "0")})` : NOT_YET });
+  stages.push({ key: "Verify & inspect", name: d.verifyInspect, state: ingest, note: ingest === "done" ? d.checksumVerified : ingest === "busy" ? (selected.job?.stage_message ?? d.queued) : ingest === "bad" ? (selected.failure_code ?? d.refused) : "" });
+  if (selected.state === "INGESTED") stages.push({ key: "Detection & tracking", name: d.detectionTracking, state: "todo", note: d.startWithAnalyse });
+  for (const [key, block] of [["Identity", 7], ["Indexing", 8]] as const) {
+    stages.push({ key, name: key === "Identity" ? d.identity : d.indexing, state: "unbuilt", note: DEV_MODE ? `not built yet (Block ${String(block).padStart(2, "0")})` : NOT_YET });
   }
   const icon = { done: <CheckCircle2 className="h-4 w-4 text-ok" />, busy: <Loader2 className="h-4 w-4 animate-spin text-cyan" />, bad: <AlertTriangle className="h-4 w-4 text-danger" />, todo: <CircleDashed className="h-4 w-4 text-muted" />, unbuilt: <CircleDashed className="h-4 w-4 text-muted/60" /> };
   return (
-    <ol aria-label="Processing pipeline" className="grid grid-cols-2 gap-2 md:grid-cols-6">
+    <ol aria-label={d.processingPipeline} className="grid grid-cols-2 gap-2 md:grid-cols-6">
       {stages.map((s) => (
-        <li key={s.name} className="rounded-ctl border border-line/70 bg-raised/40 p-2" data-stage={s.name} data-stage-state={s.state}>
+        <li key={s.key} className="rounded-ctl border border-line/70 bg-raised/40 p-2" data-stage={s.key} data-stage-state={s.state}>
           <span className="flex items-center gap-1.5 text-sm font-medium">{icon[s.state]} {s.name}</span>
           <span className="mt-1 block text-xs text-muted">{s.note}</span>
         </li>

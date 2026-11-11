@@ -12,10 +12,11 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
-import { formatBytes, videoStatusLabel } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
+import { useLocale } from "@/lib/i18n";
 import { RIGHT_EXTRA } from "./layout";
-import { mmss, pitchThumb, usePage02 } from "./page02";
-import { useUpload } from "./UploadWorkspace";
+import { DATE_TAG, mmss, pitchThumb, usePage02 } from "./page02";
+import { useUpload, videoStatusText } from "./UploadWorkspace";
 
 /** row centre y, title y, second line y, third line y */
 const ROWS: [number, number, number, number][] = [[251, 226, 254, 282], [360, 335, 363, 391], [471, 443, 473, 502], [583, 557, 586, 615], [697, 671, 701, 729]];
@@ -34,6 +35,9 @@ function Thumb({ v, x, y, a }: { v: Video | undefined; x: number; y: number; a: 
 }
 
 export function RecentUploadsSection() {
+  const { t: dict, locale } = useLocale();
+  const d = dict.body.upload;
+  const tag = DATE_TAG[locale];
   const { videos, select, selected, transfers, canWrite, reloadVideos, pause, resume } = useUpload();
   const { say, offerUndo } = usePage02();
   const [menu, setMenu] = useState<string | null>(null);
@@ -51,30 +55,30 @@ export function RecentUploadsSection() {
     setConfirm(null);
     if (!v.analysis) return;
     void api(`/v1/analysis-runs/${v.analysis.run_id}/cancel`, { method: "POST" }).then(
-      async () => { await reloadVideos(); say(`Analysis of ${v.title ?? v.original_filename ?? "the video"} cancelled. You can start it again from Processing.`); },
-      (x) => say(x instanceof ApiProblem ? x.message : "The analysis could not be cancelled", true));
+      async () => { await reloadVideos(); say(d.analysisCancelledMsg.replace("{name}", v.title ?? v.original_filename ?? d.theUpload)); },
+      (x) => say(x instanceof ApiProblem ? x.message : d.couldNotCancelAnalysis, true));
   };
   const cancelPlayback = (v: Video) => {
     setConfirm(null);
     void api(`/v1/videos/${v.id}/playback-copy/cancel`, { method: "POST" }).then(
-      async () => { await reloadVideos(); say(`Playback copy of ${v.title ?? v.original_filename ?? "the video"} cancelled. You can make it again from the row.`); },
-      (x) => say(x instanceof ApiProblem ? x.message : "The playback copy could not be cancelled", true));
+      async () => { await reloadVideos(); say(d.playbackCancelledMsg.replace("{name}", v.title ?? v.original_filename ?? d.theUpload)); },
+      (x) => say(x instanceof ApiProblem ? x.message : d.couldNotCancelPlayback, true));
   };
   const makePlayback = (v: Video) => {
     void api(`/v1/videos/${v.id}/playback-copy`, { method: "POST" }).then(
-      async () => { await reloadVideos(); say("The playback copy is being made again."); },
-      (x) => say(x instanceof ApiProblem ? x.message : "The playback copy could not be started", true));
+      async () => { await reloadVideos(); say(d.playbackRemade); },
+      (x) => say(x instanceof ApiProblem ? x.message : d.couldNotStartPlayback, true));
   };
   const remove = (v: Video) => {
     setConfirm(null); setMenu(null);
     void api(`/v1/library/video/${v.id}`, { method: "DELETE" }).then(
       async () => {
         await reloadVideos();
-        const name = v.title ?? v.original_filename ?? "the upload";
-        say(`Removed ${name}`);
+        const name = v.title ?? v.original_filename ?? d.theUpload;
+        say(d.removed.replace("{name}", name));
         if (v.state === "INGESTED") offerUndo({ id: v.id, title: name });      // only a verified video can be restored
       },
-      (x) => say(x instanceof ApiProblem ? x.message : "The upload could not be removed", true));
+      (x) => say(x instanceof ApiProblem ? x.message : d.couldNotRemove, true));
   };
   const rows = (videos ?? []).slice(0, 5);
   /** what this video is doing now, with a real percentage when the worker reports one (null = nothing is moving, so no bar) */
@@ -96,45 +100,45 @@ export function RecentUploadsSection() {
   const barsOf = (v: Video): Array<{ pct: number; tone: "busy" | "idle"; label: string }> => {
     if (v.state === "INGESTED") {
       const out: Array<{ pct: number; tone: "busy" | "idle"; label: string }> = [];
-      if (v.job?.kind === "PROXY" && v.job.state === "RUNNING") out.push({ pct: v.job.progress, tone: "busy", label: "Playback copy" });
-      else if (v.job?.kind === "PROXY" && v.job.state === "QUEUED") out.push({ pct: 0, tone: "idle", label: "Playback copy" });
-      if (v.analysis?.status === "RUNNING") out.push({ pct: v.analysis.progress ?? 0, tone: "busy", label: "Analysis" });
-      else if (v.analysis?.status === "QUEUED") out.push({ pct: 0, tone: "idle", label: "Analysis" });
+      if (v.job?.kind === "PROXY" && v.job.state === "RUNNING") out.push({ pct: v.job.progress, tone: "busy", label: d.playbackCopyLabel });
+      else if (v.job?.kind === "PROXY" && v.job.state === "QUEUED") out.push({ pct: 0, tone: "idle", label: d.playbackCopyLabel });
+      if (v.analysis?.status === "RUNNING") out.push({ pct: v.analysis.progress ?? 0, tone: "busy", label: d.analysisWord });
+      else if (v.analysis?.status === "QUEUED") out.push({ pct: 0, tone: "idle", label: d.analysisWord });
       return out;
     }
     const b = barOf(v);
-    return b ? [{ ...b, label: "Upload" }] : [];
+    return b ? [{ ...b, label: dict.nav.upload }] : [];
   };
   const progressOf = (v: Video) => {
     const t = transfers.find((x) => x.videoId === v.id || (x.state !== "done" && x.file.name === v.original_filename && x.file.size === v.byte_size));
-    if (t && t.state !== "done" && t.progress) return { text: `${t.state === "paused" ? "Paused" : "Uploading"} ${Math.floor((100 * t.progress.sentBytes) / t.progress.totalBytes)}%`, tone: t.state === "error" ? "bad" : "busy" };
+    if (t && t.state !== "done" && t.progress) return { text: (t.state === "paused" ? d.progressPaused : d.progressUploading).replace("{n}", String(Math.floor((100 * t.progress.sentBytes) / t.progress.totalBytes))), tone: t.state === "error" ? "bad" : "busy" };
     if (v.state === "INGESTED") {
       const parts: string[] = [];
-      if (v.job?.kind === "PROXY" && v.job.state === "RUNNING") parts.push(`Playback ${Math.round(v.job.progress)}%`);
-      else if (v.job?.kind === "PROXY" && v.job.state === "QUEUED") parts.push("Playback waiting");
-      else if (v.job?.kind === "PROXY" && v.job.state === "CANCELLED") parts.push("Playback cancelled");
-      if (v.analysis?.status === "RUNNING") parts.push(`Analysing ${Math.round(v.analysis.progress ?? 0)}%`);
-      else if (v.analysis?.status === "QUEUED") parts.push("Analysis waiting");
+      if (v.job?.kind === "PROXY" && v.job.state === "RUNNING") parts.push(d.playbackPct.replace("{n}", String(Math.round(v.job.progress))));
+      else if (v.job?.kind === "PROXY" && v.job.state === "QUEUED") parts.push(d.playbackWaiting);
+      else if (v.job?.kind === "PROXY" && v.job.state === "CANCELLED") parts.push(d.playbackCancelled);
+      if (v.analysis?.status === "RUNNING") parts.push(d.analysingPct.replace("{n}", String(Math.round(v.analysis.progress ?? 0))));
+      else if (v.analysis?.status === "QUEUED") parts.push(d.analysisWaitingShort);
       if (parts.length) return { text: parts.join(" · "), tone: parts.some((x) => x.endsWith("%")) ? "busy" : "idle" };
     }
     // a job that has not started is WAITING for the worker (one process runs one job at a time), not checking at 0%
-    if (v.job?.state === "QUEUED" && v.state !== "FAILED" && v.state !== "QUARANTINED") return { text: v.state === "INGESTED" ? "Playback copy waiting" : "Waiting for the worker", tone: "idle" };
-    if (v.state === "VALIDATING" && v.job) return { text: `Checking ${Math.round(v.job.progress)}%`, tone: "busy" };
-    if (v.state === "INGESTED" && v.job?.kind === "PROXY" && v.job.state === "RUNNING") return { text: `Playback copy ${Math.round(v.job.progress)}%`, tone: "busy" };
-    if (v.analysis?.status === "RUNNING") return { text: `Analysing ${Math.round(v.analysis.progress ?? 0)}%`, tone: "busy" };
-    if (v.analysis?.status === "QUEUED") return { text: "Analysis waiting", tone: "idle" };
-    const s = videoStatusLabel(v);
+    if (v.job?.state === "QUEUED" && v.state !== "FAILED" && v.state !== "QUARANTINED") return { text: v.state === "INGESTED" ? d.playbackCopyWaiting : d.waitingForWorker, tone: "idle" };
+    if (v.state === "VALIDATING" && v.job) return { text: d.checkingPct.replace("{n}", String(Math.round(v.job.progress))), tone: "busy" };
+    if (v.state === "INGESTED" && v.job?.kind === "PROXY" && v.job.state === "RUNNING") return { text: d.playbackCopyPct.replace("{n}", String(Math.round(v.job.progress))), tone: "busy" };
+    if (v.analysis?.status === "RUNNING") return { text: d.analysingPct.replace("{n}", String(Math.round(v.analysis.progress ?? 0))), tone: "busy" };
+    if (v.analysis?.status === "QUEUED") return { text: d.analysisWaitingShort, tone: "idle" };
+    const s = videoStatusText(v, d);
     return { text: s.label, tone: s.tone };
   };
 
   return (
-    <section aria-label="Recent uploads panel" data-section="p02-s08" data-count={String(videos?.length ?? 0)}>
+    <section aria-label={d.recentUploads} data-section="p02-s08" data-count={String(videos?.length ?? 0)}>
       <P x={1923} y={134} w={612} h={626 + RIGHT_EXTRA} />
-      <T x={1943} y={165} size={28} weight={600} as="h2">Recent Uploads</T>
+      <T x={1943} y={165} size={28} weight={600} as="h2">{d.recentUploads}</T>
       <Link href="/library" className="absolute" style={{ left: u(2506 - 90), top: u(166 - 101 - 12), width: u(90), height: u(24), color: "#33a8ff", fontSize: u(20),
-        textAlign: "right", textDecoration: "none", lineHeight: u(24) }}>View All</Link>
+        textAlign: "right", textDecoration: "none", lineHeight: u(24) }}>{dict.body.home.viewAll}</Link>
       <B x={1943} y={198} w={574} h={1} style={{ background: "#12335f" }} />
-      <ul aria-label="Recent uploads" style={{ margin: 0, padding: 0, listStyle: "none" }}>
+      <ul aria-label={d.recentUploadsPlain} style={{ margin: 0, padding: 0, listStyle: "none" }}>
         {ROWS.map(([y0, ty00, y200, y300], i) => {
           const sh = RIGHT_EXTRA / 10 + (RIGHT_EXTRA / 5) * i;          // each of the five boxes is taller by RIGHT_EXTRA / 5: half of it above, half below
           const y = y0 + sh, ty0 = ty00 + sh, y20 = y200 + sh, y3 = y300 + sh;
@@ -163,20 +167,20 @@ export function RecentUploadsSection() {
                   style={{ left: u(1943), top: u(y - 50 - 101), width: u(550), height: u(100), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
                   <B o={[1943, y - 50]} x={2034} y={y + 17} w={58} h={24} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4) }} />
                   <T o={[1943, y - 50]} x={2063} y={y + 29} size={19} weight={600} align="center" as="span">{mmss(v.duration_us)}</T>
-                  <T o={[1943, y - 50]} x={2115} y={ty} size={20} weight={600} as="span" style={{ maxWidth: u(v.state === "INGESTED" && canWrite && (analysing(v) || (v.job?.kind === "PROXY" && v.job.state !== "SUCCEEDED")) ? 140 : 370), overflow: "hidden", textOverflow: "ellipsis" }}>{v.title ?? v.original_filename ?? "Untitled video"}</T>
+                  <T o={[1943, y - 50]} x={2115} y={ty} size={20} weight={600} as="span" style={{ maxWidth: u(v.state === "INGESTED" && canWrite && (analysing(v) || (v.job?.kind === "PROXY" && v.job.state !== "SUCCEEDED")) ? 140 : 370), overflow: "hidden", textOverflow: "ellipsis" }}>{v.title ?? v.original_filename ?? d.untitledVideo}</T>
                   <T o={[1943, y - 50]} x={2115} y={y2} size={18} color="#9fb3cc" as="span">
-                    {`${new Date(v.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${formatBytes(v.byte_size)}`}
+                    {`${new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })} · ${formatBytes(v.byte_size)}`}
                   </T>
                   {!(v.state === "INGESTED" && barsOf(v).length > 0) && <span data-video-state={v.state} style={{ position: "absolute", left: u(2115 - 1943), top: u(y3 - (y - 50) - 13), height: u(26), padding: `0 ${u(10)}`,
                     borderRadius: u(13), background: bg, color: fg, fontSize: u(16), fontWeight: 600, lineHeight: u(26), whiteSpace: "nowrap" }}>{p!.text}</span>}
                   {barsOf(v).map((b, i, all) => {
                     const lines = v.state === "INGESTED";        // one labelled line per job, each with its own bar
                     const ly = lines ? y + (all.length === 2 ? (i === 0 ? 12 : 38) : 22) : y3 + 16;
-                    const color = b.label === "Analysis" ? "#1e90ff" : "#33d0c8";       // one colour per job, always: playback copy teal, analysis blue
+                    const color = b.label === d.analysisWord ? "#1e90ff" : "#33d0c8";       // one colour per job, always: playback copy teal, analysis blue
                     return (
                       <Fragment key={b.label}>
                         {lines && <T o={[1943, y - 50]} x={2115} y={ly} size={15} weight={600} color={b.tone === "idle" ? "#ffc66d" : "#e3eefb"} as="span">
-                          {b.tone === "idle" ? `${b.label} · waiting` : `${b.label} ${Math.round(b.pct)}%`}</T>}
+                          {b.tone === "idle" ? `${b.label} · ${d.waitingWord}` : `${b.label} ${Math.round(b.pct)}%`}</T>}
                         <B o={[1943, y - 50]} x={lines ? 2262 : 2115} y={lines ? ly - 4 : ly} w={lines ? 215 : 290} h={lines ? 8 : 6} style={{ background: "#12335f", borderRadius: u(4) }}>
                           <i role="progressbar" aria-label={`${v.title ?? v.original_filename}: ${b.label} progress`} aria-valuenow={Math.round(b.pct)} aria-valuemin={0} aria-valuemax={100}
                             style={{ display: "block", height: "100%", width: `${Math.min(100, Math.max(b.tone === "idle" ? 0 : 2, b.pct))}%`, borderRadius: u(4), background: color, transition: "width .6s" }} />
@@ -187,31 +191,31 @@ export function RecentUploadsSection() {
                 </button>
               ) : (
                 <>
-                  <T x={2115} y={ty} size={20} weight={600}>{first ? (videos === null ? "Loading…" : "No uploads yet") : "—"}</T>
-                  <T x={2115} y={y2} size={18} color="#9fb3cc">{first ? "Uploaded videos appear here" : "—"}</T>
+                  <T x={2115} y={ty} size={20} weight={600}>{first ? (videos === null ? dict.common.loading : d.noUploadsYet) : "—"}</T>
+                  <T x={2115} y={y2} size={18} color="#9fb3cc">{first ? d.uploadsAppearHere : "—"}</T>
                   {first && <T x={2115} y={y3} size={18} color="#9fb3cc">—</T>}
                 </>
               )}
               {v && canWrite && v.state !== "INGESTED" && (() => {
                 const stop = analysing(v), gone = v.state === "FAILED" || v.state === "QUARANTINED", t = transferOf(v), name = v.title ?? v.original_filename;
-                const verb = stop ? "Cancel analysis" : gone ? "Remove" : "Cancel";
+                const verb = stop ? d.cancelAnalysis : gone ? d.removeVerb : dict.common.cancel;
                 return confirm === v.id ? (
                   <span className="absolute" style={{ left: u(2330), top: u(y3 - 101 - 12), display: "flex", gap: u(10), fontSize: u(17), whiteSpace: "nowrap", zIndex: 5, color: "#ffc66d" }}>
-                    {stop ? "Cancel analysis?" : gone ? "Remove?" : "Cancel upload?"}
-                    <button type="button" aria-label={`Confirm: ${verb.toLowerCase()} ${name}`} onClick={() => (stop ? stopAnalysis(v) : remove(v))}
-                      style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>Yes</button>
-                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>No</button>
+                    {stop ? d.cancelAnalysisQ : gone ? d.removeQ : d.cancelUploadQ}
+                    <button type="button" aria-label={d.confirmAria.replace("{text}", `${verb.toLowerCase()} ${name}`)} onClick={() => (stop ? stopAnalysis(v) : remove(v))}
+                      style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>
+                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
                   </span>
                 ) : (
                   <>
                     {t && (t.state === "sending" || t.state === "paused" || t.state === "error") && (
-                      <button type="button" aria-label={`${t.state === "sending" ? "Pause" : "Resume"} ${name}`} onClick={() => (t.state === "sending" ? pause(t.id) : resume(t.id))} className="absolute"
+                      <button type="button" aria-label={t.state === "sending" ? d.pauseFile.replace("{name}", name ?? "") : d.resumeFile.replace("{name}", name ?? "")} onClick={() => (t.state === "sending" ? pause(t.id) : resume(t.id))} className="absolute"
                         style={{ left: u(2310), top: u(y3 - 101 - 12), height: u(24), padding: `0 ${u(10)}`, borderRadius: u(12), border: `${u(1.5)} solid #1d4f8a`, background: "transparent", color: "#cfe0f5",
-                          fontSize: u(15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{t.state === "sending" ? "Pause" : "Resume"}</button>
+                          fontSize: u(15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{t.state === "sending" ? d.pause : d.resume}</button>
                     )}
                     <button type="button" aria-label={`${verb} ${name}`} onClick={() => setConfirm(v.id)} className="absolute"
                       style={{ left: u(stop ? 2392 : 2400), top: u(y3 - 101 - 12), height: u(24), padding: `0 ${u(8)}`, borderRadius: u(12), border: `${u(1.5)} solid #7a3a48`, background: "transparent", color: "#ff9aa8",
-                        fontSize: u(stop ? 13 : 15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{stop ? "Cancel analysis" : !gone ? "Cancel" : "Remove"}</button>
+                        fontSize: u(stop ? 13 : 15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{verb}</button>
                   </>
                 );
               })()}
@@ -228,44 +232,44 @@ export function RecentUploadsSection() {
                 const ask = (text: string, yes: () => void) => (
                   <span className="absolute" style={{ left: u(2290), top: u(ty - 101 - 12), display: "flex", gap: u(10), fontSize: u(15), whiteSpace: "nowrap", zIndex: 5, color: "#ffc66d" }}>
                     {text}
-                    <button type="button" aria-label={`Confirm: ${text.replace("?", "").toLowerCase()}`} onClick={yes} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>Yes</button>
-                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>No</button>
+                    <button type="button" aria-label={d.confirmAria.replace("{text}", text.replace("?", "").toLowerCase())} onClick={yes} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>
+                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
                   </span>
                 );
-                if (confirm === key("proxy")) return ask("Cancel playback copy?", () => cancelPlayback(v));
-                if (confirm === key("analysis")) return ask("Cancel analysis?", () => stopAnalysis(v));
+                if (confirm === key("proxy")) return ask(d.cancelPlaybackQ, () => cancelPlayback(v));
+                if (confirm === key("analysis")) return ask(d.cancelAnalysisQ, () => stopAnalysis(v));
                 return (
                   <>
-                    {proxyOn && pill(2262, "Cancel playback", `Cancel the playback copy of ${name}`, () => setConfirm(key("proxy")), "stop")}
-                    {anaOn && pill(proxyOn ? 2378 : 2262, "Cancel analysis", `Cancel the analysis of ${name}`, () => setConfirm(key("analysis")), "stop")}
-                    {proxyStopped && pill(2262, "Make playback copy", `Make the playback copy of ${name} again`, () => makePlayback(v), "go")}
+                    {proxyOn && pill(2262, d.cancelPlayback, d.cancelPlaybackOf.replace("{name}", name ?? ""), () => setConfirm(key("proxy")), "stop")}
+                    {anaOn && pill(proxyOn ? 2378 : 2262, d.cancelAnalysis, d.cancelAnalysisOf.replace("{name}", name ?? ""), () => setConfirm(key("analysis")), "stop")}
+                    {proxyStopped && pill(2262, d.makePlayback, d.makePlaybackOf.replace("{name}", name ?? ""), () => makePlayback(v), "go")}
                   </>
                 );
               })()}
-              <button type="button" aria-label={v ? `More for ${v.title ?? v.original_filename}` : "No upload in this row"} aria-expanded={menu === v?.id}
+              <button type="button" aria-label={v ? d.moreFor.replace("{name}", v.title ?? v.original_filename ?? "") : d.noUploadRow} aria-expanded={menu === v?.id}
                 onClick={() => { setConfirm(null); setMenu((m) => (v && m !== v.id ? v.id : null)); }} className="absolute"
                 style={{ left: u(2496), top: u(y - 16 - 101), width: u(28), height: u(32), padding: 0, border: 0, background: "transparent", cursor: "pointer" }}>
                 <Ic o={[2496, y - 16]} x={2510} y={y} k="dots" size={22} color={v ? "#cfe0f5" : "#4a5a78"} />
               </button>
               {v && menu === v.id && (
-                <nav aria-label="Open this video" className="absolute" style={{ left: u(2290), top: u(y + 18 - 101), width: u(230), zIndex: 6, background: "#081a35",
+                <nav aria-label={d.openThisVideo} className="absolute" style={{ left: u(2290), top: u(y + 18 - 101), width: u(230), zIndex: 6, background: "#081a35",
                   border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8), padding: u(6), display: "flex", flexDirection: "column", fontSize: u(18) }}>
                   {v.state === "INGESTED" ? (
                     <>
-                      <Link href={`/processing?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>Processing</Link>
-                      <Link href={`/videos/${v.id}/analyze`} style={{ padding: u(7), color: "#e3eefb" }}>Analysis workspace</Link>
-                      <Link href={`/tactics?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>Tactical view</Link>
+                      <Link href={`/processing?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>{dict.nav.processing}</Link>
+                      <Link href={`/videos/${v.id}/analyze`} style={{ padding: u(7), color: "#e3eefb" }}>{d.analysisWorkspace}</Link>
+                      <Link href={`/tactics?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>{d.tacticalView}</Link>
                     </>
-                  ) : <span style={{ padding: u(7), color: "#8ea3bf" }}>Available once the video is verified</span>}
+                  ) : <span style={{ padding: u(7), color: "#8ea3bf" }}>{d.availableOnceVerified}</span>}
                   {canWrite && (
                     confirm === v.id ? (
                       <span style={{ display: "flex", flexWrap: "wrap", gap: u(8), padding: u(7), alignItems: "center", color: "#ffc66d", maxWidth: u(420), whiteSpace: "normal" }}>
-                        {!takes ? "Checking…" : takes.blocked ? takes.blocked
-                          : "Move to the Trash? You can restore it from Library › Trash."}
-                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>Yes</button>}
-                        <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>No</button>
+                        {!takes ? d.checking : takes.blocked ? takes.blocked
+                          : d.moveToTrash}
+                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>}
+                        <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
                       </span>
-                    ) : <button type="button" onClick={() => setConfirm(v.id)} style={{ textAlign: "left", padding: u(7), color: "#ff9aa8", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>Remove this upload</button>
+                    ) : <button type="button" onClick={() => setConfirm(v.id)} style={{ textAlign: "left", padding: u(7), color: "#ff9aa8", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.removeUpload}</button>
                   )}
                 </nav>
               )}
