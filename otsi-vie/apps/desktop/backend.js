@@ -116,13 +116,36 @@ function stackScript(otsiVieDir) {
 /* Python                                                              */
 /* ------------------------------------------------------------------ */
 
+// The video libraries are several GB. They must live on D: (the data
+// drive), never on C: (the system drive), so a library download never
+// fills C:. On Windows, when a D: drive exists, the app's own Python
+// environment and pip's download cache both live there; otherwise they
+// fall back to the engine folder / pip's default cache.
+function venvDir(engineDir) {
+  if (process.platform === 'win32') {
+    try {
+      if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE', '.venv');
+    } catch { /* no D: drive */ }
+  }
+  return path.join(engineDir, '.venv');
+}
+
+function pipCacheDir() {
+  if (process.platform === 'win32') {
+    try {
+      if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE', 'pip-cache');
+    } catch { /* no D: drive */ }
+  }
+  return null;
+}
+
 function pythonCandidates(engineDir) {
   if (process.platform === 'win32') {
     // Only this project's own virtual environment. Never fall back to
     // another project's .venv (in particular never the original
     // project's VIE-Engine-v2\.venv) — ULTRA must not depend on a
     // folder outside its own repo.
-    return [path.join(engineDir, '.venv', 'Scripts', 'python.exe')];
+    return [path.join(venvDir(engineDir), 'Scripts', 'python.exe')];
   }
   return [path.join(engineDir, '.venv', 'bin', 'python3'), 'python3'];
 }
@@ -144,9 +167,10 @@ async function testPython(pythonExe) {
 
 /** A Python that lives inside a .venv belonging to another project. */
 function isForeignVenv(pythonExe, engineDir) {
-  const ownVenv = path.join(engineDir, '.venv').toLowerCase();
+  const ownVenv = venvDir(engineDir).toLowerCase();
+  const engineVenv = path.join(engineDir, '.venv').toLowerCase();
   const p = String(pythonExe).toLowerCase();
-  return /\.venv[\\/]/.test(p) && !p.startsWith(ownVenv);
+  return /\.venv[\\/]/.test(p) && !p.startsWith(ownVenv) && !p.startsWith(engineVenv);
 }
 
 /**
@@ -178,12 +202,14 @@ async function ensureOwnVenv(engineDir, log) {
     // no python on PATH
   }
   if (!sysPy) return null;
-  const venvDir = path.join(engineDir, '.venv');
+  const venv = venvDir(engineDir);
+  const cache = pipCacheDir();
+  const cacheArgs = cache ? ['--cache-dir', cache] : [];
   try {
     if (!fs.existsSync(venvPy)) {
-      await runCommand(sysPy, ['-m', 'venv', venvDir], { log });
+      await runCommand(sysPy, ['-m', 'venv', venv], { log });
     }
-    await runCommand(venvPy, ['-m', 'pip', 'install', 'pymysql'], { log });
+    await runCommand(venvPy, ['-m', 'pip', 'install', ...cacheArgs, 'pymysql'], { log });
   } catch {
     return null;
   }
@@ -345,8 +371,10 @@ async function ensureWorkerDeps(otsiVieDir, venvPy, log) {
     // No marker yet: install.
   }
   log('Installing the video libraries (first time, a few minutes — several GB)...\n');
+  const cache = pipCacheDir();
+  const cacheArgs = cache ? ['--cache-dir', cache] : [];
   try {
-    await runCommand(venvPy, ['-m', 'pip', 'install', '--extra-index-url', 'https://download.pytorch.org/whl/cpu', '-r', reqFile], { log });
+    await runCommand(venvPy, ['-m', 'pip', 'install', ...cacheArgs, '--extra-index-url', 'https://download.pytorch.org/whl/cpu', '-r', reqFile], { log });
   } catch {
     log('The video libraries could not be installed, so video analysis will not run yet.\n' +
       'Check the connection and disk space, then open OTSI VIE again to retry.\n');
