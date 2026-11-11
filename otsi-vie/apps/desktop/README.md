@@ -241,6 +241,14 @@ and the Nuitka compile cannot run there either. On a Windows machine,
 stage first, then build. Staging goes in `otsi-vie/.local/packaging/`
 (git-ignored):
 
+The workspace installs with `node-linker=hoisted` (`otsi-vie/.npmrc`) — a
+real flat `node_modules` with no symlinks. That is what lets the web build
+run on Windows without Developer Mode, and what keeps the packaged web
+server's dependencies intact (a symlinked install drops transitive
+dependencies when electron-builder copies the standalone tree). After
+pulling any change to `.npmrc`, reinstall from the repo root
+(`pnpm install`) before staging.
+
 1. **Engine builds** (from the repo root):
    `pnpm --filter @otsi-vie/contracts build`,
    `pnpm --filter @otsi-vie/api build`,
@@ -290,9 +298,9 @@ stage first, then build. Staging goes in `otsi-vie/.local/packaging/`
    size — the ~300–400 MB target assumes SQLite; with MySQL expect
    ~550–650 MB.
 
-The API build is minified at packaging time (esbuild over
-`apps/api/dist`); the web is already bundled + minified by the Next.js
-production build.
+The API build is not minified at packaging time yet — the esbuild step
+over `apps/api/dist` is a follow-up, not built. The web is already bundled
++ minified by the Next.js production build.
 
 ## Limits (honest)
 

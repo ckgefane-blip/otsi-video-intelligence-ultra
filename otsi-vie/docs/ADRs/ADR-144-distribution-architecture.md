@@ -30,6 +30,12 @@
   (Electron's own Node, or a bundled `node.exe`), start the bundled local database, start the bundled native
   worker. If a bundled component is missing or corrupt, the app says so plainly and stops — it never tries to
   download source or build anything.
+- The workspace installs with **`node-linker=hoisted`** (`otsi-vie/.npmrc`): a real flat `node_modules`, no
+  symlinks. The pnpm default (symlinked) layout breaks the Windows build two ways: the Next.js standalone
+  build creates symlinks in `.next/standalone`, which Windows refuses without Developer Mode (EPERM), and
+  electron-builder drops the transitive dependencies that exist only inside `.pnpm/` when it copies the
+  standalone tree as extraResources, so the packaged web server would die with `Cannot find module` at
+  runtime. Hoisted fixes both, and Developer Mode is not needed for the build. (Audit, 2026-11-11.)
 - **Installer size, target ~300–400 MB** (plan v3; the v2 estimate of ~1.0–1.3 GB is superseded). Rough component
   sizes, not a measurement: Electron runtime ~150 MB, pre-built web ~50–80 MB, pre-built API plus production
   dependencies ~100–120 MB, the single AI runtime (ONNX Runtime + DirectML + OpenVINO, §1.2) ~100–150 MB, the
