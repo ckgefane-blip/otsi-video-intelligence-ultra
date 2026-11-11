@@ -49,17 +49,28 @@ function runCommand(cmd, args, options = {}) {
   // On Windows, newer Node (including the Node inside this Electron
   // version) refuses to start .cmd/.bat files directly and fails with
   // `spawn EINVAL` (CVE-2024-27980). Run those through the Windows
-  // command shell instead, with the path quoted. This is the only
-  // place a .cmd is started: corepack.cmd (via resolveCorepack).
-  const isWindowsScript = process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd);
+  // command shell instead. The path AND each argument must be quoted:
+  // `shell: true` alone is not enough — it leaves `C:\Program Files\...`
+  // unquoted and cmd.exe then fails with `'C:\Program' is not
+  // recognized`. So build the command line with every part quoted and
+  // run it via cmd.exe /d /s /c (the /s strips the outer quotes,
+  // leaving the quoted path + args). This is the only place a .cmd is
+  // started: corepack.cmd (via resolveCorepack).
+  let spawnCmd = cmd;
+  let spawnArgs = args;
+  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd)) {
+    const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    const commandLine = [cmd, ...args].map(quote).join(' ');
+    spawnCmd = process.env.ComSpec || 'cmd.exe';
+    spawnArgs = ['/d', '/s', '/c', `"${commandLine}"`];
+  }
   return new Promise((resolve, reject) => {
     let child;
     try {
-      child = spawn(cmd, args, {
+      child = spawn(spawnCmd, spawnArgs, {
         cwd,
         env: env || process.env,
         windowsHide: true,
-        ...(isWindowsScript ? { shell: true } : {}),
       });
     } catch (err) {
       reject(new Error(`Could not start ${cmd}: ${err.message}`));
