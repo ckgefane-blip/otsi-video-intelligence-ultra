@@ -66,6 +66,17 @@ extraResources:
   # runtime (SHA-256 pins). No worker source ships.
   - from: ../../services/worker/vie_worker/models/registry.json
     to: engine/otsi-vie/services/worker/vie_worker/models/registry.json
+  # The database schema (SQLite conversion, ADR-144 §1.2): the desktop's
+  # SQLite path creates the local database from sqlite-bootstrap.sql and
+  # applies the per-migration files in database/migrations-sqlite/
+  # (db_setup.py, migrate.py). The MySQL migrations are NOT shipped —
+  # the desktop never runs them.
+  - from: ../../database
+    to: engine/otsi-vie/database
+    filter:
+      - sqlite-bootstrap.sql
+      - sqlite_triggers.sql
+      - migrations-sqlite/**/*
   # Nuitka-compiled native engine + tools (ADR-144 §1.8). No .py ships.
   - from: ../../.local/packaging/native
     to: engine
@@ -77,7 +88,9 @@ extraResources:
   - from: ../../.local/packaging/node
     to: node
   # Bundled portable MySQL ZIP (ADR-144 §1.2) — bundled, not downloaded at
-  # runtime. Removed when the SQLite decision is approved.
+  # runtime. The SQLite decision is approved, but the bundle stays until the
+  # conversion passes all eight safeguards and the staged rollout reaches
+  # the owner's PC (docs/sqlite-rollout.md) — only then is it removed.
   - from: ../../.local/packaging/mysql-8.4.6-winx64.zip
     to: mysql-8.4.6-winx64.zip
 publish:

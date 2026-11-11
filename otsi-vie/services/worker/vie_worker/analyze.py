@@ -25,7 +25,7 @@ import pyarrow.parquet as pq
 
 from . import appearance as appear
 from . import jersey as jer
-from .db import audit, publish, tx
+from .db import audit, is_sqlite_conn, publish, tx
 from .detect.base import load_detector
 from .detect.pitch import classify, classify_surface, grass_mask
 from .detect.stored import StoredDetector
@@ -360,8 +360,14 @@ def handle_analyze(runner: JobRunner, job: Job) -> dict:
             presence.append((str(uuid.uuid4()), video_id, tid, start, max(prev, start + 1), count))
         # frame/timestamp index (media contract): derived from the source alone, so every run agrees; shots are per run, not stored here
         for i in range(0, len(frame_index_rows), 2000):
-            cur.executemany("INSERT INTO video_frame_index (video_id, frame_index, pts_us, keyframe) VALUES (%s, %s, %s, %s) "
-                            "ON DUPLICATE KEY UPDATE frame_index = frame_index", frame_index_rows[i:i + 2000])
+            if is_sqlite_conn(runner.conn):
+                # SQLite: the MySQL no-op upsert is INSERT OR IGNORE - the same
+                # PK (video_id, frame_index) + UNIQUE (video_id, pts_us) skips the row.
+                cur.executemany("INSERT OR IGNORE INTO video_frame_index (video_id, frame_index, pts_us, keyframe) VALUES (%s, %s, %s, %s)",
+                                frame_index_rows[i:i + 2000])
+            else:
+                cur.executemany("INSERT INTO video_frame_index (video_id, frame_index, pts_us, keyframe) VALUES (%s, %s, %s, %s) "
+                                "ON DUPLICATE KEY UPDATE frame_index = frame_index", frame_index_rows[i:i + 2000])
         known = {r[1] for r in frame_index_rows}
         stray = sorted({r[1] for r in obs_rows} - known)
         if stray:                                                  # an observation must point at a frame of this run's index: say which, never guess

@@ -339,3 +339,34 @@ def test_json_roundtrip_through_audit():
             c.close()
     finally:
         _drop(stack)
+
+
+def test_frame_index_insert_or_ignore_skips_duplicates():
+    """analyze.py:364 - the frame-index upsert is INSERT OR IGNORE on SQLite
+    (the MySQL form is ON DUPLICATE KEY UPDATE ... = ...). Same PK/UNIQUE
+    shape as the real video_frame_index: a duplicate frame_index or pts_us
+    for the same video is skipped, never an error, never a second row."""
+    stack = _stack()
+    try:
+        c = connect(stack["dsn"])
+        try:
+            with tx(c) as cur:
+                cur.execute("""CREATE TABLE video_frame_index (
+                    video_id TEXT NOT NULL,
+                    frame_index INTEGER NOT NULL,
+                    pts_us INTEGER NOT NULL,
+                    keyframe INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (video_id, frame_index),
+                    UNIQUE (video_id, pts_us)
+                ) STRICT""")
+            rows = [("vid-1", 0, 0, 0), ("vid-1", 1, 33333, 0),
+                    ("vid-1", 0, 0, 0), ("vid-1", 2, 33333, 0)]
+            with tx(c) as cur:
+                cur.executemany("INSERT OR IGNORE INTO video_frame_index (video_id, frame_index, pts_us, keyframe) VALUES (%s, %s, %s, %s)", rows)
+            with c.cursor() as cur:
+                cur.execute("SELECT COUNT(*) AS n FROM video_frame_index")
+                assert cur.fetchone()["n"] == 2
+        finally:
+            c.close()
+    finally:
+        _drop(stack)
