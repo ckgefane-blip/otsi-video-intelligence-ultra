@@ -49,6 +49,8 @@
   font-weight: 600;
   line-height: 1.1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;  /* ADR-139: a translated label longer than its cell clips instead of overlapping the next tab */
   color: #fff;
   text-decoration: none;
   border: calc(1.5 * var(--u)) solid transparent;

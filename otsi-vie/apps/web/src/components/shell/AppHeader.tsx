@@ -16,6 +16,7 @@ import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
 import { navItems } from "@/lib/pages";
+import { useLocale } from "@/lib/i18n";
 import styles from "./AppHeader.module.css";
 import { CommandPalette } from "./CommandPalette";
 import { JobTray } from "./JobTray";
@@ -27,6 +28,13 @@ import { ProfileChip } from "./ProfileChip";
 const TABS: Record<string, [number, number]> = {
   Home: [328, 169], Upload: [501, 167.75], Processing: [672.75, 168.75], Analysis: [845.5, 171.25], Tactical: [1020.75, 170],
   "Reel Builder": [1194.75, 169.5], "Clip Studio": [1368.25, 170.25], "Player Report": [1542.5, 170.25], Library: [1716.75, 169.5], Export: [1890.75, 169.5],
+};
+
+/** The dictionary key for each navigation label (ADR-139). The English label stays the key into TABS and the link identity;
+ *  only the text the person reads is translated, so the approved layout never moves. */
+const NAV_KEY: Record<string, "home" | "upload" | "processing" | "analysis" | "tactical" | "reels" | "studio" | "reports" | "library" | "export"> = {
+  Home: "home", Upload: "upload", Processing: "processing", Analysis: "analysis", Tactical: "tactical",
+  "Reel Builder": "reels", "Clip Studio": "studio", "Player Report": "reports", Library: "library", Export: "export",
 };
 
 /** The display class this screen gives the design stage (physical pixels): a fact about this device, not a setting. */
@@ -47,6 +55,7 @@ function useDisplayClass(): { label: string; detail: string } {
 
 export function AppHeader() {
   const items = navItems(usePathname() ?? "/");
+  const { t } = useLocale();
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
   const display = useDisplayClass();
@@ -64,16 +73,18 @@ export function AppHeader() {
         <nav aria-label="Main" className={styles.nav}>
           {items.map((item) => {
             const [x, w] = TABS[item.label] ?? [0, 0];
+            const navKey = NAV_KEY[item.label];
+            const label = navKey ? t.nav[navKey] : item.label;
             return (
               <Link key={item.label} href={navHref(item.label, item.href, ctx)} aria-current={item.active ? "page" : undefined} className={styles.tab}
                 style={{ left: `calc(${x} * var(--u))`, width: `calc(${w} * var(--u))` }}>
-                {item.label}
+                {label}
               </Link>
             );
           })}
         </nav>
-        <button type="button" className={`${styles.abs} ${styles.search}`} onClick={() => setSearch(true)} aria-label="Search and commands (Ctrl+K)"
-          title="Search matches, players, reels and projects, or run a command (Ctrl+K)" data-header-search>
+        <button type="button" className={`${styles.abs} ${styles.search}`} onClick={() => setSearch(true)} aria-label={t.shell.searchAndCommands}
+          title={t.shell.searchHint} data-header-search>
           <Search className={styles.searchIcon} aria-hidden />
         </button>
         <NotificationBell styles={styles} />

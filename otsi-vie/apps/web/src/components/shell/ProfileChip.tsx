@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { PAGE_NAME, useUiMode } from "@/lib/uiMode";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 const roleLabel = (r: string) => r.charAt(0) + r.slice(1).toLowerCase();
@@ -113,6 +114,7 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
               {ui.error && <p role="alert" className="mt-1 text-xs text-danger">{ui.error}</p>}
             </fieldset>
           )}
+          <LanguageSwitcher />
           {me.memberships.length > 0 && (
             <fieldset className="mt-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-muted">Organization</legend>
