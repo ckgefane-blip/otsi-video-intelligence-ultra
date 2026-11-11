@@ -135,6 +135,10 @@ export function Right() {
         <button type="button" data-open-interchange="" onClick={e.openInterchange} disabled={!reel}
           className="absolute disabled:opacity-50" title={reel ? "Export OpenTimelineIO (.otio) and .otsi-reel manifest with evidence flags" : "Open a reel first"}
           style={{ left: u(1851), top: u(506), height: u(26), padding: 0, background: "none", border: 0, color: "#33a8ff", fontSize: u(16), cursor: reel ? "pointer" : "default", textDecoration: "underline", fontFamily: "inherit" }}>Interchange…</button>
+        {/* ADR-142: the Single Match Spotlight / Scouting Pack — the paid bundle (reel + report + published brief, 10 tokens) */}
+        <button type="button" data-open-scouting-pack="" onClick={e.openScoutingPack} disabled={!reel}
+          className="absolute disabled:opacity-50" title={reel ? "Build the Scouting Pack for the club: reel, player report and published AI Analyst brief in one download (10 tokens)" : "Open a reel first"}
+          style={{ left: u(1851), top: u(532), height: u(26), padding: 0, background: "none", border: 0, color: "#33a8ff", fontSize: u(16), cursor: reel ? "pointer" : "default", textDecoration: "underline", fontFamily: "inherit" }}>Scouting Pack…</button>
         <T x={1996} y={617} size={17} color="#8ea3bf">{e.codec === "h264" ? "Best compatibility, high quality, smaller file size." : e.codec === "av1" ? "Royalty-free, smaller files, plays in modern browsers." : "Royalty-free WebM, plays in modern browsers."}</T>
       </section>
 

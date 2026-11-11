@@ -44,6 +44,8 @@ export interface ExportState {
   openLibrary(): void;
   /** C.3 (ADR-103): OpenTimelineIO (.otio) and .otsi-reel manifest interchange dialog */
   openInterchange(): void;
+  /** ADR-142: the Single Match Spotlight / Scouting Pack dialog (the paid bundle: reel + report + published brief) */
+  openScoutingPack(): void;
   /** E3: download one of the reel's finished files (Reel.formats) */
   download(renderId: string): void;
   setAspect(a: ReelAspectT): void;

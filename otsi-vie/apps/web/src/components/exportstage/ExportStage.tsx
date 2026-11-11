@@ -10,6 +10,7 @@ import { renderedState } from "@/components/studio/spotlight";
 import { ExportPreflight } from "./ExportPreflight";
 import { InterchangeDialog } from "./Interchange";
 import { PresetLibrary } from "./PresetLibrary";
+import { ScoutingPackDialog } from "./ScoutingPackDialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -41,6 +42,7 @@ export function ExportStage() {
   const [presets, setPresets] = useState<ExportPreset[]>(BUILTIN_PRESETS);
   const [library, setLibrary] = useState(false);
   const [interchange, setInterchange] = useState(false);
+  const [pack, setPack] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const loadPresets = useCallback(() => api<ExportPreset[]>("/v1/export-presets").then(setPresets, () => setPresets(BUILTIN_PRESETS)), []);
   useEffect(() => { void loadPresets(); }, [loadPresets]);
@@ -128,7 +130,7 @@ export function ExportStage() {
         .then(() => { setMsg({ ok: true, text: ok }); return load(); }, (x) => fail(x, "The branding was not saved.")).finally(() => setBusy(false));
     },
     reset: () => { setCodec("h264"); setBitrate(8); setPresetId("builtin-reel"); setMsg({ ok: true, text: "Export settings reset." }); },
-    preset, setPreset, presets, openLibrary: () => setLibrary(true), openInterchange: () => setInterchange(true),
+    preset, setPreset, presets, openLibrary: () => setLibrary(true), openInterchange: () => setInterchange(true), openScoutingPack: () => setPack(true),
     download: (id) => { void api<Links>(`/v1/renders/${id}/playback`).then((l) => { window.location.href = l.download_url; }, (x) => fail(x, "That file cannot be downloaded.")); },
     setAspect: (a) => {
       if (!reel) return;
@@ -165,6 +167,7 @@ export function ExportStage() {
       <PresetLibrary presets={presets} canAdmin={!!organization && ["OWNER", "ADMIN"].includes(organization.role)} canSave={!!organization && WRITERS.includes(organization.role)}
         codec={codec} bitrate={bitrate} open={library} onOpenChange={setLibrary} reload={async () => { await loadPresets(); }} choose={setPreset} />
       <InterchangeDialog reel={reel} presetId={chosen.id} canWrite={!!organization && WRITERS.includes(organization.role)} open={interchange} onOpenChange={setInterchange} />
+      <ScoutingPackDialog reel={reel} canWrite={!!organization && WRITERS.includes(organization.role)} open={pack} onOpenChange={setPack} />
     </DesignStage>
   );
 }
