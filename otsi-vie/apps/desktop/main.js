@@ -194,14 +194,13 @@ async function startup() {
   checkAborted();
 
   setStatus('Finding Python...');
-  const python = await backend.findPython(engine);
+  const python = await backend.findPython(engine, log);
   if (!python) {
     throw new Error(
       'No Python with the engine\'s database driver (pymysql) was found.\n' +
-        'The engine\'s Python environment lives with the original project at\n' +
-        '  D:\\OTSI-Workspace\\VIE-Engine-v2\\.venv\n' +
-        'If it is somewhere else, copy that whole .venv folder into the\n' +
-        'OTSI-Ultra folder and open OTSI VIE again.',
+        'Install Python 3.12 or newer from python.org (tick "Add python.exe to PATH"\n' +
+        'during setup), then open OTSI VIE again. The app creates its own Python\n' +
+        'environment inside the OTSI-Ultra folder; it never uses another project\'s folder.',
     );
   }
   checkAborted();

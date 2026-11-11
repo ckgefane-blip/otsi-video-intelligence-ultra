@@ -117,7 +117,17 @@ def prepare(name: str, mysql_mode: str = "docker") -> dict[str, str]:
     """Create (once) and migrate the stack's database, roles, runtime account and signing key; returns the process environment."""
     owner = name == "owner"
     if owner:
-        port, db, root_pw = OWNER_PORT, OWNER_DB, owner_db_up(mysql_mode)
+        # Portable mode runs its own mysqld on portable_mysql.PORT (3510),
+        # a different port from the Docker owner stack (OWNER_PORT 3508), so
+        # both can run side by side. The API/worker DSN must point at the
+        # portable port, not the Docker one.
+        root_pw = owner_db_up(mysql_mode)
+        if mysql_mode == "portable":
+            import portable_mysql
+            port = portable_mysql.PORT
+        else:
+            port = OWNER_PORT
+        db = OWNER_DB
     else:
         port, db, root_pw = TEST_PORT, f"vie_{name.replace('-', '_')}", test_root_password()
     assert port != 3306

@@ -112,11 +112,11 @@ function stackScript(otsiVieDir) {
 
 function pythonCandidates(engineDir) {
   if (process.platform === 'win32') {
-    return [
-      path.join(engineDir, '.venv', 'Scripts', 'python.exe'),
-      'D:\\OTSI-Workspace\\VIE-Engine-v2\\.venv\\Scripts\\python.exe',
-      'C:\\OTSI-Workspace\\VIE-Engine-v2\\.venv\\Scripts\\python.exe',
-    ];
+    // Only this project's own virtual environment. Never fall back to
+    // another project's .venv (in particular never the original
+    // project's VIE-Engine-v2\.venv) — ULTRA must not depend on a
+    // folder outside its own repo.
+    return [path.join(engineDir, '.venv', 'Scripts', 'python.exe')];
   }
   return [path.join(engineDir, '.venv', 'bin', 'python3'), 'python3'];
 }
@@ -136,17 +136,72 @@ async function testPython(pythonExe) {
   }
 }
 
-/** First Python that runs and has the engine's database driver, else null. */
-async function findPython(engineDir) {
-  for (const cand of pythonCandidates(engineDir)) {
-    if (await testPython(cand)) return cand;
-  }
-  // Last resort: a python on PATH.
+/** A Python that lives inside a .venv belonging to another project. */
+function isForeignVenv(pythonExe, engineDir) {
+  const ownVenv = path.join(engineDir, '.venv').toLowerCase();
+  const p = String(pythonExe).toLowerCase();
+  return /\.venv[\\/]/.test(p) && !p.startsWith(ownVenv);
+}
+
+/**
+ * Create this project's own .venv (if it does not exist yet) with the
+ * system Python and install the database driver into it, so ULTRA never
+ * has to borrow a Python from another project. Returns the venv's
+ * Python when it runs and has the driver, else null.
+ */
+async function ensureOwnVenv(engineDir, log) {
+  const venvPy = pythonCandidates(engineDir)[0];
+  if (await testPython(venvPy)) return venvPy;
+  // Find a system python (not inside any other project's .venv).
+  let sysPy = null;
   try {
     const finder = process.platform === 'win32' ? 'where' : 'which';
     const { stdout } = await execFileAsync(finder, ['python']);
-    const first = stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
-    if (first && (await testPython(first))) return first;
+    for (const line of stdout.split(/\r?\n/)) {
+      const cand = line.trim();
+      if (!cand || isForeignVenv(cand, engineDir)) continue;
+      try {
+        await runCommand(cand, ['--version'], {});
+        sysPy = cand;
+        break;
+      } catch {
+        // not usable
+      }
+    }
+  } catch {
+    // no python on PATH
+  }
+  if (!sysPy) return null;
+  const venvDir = path.join(engineDir, '.venv');
+  try {
+    if (!fs.existsSync(venvPy)) {
+      await runCommand(sysPy, ['-m', 'venv', venvDir], { log });
+    }
+    await runCommand(venvPy, ['-m', 'pip', 'install', 'pymysql'], { log });
+  } catch {
+    return null;
+  }
+  return (await testPython(venvPy)) ? venvPy : null;
+}
+
+/** First Python that runs and has the engine's database driver, else null. */
+async function findPython(engineDir, log) {
+  for (const cand of pythonCandidates(engineDir)) {
+    if (await testPython(cand)) return cand;
+  }
+  // Create this project's own .venv rather than borrowing another
+  // project's Python.
+  const own = await ensureOwnVenv(engineDir, log);
+  if (own) return own;
+  // Last resort: a python on PATH that is not inside another project's .venv.
+  try {
+    const finder = process.platform === 'win32' ? 'where' : 'which';
+    const { stdout } = await execFileAsync(finder, ['python']);
+    for (const line of stdout.split(/\r?\n/)) {
+      const cand = line.trim();
+      if (!cand || isForeignVenv(cand, engineDir)) continue;
+      if (await testPython(cand)) return cand;
+    }
   } catch {
     // ignore: no python on PATH
   }
@@ -400,6 +455,7 @@ module.exports = {
   findPython,
   pythonCandidates,
   testPython,
+  ensureOwnVenv,
   ensureRepo,
   ensureJsDeps,
   ensureBuilds,

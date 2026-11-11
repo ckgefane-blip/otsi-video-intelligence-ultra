@@ -2,9 +2,11 @@
 
 Downloads the official MySQL 8.4 Windows ZIP, extracts it under the repo's
 .local directory, initializes its own data directory, and runs mysqld on
-127.0.0.1:3508 — the same port and database the Docker-based owner stack
-uses, but with a SEPARATE data directory (.local/mysql-data-portable).
-Docker's data (.local/mysql-data) is never touched.
+127.0.0.1:3510 — a DIFFERENT port from the Docker-based owner stack
+(127.0.0.1:3508), so the portable server and the original stack's Docker
+database (otsi-vie-v2-mysql) can run side by side. It uses a SEPARATE data
+directory (.local/mysql-data-portable). Docker's data (.local/mysql-data)
+is never touched.
 
 Verified download (2026-11-11, HEAD):
   URL: https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.6-winx64.zip
@@ -40,7 +42,7 @@ MYSQL_VERSION = "8.4.6"
 # file returns 403, so it is not used. Verified 2026-11-11: HTTP 200.
 MYSQL_URL = "https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.6-winx64.zip"
 MYSQL_ZIP_BYTES = 260772595  # Content-Length verified 2026-11-10
-PORT = 3508
+PORT = 3510  # portable server only; the Docker owner stack stays on 3508
 
 _PROC: subprocess.Popen | None = None
 _STARTED_BY_US = False
@@ -199,7 +201,7 @@ def _set_root_password(root: Path, exe: Path, root_password: str) -> None:
 
 
 def ensure_running(root: Path, root_password: str) -> bool:
-    """Make sure a portable mysqld is running on 127.0.0.1:3508.
+    """Make sure a portable mysqld is running on 127.0.0.1:3510.
 
     Returns True when this call started the server, False when a server was
     already running and accepting the root password (for example left over
@@ -212,16 +214,15 @@ def ensure_running(root: Path, root_password: str) -> bool:
     if _PROC is not None and _PROC.poll() is None:
         return True
     if _root_login_works(root_password):
-        print("portable MySQL: server already running on 127.0.0.1:3508")
+        print(f"portable MySQL: server already running on 127.0.0.1:{PORT}")
         return False
     if _port_answers():
-        # Port 3508 is in use by something else (most often the original
-        # stack's Docker database, otsi-vie-v2-mysql) and it did not accept
+        # Port 3510 is in use by something else and it did not accept
         # the stored root password. This module never stops another
         # program's database on its own — that is the user's call, not
         # the app's. Report the conflict plainly and stop.
         raise SystemExit(
-            "portable MySQL: port 3508 is already in use by another program, and it did "
+            f"portable MySQL: port {PORT} is already in use by another program, and it did "
             "not accept the stored root password.\n"
             "  If that is the original stack's Docker database (otsi-vie-v2-mysql), stop "
             "it first with:\n"
@@ -270,7 +271,7 @@ def ensure_running(root: Path, root_password: str) -> bool:
         raise SystemExit("portable MySQL: the server started but the stored root password "
                          "was not accepted. Delete .local/mysql-portable.env and "
                          ".local/mysql-data-portable and run again.")
-    print("portable MySQL: server running on 127.0.0.1:3508")
+    print(f"portable MySQL: server running on 127.0.0.1:{PORT}")
     return True
 
 
