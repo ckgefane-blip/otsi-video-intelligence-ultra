@@ -1,24 +1,20 @@
 "use client";
 /**
- * Page 01 Section 06 — Recent Matches (approved reference 01_HOME_OVERVIEW, "recent matches").
- *
- * Real data only: the four most recently analysed match videos (GET /v1/overview/recent-matches: a finished analysis run). A row shows
- * the linked match (home vs away, competition, kick-off date, score) when someone linked one, otherwise the video's own title and
- * "Not linked to a match". The score is shown only when both scores were recorded. No club crests are stored, so the crest stays the
- * design's neutral disc. A row opens the video in the Analysis workspace; View All opens the Library. With nothing analysed: the
- * reference's empty state.
+ * Home — Recent Matches: the four most recently analysed match videos (GET /v1/overview/recent-matches: a finished analysis run). A row
+ * shows the video's real thumbnail (GET /v1/videos/:id/thumbnail, the frame stored beside its source) — or, when it has none, an honest
+ * empty thumbnail that says so — its real length, the linked match (home vs away, competition, kick-off date, score) when someone linked
+ * one, otherwise the video's own title and "Not linked to a match". The score only when both were recorded. A row opens the video in the
+ * Analysis workspace; View all opens the Library. Nothing analysed: the empty state. A failed read says so and retries.
  */
 import type { RecentMatch } from "@otsi-vie/contracts";
+import { ArrowRight, ChevronRight, ImageOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
-import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
 
-const ROWS = [855, 939, 1024, 1110];
-
-/** clock of a duration: m:ss, or minutes past the hour as mmm:ss for a full match (94:12) */
-const clock = (us: number | null) => {
+/** a duration as m:ss, minutes running past the hour for a full match (138:10) */
+export const clock = (us: number | null) => {
   if (!us) return "—";
   const t = Math.round(us / 1e6);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
@@ -34,21 +30,23 @@ function subtitle(m: RecentMatch) {
   return [m.match.competition, day(m.match.kickoff_at)].filter(Boolean).join(" • ") || "No competition or date yet (Upload › Set match details)";
 }
 const score = (m: RecentMatch) =>
-  m.match && m.match.home_score !== null && m.match.away_score !== null ? `${m.match.home_score} - ${m.match.away_score}` : "—";
+  m.match && m.match.home_score !== null && m.match.away_score !== null ? `${m.match.home_score} - ${m.match.away_score}` : null;
 
-/** the reference's drawn thumbnail (TH): sky to pitch, used when the video has no thumbnail */
-const pitch = (a: number) => `radial-gradient(ellipse at 40% 65%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a ${a}%,#1d5a28)`;
-
-function Thumb({ m, a, o, y }: { m: RecentMatch | undefined; a: number; o: [number, number]; y: number }) {
-  const [src, setSrc] = useState<string | null>(null);
+function Thumb({ m }: { m: RecentMatch }) {
+  const { t } = useLocale();
+  const [src, setSrc] = useState<string | null | undefined>(m.has_thumbnail ? undefined : null);
   useEffect(() => {
-    if (!m?.has_thumbnail) return;
+    if (!m.has_thumbnail) { setSrc(null); return; }
     let live = true, url: string | null = null;
-    void apiBlob(`/v1/videos/${m.video_id}/thumbnail`).then((b) => { url = URL.createObjectURL(b); if (live) setSrc(url); }, () => undefined);
+    void apiBlob(`/v1/videos/${m.video_id}/thumbnail`).then((b) => { url = URL.createObjectURL(b); if (live) setSrc(url); }, () => { if (live) setSrc(null); });
     return () => { live = false; if (url) URL.revokeObjectURL(url); };
-  }, [m?.video_id, m?.has_thumbnail]);
+  }, [m.video_id, m.has_thumbnail]);
   return (
-    <B o={o} x={68} y={y - 35} w={157} h={70} style={{ background: src ? `center / cover no-repeat url(${src})` : pitch(a), borderRadius: u(4) }} />
+    <span className="relative grid h-[54px] w-[96px] shrink-0 place-items-center overflow-hidden rounded border border-line bg-p0" data-thumb={src ? "frame" : src === null ? "none" : "loading"}>
+      {src ? <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        : src === null ? <span title={t.desktop.noThumb} className="text-muted"><ImageOff className="h-4 w-4" aria-hidden /><span className="sr-only">{t.desktop.noThumb}</span></span> : null}
+      <span className="t-mono absolute bottom-0.5 right-0.5 rounded-sm bg-black/75 px-1 text-[10px] leading-4">{clock(m.duration_us)}</span>
+    </span>
   );
 }
 
@@ -61,52 +59,38 @@ export function RecentMatches() {
   const empty = list !== undefined && !failed && list.length === 0;
 
   return (
-    <section aria-label="Recent matches" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
-      <P x={39} y={757} w={791} h={405} />
-      <ACC x={55} y={771} h={26} />
-      <T x={76} y={783} size={27} weight={600} as="h2">{t.body.home.recentMatches}</T>
-      <Link href="/library" className={s.cta} aria-label="View all matches in the Library"
-        style={{ left: u(680), top: u(770 - 101), width: u(124), height: u(34) }}>
-        <T o={[680, 770]} x={774} y={786} size={21} color="#33a8ff" align="right" as="span">{t.body.home.viewAll}</T>
-        <Ic o={[680, 770]} x={790} y={786} k="arr" size={20} color="#33a8ff" />
-      </Link>
-
-      {ROWS.map((y, i) => {
-        const m = list?.[i];
-        const o: [number, number] = [55, y - 39];
-        const first = (empty || failed) && i === 0;
-        const body = (
-          <>
-            <Thumb m={m} a={25 + i * 8} o={o} y={y} />
-            <B o={o} x={168} y={y + 11} w={54} h={22} style={{ background: "rgba(0,10,25,.85)", borderRadius: u(4) }} />
-            <T o={o} x={195} y={y + 22} size={19} weight={600} align="center" as="span">{m ? clock(m.duration_us) : "—"}</T>
-            <B o={o} x={250} y={y - 20} w={40} h={40} style={{ background: "#e8eef8", borderRadius: "50%", opacity: 0.9 }} />
-            <T o={o} x={319} y={y - 14} size={21} weight={600} as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? title(m) : failed ? t.body.home.matchesLoadFailed : first ? t.body.home.noMatchesYet : "—"}
-            </T>
-            <T o={o} x={319} y={y + 16} size={18} color="#b9cbe2" as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? subtitle(m) : failed ? t.body.home.tapRetry : first ? t.body.home.matchesListedHere : "—"}
-            </T>
-            <T o={o} x={737} y={y} size={26} weight={700} align="center" as="span">{m ? score(m) : "—"}</T>
-            <Ic o={o} x={791} y={y} k="gt" size={20} color="#cfe0f5" />
-          </>
-        );
-        const box = { left: u(55), top: u(y - 39 - 101), width: u(758), height: u(80), background: "#06142a", borderRadius: u(6), ["--bc" as string]: "#10294a" };
-        // a failed read used to wear the empty state's words; now the first row says so and retries the read
-        if (failed && i === 0) {
-          return (
-            <button key={y} type="button" className={`${s.cta} ${s.framed}`} style={{ ...box, padding: 0, cursor: "pointer", textAlign: "left" }}
-              onClick={() => { setList(undefined); setReload((r) => r + 1); }}
-              aria-label="Recent matches could not be read. Retry">{body}</button>
-          );
-        }
-        return m ? (
-          <Link key={y} href={`/videos/${m.video_id}/analyze`} className={`${s.cta} ${s.framed}`} style={box}
-            aria-label={`${title(m)}, ${subtitle(m)}: open in the Analysis workspace`}>{body}</Link>
-        ) : (
-          <div key={y} className={`${s.a} ${s.framed}`} style={box} aria-hidden={!first}>{body}</div>
-        );
-      })}
+    <section aria-label="Recent matches" className="vie-panel min-w-0" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
+      <div className="vie-ph">
+        <h2 className="t-panel">{t.body.home.recentMatches}</h2>
+        <Link href="/library" className="t-small flex items-center gap-1 text-primary hover:underline" aria-label="View all matches in the Library">
+          {t.body.home.viewAll}<ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+      </div>
+      <ul className="flex flex-col p-1.5">
+        {list === undefined && <li className="t-small px-2 py-3 text-muted">{t.common.loading}</li>}
+        {failed && (
+          <li><button type="button" className="t-small w-full rounded px-2 py-3 text-left text-primary hover:bg-raised"
+            onClick={() => { setList(undefined); setReload((r) => r + 1); }} aria-label="Recent matches could not be read. Retry">
+            {t.body.home.matchesLoadFailed} · {t.body.home.tapRetry}</button></li>
+        )}
+        {empty && (
+          <li className="px-2 py-3"><span className="t-body block">{t.body.home.noMatchesYet}</span><span className="t-small text-muted">{t.body.home.matchesListedHere}</span></li>
+        )}
+        {list?.slice(0, 4).map((m) => (
+          <li key={m.video_id}>
+            <Link href={`/videos/${m.video_id}/analyze`} className="flex items-center gap-3 rounded px-1.5 py-1.5 hover:bg-raised"
+              aria-label={`${title(m)}, ${subtitle(m)}: open in the Analysis workspace`}>
+              <Thumb m={m} />
+              <span className="min-w-0 flex-1">
+                <span className="t-body block truncate font-medium">{title(m)}</span>
+                <span className="t-small block truncate text-muted">{subtitle(m)}</span>
+              </span>
+              {score(m) && <span className="t-metric text-[15px]">{score(m)}</span>}
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -23,10 +23,13 @@ import { usePage02 } from "./page02";
 import { profileLabel } from "./ProfileCard";
 import { rightsSummary, UploadRightsDialog } from "./RightsDialog";
 import { useUpload } from "./UploadWorkspace";
+import { useTierLimit } from "@/lib/uploadTier";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",");
 const STARS = Array.from({ length: 10 }, (_, i) => ({ x: 600 + i * 100, y: 380 + Math.abs(i - 4.5) * 18 }));
 const gb = (b: number) => `${Math.round(b / 1024 ** 3)} GB`;
+/** shown limit: the tier limit (Free 2 / Pro 24 / Enterprise 64 GB) capped by the server's own */
+const shown = (tier: number | null | undefined, server: number | undefined) => (tier ? gb(tier) : server ? gb(server) : "—");
 
 function ProjectDialog() {
   const { t: dict } = useLocale();
@@ -102,6 +105,7 @@ export function DropZoneSection() {
   const d = dict.body.upload;
   const { addFiles, projectId, projects, canWrite, rights, setRightsDialog } = useUpload();
   const { limits, setProjectDialog, say, prefs, setOptionsTab } = usePage02();
+  const tierMax = useTierLimit()?.maxBytes;
   const [mode] = useSourceMode();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -146,8 +150,8 @@ export function DropZoneSection() {
       <T x={1181} y={561} size={38} weight={700} align="center">{link ? d.pasteLinkHere : batch ? d.dragDropMany : d.dragDropOne}</T>
       <T x={1181} y={610} size={24} color="#e3eefb" align="center">
         {link ? d.dropSubtitleLink
-          : batch ? d.dropSubtitleBatch.replace("{size}", limits ? gb(limits.max_upload_bytes) : "—")
-          : d.dropSubtitleFile.replace("{size}", limits ? gb(limits.max_upload_bytes) : "—")}
+          : batch ? d.dropSubtitleBatch.replace("{size}", shown(tierMax, limits?.max_upload_bytes))
+          : d.dropSubtitleFile.replace("{size}", shown(tierMax, limits?.max_upload_bytes))}
       </T>
       {!link && (
         <button type="button" onClick={browse} aria-label={d.browseFiles} className="absolute"

@@ -11,7 +11,7 @@ import type { Dictionary, Locale } from "@/lib/i18n";
 export type ProcessingDict = Dictionary["body"]["processing"];
 
 /** BCP 47 tag for a locale, for the dates and numbers shown beside translated words. */
-export const DATE_TAG: Record<Locale, string> = { en: "en-GB", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR" };
+export const DATE_TAG: Record<Locale, string> = { en: "en-GB", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR", pt: "pt-BR" };
 
 export type StageState = "WAITING" | "ACTIVE" | "DONE" | "FAILED" | "CANCELLED" | "NOT_BUILT";
 

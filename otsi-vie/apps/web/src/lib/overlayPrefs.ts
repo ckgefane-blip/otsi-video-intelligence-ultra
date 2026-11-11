@@ -1,13 +1,15 @@
 "use client";
 /**
- * The viewer's default video overlays (people boxes, track labels, ball; player tracks, team shapes, heatmap, pass arrows), set in the Library's left panel and used by the video pages
+ * The viewer's default video overlays (people boxes, track labels, ball; player tracks, team shapes, heatmap, pass arrows, offside line), set in the Library's left panel and used by the video pages
  * (Tactical) as their starting choice. A per-viewer display preference: kept in this browser only; every read and write tolerates
  * private windows and blocked storage (the defaults then apply).
  */
 import { useCallback, useEffect, useState } from "react";
 
-export interface OverlayPrefs { boxes: boolean; ids: boolean; ball: boolean; trails: boolean; shapes: boolean; heat: boolean; passes: boolean }
-export const DEFAULT_OVERLAYS: OverlayPrefs = { boxes: true, ids: true, ball: true, trails: false, shapes: false, heat: false, passes: false };
+export interface OverlayPrefs { boxes: boolean; ids: boolean; ball: boolean; trails: boolean; shapes: boolean; heat: boolean; passes: boolean;
+  /** the offside line (Desktop UI, 8th overlay): drawn only where the engine has a measured line; off by default */
+  offside: boolean }
+export const DEFAULT_OVERLAYS: OverlayPrefs = { boxes: true, ids: true, ball: true, trails: false, shapes: false, heat: false, passes: false, offside: false };
 const KEY = "otsi.overlays";
 const EVENT = "otsi-overlays";
 

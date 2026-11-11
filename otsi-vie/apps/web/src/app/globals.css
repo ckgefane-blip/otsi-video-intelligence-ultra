@@ -7,17 +7,22 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: 6 17 31;      /* #06111F */
-  --panel: 12 29 48;      /* #0C1D30 */
-  --raised: 16 36 58;     /* #10243A */
-  --line: 27 60 86;       /* #1B3C56 */
-  --primary: 7 155 255;   /* #079BFF */
-  --cyan: 23 209 248;     /* #17D1F8 */
-  --amber: 241 168 36;    /* #F1A824 */
-  --ink: 244 248 255;     /* #F4F8FF */
-  --muted: 156 177 197;   /* #9CB1C5 */
-  --ok: 34 197 94;
-  --danger: 239 68 68;
+  /* Desktop UI v2 "Graphite Studio" (owner-approved Source of Truth, 2026-11-11). Same token names, new values. */
+  --canvas: 10 11 13;     /* #0A0B0D ground */
+  --panel: 20 23 27;      /* #14171B panels */
+  --raised: 26 30 35;     /* #1A1E23 raised surfaces */
+  --line: 37 42 49;       /* #252A31 hairlines */
+  --primary: 43 212 176;  /* #2BD4B0 the one accent */
+  --primary-ink: 4 32 26; /* #04201A text on the accent */
+  --cyan: 120 172 255;    /* #78ACFF evidence: Detected */
+  --amber: 237 181 79;    /* #EDB54F evidence: Inferred / warnings */
+  --ink: 236 238 241;     /* #ECEEF1 text */
+  --muted: 142 150 161;   /* #8E96A1 secondary text (4.5:1 on panels) */
+  --ok: 43 212 176;
+  --danger: 255 128 115;
+  --p0: 15 17 20;         /* #0F1114 rail and bars */
+  --line2: 51 57 66;      /* #333942 control borders */
+  --ink2: 185 191 200;    /* #B9BFC8 */
 }
 
 [data-theme="light"] {
@@ -33,14 +38,18 @@
   --muted: 74 96 120;
   --ok: 21 128 61;
   --danger: 185 28 28;
+  --primary-ink: 255 255 255;
+  --p0: 232 236 241;
+  --line2: 190 200 212;
+  --ink2: 52 66 84;
 }
 
 html { background: rgb(var(--canvas)); }
 body {
   @apply bg-canvas text-ink font-sans antialiased;
   font-feature-settings: "tnum" 1, "cv11" 1;   /* tabular numerals for timecodes and metrics */
-  background-image: radial-gradient(1200px 500px at 50% -200px, rgb(var(--primary) / 0.10), transparent 70%);
-  background-attachment: fixed;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 /* Page composition (src/lib/pages.ts): stacked in specification order on narrow screens, the approved grid from 1100px */
@@ -59,3 +68,54 @@ body {
 :root[data-ui-mode="GUIDED"] [data-pro] { display: none !important; }
 /* ADR-079: a player in full screen is a modal <dialog> (components/media/Fullscreen.tsx); behind it, black */
 dialog[data-player-full]::backdrop { background: #000; }
+
+/* ---------------------------------------------------------------------------------------------------------------------------
+   Desktop UI v2 type scale (owner, 2026-11-11). Weights 400/500/600 only; hierarchy from weight and colour, never size.
+   page title 16/24 600 · section 14/20 600 · panel 13/20 600 · body 13/20 · small 12/18 muted · label 12/16 500 muted ·
+   table header 12/16 600 caps .06em · button 13/20 600 · metric 20/28 600 tabular · timecode 12/16 500 tabular
+   --------------------------------------------------------------------------------------------------------------------------- */
+.t-page { font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: -0.005em; }
+.t-section { font-size: 14px; line-height: 20px; font-weight: 600; }
+.t-panel { font-size: 13px; line-height: 20px; font-weight: 600; }
+.t-body { font-size: 13px; line-height: 20px; font-weight: 400; }
+.t-small { font-size: 12px; line-height: 18px; font-weight: 400; color: rgb(var(--muted)); }
+.t-label { font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--muted)); }
+.t-th { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--muted)); }
+.t-button { font-size: 13px; line-height: 20px; font-weight: 600; }
+.t-metric { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.t-tc { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.t-mono { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+/* text on the accent is dark (contrast), whatever older markup asked for */
+.bg-primary.text-white, .bg-primary { color: rgb(var(--primary-ink)); }
+
+/* Desktop UI v2 shell: collapsible left rail (240 / 64 px), top bar, page, status strip */
+.vie-shell { display: flex; height: 100vh; overflow: hidden; }
+.vie-main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
+.vie-page { flex: 1; min-width: 0; }
+
+/* Desktop UI v2 controls (shared by the shell, Home and the media components) */
+.vie-panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
+.vie-ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 14px; border-bottom: 1px solid rgb(var(--line)); }
+.vie-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px;
+  border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-weight: 600; font-family: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
+.vie-btn:hover { background: rgb(var(--line)); }
+.vie-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.vie-btn-pri { background: rgb(var(--primary)); border-color: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
+.vie-btn-pri:hover { filter: brightness(1.08); background: rgb(var(--primary)); }
+.vie-btn-sm { height: 30px; padding: 0 10px; }
+.vie-btn-lg { height: 44px; padding: 0 20px; }
+.vie-ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; border: 1px solid transparent; background: transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
+.vie-ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
+.vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--ink2)); white-space: nowrap; }
+.vie-sw { width: 32px; height: 18px; flex: none; border-radius: 999px; background: rgb(var(--line)); border: 1px solid rgb(var(--line2)); position: relative; cursor: pointer; padding: 0; }
+.vie-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
+.vie-sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }
+.vie-sw[aria-checked="true"]::after { left: 16px; background: rgb(var(--primary-ink)); }
+.vie-kbd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; line-height: 1; color: rgb(var(--ink2)); padding: 3px 5px; border: 1px solid rgb(var(--line2)); border-bottom-width: 2px; border-radius: 4px; background: rgb(var(--panel)); }
+.vie-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgb(var(--line)); }
+.vie-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--ink)); }
+.vie-range::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: rgb(var(--ink)); }
+
+/* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
+:root[data-interface="guided"] [data-advanced] { display: none !important; }

@@ -1,5 +1,5 @@
 /**
- * Language switcher (ADR-139): the five languages are offered by their own
+ * Language switcher (ADR-139): the six languages are offered by their own
  * names, choosing one applies it at once and remembers it in this browser.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -16,9 +16,9 @@ function renderSwitcher() {
 }
 
 describe("LanguageSwitcher (ADR-139)", () => {
-  it("offers all five languages by their own names", () => {
+  it("offers all six languages by their own names", () => {
     renderSwitcher();
-    for (const name of ["English", "Русский", "Español", "Deutsch", "Français"]) {
+    for (const name of ["English", "Русский", "Español", "Deutsch", "Français", "Português"]) {
       expect(screen.getByText(name)).toBeDefined();
     }
     expect(screen.getByRole("radiogroup", { name: "Language" })).toBeDefined();

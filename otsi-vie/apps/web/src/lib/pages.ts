@@ -137,21 +137,22 @@ export function sectionState(id: PageId, n: number): SectionState {
  * `match` decides which one is current; nested pages belong to their area (a video's processing / analysis / tactics, a player's report,
  * the Matches tab of the Library).
  */
-export const NAV: { label: string; href: string; match: RegExp }[] = [
+/** `advanced: true` (formerly `pro: true`): offered only in the Advanced interface (lib/interfaceMode.tsx). */
+export const NAV: { label: string; href: string; match: RegExp; advanced?: true }[] = [
   { label: "Home", href: "/dashboard", match: /^\/dashboard/ },
   { label: "Upload", href: "/upload", match: /^\/upload/ },
   { label: "Processing", href: "/processing", match: /^\/(processing|videos\/[^/]+\/processing)/ },
   { label: "Analysis", href: "/analysis", match: /^\/(analysis|videos\/[^/]+\/analyze)/ },
-  { label: "Tactical", href: "/tactics", match: /^\/(tactics|videos\/[^/]+\/tactics)/ },
+  { label: "Tactical", href: "/tactics", match: /^\/(tactics|videos\/[^/]+\/tactics)/, advanced: true },
   { label: "Reel Builder", href: "/reels", match: /^\/reels/ },
-  { label: "Clip Studio", href: "/studio", match: /^\/studio/ },
+  { label: "Clip Studio", href: "/studio", match: /^\/studio/, advanced: true },
   { label: "Player Report", href: "/reports", match: /^\/reports/ },
   { label: "Library", href: "/library", match: /^\/(library|matches)/ },
   { label: "Export", href: "/exports", match: /^\/exports/ },
 ];
 
-export interface NavItem { label: string; href: string; active: boolean }
+export interface NavItem { label: string; href: string; active: boolean; advanced?: true }
 
 export function navItems(pathname: string): NavItem[] {
-  return NAV.map((n) => ({ label: n.label, href: n.href, active: n.match.test(pathname) }));
+  return NAV.map((n) => ({ label: n.label, href: n.href, active: n.match.test(pathname), ...(n.advanced ? { advanced: true as const } : {}) }));
 }

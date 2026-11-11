@@ -17,6 +17,8 @@ import { useLocale } from "@/lib/i18n";
 import type { UploadDict } from "./ProfileCard";
 import { cancelUpload, sendFile, type Progress } from "@/lib/upload";
 import { ingestOptions } from "@/lib/uploadPrefs";
+import { fill } from "@/lib/fill";
+import { checkUploadFile, formatGB, useTierLimit } from "@/lib/uploadTier";
 import { DEV_MODE, NOT_YET } from "@/lib/devMode";
 
 const WRITERS = ["OWNER", "ADMIN", "ANALYST", "EDITOR"];
@@ -77,6 +79,7 @@ export function useUpload(): Ctx {
 export function UploadWorkspace({ children }: { children: ReactNode }) {
   const { t: dict } = useLocale();
   const d = dict.body.upload;
+  const tierLimit = useTierLimit();                                   // Free 2 GB / Pro 24 GB / Enterprise 64 GB, never above the server's own limit
   const { organization } = useAuth();
   const canWrite = !!organization && WRITERS.includes(organization.role);
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -158,8 +161,20 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       setProjects((ps) => [p, ...(ps ?? [])]);
       setProjectIdState(p.id);
     },
-    addFiles(files) {
+    addFiles(picked) {
       if (!projectId) { setError(d.chooseProjectFirst); return true; }
+      // the tier limit and the MP4 / MOV rule are checked when the file is picked, before any byte is sent
+      const dd = dict.desktop;
+      const tierName = tierLimit?.tier === "Pro" ? dd.tierPro : tierLimit?.tier === "Enterprise" ? dd.tierEnterprise : tierLimit?.tier === "Free" ? dd.tierFree : tierLimit?.plan ?? "";
+      const files: File[] = [];
+      for (const f of Array.from(picked)) {
+        const c = checkUploadFile(f, tierLimit);
+        if (c.ok) { files.push(f); continue; }
+        setError(c.reason === "type"
+          ? `${dd.uploadWrongTypeTitle}. ${fill(dd.uploadWrongTypeBody, { f: f.name })}`
+          : `${fill(dd.uploadTooLargeTitle, { a: tierName })}. ${fill(dd.uploadTooLargeBody, { f: f.name, s: formatGB(f.size), a: tierName, b: formatGB(c.limit ?? 0) })}`);
+      }
+      if (!files.length) return true;
       if (needsRights()) { waiting.current = Array.from(files); setRightsDialog(true); return false; }
       start(Array.from(files), rights, projectId);
       return true;
@@ -188,7 +203,7 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       void loadVideos();
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [projects, projectId, videos, transfers, canWrite, error, selectedId, run, loadVideos, rights, rightsDialog, start, d]);
+  }), [projects, projectId, videos, transfers, canWrite, error, selectedId, run, loadVideos, rights, rightsDialog, start, d, dict, tierLimit]);
 
   return <UploadCtx.Provider value={value}>{children}</UploadCtx.Provider>;
 }

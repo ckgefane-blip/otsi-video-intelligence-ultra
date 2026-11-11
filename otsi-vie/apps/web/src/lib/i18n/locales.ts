@@ -5,11 +5,11 @@
  * and a translation is only used when it exists. A locale the app does not
  * know is treated as English, never as an error.
  */
-export type Locale = "en" | "ru" | "es" | "de" | "fr";
+export type Locale = "en" | "ru" | "es" | "de" | "fr" | "pt";
 
 export const DEFAULT_LOCALE: Locale = "en";
 
-export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "ru", "es", "de", "fr"];
+export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "ru", "es", "de", "fr", "pt"];
 
 /** How each locale names itself, in its own language (shown in the switcher). */
 export const LOCALE_NAMES: Record<Locale, string> = {
@@ -18,6 +18,7 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   es: "Español",
   de: "Deutsch",
   fr: "Français",
+  pt: "Português",
 };
 
 /** Where the person's choice lives in this browser (per person, per browser). */

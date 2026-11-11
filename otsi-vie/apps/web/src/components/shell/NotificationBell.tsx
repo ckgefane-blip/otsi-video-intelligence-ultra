@@ -17,7 +17,7 @@ import { useLocale } from "@/lib/i18n";
 type Styles = Record<string, string>;
 const POLL_MS = 60_000;
 export const KIND_ICON: Record<NotificationKind, [string, string]> = {
-  JOB_DONE: ["✓", "#3ecf8e"], JOB_FAILED: ["!", "#ff6b7a"], REVIEW: ["?", "#f5b82e"], COMMENT: ["❝", "#33a8ff"], RIGHTS: ["⏳", "#f5b82e"],
+  JOB_DONE: ["✓", "#22C55E"], JOB_FAILED: ["!", "#EF4444"], REVIEW: ["?", "#F1A824"], COMMENT: ["❝", "#079BFF"], RIGHTS: ["⏳", "#F1A824"],
 };
 /** what the badge says: nothing when nothing is new; at most "9+" */
 export const bellBadge = (n: number) => (n <= 0 ? null : n > 9 ? "9+" : String(n));

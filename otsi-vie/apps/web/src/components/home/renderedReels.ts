@@ -57,3 +57,19 @@ export function mmss(seconds: number) {
   const t = Math.round(seconds);
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }
+
+/** the signed playback address of a reel's finished file: undefined while reading (or before a reel), null when it cannot be played.
+ *  Read once per reel when `when` is true (the Featured Reel reads at once; a Sample Reel slot only when Play is pressed). */
+export function useReelPlayback(reel: Reel | null | undefined, when = true): string | null | undefined {
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  const id = reel?.last_good_render?.id;
+  useEffect(() => {
+    if (reel === null) { setUrl(null); return; }
+    if (!reel || !when) { setUrl(undefined); return; }
+    let live = true;
+    void playback(reel).then((p) => { if (live) setUrl(p.url); }, () => { if (live) setUrl(null); });
+    return () => { live = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, reel === null, when]);
+  return url;
+}

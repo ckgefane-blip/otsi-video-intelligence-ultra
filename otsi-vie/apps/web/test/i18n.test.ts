@@ -94,6 +94,12 @@ describe("dictionaries (ADR-139)", () => {
     // "Tags", "Match", "Reels", "clip", "Pass", "Design"), placeholder-only
     // templates ("{a} · {b}", "{a} / 10") and metric abbreviations ("xG", "xA").
     const COGNATES = new Set([
+      "desktop.tierPro",                       // the paid tier's name, same in every language
+      "desktop.tokens",
+      "desktop.tierEnterprise",                // tier names and their limits: product names, the same in every language
+      "desktop.uploadTiersLine",
+      "desktop.pause",                         // German "Pause", French "Pause"
+      "desktop.licence",                       // French "Licence"                        // Spanish uses the English word, as the wallet pages already do
       "body.library.assetAria",
       "body.library.binGroupMoments",
       "body.library.binNameLabel",
@@ -670,19 +676,21 @@ describe("locale detection", () => {
   });
 
   it("an unsupported or missing tag is English, never an error", () => {
-    expect(localeFromLanguageTag("pt-BR")).toBe("en");
+    expect(localeFromLanguageTag("pt-BR")).toBe("pt");               // Portuguese added (owner, 2026-11-12)
+    expect(localeFromLanguageTag("it-IT")).toBe("en");
     expect(localeFromLanguageTag("zh-CN")).toBe("en");
     expect(localeFromLanguageTag("")).toBe("en");
     expect(localeFromLanguageTag(null)).toBe("en");
     expect(localeFromLanguageTag(undefined)).toBe("en");
   });
 
-  it("isLocale accepts only the five supported codes", () => {
+  it("isLocale accepts only the six supported codes", () => {
     expect(isLocale("en")).toBe(true);
     expect(isLocale("ru")).toBe(true);
     expect(isLocale("es")).toBe(true);
     expect(isLocale("de")).toBe(true);
     expect(isLocale("fr")).toBe(true);
+    expect(isLocale("pt")).toBe(true);
     expect(isLocale("xx")).toBe(false);
     expect(isLocale("")).toBe(false);
     expect(isLocale("EN")).toBe(false);

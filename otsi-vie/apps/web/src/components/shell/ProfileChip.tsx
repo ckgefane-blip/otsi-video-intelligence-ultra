@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { useUiMode } from "@/lib/uiMode";
+import { InterfaceModeSwitch } from "./InterfaceModeSwitch";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLocale } from "@/lib/i18n";
 import { guidedHides, pageName } from "@/lib/uiMode";
@@ -117,6 +118,7 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
               {ui.error && <p role="alert" className="mt-1 text-xs text-danger">{ui.error}</p>}
             </fieldset>
           )}
+          <InterfaceModeSwitch />
           <LanguageSwitcher />
           {me.memberships.length > 0 && (
             <fieldset className="mt-3">

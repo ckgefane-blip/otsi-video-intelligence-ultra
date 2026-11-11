@@ -22,7 +22,7 @@ import { DEFAULT_PREFS, loadPrefs, savePrefs, type UploadPrefs } from "@/lib/upl
 import { useUpload } from "./UploadWorkspace";
 
 /** BCP 47 tag for a locale, for the dates and numbers shown beside translated words. */
-export const DATE_TAG: Record<Locale, string> = { en: "en-GB", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR" };
+export const DATE_TAG: Record<Locale, string> = { en: "en-GB", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR", pt: "pt-BR" };
 
 /* ------------------------------------------------------------------ preferences */
 export type { UploadPrefs };

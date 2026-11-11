@@ -78,10 +78,10 @@ export function JobTray({ styles }: { styles: Styles }) {
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50" />
-        <Dialog.Content className="fixed right-4 z-50 flex max-h-[75vh] w-[30rem] max-w-[calc(100vw-2rem)] flex-col rounded-card border border-line bg-panel p-3 shadow-2xl"
-          style={{ top: "calc(max(0.5px, 100vw / 2560) * 104)" }} data-job-list>
+        <Dialog.Content className="fixed bottom-[26px] right-0 top-12 z-50 flex w-[400px] max-w-[100vw] flex-col border-l border-line2 bg-panel p-3 shadow-2xl"
+          data-job-list data-jobs-center>
           <div className="flex items-baseline justify-between gap-2">
-            <Dialog.Title className="text-sm font-semibold">{t.body.shell.jobsTitle}</Dialog.Title>
+            <Dialog.Title className="t-section">{t.desktop.jobsCenter}</Dialog.Title>
             <Dialog.Description className="text-xs text-muted">
               {list ? t.body.shell.jobsDesc.replace("{a}", String(list.running)).replace("{b}", String(list.active - list.running)) : t.body.shell.jobsReading}
             </Dialog.Description>
