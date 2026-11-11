@@ -334,35 +334,88 @@ function webBuildPointsAtApi(otsiVieDir) {
   }
 }
 
-async function ensureBuilds(otsiVieDir, log) {
-  const apiDist = path.join(otsiVieDir, 'apps', 'api', 'dist', 'main.js');
-  const webBuild = path.join(otsiVieDir, 'apps', 'web', '.next', 'BUILD_ID');
-  const contractsDist = path.join(otsiVieDir, 'packages', 'contracts', 'dist');
-  const buildsExist = fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist);
-  if (buildsExist && webBuildPointsAtApi(otsiVieDir)) return;
-  // The web build must know the API address or it bakes in the default
-  // (4520, the original engine's API). Pass it explicitly; runCommand
-  // replaces the env when one is given, so merge with the current env.
-  const buildEnv = { ...process.env, OTSI_VIE_API_INTERNAL_URL: API_URL };
-  if (buildsExist) {
-    log('Rebuilding the website: its built-in API address is out of date...\n');
-    await resolveCorepack();
-    await runCommand(corepackCmd, ['pnpm', 'build'], {
-      cwd: path.join(otsiVieDir, 'apps', 'web'),
-      log,
-      env: buildEnv,
-    });
-    return;
+// The builds are only valid for the commit they were built from. After
+// the app downloads new code (ensureRepo pulls on every launch), a stale
+// build would keep serving the old pages — a page fix in the repo would
+// never reach an installed copy (that is how the Reel Builder crash kept
+// showing the old bundle). So record the commit the builds were made
+// from (in .local/, which is git-ignored) and rebuild whenever the
+// checked-out commit changes.
+async function currentCommit(otsiVieDir) {
+  try {
+    const { tail } = await runCommand('git', ['rev-parse', 'HEAD'], { cwd: otsiVieDir });
+    const sha = tail.trim();
+    return /^[0-9a-f]{40}$/.test(sha) ? sha : null;
+  } catch {
+    return null; // not a git checkout, or git unavailable: never skip a build on this basis.
   }
-  log('Building the engine (first time, a few minutes)...\n');
+}
+
+function builtCommit(otsiVieDir) {
+  try {
+    return fs.readFileSync(path.join(otsiVieDir, '.local', 'last-built-commit'), 'utf8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function recordBuiltCommit(otsiVieDir, sha) {
+  if (!sha) return;
+  fs.mkdirSync(path.join(otsiVieDir, '.local'), { recursive: true });
+  fs.writeFileSync(path.join(otsiVieDir, '.local', 'last-built-commit'), sha + '\n', 'utf8');
+}
+
+async function buildPackages(otsiVieDir, pkgs, log, buildEnv) {
   await resolveCorepack();
-  for (const pkg of ['packages/contracts', 'apps/api', 'apps/web']) {
+  for (const pkg of pkgs) {
     await runCommand(corepackCmd, ['pnpm', 'build'], {
       cwd: path.join(otsiVieDir, pkg),
       log,
       env: buildEnv,
     });
   }
+}
+
+async function ensureBuilds(otsiVieDir, log) {
+  const apiDist = path.join(otsiVieDir, 'apps', 'api', 'dist', 'main.js');
+  const webBuild = path.join(otsiVieDir, 'apps', 'web', '.next', 'BUILD_ID');
+  const contractsDist = path.join(otsiVieDir, 'packages', 'contracts', 'dist');
+  const buildsExist = fs.existsSync(apiDist) && fs.existsSync(webBuild) && fs.existsSync(contractsDist);
+  const head = await currentCommit(otsiVieDir);
+  const built = builtCommit(otsiVieDir);
+  const manifestOk = webBuildPointsAtApi(otsiVieDir);
+  // Up to date only when the builds exist, the web proxies to this
+  // stack's API, AND they were built from the commit now checked out.
+  // When the commit cannot be read (head null) keep the old behaviour
+  // and do not rebuild on every launch.
+  if (buildsExist && manifestOk && head !== null && built === head) return;
+  if (buildsExist && manifestOk && head === null) return;
+  // The web build must know the API address or it bakes in the default
+  // (4520, the original engine's API). Pass it explicitly; runCommand
+  // replaces the env when one is given, so merge with the current env.
+  const buildEnv = { ...process.env, OTSI_VIE_API_INTERNAL_URL: API_URL };
+  const codeChanged = head !== null && built !== null && built !== head;
+  const neverRecorded = head !== null && built === null;
+  if (buildsExist && manifestOk && (codeChanged || neverRecorded)) {
+    // New code was downloaded (or this install predates the record):
+    // any of the three packages could have changed, so rebuild all of
+    // them, not just the web.
+    log('Rebuilding the engine: new code was downloaded (a few minutes)...\n');
+    await buildPackages(otsiVieDir, ['packages/contracts', 'apps/api', 'apps/web'], log, buildEnv);
+    recordBuiltCommit(otsiVieDir, head);
+    return;
+  }
+  if (buildsExist) {
+    // Only the baked API address is wrong (the commit is unchanged):
+    // rebuild the website alone, as before.
+    log('Rebuilding the website: its built-in API address is out of date...\n');
+    await buildPackages(otsiVieDir, ['apps/web'], log, buildEnv);
+    recordBuiltCommit(otsiVieDir, head);
+    return;
+  }
+  log('Building the engine (first time, a few minutes)...\n');
+  await buildPackages(otsiVieDir, ['packages/contracts', 'apps/api', 'apps/web'], log, buildEnv);
+  recordBuiltCommit(otsiVieDir, head);
 }
 
 /* ------------------------------------------------------------------ */
