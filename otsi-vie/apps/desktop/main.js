@@ -155,14 +155,22 @@ function buildAppMenu() {
       submenu: [
         go('Dashboard', '/dashboard'),
         go('Analysis', '/analysis'),
-        go('Timeline', '/timeline'),
+        go('Timeline', '/studio'),
         go('Reel Builder', '/reels'),
         go('Player Reports', '/reports'),
         go('Library', '/library'),
         go('Export', '/exports'),
         go('Players', '/players'),
         { type: 'separator' },
-        go('Settings', '/settings'),
+        {
+          label: 'Settings',
+          submenu: [
+            go('Team', '/settings/team'),
+            go('Security', '/settings/security'),
+            go('Token Wallet', '/settings/wallet'),
+            go('Admin', '/settings/admin'),
+          ],
+        },
       ],
     },
     {
@@ -182,7 +190,7 @@ function buildAppMenu() {
     {
       label: 'Help',
       submenu: [
-        { label: 'About OTSI VIE', click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + '/settings'); } },
+        { label: 'About OTSI VIE', click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + '/dashboard'); } },
       ],
     },
   ]);
