@@ -90,9 +90,6 @@ describe("dictionaries (ADR-139)", () => {
     // translation was left as an English copy. Group B (2026-11-11) added
     // the studio/workspace/tactics cognates below.
     const COGNATES = new Set([
-      "nav.export",
-      "pages.reels.title",
-      "pages.exports.title",
       "body.analysis.kitTeam1",
       "body.analysis.kitTeam2",
       "body.analysis.match",
@@ -102,6 +99,49 @@ describe("dictionaries (ADR-139)", () => {
       "body.analysis.scoreLabel",
       "body.analysis.tabTeams",
       "body.analysis.tabTracks",
+      "body.exportstage.archiveVideoBlocked",
+      "body.exportstage.aspectSocial",
+      "body.exportstage.aspectVertical",
+      "body.exportstage.brandSummaryIntro",
+      "body.exportstage.brandSummaryLogo",
+      "body.exportstage.bundleHeatTitle",
+      "body.exportstage.chapterClip",
+      "body.exportstage.choiceReel11",
+      "body.exportstage.choiceReel169",
+      "body.exportstage.choiceReel45",
+      "body.exportstage.choiceReel916",
+      "body.exportstage.frame30",
+      "body.exportstage.frame60",
+      "body.exportstage.frameSrc",
+      "body.exportstage.interchangeClipMany",
+      "body.exportstage.interchangeClipOne",
+      "body.exportstage.loudnessBroadcast",
+      "body.exportstage.loudnessOnline",
+      "body.exportstage.loudnessSocial",
+      "body.exportstage.outputLabel",
+      "body.exportstage.outputReel",
+      "body.exportstage.packLink",
+      "body.exportstage.packTitle",
+      "body.exportstage.preflightFmt",
+      "body.exportstage.profileArchive",
+      "body.exportstage.profileReel",
+      "body.exportstage.profileScout",
+      "body.exportstage.profileSocial",
+      "body.exportstage.qualityStandard",
+      "body.exportstage.reportPreviewDescTime",
+      "body.exportstage.resolution4k",
+      "body.exportstage.resolutionHd",
+      "body.exportstage.roleAdmin",
+      "body.exportstage.roleAnalyst",
+      "body.exportstage.roleClient",
+      "body.exportstage.roleEditor",
+      "body.exportstage.shareStatePublic",
+      "body.exportstage.summaryRowDate",
+      "body.exportstage.tabsBranding",
+      "body.exportstage.tabsExport",
+      "body.exportstage.tagsLabel",
+      "body.exportstage.viewManifest",
+      "body.exportstage.viewOtio",
       "body.library.name",
       "body.library.team",
       "body.players.position",
@@ -116,6 +156,68 @@ describe("dictionaries (ADR-139)", () => {
       "body.processing.position",
       "body.processing.profileStandardLabel",
       "body.processing.videoFallback",
+      "body.reels.aspectFeed",
+      "body.reels.aspectStories",
+      "body.reels.len3min",
+      "body.reels.len5min",
+      "body.reels.len90s",
+      "body.reels.minutesSeen",
+      "body.reels.reelListClipsMany",
+      "body.reels.reelListClipsOne",
+      "body.reels.sourceUpTo180",
+      "body.reels.sourceUpTo300",
+      "body.reels.stepClips",
+      "body.reels.stepClipsMany",
+      "body.reels.stepClipsOne",
+      "body.reels.stepRender",
+      "body.reels.stepSpotlight",
+      "body.reelstage.aspectInstagram",
+      "body.reelstage.aspectReels",
+      "body.reelstage.aspectYouTube",
+      "body.reelstage.badgePossible",
+      "body.reelstage.clipAria",
+      "body.reelstage.clipEditorTitle",
+      "body.reelstage.clipListFallback",
+      "body.reelstage.detailVisible",
+      "body.reelstage.draftDurMin",
+      "body.reelstage.draftDurMinSec",
+      "body.reelstage.draftDurSec",
+      "body.reelstage.durationHour",
+      "body.reelstage.durationHourMin",
+      "body.reelstage.durationMin",
+      "body.reelstage.durationMinSec",
+      "body.reelstage.durationSec",
+      "body.reelstage.durS",
+      "body.exportstage.pickerClipsOne",
+      "body.exportstage.pickerClipsMany",      "body.reelstage.estimateRange",
+      "body.reelstage.inspectorAria",
+      "body.reelstage.introCheck",
+      "body.reelstage.introLabel",
+      "body.reelstage.laneAudio",
+      "body.reelstage.laneSpotlightShort",
+      "body.reelstage.laneText",
+      "body.reelstage.outroCheck",
+      "body.reelstage.outroLabel",
+      "body.reelstage.pauseBtn",
+      "body.reelstage.positionDash",
+      "body.reelstage.presetStandardName",
+      "body.reelstage.redoTitle",
+      "body.reelstage.stepExport",
+      "body.reelstage.stepHitLabel",
+      "body.reelstage.summaryBrandIntro",
+      "body.reelstage.summaryBrandOutro",
+      "body.reelstage.summaryBranding",
+      "body.reelstage.summaryClips",
+      "body.reelstage.summaryClipsMany",
+      "body.reelstage.summaryClipsOne",
+      "body.reelstage.summaryOverlays",
+      "body.reelstage.summarySpotlight",
+      "body.reelstage.tagCorner",
+      "body.reelstage.tagPass",
+      "body.reelstage.tagPenalty",
+      "body.reelstage.tagVisible",
+      "body.reelstage.teamDash",
+      "body.reelstage.undoTitle",
       "body.studio.aspectFeed",
       "body.studio.aspectPortrait45",
       "body.studio.aspectVertical916",
@@ -129,8 +231,8 @@ describe("dictionaries (ADR-139)", () => {
       "body.studio.clipIndex",
       "body.studio.clipMeter",
       "body.studio.clipOfTotal",
-    "body.studio.clipWord",
       "body.studio.clipSuggestion",
+      "body.studio.clipWord",
       "body.studio.colorLabel",
       "body.studio.colourCyan",
       "body.studio.corner",
@@ -202,9 +304,9 @@ describe("dictionaries (ADR-139)", () => {
       "body.workspace.coverageMoments",
       "body.workspace.decidedBy",
       "body.workspace.distanceKpiTitle",
+      "body.workspace.duelsLabel",
       "body.workspace.eventPluralSuffix",
       "body.workspace.eventSingularSuffix",
-      "body.workspace.duelsLabel",
       "body.workspace.experimental",
       "body.workspace.foulsLabel",
       "body.workspace.heatmapMode",
@@ -213,7 +315,6 @@ describe("dictionaries (ADR-139)", () => {
       "body.workspace.interceptionsLabel",
       "body.workspace.kitLabel",
       "body.workspace.matchTitleVs",
-      "body.workspace.tabCount",
       "body.workspace.metricClip",
       "body.workspace.metricClips",
       "body.workspace.metricDistance",
@@ -228,11 +329,15 @@ describe("dictionaries (ADR-139)", () => {
       "body.workspace.positionsLabel",
       "body.workspace.pressingLine",
       "body.workspace.shotSpeedKmh",
+      "body.workspace.tabCount",
       "body.workspace.teamEmpty",
       "body.workspace.teamValue",
       "body.workspace.trackButton",
       "body.workspace.trackLabel",
       "body.workspace.zoomLabel",
+      "nav.export",
+      "pages.exports.title",
+      "pages.reels.title",
     ]);
     for (const locale of ["ru", "es", "de", "fr"] as const) {
       const dict = getDictionary(locale);
@@ -246,7 +351,10 @@ describe("dictionaries (ADR-139)", () => {
       // this cap just bounds the dictionary's legitimate loanword surface
       // (de/fr share ~80 words with English in this UI domain). Group B
       // (2026-11-11) raised it from 60 to 100 as the studio keys landed.
-      expect(same.length, locale).toBeLessThan(100);
+      // Group C (2026-11-11) raised it from 100 to 180 as the Reel Builder
+      // and Export keys landed: ~1,100 new keys, many of them loanwords
+      // (Clip, Reel, Spotlight), formats (4K, MP4, fps, LUFS) and role names.
+      expect(same.length, locale).toBeLessThan(180);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -261,17 +369,20 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     expect(bodyKeys("home").length).toBe(43);
     expect(bodyKeys("analysis").length).toBe(208);
-    expect(bodyKeys("reels").length).toBe(26);
+    expect(bodyKeys("reels").length).toBe(212);
     expect(bodyKeys("studio").length).toBe(723);
     expect(bodyKeys("reports").length).toBe(17);
     expect(bodyKeys("library").length).toBe(25);
-    expect(bodyKeys("exports").length).toBe(23);
+    expect(bodyKeys("exports").length).toBe(32);
     expect(bodyKeys("players").length).toBe(44);
     expect(bodyKeys("upload").length).toBe(435);
     expect(bodyKeys("processing").length).toBe(302);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
     expect(bodyKeys("tactics").length).toBe(164);
     expect(bodyKeys("workspace").length).toBe(729);
+    // Group C (2026-11-11): Reel Builder + Export pages.
+    expect(bodyKeys("reelstage").length).toBe(435);
+    expect(bodyKeys("exportstage").length).toBe(515);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {
@@ -318,6 +429,25 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(frB.workspace.pitchCalibration).toBe("Calibrage du terrain");
     expect(frB.tactics.playerComparison).toBe("Comparaison de joueurs");
     expect(frB.studio.templates).toBe("Modèles");
+    // Group C (2026-11-11): Reel Builder + Export pages.
+    const ruC = getDictionary("ru").body;
+    expect(ruC.reels.loadFailed).toBe("Ролик не удалось загрузить.");
+    expect(ruC.reels.clubLeague).toBe("Клуб и лига");
+    expect(ruC.reelstage.stepSelectPlayer).toBe("Выбрать игрока");
+    expect(ruC.reelstage.themeBest).toBe("Его лучшие действия");
+    expect(ruC.exportstage.workflowTitle).toBe("Экспорт и доставка");
+    const esC = getDictionary("es").body;
+    expect(esC.reels.stepProfileIntro).toBe("Intro del perfil");
+    expect(esC.reelstage.stepSelectPlayer).toBe("Seleccionar jugador");
+    expect(esC.exportstage.workflowTitle).toBe("Exportación y entrega");
+    const deC = getDictionary("de").body;
+    expect(deC.reels.loadFailed).toBe("Das Reel konnte nicht geladen werden.");
+    expect(deC.reelstage.themeBest).toBe("Seine besten Aktionen");
+    expect(deC.exportstage.workflowTitle).toBe("Export & Lieferung");
+    const frC = getDictionary("fr").body;
+    expect(frC.reels.clubLeague).toBe("Club et championnat");
+    expect(frC.reelstage.stepSelectPlayer).toBe("Sélectionner le joueur");
+    expect(frC.exportstage.workflowTitle).toBe("Export et livraison");
   });
 
   it("a body key missing from a partial still falls back to English", () => {

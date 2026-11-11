@@ -12,6 +12,7 @@ import type { Reel, ReelClip, ReelPath, SpotlightSettings } from "@otsi-vie/cont
 import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { B, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { CROP_LOOKAHEAD_US, SpotlightPreview, boxAt, fitRect, smoothPath, strengthAt, visibleRuns } from "@/components/studio/spotlight";
 
 const FRAME_US = 40_000;
@@ -134,25 +135,26 @@ export function LiveSpotlight({ video, path, reel, clip, settings, on }: {
 }
 
 /** the note under the picture: what the preview shows, and how much of the clip the player was seen */
-export function spotlightNote(reel: Reel, path: ReelPath | null, clip: ReelClip | null, lock: number): { text: string; seen: number | null } | null {
+export function spotlightNote(reel: Reel, path: ReelPath | null, clip: ReelClip | null, lock: number, d: Dictionary["body"]["reelstage"]): { text: string; seen: number | null } | null {
   if (!clip) return null;
-  if (reel.stale) return { text: "No spotlight preview: a followed identity changed. Re-detect the player.", seen: null };
+  if (reel.stale) return { text: d.spotNoteStale, seen: null };
   if (!path) return null;
-  if (!reel.targets.length) return { text: "No spotlight preview: no confirmed player to follow", seen: null };
+  if (!reel.targets.length) return { text: d.spotNoteNoPlayer, seen: null };
   const cov = clipCoverage(path.points, clip.in_pts_us, clip.out_pts_us, maxInterpFor(lock));
   const pct = Math.round(cov.seen * 100), dp = Math.round(cov.detected * 100);
-  return { text: pct === 0 ? "Live spotlight · the player was not found in this clip"
-    : `Live spotlight · approximate · player seen in ${pct}% of this clip${dp < pct ? ` (${dp}% detected, the rest bridged)` : ""}`, seen: cov.seen };
+  return { text: pct === 0 ? d.spotNoteNotFound
+    : `${d.spotNoteSeen.replace("{a}", String(pct))}${dp < pct ? d.spotNoteSeenDetected.replace("{a}", String(dp)) : ""}`, seen: cov.seen };
 }
 
 /** on the seek bar (the plan's coverage bar): solid where he was detected, hatched where a gap is bridged (interpolated), empty where unseen.
  * Memoised: the coverage is recomputed from the path on every render, and the preview re-renders on every video timeupdate. */
 export const CoverageBar = memo(function CoverageBar({ path, clip, lock }: { path: ReelPath | null; clip: ReelClip | null; lock: number }) {
+  const { t: dict } = useLocale();
   const cov = useMemo(() => (path && clip ? clipCoverage(path.points, clip.in_pts_us, clip.out_pts_us, maxInterpFor(lock)) : null), [path, clip, lock]);
   if (!cov) return null;
   const pct = Math.round(cov.seen * 100), dp = Math.round(cov.detected * 100);
   return (
-    <B x={836} y={829} w={777} h={7} data-coverage={pct} data-detected={dp} aria-label={`Player detected in ${dp}% of this clip (solid), bridged in ${pct - dp}% (hatched), not seen in ${100 - pct}% (empty)`}
+    <B x={836} y={829} w={777} h={7} data-coverage={pct} data-detected={dp} aria-label={dict.body.reelstage.coverageAria.replace("{a}", String(dp)).replace("{b}", String(pct - dp)).replace("{c}", String(100 - pct))}
       style={{ background: "transparent", border: `${u(1)} solid #2c4a6e`, borderRadius: u(2), overflow: "hidden", boxSizing: "border-box" }}>
       {cov.parts.map(([a, b, k]) => <i key={`${k}${a}`} data-seen-part={k} style={{ position: "absolute", top: 0, bottom: 0, left: `${a * 100}%`, width: `${Math.max(0.3, (b - a) * 100)}%`,
         background: k === "D" ? "#3ee6a8" : "repeating-linear-gradient(135deg,#3ee6a8 0 2px,transparent 2px 5px)" }} />)}

@@ -13,7 +13,8 @@ import { createContext, useContext } from "react";
 import type { Outbox } from "./Deliver";
 
 export type Codec = "h264" | "av1" | "vp9";
-export const QUALITY: [string, number][] = [["Standard", 4], ["High", 8], ["Maximum", 16]];
+/** quality options by stable key (the label is translated at the render site from dict.body.exportstage.quality*). */
+export const QUALITY: ["standard" | "high" | "maximum", number][] = [["standard", 4], ["high", 8], ["maximum", 16]];
 export const FORMATS: [Codec, string][] = [["h264", "MP4 (H.264)"], ["av1", "MP4 (AV1)"], ["vp9", "WebM (VP9)"]];
 
 export interface Links { url: string; download_url: string; notice: string }

@@ -20,7 +20,7 @@ describe("ReelList", () => {
     expect(await screen.findByText("Ada — highlights")).toBeTruthy();
     expect(screen.getByText("Boys — goals")).toBeTruthy();
     expect(screen.getByText(/2 clips/)).toBeTruthy();
-    expect(screen.getByText(/1 clips/)).toBeTruthy();
+    expect(screen.getByText(/1 clip/)).toBeTruthy();
     expect(screen.getAllByText(/not rendered/)).toHaveLength(2);
   });
 

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { type DragEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { Hit } from "@/components/workspace/shared";
 import { DraftDialog } from "./DraftDialog";
@@ -27,17 +27,10 @@ import { mmss, secs, useStage } from "./shared";
 
 const X0 = 690, W = 1340;
 const RULER = [715, 900, 1083, 1280, 1478, 1677, 1878];
-/** the tag on a moment's picture: its best event, in the Analysis timeline's colours */
-const TAG: Record<MomentEvent, [string, string]> = {
-  GOAL: ["Goal", "#a066ff"], FREE_KICK_GOAL: ["Free-kick goal", "#a066ff"], PENALTY_GOAL: ["Penalty goal", "#a066ff"],
-  SHOT: ["Shot", "#19d3ff"], KEY_PASS: ["Key pass", "#19e6c0"], TACKLE: ["Tackle?", "#ff4a4a"], INTERCEPTION: ["Interception?", "#ff4a4a"], PENALTY: ["Penalty", "#e0e0ff"],
-  FREE_KICK: ["Free kick", "#e0e0ff"], CORNER: ["Corner", "#e0e0ff"], THROW_IN: ["Throw-in", "#e0e0ff"], GOAL_KICK: ["Goal kick", "#e0e0ff"], KICK_OFF: ["Kick-off", "#e0e0ff"],
-  SET_PIECE: ["Set piece", "#e0e0ff"], BALL_WON: ["Ball won", "#ff4a4a"], PRESSURE_REGAIN: ["Pressure", "#ffb21a"],
-  PRESSURE: ["Pressure", "#ffb21a"], PASS: ["Pass", "#7ae85a"], PASS_RECEIVED: ["Pass", "#7ae85a"],
-};
-const detail = (m: ReelMoment) => m.kind === "EVENT"
-  ? `${mmss(m.in_pts_us)} · engine events · track ${m.track_numbers.join(", ")}`
-  : `${mmss(m.in_pts_us)} · ${secs(m.visible_us)} visible · track ${m.track_numbers.join(", ")}`;
+/** the tag on a moment's picture: its best event, in the Analysis timeline's colours (translated at the render site) */
+const detail = (m: ReelMoment, d: Dictionary["body"]["reelstage"]) => m.kind === "EVENT"
+  ? d.detailEvents.replace("{a}", mmss(m.in_pts_us)).replace("{b}", m.track_numbers.join(", "))
+  : d.detailVisible.replace("{a}", mmss(m.in_pts_us)).replace("{b}", secs(m.visible_us, d.durationSec)).replace("{c}", m.track_numbers.join(", "));
 
 /** what is being dragged: a moment card (by its in point) or a clip already in the reel */
 type Drag = { moment: ReelMoment } | { clip: string };
@@ -64,6 +57,14 @@ const startDrag = (e: DragEvent, d: Drag, label: string) => {
 
 export function Moments() {
   const { t: dict } = useLocale();
+  const d = dict.body.reelstage;
+  const tags: Record<MomentEvent, [string, string]> = {
+    GOAL: [d.tagGoal, "#a066ff"], FREE_KICK_GOAL: [d.tagFreeKickGoal, "#a066ff"], PENALTY_GOAL: [d.tagPenaltyGoal, "#a066ff"],
+    SHOT: [d.tagShot, "#19d3ff"], KEY_PASS: [d.tagKeyPass, "#19e6c0"], TACKLE: [d.tagTackle, "#ff4a4a"], INTERCEPTION: [d.tagInterception, "#ff4a4a"], PENALTY: [d.tagPenalty, "#e0e0ff"],
+    FREE_KICK: [d.tagFreeKick, "#e0e0ff"], CORNER: [d.tagCorner, "#e0e0ff"], THROW_IN: [d.tagThrowIn, "#e0e0ff"], GOAL_KICK: [d.tagGoalKick, "#e0e0ff"], KICK_OFF: [d.tagKickOff, "#e0e0ff"],
+    SET_PIECE: [d.tagSetPiece, "#e0e0ff"], BALL_WON: [d.tagBallWon, "#ff4a4a"], PRESSURE_REGAIN: [d.tagPressure, "#ffb21a"],
+    PRESSURE: [d.tagPressure, "#ffb21a"], PASS: [d.tagPass, "#7ae85a"], PASS_RECEIVED: [d.tagPass, "#7ae85a"],
+  };
   const { r, focus } = useStage();
   const reel = r?.reel ?? null;
   // ADR-131: a cross-match reel's moments are the best-moments selection (selected + left out with reasons), not the ranked
@@ -85,7 +86,7 @@ export function Moments() {
     const m = moments[i];
     if (!m || !reel || !r) return;
     if (m.in_reel) { const c = reel.clips.find((x) => x.in_pts_us === m.in_pts_us); if (c) r.setSelectedClip(c.id); return; }
-    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), "Clip added.");
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), dict.body.reels.clipAdded);
   };
   const left = isCross ? (cross?.selected.filter((m) => !m.in_reel).length ?? 0) : moments.filter((m) => !m.in_reel && !m.rejected).length;
   // B.15 (ADR-091): reject / restore a suggestion, swap the selected clip for it, move its clip earlier or later, "Is this him?" here
@@ -94,16 +95,16 @@ export function Moments() {
   const selIndex = sel && reel ? reel.clips.indexOf(sel) : -1;
   const clipOf = (m: ReelMoment) => reel?.clips.find((c) => c.in_pts_us < m.out_pts_us && c.out_pts_us > m.in_pts_us) ?? null;
   const win = (m: ReelMoment) => ({ in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us });
-  const reject = (m: ReelMoment) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST", json: win(m) }); }, "Left out of this reel: it is listed last; Restore brings it back.");
-  const restore = (m: ReelMoment) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST", json: win(m) }); }, "Suggestion restored.");
-  const swap = (m: ReelMoment) => reel && sel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}/swap`, { method: "POST", json: { ...win(m), label: m.label } }), `Clip ${selIndex + 1} swapped for this moment.`);
-  const move = (m: ReelMoment, d: -1 | 1) => {
+  const reject = (m: ReelMoment) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST", json: win(m) }); }, d.leftOutMsg);
+  const restore = (m: ReelMoment) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST", json: win(m) }); }, d.suggestionRestored);
+  const swap = (m: ReelMoment) => reel && sel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}/swap`, { method: "POST", json: { ...win(m), label: m.label } }), d.clipSwapped.replace("{a}", String(selIndex + 1)));
+  const move = (m: ReelMoment, dir: -1 | 1) => {
     const c = clipOf(m);
     if (!reel || !c || !r) return;
-    const ids = reel.clips.map((x) => x.id), i = ids.indexOf(c.id), j = i + d;
+    const ids = reel.clips.map((x) => x.id), i = ids.indexOf(c.id), j = i + dir;
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
-    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), `Moved to position ${j + 1}.`);
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), d.movedTo.replace("{a}", String(j + 1)));
   };
   // ADR-131: the cross-match actions — pin = addClip (the API guards eligibility and the per-match cap, Tier S immune),
   // remove = clip delete, reject / restore per video (a rejection in one match never rejects the same window in another)
@@ -112,18 +113,18 @@ export function Moments() {
   const crossMatchOf = (m: CrossMatchCandidate) => [m.home, m.away].filter(Boolean).join(" vs ") || m.video_title;
   const crossWhenOf = (m: CrossMatchCandidate) => (m.match_minute !== null ? `${m.match_minute}'` : mmss(m.key_at_us));
   const crossAdd = (m: CrossMatchCandidate) => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST",
-    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label, source_video_id: m.video_id } }), "Clip added.");
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label, source_video_id: m.video_id } }), dict.body.reels.clipAdded);
   const crossReject = (m: CrossMatchCandidate) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST",
-    json: { ...crossWin(m), video_id: m.video_id } }); }, "Left out of this reel: it is listed last; Restore brings it back.");
+    json: { ...crossWin(m), video_id: m.video_id } }); }, d.leftOutMsg);
   const crossRestore = (m: CrossMatchCandidate) => reel && r?.run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST",
-    json: { ...crossWin(m), video_id: m.video_id } }); }, "Suggestion restored.");
+    json: { ...crossWin(m), video_id: m.video_id } }); }, d.suggestionRestored);
   const crossSwap = (m: CrossMatchCandidate) => { const c = sel; if (!reel || !c || !r) return;
-    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}/swap`, { method: "POST", json: { ...crossWin(m), label: m.label } }), "Clip swapped."); };
-  const crossMove = (m: CrossMatchCandidate, d: -1 | 1) => { const c = clipOfCross(m); if (!reel || !c || !r) return;
-    const ids = reel.clips.map((x) => x.id), i = ids.indexOf(c.id), j = i + d;
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}/swap`, { method: "POST", json: { ...crossWin(m), label: m.label } }), d.clipSwappedSimple); };
+  const crossMove = (m: CrossMatchCandidate, dir: -1 | 1) => { const c = clipOfCross(m); if (!reel || !c || !r) return;
+    const ids = reel.clips.map((x) => x.id), i = ids.indexOf(c.id), j = i + dir;
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
-    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), `Moved to position ${j + 1}.`); };
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }), d.movedTo.replace("{a}", String(j + 1))); };
   const mini = (x: number, label: string, glyph: string, act: (() => void) | null, why: string, data: string, w = 40) => (
     <button key={data} type="button" aria-label={label} title={act ? label : why} data-moment-act={data} disabled={!act} onClick={act ?? undefined}
       className="absolute" style={{ left: u(x), top: u(990 - 939), width: u(w), height: u(30), fontSize: u(17), fontWeight: 700, color: "#fff", background: "rgba(0,10,25,.85)",
@@ -133,38 +134,38 @@ export function Moments() {
   const [hist, setHist] = useState(false);                             // B.1 (ADR-081): Undo, Redo and the reel's History
   const h = r?.history ?? null, canHist = !!r?.canEdit && !r?.busy;
   return (
-    <section id="p06-moments" aria-label={isCross ? "Best moments across all matches" : "Suggested key moments"} data-section="p06-s06" data-moments={String(isCross ? crossTotal : moments.length)}>
+    <section id="p06-moments" aria-label={isCross ? d.crossAria : d.momentsAria} data-section="p06-s06" data-moments={String(isCross ? crossTotal : moments.length)} >
       <P x={445} y={872} w={1593} h={258} style={focus === "p06-moments" ? { borderColor: "#33a8ff" } : undefined} />
       <Ic x={477} y={905} k="star" size={30} color="#33a8ff" />
-      <T x={505} y={905} size={25} weight={600} as="h2">{loading ? (isCross ? "Best Moments — All Matches…" : "Suggested Key Moments…") : isCross ? `Best Moments — All Matches (${crossTotal})` : `Suggested Key Moments (${moments.length})`}</T>
+      <T x={505} y={905} size={25} weight={600} as="h2">{loading ? (isCross ? d.crossHeadingLoading : d.momentsHeadingLoading) : isCross ? d.crossHeading.replace("{a}", String(crossTotal)) : d.momentsHeading.replace("{a}", String(moments.length))}</T>
       {reel?.player && !isCross && (
         // ADR-046: moments count only events on his named tracks; "Is this him?" on the unnamed players of the events brings more
-        <button type="button" onClick={() => setWho(true)} className="absolute" data-who-link title="Players elsewhere in the match who look like him: say if it is him, here"
-          style={{ left: u(1450), width: u(350), textAlign: "right", top: u(892 - 101), fontSize: u(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>More moments of him: Is this him? ›</button>
+        <button type="button" onClick={() => setWho(true)} className="absolute" data-who-link title={d.whoLinkTitle}
+          style={{ left: u(1450), width: u(350), textAlign: "right", top: u(892 - 101), fontSize: u(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>{d.whoLink}</button>
       )}
       {reel && r && <WhoQueue r={r} reel={reel} open={who} onOpenChange={setWho} />}
-      <button type="button" data-add-all disabled={!canAdd || left === 0} title={left ? (isCross ? "Add every selected moment not yet in the reel (the reel stays within its length)" : "Add every moment not yet in the reel, in match order (the reel stays within 10 minutes)") : "Every moment is in the reel"}
-        onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), "Moments added.")}
+      <button type="button" data-add-all disabled={!canAdd || left === 0} title={left ? (isCross ? d.addAllTitleCross : d.addAllTitleSingle) : d.addAllTitleNone}
+        onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), d.momentsAdded)}
         className="absolute" style={{ left: u(900), top: u(887 - 101), height: u(36), padding: `0 ${u(14)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
-          background: "#0b5cb0", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canAdd && left ? "pointer" : "default", opacity: canAdd && left ? 1 : 0.45 }}>{`+ Add all (${left})`}</button>
-      {!isCross && <button type="button" data-build-draft disabled={!reel} onClick={() => setDraft(true)} title="Let the engine build draft reels from his moments: choose a length and what it is about"
+          background: "#0b5cb0", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canAdd && left ? "pointer" : "default", opacity: canAdd && left ? 1 : 0.45 }}>{d.addAll.replace("{a}", String(left))}</button>
+      {!isCross && <button type="button" data-build-draft disabled={!reel} onClick={() => setDraft(true)} title={d.buildDraftTitle}
         className="absolute" style={{ left: u(1075), top: u(887 - 101), height: u(36), padding: `0 ${u(14)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
-          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>✦ Build a draft</button>}
+          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>{d.buildDraft}</button>}
       <DraftDialog r={r} open={draft} onOpenChange={setDraft} />
-      {([["↶", "Undo", 1250, 40, !!h?.can_undo, h?.undo_label ? `Undo: ${h.undo_label}` : "Nothing to undo", () => r?.undo()],
-         ["↷", "Redo", 1296, 40, !!h?.can_redo, h?.redo_label ? `Redo: ${h.redo_label}` : "Nothing to redo", () => r?.redo()]] as const).map(([g, l, x, w, on, tip, go]) => (
-        <button key={l} type="button" aria-label={tip} data-reel-undo={l} disabled={!canHist || !on} onClick={go} title={l === "Undo" ? `${tip} (Ctrl+Z)` : `${tip} (Ctrl+Shift+Z)`}
+      {([["↶", "Undo", 1250, 40, !!h?.can_undo, h?.undo_label ? dict.body.reels.historyUndoBtn.replace("{a}", h.undo_label) : dict.body.reels.historyNothingUndo, () => r?.undo()],
+         ["↷", "Redo", 1296, 40, !!h?.can_redo, h?.redo_label ? dict.body.reels.historyRedoBtn.replace("{a}", h.redo_label) : dict.body.reels.historyNothingRedo, () => r?.redo()]] as const).map(([g, l, x, w, on, tip, go]) => (
+        <button key={l} type="button" aria-label={tip} data-reel-undo={l} disabled={!canHist || !on} onClick={go} title={l === "Undo" ? d.undoTitle.replace("{a}", tip) : d.redoTitle.replace("{a}", tip)}
           className="absolute" style={{ left: u(x), top: u(887 - 101), width: u(w), height: u(36), fontSize: u(22), fontWeight: 700, color: "#fff", background: "#0a2447",
             border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canHist && on ? "pointer" : "default", opacity: canHist && on ? 1 : 0.45 }}>{g}</button>
       ))}
-      <button type="button" data-history-open disabled={!reel} onClick={() => setHist(true)} title="Every change to this reel; undo back to any point"
+      <button type="button" data-history-open disabled={!reel} onClick={() => setHist(true)} title={d.historyTitleBtn}
         className="absolute" style={{ left: u(1342), top: u(887 - 101), height: u(36), padding: `0 ${u(12)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
           background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>{dict.body.reels.history}</button>
       <HistoryDialog r={r} open={hist} onOpenChange={setHist} />
-      <Hit x={1830} y={890} w={210} h={40} label="View all moments" {...((isCross ? crossItems.length : moments.length) > 5 ? { onClick: () => { const el = scroller.current; if (el) el.scrollTo({ left: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 ? 0 : el.scrollLeft + 5 * stride * (el.clientWidth / (5 * stride)), behavior: "smooth" }); } } : { reason: (isCross ? crossItems.length : moments.length) ? "All moments are shown" : "No moments yet" })} />
-      <T x={1846} y={910} size={19} color="#33a8ff">View All Moments</T>
+      <Hit x={1830} y={890} w={210} h={40} label={d.viewAll} {...((isCross ? crossItems.length : moments.length) > 5 ? { onClick: () => { const el = scroller.current; if (el) el.scrollTo({ left: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 ? 0 : el.scrollLeft + 5 * stride * (el.clientWidth / (5 * stride)), behavior: "smooth" }); } } : { reason: (isCross ? crossItems.length : moments.length) ? d.viewAllReasonShown : d.viewAllReasonNone })} />
+      <T x={1846} y={910} size={19} color="#33a8ff">{d.viewAllText}</T>
       <Ic x={2012} y={910} k="fwd" size={18} color="#33a8ff" />
-      <div ref={scroller} role="list" aria-label={isCross ? "Best moments across all matches" : "Suggested moments"} className="absolute" style={{ left: u(455), top: u(939 - 101), width: u(1575), height: u(190), overflowX: (isCross ? crossItems.length : moments.length) > 5 ? "auto" : "hidden", overflowY: "hidden" }}>
+      <div ref={scroller} role="list" aria-label={isCross ? d.crossAria : d.momentsAria} className="absolute" style={{ left: u(455), top: u(939 - 101), width: u(1575), height: u(190), overflowX: (isCross ? crossItems.length : moments.length) > 5 ? "auto" : "hidden", overflowY: "hidden" }}>
         <div style={{ position: "relative", width: u(slots * stride), height: u(185) }}>
           {isCross ? crossItems.map((it, i) => { const m = it.m, x = i * stride;
             const c = clipOfCross(m), inR = it.inReel || c !== null, tagCol = it.tier ? ({ S: "#a066ff", A: "#19d3ff", B: "#19e6c0", C: "#ffb21a" } as Record<string, string>)[it.tier] ?? "#cfe0f5" : "#8b95a5";
@@ -175,23 +176,23 @@ export function Moments() {
                 <B o={[0, 939]} x={x + 14} y={950} w={36} h={34} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(20), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</B>
                 {inR && <Ic o={[0, 939]} x={x + 270} y={967} k="chk" size={26} color="#3ee6a8" />}
                 <B o={[0, 939]} x={x + 58} y={950} w={130} h={30} data-cross-tier-label={it.tier ?? "left-out"}
-                  style={{ background: "rgba(0,10,25,.8)", border: `${u(1.5)} solid ${tagCol}`, color: tagCol, borderRadius: u(6), fontSize: u(17), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.tier ? `Tier ${it.tier}` : "Left out"}</B>
-                <B o={[0, 939]} x={x + 14} y={1027} w={200} h={26} data-cross-reason={it.notSelected ?? it.reason} aria-label={it.notSelected ? `Left out: ${it.notSelected}` : it.reason}
+                  style={{ background: "rgba(0,10,25,.8)", border: `${u(1.5)} solid ${tagCol}`, color: tagCol, borderRadius: u(6), fontSize: u(17), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.tier ? dict.body.reels.crossTier.replace("{a}", it.tier) : d.tierLeftOut}</B>
+                <B o={[0, 939]} x={x + 14} y={1027} w={200} h={26} data-cross-reason={it.notSelected ?? it.reason} aria-label={it.notSelected ? dict.body.reels.crossLeftOut.replace("{a}", it.notSelected) : it.reason}
                   style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(16), display: "flex", alignItems: "center", gap: u(6), padding: `0 ${u(8)}`, whiteSpace: "nowrap", overflow: "hidden" }}>
                   <span style={{ color: "#cfe0f5", overflow: "hidden", textOverflow: "ellipsis" }}>{it.notSelected ?? it.reason}</span></B>
-                <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{`${Math.round((m.out_pts_us - m.in_pts_us) / 1e6)}s`}</B>
+                <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{d.durS.replace("{a}", String(Math.round((m.out_pts_us - m.in_pts_us) / 1e6)))}</B>
                 <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</T>
                 <T o={[0, 939]} x={x + 15} y={1105} size={19} color="#b9cbe2" style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>
                   {`${crossMatchOf(m)}${m.competition ? ` · ${m.competition}` : ""} · ${crossWhenOf(m)}`}</T>
-                <button type="button" aria-label={inR ? `Select the clip of moment ${i + 1}` : `Add moment ${i + 1} to the reel`} aria-pressed={inR}
-                  disabled={!inR && !canAdd} title={!inR && !canAdd ? "You cannot edit this reel" : "Click to add it to the reel"} onClick={() => { const cc = clipOfCross(m); if (cc) r?.setSelectedClip(cc.id); else crossAdd(m); }}
+                <button type="button" aria-label={inR ? d.momentSelectClip.replace("{a}", String(i + 1)) : d.momentAdd.replace("{a}", String(i + 1))} aria-pressed={inR}
+                  disabled={!inR && !canAdd} title={!inR && !canAdd ? d.cannotEdit : d.momentClickAdd} onClick={() => { const cc = clipOfCross(m); if (cc) r?.setSelectedClip(cc.id); else crossAdd(m); }}
                   className="absolute" style={{ left: u(x), top: 0, width: u(298), height: u(185), padding: 0, border: 0, background: "transparent", cursor: canAdd ? "pointer" : "default" }} />
-                {canAdd && (it.notSelected === "rejected for this reel" ? mini(x + 200, "Restore this suggestion", "Restore", () => crossRestore(m), "", "restore", 90)
+                {canAdd && (it.notSelected === "rejected for this reel" ? mini(x + 200, d.miniRestore, d.miniRestoreGlyph, () => crossRestore(m), "", "restore", 90)
                   : inR ? (() => { const cc = clipOfCross(m), at = cc && reel ? reel.clips.indexOf(cc) : -1, n = reel?.clips.length ?? 0;
-                    return [mini(x + 200, "Move its clip earlier in the reel", "◀", at > 0 ? () => crossMove(m, -1) : null, "Already first", "earlier"),
-                      mini(x + 244, "Move its clip later in the reel", "▶", at >= 0 && at < n - 1 ? () => crossMove(m, 1) : null, "Already last", "later")]; })()
-                  : [mini(x + 200, "Not this one: leave it out of this reel", "✕", () => crossReject(m), "", "reject"),
-                    mini(x + 244, sel ? `Swap clip ${selIndex + 1} for this moment` : "Swap: select a clip in the timeline first", "⇄", sel ? () => crossSwap(m) : null, "Select a clip in the timeline first, then swap it for this moment", "swap")])}
+                    return [mini(x + 200, d.miniEarlier, "◀", at > 0 ? () => crossMove(m, -1) : null, d.miniAlreadyFirst, "earlier"),
+                      mini(x + 244, d.miniLater, "▶", at >= 0 && at < n - 1 ? () => crossMove(m, 1) : null, d.miniAlreadyLast, "later")]; })()
+                  : [mini(x + 200, d.miniReject, "✕", () => crossReject(m), "", "reject"),
+                    mini(x + 244, sel ? d.miniSwap.replace("{a}", String(selIndex + 1)) : d.miniSwapSelect, "⇄", sel ? () => crossSwap(m) : null, d.miniSwapReason, "swap")])}
               </div>
             ); }) : Array.from({ length: slots }, (_, i) => {
             const m = moments[i], x = i * stride;
@@ -203,42 +204,43 @@ export function Moments() {
                 <B o={[0, 939]} x={x + 14} y={950} w={36} h={34} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(20), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</B>
                 {m?.in_reel && <Ic o={[0, 939]} x={x + 270} y={967} k="chk" size={26} color="#3ee6a8" />}
                 {m && (() => {
-                  const [word, c] = m.kind === "EVENT" && m.events[0] ? TAG[m.events[0]] : ["Visible", "#8ea3bf"];
+                  const [word, c] = m.kind === "EVENT" && m.events[0] ? tags[m.events[0]] : [d.tagVisible, "#8ea3bf"];
                   return <B o={[0, 939]} x={x + 58} y={950} w={130} h={30} data-moment-kind={m.kind}
                     style={{ background: "rgba(0,10,25,.8)", border: `${u(1.5)} solid ${c}`, color: c, borderRadius: u(6), fontSize: u(17), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{word}</B>;
                 })()}
                 {m && (() => {
                   const b = momentBadge(m), cov = m.coverage === null ? null : Math.round(m.coverage * 100);
-                  return <B o={[0, 939]} x={x + 14} y={1027} w={200} h={26} data-moment-badge={b.word} data-moment-coverage={cov ?? ""} aria-label={`${b.title}. ${cov === null ? "Coverage not measured" : `He has a recorded position in ${cov}% of it`}`}
+                  const badge = b.word === "On camera" ? { word: d.badgeOnCamera, title: d.badgeOnCameraTitle } : b.word === "Possible" ? { word: d.badgePossible, title: d.badgePossibleTitle } : { word: d.badgeDetected, title: d.badgeDetectedTitle };
+                  return <B o={[0, 939]} x={x + 14} y={1027} w={200} h={26} data-moment-badge={b.word} data-moment-coverage={cov ?? ""} aria-label={`${badge.title}. ${cov === null ? d.badgeCoverageNotMeasured : d.badgeCoverage.replace("{a}", String(cov))}`}
                     style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(16), display: "flex", alignItems: "center", gap: u(6), padding: `0 ${u(8)}`, whiteSpace: "nowrap" }}>
-                    <b style={{ color: b.word === "Possible" ? "#f5b82e" : "#3ee6a8" }}>{b.word}</b><span style={{ color: "#cfe0f5" }}>{cov === null ? "· not measured" : `· seen ${cov}%`}</span></B>;
+                    <b style={{ color: b.word === "Possible" ? "#f5b82e" : "#3ee6a8" }}>{badge.word}</b><span style={{ color: "#cfe0f5" }}>{cov === null ? d.badgeNotMeasured : d.badgeSeen.replace("{a}", String(cov))}</span></B>;
                 })()}
-                <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{m ? `${Math.round((m.out_pts_us - m.in_pts_us) / 1e6)}s` : "—"}</B>
-                <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m ? m.label : first ? (loading ? "Loading suggestions…" : "No suggestions yet") : "—"}</T>
+                <B o={[0, 939]} x={x + 222} y={1027} w={62} h={26} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6), fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{m ? d.durS.replace("{a}", String(Math.round((m.out_pts_us - m.in_pts_us) / 1e6))) : "—"}</B>
+                <T o={[0, 939]} x={x + 15} y={1078} size={20} weight={600} style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{m ? m.label : first ? (loading ? dict.body.reels.momentsLoading : d.firstNoSuggestions) : "—"}</T>
                 <T o={[0, 939]} x={x + 15} y={1105} size={19} color="#b9cbe2" style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {m ? detail(m) : first ? (loading ? "The engine's suggestions are loading" : "Run AI processing first") : "—"}</T>
+                  {m ? detail(m, d) : first ? (loading ? d.momentsLoadingSub : d.firstRunAi) : "—"}</T>
                 {m && (
-                  <button type="button" aria-label={m.in_reel ? `Select the clip of moment ${i + 1}` : `Add moment ${i + 1} to the reel`} aria-pressed={m.in_reel}
-                    disabled={!m.in_reel && !canAdd} title={!m.in_reel && !canAdd ? "You cannot edit this reel" : "Click to add, or drag into the timeline"} onClick={() => add(i)}
-                    draggable={canAdd} onDragStart={(e) => startDrag(e, { moment: m }, `${m.label} · ${Math.round((m.out_pts_us - m.in_pts_us) / 1e6)}s`)} onDragEnd={() => { dragged = null; }}
+                  <button type="button" aria-label={m.in_reel ? d.momentSelectClip.replace("{a}", String(i + 1)) : d.momentAdd.replace("{a}", String(i + 1))} aria-pressed={m.in_reel}
+                    disabled={!m.in_reel && !canAdd} title={!m.in_reel && !canAdd ? d.cannotEdit : d.momentClickAddDrag} onClick={() => add(i)}
+                    draggable={canAdd} onDragStart={(e) => startDrag(e, { moment: m }, `${m.label} · ${d.durS.replace("{a}", String(Math.round((m.out_pts_us - m.in_pts_us) / 1e6)))}`)} onDragEnd={() => { dragged = null; }}
                     className="absolute" style={{ left: u(x), top: 0, width: u(298), height: u(185), padding: 0, border: 0, background: "transparent", cursor: canAdd ? "grab" : "pointer" }} />
                 )}
-                {m && canAdd && (m.rejected ? mini(x + 200, "Restore this suggestion", "Restore", () => restore(m), "", "restore", 90)
+                {m && canAdd && (m.rejected ? mini(x + 200, d.miniRestore, d.miniRestoreGlyph, () => restore(m), "", "restore", 90)
                   : m.in_reel ? (() => {
                     const c = clipOf(m), at = c && reel ? reel.clips.indexOf(c) : -1, n = reel?.clips.length ?? 0;
-                    return [mini(x + 200, "Move its clip earlier in the reel", "◀", at > 0 ? () => move(m, -1) : null, "Already first", "earlier"),
-                      mini(x + 244, "Move its clip later in the reel", "▶", at >= 0 && at < n - 1 ? () => move(m, 1) : null, "Already last", "later")];
+                    return [mini(x + 200, d.miniEarlier, "◀", at > 0 ? () => move(m, -1) : null, d.miniAlreadyFirst, "earlier"),
+                      mini(x + 244, d.miniLater, "▶", at >= 0 && at < n - 1 ? () => move(m, 1) : null, d.miniAlreadyLast, "later")];
                   })()
-                  : [mini(x + 200, "Not this one: leave it out of this reel", "✕", () => reject(m), "", "reject"),
-                    mini(x + 244, sel ? `Swap clip ${selIndex + 1} for this moment` : "Swap: select a clip in the timeline first", "⇄", sel ? () => swap(m) : null, "Select a clip in the timeline first, then swap it for this moment", "swap")])}
+                  : [mini(x + 200, d.miniReject, "✕", () => reject(m), "", "reject"),
+                    mini(x + 244, sel ? d.miniSwap.replace("{a}", String(selIndex + 1)) : d.miniSwapSelect, "⇄", sel ? () => swap(m) : null, d.miniSwapReason, "swap")])}
               </div>
             );
           })}
         </div>
       </div>
-      {reel && loading && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">{isCross ? "Loading best moments…" : "Loading suggestions…"}</T>}
-      {reel && !loading && !isCross && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">The player is not visible on any confirmed track yet</T>}
-      {reel && !loading && isCross && crossItems.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">No best moments yet: no measured moment in any of his matches — nothing is filled in</T>}
+      {reel && loading && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">{isCross ? dict.body.reels.crossLoading : dict.body.reels.momentsLoading}</T>}
+      {reel && !loading && !isCross && moments.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">{d.noVisibleCenter}</T>}
+      {reel && !loading && isCross && crossItems.length === 0 && <T x={1246} y={1030} size={19} color="#8ea3bf" align="center">{d.noBestCenter}</T>}
     </section>
   );
 }
@@ -248,18 +250,20 @@ const ClipEditor = memo(function ClipEditor({ sel, idx, total, edit, setEdit, ca
   sel: ReelClip; idx: number; total: number; edit: { a: string; b: string }; setEdit: (e: { a: string; b: string }) => void;
   canEdit: boolean; reel: Reel | null; r: ReelState | null; move: (d: number) => void;
 }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.reelstage;
   return (
-    <div aria-label="Edit the selected clip" className="absolute" style={{ left: u(1290), top: u(1154 - 101), width: u(560), height: u(42), display: "flex", alignItems: "center", gap: u(8),
+    <div aria-label={d.clipEditorAria} className="absolute" style={{ left: u(1290), top: u(1154 - 101), width: u(560), height: u(42), display: "flex", alignItems: "center", gap: u(8),
       padding: `0 ${u(10)}`, boxSizing: "border-box", background: "#071a33", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6), fontSize: u(17), zIndex: 3 }}>
-      <span style={{ fontWeight: 700 }}>Clip {idx + 1}</span>
-      <label>in <input value={edit.a} disabled={!canEdit} aria-label={`Clip ${idx + 1} in (s)`} onChange={(e) => setEdit({ ...edit, a: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
-      <label>out <input value={edit.b} disabled={!canEdit} aria-label={`Clip ${idx + 1} out (s)`} onChange={(e) => setEdit({ ...edit, b: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
-      <button type="button" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(edit.a) * 1e6), out_pts_us: Math.round(Number(edit.b) * 1e6) } }), "Clip trimmed.")}
-        style={{ color: "#33a8ff", cursor: "pointer" }}>Trim</button>
-      <button type="button" aria-label="Move earlier" disabled={!canEdit || idx === 0} onClick={() => move(-1)} style={{ cursor: "pointer" }}>◀</button>
-      <button type="button" aria-label="Move later" disabled={!canEdit || idx === total - 1} onClick={() => move(1)} style={{ cursor: "pointer" }}>▶</button>
-      <button type="button" aria-label="Remove clip" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "DELETE" }), "Clip removed.")} style={{ color: "#ff8a8a", cursor: "pointer" }}>Remove</button>
-      <button type="button" aria-label="Close the clip editor" onClick={() => r?.setSelectedClip(null)} style={{ marginLeft: "auto", cursor: "pointer" }}>✕</button>
+      <span style={{ fontWeight: 700 }}>{d.clipEditorTitle.replace("{a}", String(idx + 1))}</span>
+      <label>{dict.body.reels.clipInLabel} <input value={edit.a} disabled={!canEdit} aria-label={dict.body.reels.clipInAria.replace("{a}", String(idx + 1))} onChange={(e) => setEdit({ ...edit, a: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
+      <label>{dict.body.reels.clipOutLabel} <input value={edit.b} disabled={!canEdit} aria-label={dict.body.reels.clipOutAria.replace("{a}", String(idx + 1))} onChange={(e) => setEdit({ ...edit, b: e.target.value })} style={{ width: u(64), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(4), color: "#fff", fontSize: u(17), padding: `0 ${u(4)}` }} /></label>
+      <button type="button" disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(edit.a) * 1e6), out_pts_us: Math.round(Number(edit.b) * 1e6) } }), dict.body.reels.clipTrimmed)}
+        style={{ color: "#33a8ff", cursor: "pointer" }}>{dict.body.reels.clipTrim}</button>
+      <button type="button" aria-label={d.moveEarlier} disabled={!canEdit || idx === 0} onClick={() => move(-1)} style={{ cursor: "pointer" }}>◀</button>
+      <button type="button" aria-label={d.moveLater} disabled={!canEdit || idx === total - 1} onClick={() => move(1)} style={{ cursor: "pointer" }}>▶</button>
+      <button type="button" aria-label={dict.body.reels.removeClip} disabled={!canEdit} onClick={() => reel && r?.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${sel.id}`, { method: "DELETE" }), d.clipRemoved)} style={{ color: "#ff8a8a", cursor: "pointer" }}>Remove</button>
+      <button type="button" aria-label={d.clipEditorClose} onClick={() => r?.setSelectedClip(null)} style={{ marginLeft: "auto", cursor: "pointer" }}>✕</button>
     </div>
   );
 });
@@ -271,7 +275,7 @@ export function Timeline() {
   const clips = reel?.clips ?? [];
   const total = reel?.duration_us ?? 0;
   const [music] = useMusic();
-  const tune = reel?.settings.music_id ? (music?.find((m) => m.id === reel.settings.music_id)?.name ?? "chosen") : null;
+  const tune = reel?.settings.music_id ? (music?.find((m) => m.id === reel.settings.music_id)?.name ?? dict.body.reelstage.chosenFallback) : null;
   const [edit, setEdit] = useState<{ a: string; b: string }>({ a: "", b: "" });
   const sel = clips.find((c) => c.id === r?.selectedClip) ?? null;
   useEffect(() => { if (sel) setEdit({ a: (sel.in_pts_us / 1e6).toFixed(1), b: (sel.out_pts_us / 1e6).toFixed(1) }); }, [sel?.id, sel?.in_pts_us, sel?.out_pts_us]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -287,7 +291,7 @@ export function Timeline() {
     if (!reel || !r) return;
     if (!clearAsk) { setClearAsk(true); return; }
     setClearAsk(false); r.setSelectedClip(null);
-    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "DELETE" }), "All clips removed.");
+    r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "DELETE" }), dict.body.reelstage.allClipsRemoved);
   };
   let acc = 0;
   const segs = clips.map((c, i) => { const d = slotUs(c), at = acc, x = X0 + (acc / Math.max(1, total)) * ZW - o, w = Math.max(6, (d / Math.max(1, total)) * ZW - 3); acc += d;
@@ -354,7 +358,7 @@ export function Timeline() {
     const existing = "clip" in d ? d.clip : clips.find((c) => c.in_pts_us === d.moment.in_pts_us)?.id;
     if (existing) {
       const next = order(ids, existing);
-      if (next.join() !== ids.join()) r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: next } }), "Clip moved.");
+      if (next.join() !== ids.join()) r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: next } }), dict.body.reelstage.clipMoved);
       return;
     }
     if ("clip" in d) return;
@@ -364,27 +368,27 @@ export function Timeline() {
       const added = after.clips.find((c) => !ids.includes(c.id));
       if (!added || k >= ids.length) return after;
       return api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: order([...ids, added.id], added.id) } });
-    }, "Clip added.");
+    }, dict.body.reels.clipAdded);
   };
   const lineX = dropAt === null ? 0 : Math.min(X0 + W, Math.max(X0 - 2, dropAt === 0 ? (segs[0]?.x ?? X0) - 2 : segs[dropAt - 1]!.x + segs[dropAt - 1]!.w));
   const lane = (y: number, h: number, bg: string, border?: string) => ({ background: bg, border: border ? `${u(1.5)} solid ${border}` : undefined, borderRadius: u(6), boxSizing: "border-box" as const, y, h });
   void lane;
   return (
-    <section ref={section} aria-label="Reel timeline" data-section="p06-s07" data-clips={String(clips.length)} data-drop-at={dropAt ?? ""}
+    <section ref={section} aria-label={dict.body.reelstage.timelineAria} data-section="p06-s07" data-clips={String(clips.length)} data-drop-at={dropAt ?? ""}
       onDragEnter={onDragOver} onDragOver={onDragOver} onDrop={onDrop}
       onDragLeave={(e) => { const to = e.relatedTarget as Node | null; if (to && !section.current?.contains(to)) setDropAt(null); }}>
       <P x={445} y={1150} w={1593} h={265} />
       <B x={675} y={1152} w={1} h={261} style={{ background: "#12335f" }} />
       <Ic x={475} y={1225} k="film" size={26} color="#d6e4f7" /><T x={508} y={1225} size={20} color="#d6e4f7">{dict.body.reels.videoClips}</T>
-      <Ic x={475} y={1272} k="sun" size={26} color="#d6e4f7" /><T x={508} y={1272} size={20} color="#d6e4f7">Spotlight Effects</T>
-      <T x={467} y={1319} size={30} color="#d6e4f7" style={{ fontFamily: "Georgia,serif" }}>T</T><T x={508} y={1319} size={20} color="#d6e4f7">Text &amp; Overlays</T>
-      <Ic x={475} y={1370} k="note" size={26} color="#d6e4f7" /><T x={508} y={1370} size={20} color="#d6e4f7">Audio</T>
+      <Ic x={475} y={1272} k="sun" size={26} color="#d6e4f7" /><T x={508} y={1272} size={20} color="#d6e4f7">{dict.body.reelstage.laneSpotlight}</T>
+      <T x={467} y={1319} size={30} color="#d6e4f7" style={{ fontFamily: "Georgia,serif" }}>T</T><T x={508} y={1319} size={20} color="#d6e4f7">{dict.body.reelstage.laneText}</T>
+      <Ic x={475} y={1370} k="note" size={26} color="#d6e4f7" /><T x={508} y={1370} size={20} color="#d6e4f7">{dict.body.reelstage.laneAudio}</T>
       {RULER.slice(0, -1).map((x, i) => <T key={x} x={x} y={1176} size={20} color="#cfe0f5" align="center">{i === 0 && o === 0 ? "00:00" : total ? mmss((total * (o + x - X0)) / ZW) : "—"}</T>)}
       {zoom > 1 && <B x={X0 + (o / ZW) * W} y={1193} w={Math.max(8, (W * W) / ZW)} h={4} data-zoom-window="" style={{ background: "#33a8ff", borderRadius: u(2), pointerEvents: "none" }} />}
-      <div role="group" aria-label="Timeline view" className="absolute" style={{ left: u(1858), top: u(1157 - 101), display: "flex", gap: u(4) }}>
-        {([["−", "Zoom out", () => zoomTo(ZOOM_STEPS[Math.max(0, ZOOM_STEPS.indexOf(zoom as (typeof ZOOM_STEPS)[number]) - 1)]!), zoom > 1 && !asList, "zoom-out"],
-           ["+", "Zoom in", () => zoomTo(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, ZOOM_STEPS.indexOf(zoom as (typeof ZOOM_STEPS)[number]) + 1)]!), zoom < 16 && !asList && clips.length > 0, "zoom-in"],
-           [asList ? "▭" : "☰", asList ? "Show the lanes" : "Show the clips as a list", () => setAsList(!asList), clips.length > 0, "list"]] as const).map(([g, l, go, on, k]) => (
+      <div role="group" aria-label={dict.body.reelstage.timelineViewAria} className="absolute" style={{ left: u(1858), top: u(1157 - 101), display: "flex", gap: u(4) }}>
+        {([["−", dict.body.reelstage.zoomOut, () => zoomTo(ZOOM_STEPS[Math.max(0, ZOOM_STEPS.indexOf(zoom as (typeof ZOOM_STEPS)[number]) - 1)]!), zoom > 1 && !asList, "zoom-out"],
+           ["+", dict.body.reelstage.zoomIn, () => zoomTo(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, ZOOM_STEPS.indexOf(zoom as (typeof ZOOM_STEPS)[number]) + 1)]!), zoom < 16 && !asList && clips.length > 0, "zoom-in"],
+           [asList ? "▭" : "☰", asList ? dict.body.reelstage.lanesShow : dict.body.reelstage.listShow, () => setAsList(!asList), clips.length > 0, "list"]] as const).map(([g, l, go, on, k]) => (
           <button key={k} type="button" aria-label={l} title={l} data-timeline-view={k} aria-pressed={k === "list" ? asList : undefined} disabled={!on} onClick={go}
             style={{ width: u(40), height: u(34), fontSize: u(20), fontWeight: 700, color: "#fff", background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6),
               cursor: on ? "pointer" : "default", opacity: on ? 1 : 0.4, padding: 0 }}>{g}</button>
@@ -399,9 +403,9 @@ export function Timeline() {
       {clips.length === 0 ? (
         <>
           <T x={1360} y={1229} size={19} color="#8ea3bf" align="center">{dict.body.reels.addMoments}</T>
-          <T x={1360} y={1276} size={17} color="#8ea3bf" align="center">No spotlight effects</T>
-          <T x={1360} y={1319} size={19} color="#8ea3bf" align="center">No text or overlays</T>
-          <Ic x={720} y={1378} k="note" size={28} color="#cfe0f5" /><T x={748} y={1378} size={20} color="#cfe0f5">No audio selected</T>
+          <T x={1360} y={1276} size={17} color="#8ea3bf" align="center">{dict.body.reelstage.laneNoSpotlight}</T>
+          <T x={1360} y={1319} size={19} color="#8ea3bf" align="center">{dict.body.reelstage.laneNoText}</T>
+          <Ic x={720} y={1378} k="note" size={28} color="#cfe0f5" /><T x={748} y={1378} size={20} color="#cfe0f5">{dict.body.reelstage.laneNoAudio}</T>
         </>
       ) : (
         <>
@@ -410,19 +414,19 @@ export function Timeline() {
             return (
               <div key={c.id} data-clip={i}>
                 <B x={x} y={1205} w={w} h={48} style={{ background: i % 2 ? "#0d4a8a" : "#0b5cb0", borderRadius: u(5), border: on ? `${u(2.5)} solid #fff` : `${u(1)} solid #1e90ff`, boxSizing: "border-box" }} />
-                <T x={x + 8} y={1229} size={17} style={{ maxWidth: u(Math.max(0, w - 12)), overflow: "hidden" }}>{`${i + 1} · ${(d / 1e6).toFixed(0)}s`}</T>
-                <button type="button" aria-label={`Clip ${i + 1}, ${secs(d)}`} aria-pressed={on} title="Click to edit, drag to move" onClick={() => r?.setSelectedClip(on ? null : c.id)}
-                  draggable={canEdit} onDragStart={(e) => startDrag(e, { clip: c.id }, `Clip ${i + 1} · ${(d / 1e6).toFixed(0)}s`)} onDragEnd={() => { dragged = null; }}
+                <T x={x + 8} y={1229} size={17} style={{ maxWidth: u(Math.max(0, w - 12)), overflow: "hidden" }}>{`${i + 1} · ${dict.body.reelstage.durS.replace("{a}", (d / 1e6).toFixed(0))}`}</T>
+                <button type="button" aria-label={dict.body.reelstage.clipAria.replace("{a}", String(i + 1)).replace("{b}", secs(d, dict.body.reelstage.durationSec))} aria-pressed={on} title={dict.body.reelstage.momentClickEditDrag} onClick={() => r?.setSelectedClip(on ? null : c.id)}
+                  draggable={canEdit} onDragStart={(e) => startDrag(e, { clip: c.id }, `${dict.body.reelstage.clipListFallback} ${i + 1} · ${dict.body.reelstage.durS.replace("{a}", (d / 1e6).toFixed(0))}`)} onDragEnd={() => { dragged = null; }}
                   className="absolute" style={{ left: u(x), top: u(1205 - 101), width: u(w), height: u(48), padding: 0, border: 0, background: "transparent", cursor: canEdit ? "grab" : "pointer" }} />
                 <B x={x} y={1264} w={w} h={24} style={{ background: "#1e90ff", opacity: 0.55, borderRadius: u(5) }} />
-                {w > 70 && <T x={x + 8} y={1276} size={15} color="#fff">Spotlight</T>}
+                {w > 70 && <T x={x + 8} y={1276} size={15} color="#fff">{dict.body.reelstage.laneSpotlightShort}</T>}
                 {reel?.settings.name_caption && <B x={x} y={1310} w={w} h={20} style={{ background: "#7b3fe4", opacity: 0.75, borderRadius: u(4) }} />}
-                {reel?.settings.name_caption && w > 90 && <T x={x + 8} y={1320} size={14} color="#fff">Name caption</T>}
+                {reel?.settings.name_caption && w > 90 && <T x={x + 8} y={1320} size={14} color="#fff">{dict.body.reelstage.laneNameCaption}</T>}
               </div>
             );
           })}
           {asList && (
-            <div role="list" aria-label="Clips as a list" data-clip-list="" className="absolute" style={{ left: u(X0), top: u(1203 - 101), width: u(W), height: u(203), overflowY: "auto",
+            <div role="list" aria-label={dict.body.reelstage.clipsListAria} data-clip-list="" className="absolute" style={{ left: u(X0), top: u(1203 - 101), width: u(W), height: u(203), overflowY: "auto",
               background: "#07162c", border: `${u(1.5)} solid #12335f`, borderRadius: u(6), boxSizing: "border-box", zIndex: 2, fontSize: u(17) }}>
               {segs.map(({ c, i, d }) => {
                 const on = c.id === r?.selectedClip;
@@ -430,24 +434,24 @@ export function Timeline() {
                   <button key={c.id} type="button" role="listitem" data-list-clip={i} aria-pressed={on} onClick={() => r?.setSelectedClip(on ? null : c.id)}
                     style={{ display: "grid", gridTemplateColumns: `${u(50)} 1fr ${u(170)} ${u(80)} ${u(130)}`, gap: u(10), width: "100%", textAlign: "left", padding: `${u(5)} ${u(10)}`,
                       background: on ? "#0d3a78" : i % 2 ? "#081d38" : "transparent", border: 0, color: "#e3eefb", cursor: "pointer" }}>
-                    <b>{i + 1}</b><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.label ?? "Clip"}</span>
-                    <span style={{ color: "#9fb3cc" }}>{`${mmss(c.in_pts_us)} – ${mmss(c.out_pts_us)}`}</span><span>{secs(d)}</span>
-                    <span style={{ color: "#9fb3cc" }}>{c.effect.kind === "NONE" ? "" : c.effect.kind === "SLOW" ? "Slow motion" : c.effect.kind === "FREEZE" ? "Freeze frame" : "Hero ramp"}</span>
+                    <b>{i + 1}</b><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.label ?? dict.body.reelstage.clipListFallback}</span>
+                    <span style={{ color: "#9fb3cc" }}>{`${mmss(c.in_pts_us)} – ${mmss(c.out_pts_us)}`}</span><span>{secs(d, dict.body.reelstage.durationSec)}</span>
+                    <span style={{ color: "#9fb3cc" }}>{c.effect.kind === "NONE" ? "" : c.effect.kind === "SLOW" ? dict.body.reelstage.effectSlow : c.effect.kind === "FREEZE" ? dict.body.reelstage.effectFreeze : dict.body.reelstage.effectHero}</span>
                   </button>
                 );
               })}
             </div>
           )}
-          {!reel?.settings.name_caption && <T x={1360} y={1319} size={19} color="#8ea3bf" align="center">No text or overlays</T>}
-          <Ic x={720} y={1378} k="note" size={28} color="#cfe0f5" /><T x={748} y={1378} size={20} color="#cfe0f5">{tune ? `Music: ${tune} (${Math.round((reel?.settings.music_volume ?? 0) * 100)}%) over the match sound (${Math.round((reel?.settings.match_volume ?? 0) * 100)}%)` : "Match audio of the clips (no music selected)"}</T>
+          {!reel?.settings.name_caption && <T x={1360} y={1319} size={19} color="#8ea3bf" align="center">{dict.body.reelstage.laneNoText}</T>}
+          <Ic x={720} y={1378} k="note" size={28} color="#cfe0f5" /><T x={748} y={1378} size={20} color="#cfe0f5">{tune ? dict.body.reelstage.audioMusic.replace("{a}", tune).replace("{b}", String(Math.round((reel?.settings.music_volume ?? 0) * 100))).replace("{c}", String(Math.round((reel?.settings.match_volume ?? 0) * 100))) : dict.body.reelstage.audioMatchOnly}</T>
         </>
       )}
 
       {clips.length > 0 && (
-        <button type="button" data-remove-all disabled={!canEdit} onClick={clearAll} title="Remove every clip from the reel (click twice)"
+        <button type="button" data-remove-all disabled={!canEdit} onClick={clearAll} title={dict.body.reelstage.removeAllTitle}
           className="absolute" style={{ left: u(458), top: u(1160 - 101), width: u(205), height: u(34), fontSize: u(16), fontWeight: 600, borderRadius: u(6),
             color: clearAsk ? "#fff" : "#ff8a8a", background: clearAsk ? "#b3261e" : "transparent", border: `${u(1.5)} solid ${clearAsk ? "#ff8a8a" : "#7a2a2a"}`, cursor: canEdit ? "pointer" : "default" }}>
-          {clearAsk ? "Click again to remove" : `✕ Remove all (${clips.length})`}</button>
+          {clearAsk ? dict.body.reelstage.removeAllConfirm : dict.body.reelstage.removeAll.replace("{a}", String(clips.length))}</button>
       )}
 
       {dropAt !== null && <B x={lineX} y={1197} w={4} h={64} data-drop-line="" style={{ background: "#fff", borderRadius: u(2), boxShadow: "0 0 8px #33a8ff", zIndex: 2, pointerEvents: "none" }} />}

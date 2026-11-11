@@ -5,6 +5,7 @@ import type { Reel, ReelClip, ReelPath } from "@otsi-vie/contracts";
 
 vi.mock("@/lib/api", () => ({ api: vi.fn(async () => null) }));
 import { CoverageBar, clipCoverage, maxInterpFor, spotlightNote } from "@/components/reelstage/LiveSpotlight";
+import { en } from "@/lib/i18n/dictionaries";
 
 /** a point every 40 ms from a to b (µs) */
 const run = (a: number, b: number) => Array.from({ length: Math.floor((b - a) / 40_000) + 1 }, (_, i) => ({ pts_us: a + i * 40_000, x: 0.4, y: 0.4, w: 0.05, h: 0.15 }));
@@ -37,9 +38,9 @@ describe("coverage", () => {
     expect(bar.querySelectorAll('[data-seen-part="D"]').length).toBe(2);
   });
   it("says what the preview shows; nothing seen is said, never drawn", () => {
-    expect(spotlightNote(reel, path, clip, 0.5)!.text).toBe("Live spotlight · approximate · player seen in 41% of this clip");
-    expect(spotlightNote(reel, { ...path, points: [] }, clip, 0.5)!.text).toBe("Live spotlight · the player was not found in this clip");
-    expect(spotlightNote({ ...reel, stale: true } as Reel, path, clip, 0.5)!.text).toMatch(/identity changed/);
-    expect(spotlightNote(reel, path, null, 0.5)).toBeNull();
+    expect(spotlightNote(reel, path, clip, 0.5, en.body.reelstage)!.text).toBe("Live spotlight · approximate · player seen in 41% of this clip");
+    expect(spotlightNote(reel, { ...path, points: [] }, clip, 0.5, en.body.reelstage)!.text).toBe("Live spotlight · the player was not found in this clip");
+    expect(spotlightNote({ ...reel, stale: true } as Reel, path, clip, 0.5, en.body.reelstage)!.text).toMatch(/identity changed/);
+    expect(spotlightNote(reel, path, null, 0.5, en.body.reelstage)).toBeNull();
   });
 });

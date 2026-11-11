@@ -16,7 +16,7 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { Sel } from "@/components/tactics/kit";
 import { api } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { Hit, Thumb } from "@/components/workspace/shared";
 import { FOOT_NAMES, POSITION_NAMES } from "@/components/players/PlayersList";
 import { teamCode } from "@/lib/team";
@@ -36,15 +36,17 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
   name: string; jersey: string | number; team: string; nationality: string; pos: string; foot: string; age: string | number;
   playerId: string | null; targetTrackId: string | null;
 }) {
+  const { t: dict } = useLocale();
+  const d = dict.body.reelstage;
   return (
-    <div aria-label="Player card" className="absolute" style={{ inset: 0, transform: `scale(${CARD_SCALE})`, transformOrigin: `${u(452 - SCENE.x)} ${u(136 - SCENE.y)}`, pointerEvents: "none" }}>
+    <div aria-label={d.cardAria} className="absolute" style={{ inset: 0, transform: `scale(${CARD_SCALE})`, transformOrigin: `${u(452 - SCENE.x)} ${u(136 - SCENE.y)}`, pointerEvents: "none" }}>
       <B o={[SCENE.x, SCENE.y]} x={452} y={136} w={640} h={150} style={{ background: "rgba(3,10,24,.3)", borderRadius: u(10) }} />
       <B o={[SCENE.x, SCENE.y]} x={464} y={147} w={129} h={127} style={{ opacity: 0.85, borderRadius: u(8), border: `${u(1.5)} solid #8ec4ef`, background: "linear-gradient(135deg,#9fd0f5,#3a6fa8)", overflow: "hidden" }}>
         {targetTrackId && <Thumb track={{ track_id: targetTrackId, has_thumbnail: true } as TrackSummary} w={129} h={127} />}
       </B>
       <T o={[SCENE.x, SCENE.y]} x={618} y={170} size={36} weight={700} as="h2" style={{ ...shade, maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{name}</T>
       <B o={[SCENE.x, SCENE.y]} x={966} y={147} w={56} h={42} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(26), display: "flex", alignItems: "center", justifyContent: "center" }}>{jersey}</B>
-      {playerId && <Link href={`/players?player=${playerId}`} aria-label="Edit the player's profile" title="Edit his profile on the Players list (nationality, foot, birth date)"
+      {playerId && <Link href={`/players?player=${playerId}`} aria-label={d.editProfileAria} title={d.editProfileTitle}
         className="absolute" style={{ pointerEvents: "auto", left: u(1034 - 447), top: u(147 - 127), width: u(44), height: u(42), borderRadius: u(6), border: `${u(1.5)} solid #33a8ff`, color: "#33a8ff",
           fontSize: u(22), display: "flex", alignItems: "center", justifyContent: "center" }}>✎</Link>}
       <B o={[SCENE.x, SCENE.y]} x={620} y={201} w={26} h={26} style={{ borderRadius: "50%", background: "#6cc4ff" }} />
@@ -53,7 +55,7 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
       <B o={[SCENE.x, SCENE.y]} x={856} y={203} w={22} h={22} style={{ background: "#3a5a88" }} />
       <T o={[SCENE.x, SCENE.y]} x={891} y={214} size={22} style={{ ...shade, maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis" }}>{nationality}</T>
       <T o={[SCENE.x, SCENE.y]} x={618} y={256} size={20} color="#e3ecf8" style={{ ...shade, maxWidth: u(250), overflow: "hidden", textOverflow: "ellipsis" }}>{pos}</T>
-      <T o={[SCENE.x, SCENE.y]} x={875} y={256} size={20} color="#e3ecf8" style={shade}>{`Foot ${foot}  |  Age ${age}`}</T>
+      <T o={[SCENE.x, SCENE.y]} x={875} y={256} size={20} color="#e3ecf8" style={shade}>{d.footAge.replace("{a}", foot).replace("{b}", String(age))}</T>
     </div>
   );
 });
@@ -83,6 +85,10 @@ const Scoreboard = memo(function Scoreboard({ match }: { match: Match | null }) 
   );
 });
 
+
+const renderWord = (state: string | null | undefined, d: Dictionary["body"]["reels"]) =>
+  state === "SUCCEEDED" ? d.renderStateSucceeded : state === "FAILED" ? d.renderStateFailed
+    : state === "QUEUED" ? d.renderStateQueued : state === "RUNNING" ? d.renderStateRunning : d.renderStateNotRendered;
 
 export function PreviewPanel() {
   const { t: dict } = useLocale();
@@ -165,16 +171,16 @@ export function PreviewPanel() {
   const ready = !!src;
   const hasClip = !!clip;
   const playPause = () => { const v = ref.current; if (!v) return; if (v.paused) { if (src?.kind === "source" && v.currentTime * 1e6 >= outUs - 50_000) v.currentTime = inUs / 1e6; void v.play(); } else v.pause(); };
-  const message = !reel ? null : !src ? "No preview yet: the playback copy is not available." : kind === "source" && !hasClip ? "Add a moment to start building the reel" : null;
+  const message = !reel ? null : !src ? dict.body.reelstage.previewNoSrc : kind === "source" && !hasClip ? dict.body.reelstage.previewAddMoment : null;
   const look = draft ?? reel?.settings ?? DEFAULTS;
   // the coverage is recomputed from the path on every render; the preview re-renders on every video timeupdate, so derive it once per clip/path/look
-  const spotNote = useMemo(() => (reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock) : null),
-    [reel, path, clip, look.lock, src?.kind, message]);
+  const spotNote = useMemo(() => (reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock, dict.body.reelstage) : null),
+    [reel, path, clip, look.lock, src?.kind, message, dict]);
 
   return (
-    <section aria-label="Cinematic spotlight preview" data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"}>
+    <section aria-label={dict.body.reelstage.previewAria} data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"}>
       <P x={445} y={125} w={1593} h={732} />
-      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label="Reel preview player" className="absolute" style={frameStyle(fs.on, { left: u(SCENE.x), top: u(SCENE.y - 101), width: u(SCENE.w), height: u(SCENE.h), overflow: "hidden", borderRadius: `${u(12)} ${u(12)} 0 0`,
+      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={dict.body.reelstage.playerAria} className="absolute" style={frameStyle(fs.on, { left: u(SCENE.x), top: u(SCENE.y - 101), width: u(SCENE.w), height: u(SCENE.h), overflow: "hidden", borderRadius: `${u(12)} ${u(12)} 0 0`,
         background: src ? "#000" : "radial-gradient(ellipse at 60% 25%,#5fb8ff 0,#1d5aa0 30%,transparent 62%),linear-gradient(180deg,#0a1a38,#04101f 60%,#0a2a30)" })}>
         {!src && (
           <>
@@ -183,7 +189,7 @@ export function PreviewPanel() {
           </>
         )}
         {src && (
-          <video ref={ref} key={src.url} src={src.url} preload="metadata" playsInline aria-label={src.kind === "render" ? "Rendered reel" : "Source clip preview"}
+          <video ref={ref} key={src.url} src={src.url} preload="metadata" playsInline aria-label={src.kind === "render" ? dict.body.reels.previewRenderedAria : dict.body.reels.previewSourceAria}
             onTimeUpdate={onTime} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={onTime}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
         )}
@@ -192,16 +198,16 @@ export function PreviewPanel() {
           fontSize: u(17), color: spotNote.seen === 0 ? "#f5b82e" : "#dbe8f8", pointerEvents: "none" }}>{spotNote.text}</div>}
         {!reel && (
           <div className="absolute" style={{ left: u(1020 - SCENE.x), top: u(360 - SCENE.y), width: u(520), textAlign: "center", fontSize: u(22), color: "#dbe8f8" }}>
-            {listFailed ? (<>{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>{dict.common.retry}</button></>) : list === null ? "Loading reels…" : list.length === 0 ? (
-              <>No reel yet. In the Analysis workspace, confirm who a player is, then choose &quot;Create highlight reel&quot;.</>
+            {listFailed ? (<>{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>{dict.common.retry}</button></>) : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? (
+              <>{dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel)}.</>
             ) : (
               <>
                 <div style={{ marginBottom: u(10), fontWeight: 600 }}>{dict.body.reels.openReel}</div>
-                <ul aria-label="Reels" style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: u(190), overflowY: "auto" }}>
+                <ul aria-label={dict.pages.reels.title} style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: u(190), overflowY: "auto" }}>
                   {list.map((x) => (
                     <li key={x.id} style={{ marginBottom: u(6) }}>
                       <Link href={`/reels/${x.id}`} style={{ color: "#33a8ff" }}>{x.name}</Link>
-                      <span style={{ color: "#8ea3bf", fontSize: u(18) }}> · {x.clips.length} clips · {x.latest_render?.state.toLowerCase() ?? "not rendered"}</span>
+                      <span style={{ color: "#8ea3bf", fontSize: u(18) }}> · {(x.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(x.clips.length))} · {renderWord(x.latest_render?.state, dict.body.reels)}</span>
                     </li>
                   ))}
                 </ul>
@@ -211,8 +217,8 @@ export function PreviewPanel() {
         )}
         {message && <T o={[SCENE.x, SCENE.y]} x={1242} y={500} size={24} color="#dbe8f8" align="center">{message}</T>}
 
-        <PlayerCard name={player?.display_name ?? "No player selected"} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? "Team —"}
-          nationality={prof?.nationality?.name ?? "Nationality —"} pos={pos === "—" ? "Position —" : pos}
+        <PlayerCard name={player?.display_name ?? dict.body.workspace.noPlayerSelected} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? dict.body.reelstage.teamDash}
+          nationality={prof?.nationality?.name ?? dict.body.reelstage.nationalityDash} pos={pos === "—" ? dict.body.reelstage.positionDash : pos}
           foot={prof?.preferred_foot ? FOOT_NAMES[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
           playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
 
@@ -222,19 +228,19 @@ export function PreviewPanel() {
       </dialog>
 
       {/* transport */}
-      <Hit x={470} y={800} w={50} h={40} label="Previous clip" {...(ready ? { onClick: () => step(-1) } : { reason: "No video yet" })} />
+      <Hit x={470} y={800} w={50} h={40} label={dict.body.reelstage.prevClip} {...(ready ? { onClick: () => step(-1) } : { reason: dict.body.reelstage.noVideoYet })} />
       <Ic x={493} y={820} k="prev" size={26} color={ready ? "#fff" : "#8ea3bf"} {...glyph} />
-      <Hit x={540} y={796} w={56} h={48} label={playing ? "Pause" : "Play"} {...(ready && (kind === "render" || hasClip) ? { onClick: playPause } : { reason: "Add a moment first" })} />
+      <Hit x={540} y={796} w={56} h={48} label={playing ? dict.body.reelstage.pauseBtn : dict.body.reelstage.playBtn} {...(ready && (kind === "render" || hasClip) ? { onClick: playPause } : { reason: dict.body.reelstage.addMomentFirst })} />
       {playing ? (
         <>
           <B x={558} y={806} w={8} h={28} style={{ background: "#fff", borderRadius: u(2) }} />
           <B x={572} y={806} w={8} h={28} style={{ background: "#fff", borderRadius: u(2) }} />
         </>
       ) : <Ic x={568} y={820} k="play" size={32} color={ready ? "#fff" : "#8ea3bf"} fill={ready ? "#fff" : "none"} />}
-      <Hit x={612} y={800} w={50} h={40} label="Next clip" {...(ready ? { onClick: () => step(1) } : { reason: "No video yet" })} />
+      <Hit x={612} y={800} w={50} h={40} label={dict.body.reelstage.nextClip} {...(ready ? { onClick: () => step(1) } : { reason: dict.body.reelstage.noVideoYet })} />
       <Ic x={637} y={820} k="next" size={26} color={ready ? "#fff" : "#8ea3bf"} />
       <T x={687} y={820} size={21}>{ready && (hasClip || kind === "render") ? `${mmss(Math.max(0, t - span.a))} / ${mmss(len > 1 ? len : null)}` : "— / —"}</T>
-      <div role="slider" aria-label="Position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={ready ? 0 : -1}
+      <div role="slider" aria-label={dict.body.processing.position} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={ready ? 0 : -1}
         onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); seekTo(Math.max(0, Math.min(1, (e.clientX - b.left) / b.width))); }}
         className="absolute" style={{ left: u(824), top: u(806 - 101), width: u(800), height: u(30), cursor: ready ? "pointer" : "default" }} />
       <B x={836} y={815} w={777} h={10} style={{ background: "#0b2a4d", borderRadius: u(5), pointerEvents: "none" }}>
@@ -242,13 +248,13 @@ export function PreviewPanel() {
       </B>
       {src?.kind === "source" && <CoverageBar path={path} clip={clip} lock={look.lock} />}
       <B x={824 + p * 777} y={809} w={24} h={24} style={{ borderRadius: "50%", background: "#cfe8ff", border: `${u(3)} solid #1e90ff`, boxSizing: "border-box", pointerEvents: "none" }} />
-      <Hit x={1668} y={800} w={44} h={40} label={muted ? "Unmute" : "Mute"} {...(ready ? { onClick: () => setMuted((m) => !m) } : { reason: "No video yet" })} />
+      <Hit x={1668} y={800} w={44} h={40} label={muted ? dict.body.reelstage.unmuteBtn : dict.body.reelstage.muteBtn} {...(ready ? { onClick: () => setMuted((m) => !m) } : { reason: dict.body.reelstage.noVideoYet })} />
       <Ic x={1690} y={820} k={muted ? "mute" : "vol"} size={34} color={ready ? "#fff" : "#8ea3bf"} />
-      <Sel x={1738} y={797} w={124} h={46} label="Playback speed" value={speed} options={[["0.5", "0.5x"], ["1", "1x"], ["1.5", "1.5x"], ["2", "2x"]]} onChange={setSpeed}
+      <Sel x={1738} y={797} w={124} h={46} label={dict.body.processing.playbackSpeed} value={speed} options={[["0.5", "0.5x"], ["1", "1x"], ["1.5", "1.5x"], ["2", "2x"]]} onChange={setSpeed}
         style={{ background: "#041022", borderColor: "#17406f", borderRadius: u(8) }} />
-      <Hit x={1895} y={798} w={44} h={44} label="Playback settings" reason={notBuilt("no playback settings")} />
+      <Hit x={1895} y={798} w={44} h={44} label={dict.body.reelstage.playbackSettings} reason={notBuilt("no playback settings")} />
       <Ic x={1917} y={820} k="gear" size={36} color="#8ea3bf" />
-      <Hit x={1970} y={798} w={44} h={44} label="Full screen" {...(ready ? { onClick: fs.toggle } : { reason: "No video yet" })} />
+      <Hit x={1970} y={798} w={44} h={44} label={dict.body.processing.fullScreen} {...(ready ? { onClick: fs.toggle } : { reason: dict.body.reelstage.noVideoYet })} />
       <Ic x={1992} y={820} k="full" size={34} color={ready ? "#fff" : "#8ea3bf"} />
     </section>
   );

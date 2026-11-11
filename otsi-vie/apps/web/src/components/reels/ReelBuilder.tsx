@@ -12,10 +12,14 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { PlayerProfileIntroPanel } from "./PlayerProfileIntro";
 
 const WRITERS = ["OWNER", "ADMIN", "ANALYST", "EDITOR"];
-const sec = (us: number) => `${(us / 1e6).toFixed(1)} s`;
+const sec = (us: number, unit = "{a} s") => unit.replace("{a}", (us / 1e6).toFixed(1));
+/** the render state as a word in the current language (API states are codes, never shown raw) */
+const renderWord = (state: string | null | undefined, d: Dictionary["body"]["reels"]) =>
+  state === "SUCCEEDED" ? d.renderStateSucceeded : state === "FAILED" ? d.renderStateFailed : state === "QUEUED" ? d.renderStateQueued : state === "RUNNING" ? d.renderStateRunning : d.renderStateNotRendered;
 
 interface Ctx {
   reel: Reel | null;
@@ -48,6 +52,7 @@ export function useReel(): Ctx {
 
 export function ReelBuilder({ reelId, children }: { reelId: string; children: ReactNode }) {
   const { organization } = useAuth();
+  const { t: dict } = useLocale();
   const [reel, setReel] = useState<Reel | null>(null);
   const [moments, setMoments] = useState<ReelMoment[] | null>(null);
   const [crossMatch, setCrossMatch] = useState<CrossMatchSelection | null>(null);
@@ -72,10 +77,10 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
       setMoments(m); setCrossMatch(null); setError(null);
       return [r, m];
     } catch (x) {
-      setError(x instanceof ApiProblem ? x.message : "The reel could not be loaded.");
+      setError(x instanceof ApiProblem ? x.message : dict.body.reels.loadFailed);
       return null;
     }
-  }, [reelId]);
+  }, [reelId, dict]);
   const reload = useCallback(async () => { await load(); }, [load]);
   useEffect(() => { void reload(); }, [reload]);
   const rendering = reel?.latest_render && ["QUEUED", "RUNNING"].includes(reel.latest_render.state);
@@ -87,16 +92,16 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
   const run: Ctx["run"] = useCallback((f, ok) => {
     setBusy(true); setMsg(null);
     void f().then(async (r) => { if (r) setReel(r); const got = await load(); if (ok) setMsg({ ok: true, text: typeof ok === "string" ? ok : ok(got?.[0] ?? null, got?.[1] ?? null) }); },
-      (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : "That did not work." })).finally(() => setBusy(false));
-  }, [load]);
+      (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork })).finally(() => setBusy(false));
+  }, [load, dict]);
   const undo = useCallback((toEditId?: string) => {
     const what = toEditId ? history?.entries.find((e) => e.id === toEditId)?.label : history?.undo_label;
     run(() => api<Reel>(`/v1/reels/${reelId}/history/undo`, { method: "POST", json: toEditId ? { to_edit_id: toEditId } : {} }),
-      toEditId ? `Back to before: ${what ?? "that change"}` : `Undone: ${what ?? "the last change"}`);
+      toEditId ? dict.body.reels.undoMsgBefore.replace("{a}", what ?? dict.body.reels.undoFallbackThat) : dict.body.reels.undoMsg.replace("{a}", what ?? dict.body.reels.undoFallbackLast));
   }, [history, reelId, run]);
   const redo = useCallback(() => {
     const what = history?.redo_label;
-    run(() => api<Reel>(`/v1/reels/${reelId}/history/redo`, { method: "POST" }), `Redone: ${what ?? "the change"}`);
+    run(() => api<Reel>(`/v1/reels/${reelId}/history/redo`, { method: "POST" }), dict.body.reels.redoMsg.replace("{a}", what ?? dict.body.reels.redoFallback));
   }, [history, reelId, run]);
   // the value is memoised so a state change that does not touch it (a message clearing, a selection) does not re-render every
   // consumer — the provider also feeds Clip Studio, and its sections re-render on every context change
@@ -110,24 +115,25 @@ export function ReelBuilder({ reelId, children }: { reelId: string; children: Re
 /* ------------------------------------------------------------------ section 1: the four steps */
 export function ReelSteps() {
   const { reel, error } = useReel();
+  const { t: dict } = useLocale();
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
-  if (!reel) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading the reel…</p>;
+  if (!reel) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> {dict.body.reels.loadingReel}</p>;
   const r = reel.latest_render;
-  const steps: [string, boolean, string][] = [
-    ["Profile Intro", reel.settings.profile_intro && !!reel.player, reel.settings.profile_intro ? (reel.player ? `opens the reel: ${reel.player.display_name}` : "no player yet") : "off for this reel"],
-    ["Player", !!reel.player && !reel.stale, reel.player ? `${reel.player.display_name}${reel.stale ? " — targets need refreshing" : ""}` : "none"],
-    ["Clips", reel.clips.length > 0, reel.clips.length ? `${reel.clips.length} clip${reel.clips.length === 1 ? "" : "s"}, ${sec(reel.duration_us)}` : "add a suggested moment"],
-    ["Spotlight", true, `dim ${Math.round(reel.settings.dim * 100)} %${reel.settings.ring ? ", ring" : ""}${reel.settings.name_caption ? ", name" : ""}`],
-    ["Render", r?.state === "SUCCEEDED", r ? r.state.toLowerCase() : "not rendered yet"],
+  const steps: [string, string, boolean, string][] = [
+    ["Profile Intro", dict.body.reels.stepProfileIntro, reel.settings.profile_intro && !!reel.player, reel.settings.profile_intro ? (reel.player ? dict.body.reels.stepIntroOpens.replace("{a}", reel.player.display_name) : dict.body.reels.stepIntroNoPlayer) : dict.body.reels.stepIntroOff],
+    ["Player", dict.body.reels.stepPlayer, !!reel.player && !reel.stale, reel.player ? `${reel.player.display_name}${reel.stale ? dict.body.reels.stepPlayerStaleSuffix : ""}` : dict.body.reels.stepPlayerNone],
+    ["Clips", dict.body.reels.stepClips, reel.clips.length > 0, reel.clips.length ? (reel.clips.length === 1 ? dict.body.reels.stepClipsOne : dict.body.reels.stepClipsMany).replace("{a}", String(reel.clips.length)).replace("{b}", sec(reel.duration_us, dict.body.reelstage.durationSec)) : dict.body.reels.stepClipsAdd],
+    ["Spotlight", dict.body.reels.stepSpotlight, true, `${dict.body.reels.stepSpotlightBase.replace("{a}", String(Math.round(reel.settings.dim * 100)))}${reel.settings.ring ? dict.body.reels.stepSpotlightRing : ""}${reel.settings.name_caption ? dict.body.reels.stepSpotlightName : ""}`],
+    ["Render", dict.body.reels.stepRender, r?.state === "SUCCEEDED", r ? renderWord(r.state, dict.body.reels) : dict.body.reels.stepRenderNotYet],
   ];
   return (
     <div className="space-y-2">
       <p className="text-sm"><span className="font-semibold" data-reel-name>{reel.name}</span> <span className="text-muted">· {reel.video_id
-        ? <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>source video</Link>
-        : "All matches"}</span></p>
-      <ol aria-label="Reel steps" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-5 min-[1100px]:grid-cols-1">
-        {steps.map(([n, done, note], i) => (
-          <li key={n} data-reel-step={n} data-done={done ? "1" : "0"}
+        ? <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>{dict.body.reels.sourceVideoLink}</Link>
+        : dict.body.reels.sourceAllMatches}</span></p>
+      <ol aria-label={dict.body.reelstage.stepsAria} className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-5 min-[1100px]:grid-cols-1">
+        {steps.map(([key, n, done, note], i) => (
+          <li key={key} data-reel-step={key} data-done={done ? "1" : "0"}
             className={`flex min-w-0 items-start gap-2 rounded-ctl border px-2.5 py-2 text-sm ${done ? "border-ok/40 bg-ok/5" : "border-line/70 bg-raised/40"}`}>
             {done ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" /> : <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-muted" />}
             <span className="min-w-0">
@@ -154,14 +160,15 @@ export function ReelProfileIntro({ onContinue }: { onContinue?: () => void }) {
 /* ------------------------------------------------------------------ section 2: aspect presets */
 export function AspectPresets() {
   const { reel, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   if (!reel) return null;
   return (
-    <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Aspect ratio">
+    <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label={dict.body.reels.aspectRatio}>
       {(["16:9", "9:16", "1:1", "4:5"] as const).map((a) => (
         <button key={a} type="button" role="radio" aria-checked={reel.aspect === a} disabled={!canEdit || busy}
           onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, aspect: a } }))}
           className={`min-w-0 rounded-ctl border px-1.5 py-2 text-center text-sm font-medium ${reel.aspect === a ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
-          {a} <span className="mt-0.5 block text-[10px] font-normal leading-tight text-muted">{a === "16:9" ? "broadcast" : a === "9:16" ? "stories" : a === "4:5" ? "feed" : "square"}</span>
+          {a} <span className="mt-0.5 block text-[10px] font-normal leading-tight text-muted">{a === "16:9" ? dict.body.reels.aspectBroadcast : a === "9:16" ? dict.body.reels.aspectStories : a === "4:5" ? dict.body.reels.aspectFeed : dict.body.reels.aspectSquare}</span>
         </button>
       ))}
     </div>
@@ -171,17 +178,18 @@ export function AspectPresets() {
 /* ------------------------------------------------------------------ section 3: name; music */
 export function ReelMetadata() {
   const { reel, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   const [name, setName] = useState("");
   useEffect(() => { if (reel) setName(reel.name); }, [reel?.name]);  // eslint-disable-line react-hooks/exhaustive-deps
   if (!reel) return null;
   return (
     <div className="space-y-2 text-sm">
-      <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, name } }), "Name saved."); }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Reel name" disabled={!canEdit} className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-        <button type="submit" disabled={!canEdit || busy || name.trim() === reel.name} className="rounded-ctl border border-line px-3 disabled:opacity-50">Save</button>
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, name } }), dict.body.reels.nameSaved); }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} aria-label={dict.body.reels.reelNameAria} disabled={!canEdit} className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+        <button type="submit" disabled={!canEdit || busy || name.trim() === reel.name} className="rounded-ctl border border-line px-3 disabled:opacity-50">{dict.common.save}</button>
       </form>
-      {reel.aspect !== "16:9" && <p className="text-xs text-muted">The {reel.aspect} frame follows the player.</p>}
-      <p className="text-xs text-muted">Music: no royalty-free music library is connected yet; the reel keeps the match audio of each clip.</p>
+      {reel.aspect !== "16:9" && <p className="text-xs text-muted">{dict.body.reels.aspectFollows.replace("{a}", reel.aspect)}</p>}
+      <p className="text-xs text-muted">{dict.body.reels.musicNote}</p>
     </div>
   );
 }
@@ -189,6 +197,7 @@ export function ReelMetadata() {
 /* ------------------------------------------------------------------ section 4: preview */
 export function ReelPreview() {
   const { reel, selectedClip } = useReel();
+  const { t: dict } = useLocale();
   const [src, setSrc] = useState<{ url: string; kind: "render" | "source" } | null>(null);
   const ref = useRef<HTMLVideoElement | null>(null);
   const clip = reel?.clips.find((c) => c.id === selectedClip) ?? reel?.clips[0] ?? null;
@@ -210,13 +219,13 @@ export function ReelPreview() {
     if (v && src?.kind === "source" && clip) { const go = () => { v.currentTime = clip.in_pts_us / 1e6; }; if (v.readyState >= 1) go(); else v.addEventListener("loadedmetadata", go, { once: true }); }
   }, [src, clip?.id, clip?.in_pts_us]);  // eslint-disable-line react-hooks/exhaustive-deps
   if (!reel) return <div className="aspect-video animate-pulse rounded-ctl bg-raised/50" />;
-  if (!src) return <p className="text-sm text-muted">No preview yet: the playback copy or the render is not available.</p>;
+  if (!src) return <p className="text-sm text-muted">{dict.body.reels.previewNoPreview}</p>;
   const portrait = src.kind === "render" && (reel.aspect === "9:16" || reel.aspect === "4:5");
   return (
     <div className="space-y-1.5">
       <video ref={ref} key={src.url} src={src.url} controls playsInline
-        className={`mx-auto block max-h-[min(52vh,480px)] rounded-ctl bg-black object-contain ${portrait ? "w-auto max-w-full" : "w-full"}`} aria-label={src.kind === "render" ? "Rendered reel" : "Source clip preview"} data-preview={src.kind} />
-      <p className="text-xs text-muted">{src.kind === "render" ? "The rendered reel (with the spotlight)." : `Source footage at ${clip ? sec(clip.in_pts_us) : "the start"}; the spotlight appears in the rendered reel.`}</p>
+        className={`mx-auto block max-h-[min(52vh,480px)] rounded-ctl bg-black object-contain ${portrait ? "w-auto max-w-full" : "w-full"}`} aria-label={src.kind === "render" ? dict.body.reels.previewRenderedAria : dict.body.reels.previewSourceAria} data-preview={src.kind} />
+      <p className="text-xs text-muted">{src.kind === "render" ? dict.body.reels.previewRenderedNote : clip ? dict.body.reels.previewSourceNote.replace("{a}", sec(clip.in_pts_us, dict.body.reelstage.durationSec)) : dict.body.reels.previewSourceNoteStart}</p>
     </div>
   );
 }
@@ -224,24 +233,25 @@ export function ReelPreview() {
 /* ------------------------------------------------------------------ section 5: targeting */
 export function ReelTargets() {
   const { reel, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   if (!reel) return null;
   return (
     <div className="space-y-2 text-sm">
       {reel.player ? (
         <p data-reel-player><span className="font-semibold">{reel.player.display_name}</span>{" "}
-          <span className="text-muted">· {reel.player.canonical_otsi_id ?? "provisional, no OTSI Player ID yet"}</span></p>
-      ) : <p className="text-muted">No player.</p>}
-      <p className="text-xs text-muted">The spotlight follows only tracks a person confirmed as this player:</p>
-      <ul className="space-y-0.5 text-xs" aria-label="Followed tracks">
+          <span className="text-muted">· {reel.player.canonical_otsi_id ?? dict.body.reels.targetProvisional}</span></p>
+      ) : <p className="text-muted">{dict.body.reels.targetNoPlayer}</p>}
+      <p className="text-xs text-muted">{dict.body.reels.targetSpotlightFollows}</p>
+      <ul className="space-y-0.5 text-xs" aria-label={dict.body.reels.followedTracksAria}>
         {reel.targets.map((t) => (
-          <li key={t.track_id} className={t.decision_current ? "" : "text-danger"}>track {t.track_number} · {sec(t.first_pts_us)}–{sec(t.last_pts_us)}{t.decision_current ? "" : " · identity changed"}</li>
+          <li key={t.track_id} className={t.decision_current ? "" : "text-danger"}>{dict.body.reelstage.trackWord.replace("{a}", String(t.track_number))} · {sec(t.first_pts_us, dict.body.reelstage.durationSec)}–{sec(t.last_pts_us, dict.body.reelstage.durationSec)}{t.decision_current ? "" : dict.body.reels.identityChangedSuffix}</li>
         ))}
       </ul>
       {reel.stale && (
         <div role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-xs text-danger">
-          An identity this reel follows was corrected. Refresh the followed tracks before rendering.
-          {canEdit && <button type="button" disabled={busy} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/refresh-targets`, { method: "POST" }), "Followed tracks refreshed.")}
-            className="ml-2 inline-flex items-center gap-1 rounded border border-danger/50 px-2 py-0.5"><RefreshCw className="h-3 w-3" />Refresh</button>}
+          {dict.body.reels.staleAlert}
+          {canEdit && <button type="button" disabled={busy} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/refresh-targets`, { method: "POST" }), dict.body.reels.followedRefreshed)}
+            className="ml-2 inline-flex items-center gap-1 rounded border border-danger/50 px-2 py-0.5"><RefreshCw className="h-3 w-3" />{dict.body.studio.refreshLabel}</button>}
         </div>
       )}
     </div>
@@ -251,6 +261,7 @@ export function ReelTargets() {
 /* ------------------------------------------------------------------ section 6: spotlight settings */
 export function SpotlightControls() {
   const { reel, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   const [s, setS] = useState<SpotlightSettings | null>(null);
   useEffect(() => { if (reel) setS(reel.settings); }, [reel?.version]);  // eslint-disable-line react-hooks/exhaustive-deps
   if (!reel || !s) return null;
@@ -262,13 +273,13 @@ export function SpotlightControls() {
   );
   return (
     <div className="space-y-2 text-sm">
-      {slider("dim", "Darken the rest", 0, 0.9, 0.05)}
-      {slider("size", "Spotlight size", 0.8, 3, 0.1)}
-      {slider("feather", "Soft edge", 0.05, 1.5, 0.05)}
-      <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={s.ring} disabled={!canEdit} onChange={(e) => setS({ ...s, ring: e.target.checked })} /> Ring at the feet
-        <input type="color" value={s.ring_color} disabled={!canEdit || !s.ring} aria-label="Ring colour" onChange={(e) => setS({ ...s, ring_color: e.target.value.toUpperCase() })} className="h-5 w-8" /></label>
-      <button type="button" disabled={!canEdit || busy || !changed} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: s } }), "Spotlight settings saved.")}
-        className="rounded-ctl border border-line px-3 py-1 text-xs disabled:opacity-50">Save spotlight settings</button>
+      {slider("dim", dict.body.reels.sliderDim, 0, 0.9, 0.05)}
+      {slider("size", dict.body.reels.sliderSize, 0.8, 3, 0.1)}
+      {slider("feather", dict.body.reels.sliderFeather, 0.05, 1.5, 0.05)}
+      <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={s.ring} disabled={!canEdit} onChange={(e) => setS({ ...s, ring: e.target.checked })} /> {dict.body.reels.ringAtFeet}
+        <input type="color" value={s.ring_color} disabled={!canEdit || !s.ring} aria-label={dict.body.reels.ringColourAria} onChange={(e) => setS({ ...s, ring_color: e.target.value.toUpperCase() })} className="h-5 w-8" /></label>
+      <button type="button" disabled={!canEdit || busy || !changed} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: s } }), dict.body.reels.spotlightSaved)}
+        className="rounded-ctl border border-line px-3 py-1 text-xs disabled:opacity-50">{dict.body.reels.saveSpotlight}</button>
     </div>
   );
 }
@@ -276,17 +287,18 @@ export function SpotlightControls() {
 /* ------------------------------------------------------------------ section 7: overlays */
 export function ReelOverlays() {
   const { reel, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   if (!reel) return null;
   return (
     <div className="space-y-2 text-sm">
       <label className="flex items-center gap-2"><input type="checkbox" checked={reel.settings.name_caption} disabled={!canEdit || busy}
         onChange={(e) => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: { name_caption: e.target.checked } } }))} />
-        Player name caption{reel.player?.canonical_otsi_id ? " with OTSI Player ID" : ""}</label>
+        {dict.body.reels.nameCaption}{reel.player?.canonical_otsi_id ? dict.body.reels.nameCaptionWithId : ""}</label>
       <label className="flex items-center gap-2"><input type="checkbox" checked={reel.settings.profile_intro} disabled={!canEdit || busy}
         onChange={(e) => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: { profile_intro: e.target.checked } } }))} />
-        Player Profile Intro</label>
-      <p className="text-xs text-muted">The 16:9 opening segment with the player&apos;s real profile, at the very beginning of the reel, before the first clip. On by default.</p>
-      <p className="text-xs text-muted">Logo and branding overlays need the owner&apos;s approved brand assets (not connected).</p>
+        {dict.body.reels.profileIntroLabel}</label>
+      <p className="text-xs text-muted">{dict.body.reels.profileIntroNote}</p>
+      <p className="text-xs text-muted">{dict.body.reels.brandingNote}</p>
     </div>
   );
 }
@@ -294,23 +306,24 @@ export function ReelOverlays() {
 /* ------------------------------------------------------------------ section 8: suggested moments */
 export function MomentCarousel() {
   const { reel, moments, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   // ADR-131: a cross-match reel's moments are the best-moments selection (selected + not selected with reasons), not the
   // single-match suggestions — the carousel below shows that selection instead
   if (reel?.source === "ALL_MATCHES") return <CrossMatchMomentCarousel />;
-  if (!reel || !moments) return <p className="text-sm text-muted">Loading suggestions…</p>;
-  if (moments.length === 0) return <p className="text-sm text-muted">No moments: the player is not visible on any confirmed track.</p>;
+  if (!reel || !moments) return <p className="text-sm text-muted">{dict.body.reels.momentsLoading}</p>;
+  if (moments.length === 0) return <p className="text-sm text-muted">{dict.body.reels.momentsNone}</p>;
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted">Where {reel.player?.display_name ?? "the player"} is visible on confirmed tracks. These are moments he is on camera, not events; his passes and shots are marked on each clip in Clip Studio.</p>
-      <ul aria-label="Suggested moments" className="flex gap-2 overflow-x-auto pb-1">
+      <p className="text-xs text-muted">{dict.body.reels.momentsIntro.replace("{a}", reel.player?.display_name ?? dict.body.reels.momentsIntroPlayer)}</p>
+      <ul aria-label={dict.body.studio.suggestedMoments} className="flex gap-2 overflow-x-auto pb-1">
         {moments.map((m) => (
           <li key={m.in_pts_us} data-moment={m.in_pts_us} className="flex w-48 shrink-0 flex-col rounded-ctl border border-line/70 bg-raised/40 p-2 text-xs">
-            <p className="font-medium">{sec(m.in_pts_us)} – {sec(m.out_pts_us)}</p>
-            <p className="mb-1.5 text-muted">{m.label} · track {m.track_numbers.join(", ")}</p>
+            <p className="font-medium">{sec(m.in_pts_us, dict.body.reelstage.durationSec)} – {sec(m.out_pts_us, dict.body.reelstage.durationSec)}</p>
+            <p className="mb-1.5 text-muted">{m.label} · {dict.body.reelstage.trackWord.replace("{a}", m.track_numbers.join(", "))}</p>
             <button type="button" disabled={!canEdit || busy || m.in_reel}
-              onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), "Clip added.")}
+              onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), dict.body.reels.clipAdded)}
               className="mt-auto inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 pt-0.5 hover:border-primary/60 disabled:opacity-50">
-              {m.in_reel ? "In the reel" : <><Plus className="h-3 w-3" />Add to reel</>}
+              {m.in_reel ? dict.body.studio.inReelBadge : <><Plus className="h-3 w-3" />{dict.body.reels.addToReel}</>}
             </button>
           </li>
         ))}
@@ -333,17 +346,18 @@ const TIER_COLOUR: Record<string, string> = { S: "#a066ff", A: "#19d3ff", B: "#1
  *  Nothing here invents a moment: fewer than 3 eligible moments builds with what's there, no filler. */
 export function CrossMatchMomentCarousel() {
   const { reel, crossMatch, canEdit, run, busy } = useReel();
+  const { t: dict } = useLocale();
   if (!reel || reel.source !== "ALL_MATCHES") return null;
-  if (!crossMatch) return <p className="text-sm text-muted">Loading best moments…</p>;
-  const lenLabel = crossMatch.length_s === 90 ? "90 s" : crossMatch.length_s === 300 ? "5 min" : "3 min";
+  if (!crossMatch) return <p className="text-sm text-muted">{dict.body.reels.crossLoading}</p>;
+  const lenLabel = crossMatch.length_s === 90 ? dict.body.reels.len90s : crossMatch.length_s === 300 ? dict.body.reels.len5min : dict.body.reels.len3min;
   const clipOf = (m: CrossMatchCandidate) => reel.clips.find((c) => c.source_video_id === m.video_id && c.in_pts_us < m.out_pts_us && c.out_pts_us > m.in_pts_us) ?? null;
   const add = (m: CrossMatchCandidate, label: string) => run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST",
-    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label, source_video_id: m.video_id } }), "Clip added.");
-  const remove = (m: CrossMatchCandidate) => { const c = clipOf(m); if (c) run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "DELETE" }), "Clip removed."); };
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label, source_video_id: m.video_id } }), dict.body.reels.clipAdded);
+  const remove = (m: CrossMatchCandidate) => { const c = clipOf(m); if (c) run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "DELETE" }), dict.body.reels.crossClipRemoved); };
   const reject = (m: CrossMatchCandidate) => run(async () => { await api(`/v1/reels/${reel.id}/moments/reject`, { method: "POST",
-    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, "Left out of this reel: it is listed last; Restore brings it back.");
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, dict.body.reels.crossLeftOutMsg);
   const restore = (m: CrossMatchCandidate) => run(async () => { await api(`/v1/reels/${reel.id}/moments/restore`, { method: "POST",
-    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, "Suggestion restored.");
+    json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, video_id: m.video_id } }); }, dict.body.reels.crossSuggestionRestored);
   const left = crossMatch.selected.filter((m) => !m.in_reel).length;
   const detail = (m: CrossMatchCandidate, reason: string) => `${crossMatchOf(m)}${m.competition ? ` · ${m.competition}` : ""} · ${crossWhenOf(m)} · ${reason}`;
   // `inReel` is passed in: a selected moment carries it, a left-out one is in the reel only if a clip of it was pinned by hand
@@ -351,24 +365,24 @@ export function CrossMatchMomentCarousel() {
     <li key={key} data-cross-moment={m.in_pts_us} data-tier={tier ?? ""} data-not-selected={notSelectedReason ?? undefined}
       className="flex w-64 shrink-0 flex-col rounded-ctl border border-line/70 bg-raised/40 p-2 text-xs">
       <p className="flex items-center gap-1.5 font-medium">
-        {tier && <span style={{ color: TIER_COLOUR[tier] ?? "#cfe0f5" }}>Tier {tier}</span>}
-        {notSelectedReason && <span className="text-muted">Left out: {notSelectedReason}</span>}
+        {tier && <span style={{ color: TIER_COLOUR[tier] ?? "#cfe0f5" }}>{dict.body.reels.crossTier.replace("{a}", tier)}</span>}
+        {notSelectedReason && <span className="text-muted">{dict.body.reels.crossLeftOut.replace("{a}", notSelectedReason)}</span>}
       </p>
       <p className="font-medium">{m.label}</p>
       <p className="mb-1.5 text-muted">{detail(m, reason)}</p>
       <span className="mt-auto flex flex-wrap gap-1">
         {notSelectedReason === "rejected for this reel"
           ? <button type="button" disabled={!canEdit || busy} onClick={() => restore(m)}
-            className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">Restore</button>
+            className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">{dict.body.reels.crossRestore}</button>
           : inReel ? <>
-            <span className="inline-flex items-center gap-1 rounded border border-ok/40 px-2 py-0.5 text-ok">In the reel</span>
+            <span className="inline-flex items-center gap-1 rounded border border-ok/40 px-2 py-0.5 text-ok">{dict.body.studio.inReelBadge}</span>
             <button type="button" disabled={!canEdit || busy} onClick={() => remove(m)}
-              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-danger/60 disabled:opacity-50"><Trash2 className="h-3 w-3" />Remove</button>
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-danger/60 disabled:opacity-50"><Trash2 className="h-3 w-3" />{dict.body.reels.removeClip}</button>
           </> : <>
             <button type="button" disabled={!canEdit || busy} onClick={() => add(m, m.label)}
-              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50"><Plus className="h-3 w-3" />Add to reel</button>
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50"><Plus className="h-3 w-3" />{dict.body.reels.addToReel}</button>
             <button type="button" disabled={!canEdit || busy} onClick={() => reject(m)}
-              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">Not this one</button>
+              className="inline-flex w-fit items-center gap-1 rounded border border-line px-2 py-0.5 hover:border-primary/60 disabled:opacity-50">{dict.body.reels.crossNotThisOne}</button>
           </>}
       </span>
     </li>
@@ -376,29 +390,27 @@ export function CrossMatchMomentCarousel() {
   return (
     <div className="space-y-1">
       <p className="text-xs text-muted" data-cross-match-summary>
-        Best moments across all matches · {lenLabel} · rule v{crossMatch.rule_version} · {crossMatch.selected.length} selected
-        {crossMatch.not_selected.length ? `, ${crossMatch.not_selected.length} left out` : ""} · {crossMatch.total_s} s of clips.
-        A goal always beats a key pass; inside a tier, chains first, then one moment from each match before a second from any.
+        {dict.body.reels.crossSummary.replace("{a}", lenLabel).replace("{b}", String(crossMatch.rule_version)).replace("{c}", String(crossMatch.selected.length)).replace("{d}", crossMatch.not_selected.length ? dict.body.reels.crossSummaryLeftOut.replace("{a}", String(crossMatch.not_selected.length)) : "").replace("{e}", String(crossMatch.total_s))}
       </p>
       {crossMatch.selected.length === 0 && crossMatch.not_selected.length === 0 && (
-        <p className="text-sm text-muted">No best moments yet: no measured moment in any of his matches. Nothing is filled in.</p>
+        <p className="text-sm text-muted">{dict.body.reels.crossNoMoments}</p>
       )}
       {left > 0 && (
         <button type="button" disabled={!canEdit || busy} data-add-all-cross
-          onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), "Moments added.")}
+          onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/add-moments`, { method: "POST" }), dict.body.reels.crossMomentsAdded)}
           className="inline-flex items-center gap-1 rounded border border-line px-2 py-1 text-xs hover:border-primary/60 disabled:opacity-50">
-          <Plus className="h-3 w-3" />Add all selected ({left})
+          <Plus className="h-3 w-3" />{dict.body.reels.crossAddAll.replace("{a}", String(left))}
         </button>
       )}
       {crossMatch.selected.length > 0 && (
-        <ul aria-label="Selected best moments" className="flex gap-2 overflow-x-auto pb-1">
+        <ul aria-label={dict.body.reels.crossSelectedAria} className="flex gap-2 overflow-x-auto pb-1">
           {crossMatch.selected.map((m) => item(m, m.tier, m.reason, `${m.video_id}:${m.in_pts_us}`, null, m.in_reel))}
         </ul>
       )}
       {crossMatch.not_selected.length > 0 && (
         <>
-          <p className="pt-1 text-xs font-medium text-muted">Left out — and why (add one in by hand to swap it in)</p>
-          <ul aria-label="Moments left out" className="flex gap-2 overflow-x-auto pb-1">
+          <p className="pt-1 text-xs font-medium text-muted">{dict.body.reels.crossLeftOutHeading}</p>
+          <ul aria-label={dict.body.reels.crossLeftOutAria} className="flex gap-2 overflow-x-auto pb-1">
             {crossMatch.not_selected.map(({ candidate: m, reason }) => item(m, null, m.sequence_label ?? m.label, `${m.video_id}:${m.in_pts_us}:out`, reason, clipOf(m) !== null))}
           </ul>
         </>
@@ -413,6 +425,7 @@ export function CrossMatchMomentCarousel() {
  *  summary: the length and the rule version were fixed when the reel was made. Nothing here changes the reel being looked at. */
 export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
   const { reel, canEdit, busy } = useReel();
+  const { t: dict } = useLocale();
   const router = useRouter();
   const [mode, setMode] = useState<"MATCH" | "ALL_MATCHES">("MATCH");
   const [lengthS, setLengthS] = useState<90 | 180 | 300>(180);
@@ -420,8 +433,8 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
   const [err, setErr] = useState<string | null>(null);
   if (!reel) return null;
   if (reel.source === "ALL_MATCHES") {
-    const len = reel.cross_match_length_s === 90 ? "90 s" : reel.cross_match_length_s === 300 ? "5 min" : "3 min";
-    return <p className="text-sm" data-reel-source="ALL_MATCHES">All matches · {len} · best moments rule v{reel.best_moments_rule_version ?? "2.1"}</p>;
+    const len = reel.cross_match_length_s === 90 ? dict.body.reels.len90s : reel.cross_match_length_s === 300 ? dict.body.reels.len5min : dict.body.reels.len3min;
+    return <p className="text-sm" data-reel-source="ALL_MATCHES">{dict.body.reels.crossSourceSummary.replace("{a}", len).replace("{b}", reel.best_moments_rule_version ?? "2.1")}</p>;
   }
   if (!reel.player) return null;
   const player = reel.player;
@@ -431,7 +444,7 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
       const created = await api<{ id: string }>("/v1/reels", { method: "POST",
         json: { source: "ALL_MATCHES", length_s: lengthS, player_id: player.player_id } });
       router.push(`/reels/${created.id}`);
-    } catch (x) { setErr(x instanceof ApiProblem ? x.message : "That did not work."); } finally { setCreating(false); }
+    } catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork); } finally { setCreating(false); }
   };
   // compact: one row for a fixed-pixel panel — a select (this match, or all matches at a fixed length) + Create. The read-only
   // summary for a cross-match reel is the same as the stacked version's (returned above).
@@ -439,16 +452,16 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
     const chosen = mode === "ALL_MATCHES" ? String(lengthS) : "MATCH";
     return (
       <div className="flex items-center gap-2" data-reel-source="MATCH">
-        <select aria-label="Which matches" value={chosen} disabled={busy || creating}
+        <select aria-label={dict.body.reels.sourceWhichAria} value={chosen} disabled={busy || creating}
           onChange={(e) => { const v = e.target.value; if (v === "MATCH") setMode("MATCH"); else { setMode("ALL_MATCHES"); setLengthS(Number(v) as 90 | 180 | 300); } }}
           className="min-w-0 flex-1 rounded-ctl border border-line bg-raised/40 px-2 py-1.5 text-sm text-white">
-          <option value="MATCH">This match</option>
-          <option value="90">All matches — 90 s</option>
-          <option value="180">All matches — 3 min</option>
-          <option value="300">All matches — 5 min</option>
+          <option value="MATCH">{dict.body.reels.sourceThisMatch}</option>
+          <option value="90">{dict.body.reels.sourceAll90}</option>
+          <option value="180">{dict.body.reels.sourceAll180}</option>
+          <option value="300">{dict.body.reels.sourceAll300}</option>
         </select>
         <button type="button" disabled={mode !== "ALL_MATCHES" || !canEdit || busy || creating} onClick={() => void create()}
-          className="shrink-0 rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">Create</button>
+          className="shrink-0 rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{dict.body.reels.createBtn}</button>
         {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
@@ -461,30 +474,29 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
   );
   return (
     <div className="space-y-2 text-sm" data-reel-source="MATCH">
-      <p className="font-medium">Which matches?</p>
-      <div role="radiogroup" aria-label="Which matches" className="flex gap-1.5">
-        {radio("MATCH", "This match")}{radio("ALL_MATCHES", "All matches")}
+      <p className="font-medium">{dict.body.reels.sourceWhich}</p>
+      <div role="radiogroup" aria-label={dict.body.reels.sourceWhichAria} className="flex gap-1.5">
+        {radio("MATCH", dict.body.reels.sourceThisMatch)}{radio("ALL_MATCHES", dict.body.reels.sourceAllMatches)}
       </div>
       {mode === "ALL_MATCHES" && (
         <>
-          <div role="radiogroup" aria-label="Reel length" className="flex gap-1.5">
+          <div role="radiogroup" aria-label={dict.body.reels.sourceLengthAria} className="flex gap-1.5">
             {([90, 180, 300] as const).map((s) => (
               <button key={s} type="button" role="radio" aria-checked={lengthS === s} disabled={busy || creating} onClick={() => setLengthS(s)}
                 className={`rounded-ctl border px-2.5 py-1.5 text-sm font-medium ${lengthS === s ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
-                {s === 90 ? "90 s" : s === 180 ? "3 min" : "5 min"}
+                {s === 90 ? dict.body.reels.len90s : s === 180 ? dict.body.reels.len3min : dict.body.reels.len5min}
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted">One reel of {player.display_name}&apos;s best moments from all his matches — best first, up to {lengthS === 90 ? "90 seconds" : lengthS === 180 ? "3 minutes" : "5 minutes"}.
-            The reel you are looking at stays exactly as it is.</p>
+          <p className="text-xs text-muted">{dict.body.reels.sourceOneReel.replace("{a}", player.display_name).replace("{b}", lengthS === 90 ? dict.body.reels.sourceUpTo90 : lengthS === 180 ? dict.body.reels.sourceUpTo180 : dict.body.reels.sourceUpTo300)}</p>
           <button type="button" disabled={!canEdit || busy || creating} onClick={() => void create()}
             className="inline-flex items-center gap-1 rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Create all-matches reel
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{dict.body.reels.sourceCreate}
           </button>
           {err && <p role="alert" className="text-xs text-danger">{err}</p>}
         </>
       )}
-      {mode === "MATCH" && <p className="text-xs text-muted">This match is the reel you are looking at. All matches makes a new reel of his best moments from every match.</p>}
+      {mode === "MATCH" && <p className="text-xs text-muted">{dict.body.reels.sourceThisMatchNote}</p>}
     </div>
   );
 }
@@ -492,9 +504,10 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
 /* ------------------------------------------------------------------ section 9: clips timeline */
 export function ClipTimeline() {
   const { reel, canEdit, run, busy, selectedClip, setSelectedClip } = useReel();
+  const { t: dict } = useLocale();
   const [edit, setEdit] = useState<Record<string, { a: string; b: string }>>({});
   if (!reel) return null;
-  if (reel.clips.length === 0) return <p className="text-sm text-muted">No clips yet. Add a suggested moment above.</p>;
+  if (reel.clips.length === 0) return <p className="text-sm text-muted">{dict.body.reels.clipsEmpty}</p>;
   const move = (i: number, d: number) => {
     const ids = reel.clips.map((c) => c.id);
     [ids[i], ids[i + d]] = [ids[i + d]!, ids[i]!];
@@ -505,29 +518,29 @@ export function ClipTimeline() {
       <div className="flex h-3 w-full overflow-hidden rounded bg-raised/60" aria-hidden>
         {reel.clips.map((c, i) => <span key={c.id} className={i % 2 ? "bg-cyan/60" : "bg-primary/70"} style={{ width: `${(100 * slotUs(c)) / Math.max(1, reel.duration_us)}%` }} />)}
       </div>
-      <ol aria-label="Clips" className="space-y-1 text-xs">
+      <ol aria-label={dict.body.reels.stepClips} className="space-y-1 text-xs">
         {reel.clips.map((c, i) => {
           const e = edit[c.id] ?? { a: (c.in_pts_us / 1e6).toFixed(1), b: (c.out_pts_us / 1e6).toFixed(1) };
           return (
             <li key={c.id} data-clip={i} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-ctl border px-2 py-1.5 ${selectedClip === c.id ? "border-primary bg-primary/5" : "border-line/60"}`}>
-              <button type="button" onClick={() => setSelectedClip(selectedClip === c.id ? null : c.id)} className="w-16 text-left font-medium underline-offset-2 hover:underline">{i + 1}. {sec(clipOutputUs(c))}</button>
-              <label className="flex items-center gap-1">in <input value={e.a} disabled={!canEdit} aria-label={`Clip ${i + 1} in (s)`} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, a: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
-              <label className="flex items-center gap-1">out <input value={e.b} disabled={!canEdit} aria-label={`Clip ${i + 1} out (s)`} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, b: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
+              <button type="button" onClick={() => setSelectedClip(selectedClip === c.id ? null : c.id)} className="w-16 text-left font-medium underline-offset-2 hover:underline">{i + 1}. {sec(clipOutputUs(c), dict.body.reelstage.durationSec)}</button>
+              <label className="flex items-center gap-1">{dict.body.reels.clipInLabel} <input value={e.a} disabled={!canEdit} aria-label={dict.body.reels.clipInAria.replace("{a}", String(i + 1))} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, a: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
+              <label className="flex items-center gap-1">{dict.body.reels.clipOutLabel} <input value={e.b} disabled={!canEdit} aria-label={dict.body.reels.clipOutAria.replace("{a}", String(i + 1))} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, b: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
               {canEdit && (
                 <span className="ml-auto flex items-center gap-1">
-                  <button type="button" disabled={busy || !edit[c.id]} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(e.a) * 1e6), out_pts_us: Math.round(Number(e.b) * 1e6) } }), "Clip trimmed.")}
-                    className="rounded border border-line px-1.5 disabled:opacity-50">Trim</button>
-                  <button type="button" aria-label="Move up" disabled={busy || i === 0} onClick={() => move(i, -1)} className="rounded border border-line p-0.5 disabled:opacity-40"><ArrowUp className="h-3 w-3" /></button>
-                  <button type="button" aria-label="Move down" disabled={busy || i === reel.clips.length - 1} onClick={() => move(i, 1)} className="rounded border border-line p-0.5 disabled:opacity-40"><ArrowDown className="h-3 w-3" /></button>
-                  <button type="button" aria-label="Remove clip" disabled={busy} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "DELETE" }))} className="rounded border border-line p-0.5 hover:border-danger/60"><Trash2 className="h-3 w-3" /></button>
+                  <button type="button" disabled={busy || !edit[c.id]} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "PATCH", json: { in_pts_us: Math.round(Number(e.a) * 1e6), out_pts_us: Math.round(Number(e.b) * 1e6) } }), dict.body.reels.clipTrimmed)}
+                    className="rounded border border-line px-1.5 disabled:opacity-50">{dict.body.reels.clipTrim}</button>
+                  <button type="button" aria-label={dict.body.reels.moveUp} disabled={busy || i === 0} onClick={() => move(i, -1)} className="rounded border border-line p-0.5 disabled:opacity-40"><ArrowUp className="h-3 w-3" /></button>
+                  <button type="button" aria-label={dict.body.reels.moveDown} disabled={busy || i === reel.clips.length - 1} onClick={() => move(i, 1)} className="rounded border border-line p-0.5 disabled:opacity-40"><ArrowDown className="h-3 w-3" /></button>
+                  <button type="button" aria-label={dict.body.reels.removeClip} disabled={busy} onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips/${c.id}`, { method: "DELETE" }))} className="rounded border border-line p-0.5 hover:border-danger/60"><Trash2 className="h-3 w-3" /></button>
                 </span>
               )}
-              {c.origin === "SUGGESTED" && <span className="text-muted">suggested</span>}
+              {c.origin === "SUGGESTED" && <span className="text-muted">{dict.body.reels.clipSuggested}</span>}
             </li>
           );
         })}
       </ol>
-      <p className="text-xs text-muted">Total {sec(reel.duration_us)} (at most 10 minutes; a clip at most 60 s).</p>
+      <p className="text-xs text-muted">{dict.body.reels.clipsTotal.replace("{a}", sec(reel.duration_us, dict.body.reelstage.durationSec))}</p>
     </div>
   );
 }
@@ -535,6 +548,7 @@ export function ClipTimeline() {
 /* ------------------------------------------------------------------ section 10: render */
 export function RenderPanel() {
   const { reel, canEdit, run, busy, msg } = useReel();
+  const { t: dict } = useLocale();
   const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
   const [links, setLinks] = useState<{ url: string; download_url: string; notice: string } | null>(null);
   const r: RenderJob | null = reel?.latest_render ?? null;
@@ -549,25 +563,25 @@ export function RenderPanel() {
   return (
     <div className="space-y-2 text-sm" data-render-state={r?.state ?? "NONE"}>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col text-xs text-muted">Video codec
-          <select value={codec} onChange={(e) => setCodec(e.target.value as typeof codec)} aria-label="Video codec" className="rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm text-ink">
-            <option value="h264">H.264 MP4 (plays everywhere)</option><option value="av1">AV1 MP4 (royalty-free)</option><option value="vp9">VP9 WebM (royalty-free)</option>
+        <label className="flex flex-col text-xs text-muted">{dict.body.reels.codecLabel}
+          <select value={codec} onChange={(e) => setCodec(e.target.value as typeof codec)} aria-label={dict.body.reels.codecLabel} className="rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm text-ink">
+            <option value="h264">{dict.body.reels.codecH264}</option><option value="av1">{dict.body.reels.codecAv1}</option><option value="vp9">{dict.body.reels.codecVp9}</option>
           </select></label>
         <button type="button" disabled={!canEdit || busy || !!active || reel.clips.length === 0 || reel.stale}
-          onClick={() => run(async () => { await api(`/v1/reels/${reel.id}/renders`, { method: "POST", json: { codec, bitrate_mbps: 8 }, headers: { "idempotency-key": `render-${reel.id}-${reel.version}-${codec}-${Date.now()}` } }); }, "Rendering started.")}
+          onClick={() => run(async () => { await api(`/v1/reels/${reel.id}/renders`, { method: "POST", json: { codec, bitrate_mbps: 8 }, headers: { "idempotency-key": `render-${reel.id}-${reel.version}-${codec}-${Date.now()}` } }); }, dict.body.reels.renderStarted)}
           className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">
-          {active ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Render reel
+          {active ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{dict.body.reels.renderReelBtn}
         </button>
       </div>
-      {active && <p role="status" className="flex items-center gap-2 text-xs"><Loader2 className="h-3.5 w-3.5 animate-spin text-cyan" />{r.stage_message ?? "Waiting for the render worker…"} {r.progress !== null ? `(${Math.round(r.progress)} %)` : ""}</p>}
+      {active && <p role="status" className="flex items-center gap-2 text-xs"><Loader2 className="h-3.5 w-3.5 animate-spin text-cyan" />{r.stage_message ?? dict.body.reels.renderWaiting} {r.progress !== null ? `(${Math.round(r.progress)} %)` : ""}</p>}
       {r?.state === "FAILED" && <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-xs text-danger"><span className="font-semibold">{r.failure_code}</span>: {r.failure_detail}</p>}
       {r?.state === "SUCCEEDED" && res && (
         <div className="space-y-1 text-xs" data-render-result>
-          <p>{res.width}×{res.height} · {res.duration_s} s · {res.frames} frames · {res.encoder} · rendered in {res.seconds} s</p>
-          {res.spotlight_frames && <p className="text-muted">Spotlight: {res.spotlight_frames.DETECTED} frames on detections, {res.spotlight_frames.INTERPOLATED} interpolated between nearby detections, {res.spotlight_frames.MISSING} without the player (no spotlight drawn).</p>}
+          <p>{dict.body.reels.renderResultLine.replace("{a}", String(res.width)).replace("{b}", String(res.height)).replace("{c}", dict.body.reelstage.durationSec.replace("{a}", String(res.duration_s))).replace("{d}", String(res.frames)).replace("{e}", res.encoder ?? "").replace("{f}", dict.body.reelstage.durationSec.replace("{a}", String(res.seconds)))}</p>
+          {res.spotlight_frames && <p className="text-muted">{dict.body.reels.renderResultSpotlight.replace("{a}", String(res.spotlight_frames.DETECTED)).replace("{b}", String(res.spotlight_frames.INTERPOLATED)).replace("{c}", String(res.spotlight_frames.MISSING))}</p>}
           {links && (
             <p className="flex flex-wrap items-center gap-3">
-              <a href={links.download_url} className="inline-flex items-center gap-1 text-primary underline" data-download><Download className="h-3.5 w-3.5" />Download</a>
+              <a href={links.download_url} className="inline-flex items-center gap-1 text-primary underline" data-download><Download className="h-3.5 w-3.5" />{dict.body.library.download}</a>
               <span className="text-muted">{links.notice}</span>
             </p>
           )}
@@ -580,18 +594,19 @@ export function RenderPanel() {
 
 /* ------------------------------------------------------------------ the reels index (no reel selected) */
 export function ReelList() {
+  const { t: dict } = useLocale();
   const [reels, setReels] = useState<Reel[] | null>(null);
   const [failed, setFailed] = useState(false);
   // a failed read is named as one: an empty list means "no reels yet", not "could not load them"
   const load = useCallback(() => { setFailed(false); void api<Reel[]>("/v1/reels").then((l) => setReels(l), () => setFailed(true)); }, []);
   useEffect(() => { void load(); }, [load]);
-  if (failed && !reels) return <p className="text-sm text-muted">Reels could not be loaded. <button type="button" onClick={() => void load()} className="text-primary underline">Try again</button></p>;
-  if (!reels) return <p className="text-sm text-muted">Loading reels…</p>;
-  if (reels.length === 0) return <p className="text-sm text-muted">No reels yet. In the Analysis Workspace, confirm who a player is, then choose &quot;Create highlight reel&quot;.</p>;
+  if (failed && !reels) return <p className="text-sm text-muted">{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => void load()} className="text-primary underline">{dict.common.retry}</button></p>;
+  if (!reels) return <p className="text-sm text-muted">{dict.body.reels.reelListLoading}</p>;
+  if (reels.length === 0) return <p className="text-sm text-muted">{dict.body.reels.reelListEmpty.replace("{a}", dict.body.workspace.createHighlightReel)}</p>;
   return (
     <ul aria-label="Reels" className="space-y-1 text-sm">
       {reels.map((r) => (
-        <li key={r.id}><Link href={`/reels/${r.id}`} className="text-primary underline">{r.name}</Link> <span className="text-xs text-muted">· {r.clips.length} clips · {r.latest_render?.state.toLowerCase() ?? "not rendered"}</span></li>
+        <li key={r.id}><Link href={`/reels/${r.id}`} className="text-primary underline">{r.name}</Link> <span className="text-xs text-muted">· {(r.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(r.clips.length))} · {renderWord(r.latest_render?.state, dict.body.reels)}</span></li>
       ))}
     </ul>
   );

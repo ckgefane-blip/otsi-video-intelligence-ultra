@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { isUuid } from "@/lib/identity";
 import { Preview, Summary, Workflow } from "./Centre";
 import { useOutbox } from "./Deliver";
@@ -28,6 +29,7 @@ const TAB_TARGET = ["p10-settings", "p10-branding", "p10-reports", "p10-delivery
 
 export function ExportStage() {
   const { organization } = useAuth();
+  const { t: dict } = useLocale();
   const router = useRouter();
   const want = useSearchParams().get("reel");
   const [reels, setReels] = useState<Reel[] | null>(null);
@@ -127,21 +129,21 @@ export function ExportStage() {
       if (!reel) return;
       setBusy(true); setMsg(null);
       void api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, settings: patch } })
-        .then(() => { setMsg({ ok: true, text: ok }); return load(); }, (x) => fail(x, "The branding was not saved.")).finally(() => setBusy(false));
+        .then(() => { setMsg({ ok: true, text: ok }); return load(); }, (x) => fail(x, dict.body.exports.brandingNotSaved)).finally(() => setBusy(false));
     },
-    reset: () => { setCodec("h264"); setBitrate(8); setPresetId("builtin-reel"); setMsg({ ok: true, text: "Export settings reset." }); },
+    reset: () => { setCodec("h264"); setBitrate(8); setPresetId("builtin-reel"); setMsg({ ok: true, text: dict.body.exports.exportReset }); },
     preset, setPreset, presets, openLibrary: () => setLibrary(true), openInterchange: () => setInterchange(true), openScoutingPack: () => setPack(true),
-    download: (id) => { void api<Links>(`/v1/renders/${id}/playback`).then((l) => { window.location.href = l.download_url; }, (x) => fail(x, "That file cannot be downloaded.")); },
+    download: (id) => { void api<Links>(`/v1/renders/${id}/playback`).then((l) => { window.location.href = l.download_url; }, (x) => fail(x, dict.body.exports.downloadFailed)); },
     setAspect: (a) => {
       if (!reel) return;
       setBusy(true); setMsg(null);
-      void api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, aspect: a } }).then(() => load(), (x) => fail(x, "The aspect ratio was not saved.")).finally(() => setBusy(false));
+      void api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, aspect: a } }).then(() => load(), (x) => fail(x, dict.body.exports.aspectNotSaved)).finally(() => setBusy(false));
     },
     // B.22 (ADR-097): Export opens the preflight; its Start makes every file of the preset in one batch request
     render: () => { if (reel) setConfirm(true); },
     pick: () => router.push("/exports"),
     jump,
-  }), [reels, reel, reload, canEdit, busy, msg, codec, bitrate, links, match, tab, focus, auto, brand, members, canManageTeam, reelsErr, setPreset, presets, jump, load, fail, router]);
+  }), [reels, reel, reload, canEdit, busy, msg, codec, bitrate, links, match, tab, focus, auto, brand, members, canManageTeam, reelsErr, setPreset, presets, jump, load, fail, router, dict]);
   const start = () => {
     if (!reel) return;
     setConfirm(false); setBusy(true); setMsg(null);
@@ -149,9 +151,9 @@ export function ExportStage() {
       headers: { "idempotency-key": `batch-${reel.id}-${reel.version}-${chosen.id}-${codec}-${bitrate}-${Date.now()}` } })
       .then((r) => {
         const n = r.started.length, s = r.skipped.length;
-        setMsg({ ok: n > 0, text: n ? `Rendering ${n} file${n === 1 ? "" : "s"}${n > 1 ? ", one after the other" : ""}.${s ? ` ${s} already rendering, skipped.` : ""}` : "Every file of this preset is already rendering." });
+        setMsg({ ok: n > 0, text: n ? (n === 1 ? dict.body.exports.renderingFilesOne : dict.body.exports.renderingFilesMany.replace("{a}", String(n))) + (s ? dict.body.exports.renderingSkipped.replace("{a}", String(s)) : "") : dict.body.exports.renderingAllRunning });
         return load();
-      }, (x) => { fail(x, "The render could not be started."); return load(); }).finally(() => setBusy(false));
+      }, (x) => { fail(x, dict.body.exports.renderCouldNotStart); return load(); }).finally(() => setBusy(false));
   };
   const outbox = useOutbox(base);
   const state: ExportState = useMemo(() => ({ ...base, outbox }), [base, outbox]);

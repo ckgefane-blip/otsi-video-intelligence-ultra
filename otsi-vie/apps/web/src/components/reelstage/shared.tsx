@@ -41,7 +41,8 @@ export function useStage(): Stage {
   return c;
 }
 
-export const secs = (us: number) => `${(us / 1e6).toFixed(1)} s`;
+/** seconds with one decimal, with the unit from the dictionary (RU "с", EN "s"): `secs(us, d.durationSec)`. The default keeps the English unit for callers without a dictionary. */
+export const secs = (us: number, unit = "{a} s") => unit.replace("{a}", (us / 1e6).toFixed(1));
 export const mmss = (us: number | null) => (us === null ? "—" : `${String(Math.floor(us / 6e7)).padStart(2, "0")}:${String(Math.floor(us / 1e6) % 60).padStart(2, "0")}`);
 
 /** the reference's switch (56 x 28): drawn here, made interactive by the caller's Hit */
