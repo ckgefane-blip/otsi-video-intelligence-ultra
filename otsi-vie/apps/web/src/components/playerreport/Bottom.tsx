@@ -18,6 +18,7 @@ import { HeatPitch, measuredText } from "@/components/workspace/HeatPitch";
 import { Evidence } from "@/components/evidence/Evidence";
 import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
 import { Hit } from "@/components/workspace/shared";
@@ -166,6 +167,7 @@ const EventList = memo(function EventList({ listed, multiVideo }: { listed: Play
 });
 
 function LowerInner({ r }: { r: Report }) {
+  const { t: dict } = useLocale();
   const [mode, setMode] = useState(0);
   const [group, setGroup] = useState<CohortGroup | "">("");
   const pid = r.player?.player_id;
@@ -196,7 +198,7 @@ function LowerInner({ r }: { r: Report }) {
     <>
       <section id="p08-heat" aria-label="Heatmap" data-section="p08-s07">
         <P x={387} y={657} w={694} h={436} style={hl(r.focus === "p08-heat")} />
-        <Title x={421} y={687} size={25} bar={[401, 672]}>Heatmap</Title>
+        <Title x={421} y={687} size={25} bar={[401, 672]}>{dict.body.reports.heatmap}</Title>
         <B x={543} y={672} w={334} h={34} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8) }} />
         <B x={[543, 660, 777][mode]!} y={672} w={[117, 117, 100][mode]!} h={34} style={{ background: "#0a84ff", borderRadius: u(6) }} />
         <div role="radiogroup" aria-label="Heatmap mode">
@@ -219,7 +221,7 @@ function LowerInner({ r }: { r: Report }) {
 
       <section id="p08-events" aria-label="Event timeline" data-section="p08-s08">
         <P x={1096} y={657} w={685} h={436} style={hl(r.focus === "p08-events")} />
-        <Title x={1128} y={685} size={22} bar={[1111, 670]}>Event Timeline (All Actions)</Title>
+        <Title x={1128} y={685} size={22} bar={[1111, 670]}>{dict.body.reports.eventTimeline}</Title>
         <Sel<EvFilter> x={1546} y={669} w={216} h={37} label="Event filter" value={evf} onChange={setEvf} style={sel}
           options={([["all", "All Events"], ["pass", "Passes"], ["won", "Balls won"], ["press", "Pressures"], ["shot", "Shots & goals"], ["sp", "Set pieces"]] as [EvFilter, string][])
             .map(([k, l]) => (k === "all" || has(k) ? [k, l] : [k, l, "the engine found none of his"]) as [EvFilter, string] | [EvFilter, string, string])} />
@@ -231,7 +233,7 @@ function LowerInner({ r }: { r: Report }) {
 
       <section id="p08-action" aria-label="Action map" data-section="p08-s09">
         <P x={1797} y={657} w={741} h={436} style={hl(r.focus === "p08-action")} />
-        <Title x={1835} y={687} size={25} bar={[1813, 670]}>Action Map</Title>
+        <Title x={1835} y={687} size={25} bar={[1813, 670]}>{dict.body.reports.actionMap}</Title>
         <Sel x={2239} y={669} w={283} h={39} label="Action filter" value={act} onChange={(v) => setAct(v as typeof act)} style={sel}
           options={[["all", "All Actions"], ["pass", "Passes"], passes.some((e) => e.key) ? ["key", "Key passes"] : ["key", "Key passes", "the engine marked none of his passes as key"],
             ["shot", "Shots", "the engine has detected no shots"]]} />
@@ -309,9 +311,9 @@ function LowerInner({ r }: { r: Report }) {
       <section id="p08-scout" aria-label="Scouting report" data-section="p08-s12">
         <P x={1797} y={1108} w={741} h={299} style={hl(r.focus === "p08-scout")} />
         <Ic x={1834} y={1140} k="doc" size={34} color="#3ee6a8" />
-        <T x={1865} y={1140} size={24} weight={600} as="h2">Scouting Report</T>
+        <T x={1865} y={1140} size={24} weight={600} as="h2">{dict.body.reports.scoutingReport}</T>
         <B x={2343} y={1120} w={181} h={39} style={{ background: "#0a84ff", borderRadius: u(6), opacity: r.player ? 1 : 0.6 }} />
-        <T x={2362} y={1140} size={17} weight={600}>View Full Report</T><Ic x={2503} y={1140} k="fwd" size={16} />
+        <T x={2362} y={1140} size={17} weight={600}>{dict.body.reports.viewFullReport}</T><Ic x={2503} y={1140} k="fwd" size={16} />
         <Hit x={2343} y={1120} w={181} h={39} label="View Full Report" onClick={() => (r.player ? r.open("read") : r.pick())} />
         <B x={1814} y={1167} w={226} h={230} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
         <T x={1847} y={1189} size={18}>Overall Rating</T>
@@ -333,7 +335,7 @@ function LowerInner({ r }: { r: Report }) {
         }) : <T x={2287} y={1226} size={17} color="#8ea3bf" align="center">{pub ? "No criteria scored" : "No scouting assessment yet"}</T>}
         <B x={2051} y={1293} w={473} h={104} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
         {pub?.notes ? <div className="absolute" style={{ left: u(2066), top: u(1300 - 101), width: u(445), height: u(58), overflow: "hidden", fontSize: u(15), lineHeight: 1.3, color: "#b9cbe2" }}>{pub.notes}</div>
-          : <T x={2102} y={1307} size={16} color="#b9cbe2">No scout notes recorded.</T>}
+          : <T x={2102} y={1307} size={16} color="#b9cbe2">{dict.body.reports.noScoutNotes}</T>}
         <T x={2500} y={1373} size={16} color={pub ? "#f1a824" : "#8ea3bf"} align="right" style={{ fontStyle: "italic", maxWidth: u(440), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {pub ? `Analyst opinion · ${r.assessment?.published_by_name ?? ""}, ${r.assessment?.published_at?.slice(0, 10) ?? ""}` : "Awaiting a published scouting assessment"}</T>
       </section>

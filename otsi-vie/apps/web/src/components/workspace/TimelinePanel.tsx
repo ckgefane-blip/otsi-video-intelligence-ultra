@@ -25,6 +25,7 @@ import type { PeriodsState } from "./Periods";
 import { eventsLine, teamName } from "./Events";
 import { notBuilt } from "@/lib/devMode";
 import { EngineLanes, useLanes } from "./EngineLanes";
+import { useLocale } from "@/lib/i18n";
 
 const CHIPS: [string, number, number][] = [["Goals", 610, 135], ["Passes", 762, 168], ["Key Passes", 945, 177], ["Shots", 1137, 143], ["Tackles", 1298, 152],
   ["Interceptions", 1467, 204], ["Fouls", 1685, 138], ["Cards", 1837, 137], ["Ball Won", 1990, 170], ["Pressures", 2176, 180], ["Set Pieces", 2372, 192]];
@@ -109,6 +110,7 @@ export function marksOf(ev: MatchEvents | null): Record<Kind, Mark[]> {
 export const allMarks = (m: Record<Kind, Mark[]>) => [...m.Passes, ...m["Ball Won"], ...m.Shots, ...m.Pressures, ...m["Set Pieces"], ...m.Goals].sort((a, b) => a.at - b.at);
 
 export function TimelinePanel({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws, teamGroups } = s;
   const dw = useDw();
   const X1 = X1_0 + dw;
@@ -201,7 +203,7 @@ export function TimelinePanel({ s }: { s: Shared }) {
         <Hit x={432} y={947} w={149} h={42} label="All Events: show every event found" pressed={!filter} onClick={() => setFilter(null)}
           style={{ border: `${u(1.5)} solid ${!filter ? "#1e90ff" : "#1f4a7a"}`, borderRadius: u(6), background: !filter ? "#0d3a78" : "#0a1d38", color: "#33a8ff" }}>
           <B o={[432, 947]} x={446} y={957} w={22} h={22} style={{ borderRadius: "50%", background: "#33a8ff" }} />
-          <T o={[432, 947]} x={476} y={968} size={19} color="#33a8ff" as="span">All Events</T>
+          <T o={[432, 947]} x={476} y={968} size={19} color="#33a8ff" as="span">{dict.body.analysis.allEvents}</T>
         </Hit>
         {CHIPS.map(([n, cx, w]) => n in KIND && marks[n as Kind].length ? (() => {
           const k = n as Kind, on = filter === k, c = KIND[k].color;

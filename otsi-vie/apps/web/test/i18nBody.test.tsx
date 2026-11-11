@@ -1,0 +1,65 @@
+/**
+ * Page-body translations through the provider (ADR-139 follow-up).
+ * A wired component reads its strings from the dictionary the provider
+ * supplies: with Russian stored, it shows Russian body strings; with
+ * nothing stored it shows English. The TrustStrip is the probe — it is
+ * purely presentational (no API call), so the test proves the wiring,
+ * not the network.
+ */
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { LOCALE_STORAGE_KEY, LocaleProvider, useLocale } from "@/lib/i18n";
+import { TrustStrip } from "@/components/home/TrustStrip";
+
+function Probe() {
+  const { t } = useLocale();
+  return (
+    <p>
+      {t.body.home.viewAll} | {t.body.reels.saveProject} | {t.body.players.position} |{" "}
+      {t.body.reports.notMeasured} | {t.body.exports.downloadAll}
+    </p>
+  );
+}
+
+describe("page bodies through the provider (ADR-139 follow-up)", () => {
+  it("a component reads body strings from the stored locale (Russian)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
+    render(
+      <LocaleProvider>
+        <Probe />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Смотреть все | Сохранить проект | Позиция | Не измерено | Скачать всё")).toBeDefined();
+  });
+
+  it("a component reads body strings from the stored locale (Spanish)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "es");
+    render(
+      <LocaleProvider>
+        <Probe />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("Ver todo | Guardar proyecto | Posición | No medido | Descargar todo")).toBeDefined();
+  });
+
+  it("with no stored locale a component reads the English body strings", () => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY);
+    render(
+      <LocaleProvider>
+        <Probe />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("View All | Save Project | Position | Not measured | Download All")).toBeDefined();
+  });
+
+  it("a wired page section shows its translated heading (Russian)", () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
+    render(
+      <LocaleProvider>
+        <TrustStrip />
+      </LocaleProvider>,
+    );
+    expect(screen.getByText("НАДЁЖНЫЕ ПАРТНЁРЫ")).toBeDefined();
+    expect(screen.getByText("Создано для клубов, академий и скаутов")).toBeDefined();
+  });
+});

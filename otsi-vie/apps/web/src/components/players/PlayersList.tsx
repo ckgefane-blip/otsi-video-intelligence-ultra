@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 
 export const POSITION_NAMES: Record<string, string> = {
   GK: "Goalkeeper", RB: "Right back", CB: "Centre back", LB: "Left back", RWB: "Right wing-back", LWB: "Left wing-back", DM: "Defensive midfielder",
@@ -63,6 +64,7 @@ export function buildDetailsPatch(saved: PlayerProfileDetails | null, draft: Det
 }
 
 function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: Country[]; focus: boolean; onSaved(p: PlayerProfile): void }) {
+  const { t: dict } = useLocale();
   const [d, setD] = useState<Draft>(draftOf(e.profile));
   const [state, setState] = useState<{ busy?: boolean; ok?: string; err?: string }>({});
   useEffect(() => setD(draftOf(e.profile)), [e.profile]);
@@ -79,7 +81,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
   const capsOk = dd.caps.trim() === "" || (/^\d+$/.test(dd.caps.trim()) && Number(dd.caps) >= 0);
   const goalsOk = dd.goals.trim() === "" || (/^\d+$/.test(dd.goals.trim()) && Number(dd.goals) >= 0);
   const strengthsOk = dd.strengths.every((x) => x.length <= 60);
-  const detailsError = !heightOk ? "Height is 100–250 cm." : !weightOk ? "Weight is 30–200 kg." : !capsOk ? "Caps is a whole number, 0 or more."
+  const detailsError = !heightOk ? dict.body.players.heightError : !weightOk ? dict.body.players.weightError : !capsOk ? "Caps is a whole number, 0 or more."
     : !goalsOk ? "International goals is a whole number, 0 or more." : !strengthsOk ? "Each strength is at most 60 characters." : null;
   const saveDetails = async () => {
     setDetailsState({ busy: true });
@@ -87,7 +89,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
       const p = await api<PlayerProfile>(`/v1/players/${e.player_id}/profile-details`, { method: "PATCH", json: detailsPatch });
       onSaved(p); setDetailsState({ ok: "Profile details saved." });
     } catch (x) {
-      setDetailsState({ err: x instanceof ApiProblem ? x.message : "Could not save. Try again." });
+      setDetailsState({ err: x instanceof ApiProblem ? x.message : dict.body.players.couldNotSave });
     }
   };
   // the player's photo (ADR-130): raw file bytes, like the brand music / video uploads — never multipart FormData.
@@ -107,7 +109,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
       const meta = b64url(JSON.stringify({ rights_holder: holder.trim(), rights_basis: basis, confirm_rights: true }));
       const p = await api<PlayerProfile>(`/v1/players/${e.player_id}/photo`, { method: "POST", body: photo, headers: { "content-type": photo.type, "x-asset-meta": meta } });
       onSaved(p); setPhoto(null); setHolder(""); setBasis(""); setConfirmRights(false);
-      setPhotoState({ ok: "Photo saved." });
+      setPhotoState({ ok: dict.body.players.photoSaved });
     } catch (x) {
       setPhotoState({ err: x instanceof ApiProblem ? x.message : "The upload failed." });
     }
@@ -128,9 +130,9 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
         body.confirm_role = true;
       }
       const p = await api<PlayerProfile>(`/v1/players/${e.player_id}/profile`, { method: "PATCH", json: body });
-      onSaved(p); setState({ ok: "Saved & confirmed." });
+      onSaved(p); setState({ ok: dict.body.players.savedConfirmed });
     } catch (x) {
-      setState({ err: x instanceof ApiProblem ? x.message : "Could not save. Try again." });
+      setState({ err: x instanceof ApiProblem ? x.message : dict.body.players.couldNotSave });
     }
   };
   const confirmRole = async () => {
@@ -149,99 +151,99 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_repeat(4,minmax(0,1fr))_auto] md:items-end">
       <div className="min-w-0">
         <div className="truncate text-base font-semibold">{e.display_name}</div>
-        <div className="truncate text-xs text-muted">{e.canonical_otsi_id ?? "Provisional: no OTSI Player ID yet"}</div>
-        <Link href={`/reports/players/${e.canonical_otsi_id ?? e.player_id}`} className="text-xs text-primary hover:underline">Open report ›</Link>
+        <div className="truncate text-xs text-muted">{e.canonical_otsi_id ?? dict.body.players.noOtsiId}</div>
+        <Link href={`/reports/players/${e.canonical_otsi_id ?? e.player_id}`} className="text-xs text-primary hover:underline">{dict.body.players.openReport}</Link>
       </div>
       <div className="min-w-0 text-sm">
-        <div className="text-xs text-muted">Team · No. (from the team sheet)</div>
+        <div className="text-xs text-muted">{dict.body.players.teamNumber}</div>
         {t ? <div className="truncate">{t.team} · {t.jersey_number ?? "—"}</div>
-          : <div className="text-muted">Not on a team sheet yet</div>}
+          : <div className="text-muted">{dict.body.players.notOnTeamSheet}</div>}
       </div>
       <label className="text-sm">
         <div className="mb-1 flex items-center justify-between">
-          <span className="block text-xs text-muted">Position</span>
+          <span className="block text-xs text-muted">{dict.body.players.position}</span>
           {e.profile.position && (
             e.profile.role_confirmed ? (
-              <span className="rounded bg-ok/20 px-1 py-0.5 text-[10px] font-semibold text-ok" title={e.profile.role_confirmed_by_name ? `Confirmed by ${e.profile.role_confirmed_by_name}` : "Confirmed by analyst"}>✓ Confirmed</span>
+              <span className="rounded bg-ok/20 px-1 py-0.5 text-[10px] font-semibold text-ok" title={e.profile.role_confirmed_by_name ? `Confirmed by ${e.profile.role_confirmed_by_name}` : "Confirmed by analyst"}>{dict.body.players.confirmed}</span>
             ) : (
               <div className="flex items-center gap-1">
-                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-400">Provisional</span>
-                {can && <button type="button" onClick={() => void confirmRole()} className="text-[10px] text-primary hover:underline">Confirm</button>}
+                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-400">{dict.body.players.provisional}</span>
+                {can && <button type="button" onClick={() => void confirmRole()} className="text-[10px] text-primary hover:underline">{dict.body.players.confirm}</button>}
               </div>
             )
           )}
         </div>
         <select aria-label={`${e.display_name} position`} value={d.position} disabled={!can} onChange={(x) => setD({ ...d, position: x.target.value })} className={field}>
-          <option value="">Not recorded</option>
+          <option value="">{dict.body.players.notRecorded}</option>
           {Object.entries(POSITION_NAMES).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">Nationality</span>
+      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.nationality}</span>
         <select aria-label={`${e.display_name} nationality`} value={d.nationality} disabled={!can} onChange={(x) => setD({ ...d, nationality: x.target.value })} className={field}>
-          <option value="">Not recorded</option>
+          <option value="">{dict.body.players.notRecorded}</option>
           {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">Preferred foot</span>
+      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.preferredFoot}</span>
         <select aria-label={`${e.display_name} preferred foot`} value={d.foot} disabled={!can} onChange={(x) => setD({ ...d, foot: x.target.value })} className={field}>
-          <option value="">Not recorded</option>
+          <option value="">{dict.body.players.notRecorded}</option>
           {Object.entries(FOOT_NAMES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">Birth date{e.profile.age !== null ? ` (age ${e.profile.age})` : ""}</span>
+      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.birthDate}{e.profile.age !== null ? ` (age ${e.profile.age})` : ""}</span>
         <input type="date" aria-label={`${e.display_name} birth date`} value={d.birth} disabled={!can} max={new Date().toISOString().slice(0, 10)} min="1900-01-01"
           onChange={(x) => setD({ ...d, birth: x.target.value })} className={field} />
       </label>
       <div className="flex flex-col items-start gap-1 md:items-end">
         <button type="button" disabled={!can || !changed || state.busy} onClick={() => void save()}
-          className="rounded-ctl border border-primary/70 bg-primary/20 px-4 py-1.5 text-sm font-semibold hover:bg-primary/30 disabled:opacity-40">{state.busy ? "Saving…" : "Save"}</button>
-        {!can && <span className="text-xs text-muted">Created by another organization: read only</span>}
+          className="rounded-ctl border border-primary/70 bg-primary/20 px-4 py-1.5 text-sm font-semibold hover:bg-primary/30 disabled:opacity-40">{state.busy ? dict.body.players.saving : dict.common.save}</button>
+        {!can && <span className="text-xs text-muted">{dict.body.players.readOnly}</span>}
         {state.ok && !changed && <span role="status" className="text-xs text-ok">{state.ok}</span>}
         {state.err && <span role="alert" className="text-xs text-danger">{state.err}</span>}
       </div>
       </div>
       <div className="mt-3 border-t border-line/70 pt-3">
         <button type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} className="text-sm font-semibold text-primary hover:underline">
-          {detailsOpen ? "Hide profile details for the intro" : "Profile details for the intro"}
+          {detailsOpen ? dict.body.players.hideProfileDetails : dict.body.players.profileDetails}
         </button>{" "}
         <span className="text-xs text-muted">
           {savedDetails && (savedDetails.height_cm != null || savedDetails.weight_kg != null || savedDetails.strengths.length || savedDetails.summary || savedDetails.club_name || savedDetails.league || savedDetails.international_country_code || savedDetails.photo_url)
-            ? "Some details entered — shown on the Player Profile Intro as “Entered by user”."
-            : "Nothing entered yet — the intro shows “Not entered”."}
+            ? dict.body.players.someEntered
+            : dict.body.players.nothingEntered}
         </span>
         {detailsOpen && (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">Height (cm)</span>
+            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.height}</span>
               <input inputMode="numeric" aria-label={`${e.display_name} height in centimetres`} value={dd.height} disabled={!can} placeholder="e.g. 182"
                 onChange={(x) => setDd({ ...dd, height: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">Weight (kg)</span>
+            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.weight}</span>
               <input inputMode="decimal" aria-label={`${e.display_name} weight in kilograms`} value={dd.weight} disabled={!can} placeholder="e.g. 73"
                 onChange={(x) => setDd({ ...dd, weight: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">Current club (only where no team sheet names one)</span>
+            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.club}</span>
               <input aria-label={`${e.display_name} club`} value={dd.club} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, club: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">League</span>
+            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.league}</span>
               <input aria-label={`${e.display_name} league`} value={dd.league} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, league: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">International country</span>
+            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCountry}</span>
               <select aria-label={`${e.display_name} international country`} value={dd.country} disabled={!can}
                 onChange={(x) => setDd({ ...dd, country: x.target.value })} className={field}>
-                <option value="">Not entered</option>
+                <option value="">{dict.body.players.notRecorded}</option>
                 {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select></label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm"><span className="mb-1 block text-xs text-muted">International caps</span>
+              <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCaps}</span>
                 <input inputMode="numeric" aria-label={`${e.display_name} international caps`} value={dd.caps} disabled={!can} placeholder="Not entered"
                   onChange={(x) => setDd({ ...dd, caps: x.target.value })} className={field} /></label>
-              <label className="text-sm"><span className="mb-1 block text-xs text-muted">International goals</span>
+              <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlGoals}</span>
                 <input inputMode="numeric" aria-label={`${e.display_name} international goals`} value={dd.goals} disabled={!can} placeholder="Not entered"
                   onChange={(x) => setDd({ ...dd, goals: x.target.value })} className={field} /></label>
             </div>
-            <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted">Player summary (at most 600 characters)</span>
+            <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted">{dict.body.players.summary}</span>
               <textarea aria-label={`${e.display_name} summary`} value={dd.summary} disabled={!can} maxLength={600} rows={3}
                 onChange={(x) => setDd({ ...dd, summary: x.target.value })} className={field} /></label>
             <fieldset className="text-sm sm:col-span-2 lg:col-span-1">
-              <legend className="mb-1 text-xs text-muted">Player strengths (up to 6, each at most 60 characters)</legend>
+              <legend className="mb-1 text-xs text-muted">{dict.body.players.strengths}</legend>
               <div className="space-y-1.5">
                 {dd.strengths.map((s, i) => (
                   <div key={i} className="flex gap-1.5">
@@ -254,14 +256,14 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
                 ))}
               </div>
               <button type="button" disabled={!can || dd.strengths.length >= 6} onClick={() => setDd({ ...dd, strengths: [...dd.strengths, ""] })}
-                className="mt-1.5 rounded-ctl border border-line px-2 py-1 text-xs disabled:opacity-40">+ Add strength</button>
+                className="mt-1.5 rounded-ctl border border-line px-2 py-1 text-xs disabled:opacity-40">{dict.body.players.addStrength}</button>
             </fieldset>
             <div className="text-sm sm:col-span-2 lg:col-span-1">
-              <span className="mb-1 block text-xs text-muted">Photo (shown on the intro)</span>
+              <span className="mb-1 block text-xs text-muted">{dict.body.players.photo}</span>
               {savedDetails?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={savedDetails.photo_url} alt={`Photo of ${e.display_name}`} className="mb-1.5 h-16 w-16 rounded-ctl border border-line object-cover" />
-              ) : <p className="mb-1.5 text-xs text-muted">No photo yet.</p>}
+              ) : <p className="mb-1.5 text-xs text-muted">{dict.body.players.noPhotoYet}</p>}
               <input type="file" accept="image/png,image/jpeg" aria-label={`${e.display_name} photo`} disabled={!can}
                 onChange={(x) => setPhoto(x.target.files?.[0] ?? null)} className="w-full text-xs" />
               {photoErr && <p className="mt-1 text-xs text-danger">{photoErr}</p>}
@@ -279,15 +281,15 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
               {photoState.ok && <p role="status" className="mt-1 text-xs text-ok">{photoState.ok}</p>}
               <button type="button" disabled={!can || !photoReady} onClick={() => void uploadPhoto()}
                 className="mt-1.5 rounded-ctl border border-primary/70 bg-primary/20 px-3 py-1.5 text-xs font-semibold hover:bg-primary/30 disabled:opacity-40">
-                {photoState.busy ? "Uploading…" : "Upload photo"}</button>
+                {photoState.busy ? dict.body.players.uploading : dict.body.players.uploadPhoto}</button>
               <p className="mt-1 text-[11px] text-muted">PNG or JPEG, up to 512 KB. Your statement is recorded with your name.</p>
             </div>
             <div className="flex flex-col items-start gap-1 sm:col-span-2 lg:col-span-3">
               {detailsError && <p role="alert" className="text-xs text-danger">{detailsError}</p>}
               <button type="button" disabled={!can || !detailsChanged || detailsState.busy || !!detailsError} onClick={() => void saveDetails()}
                 className="rounded-ctl border border-primary/70 bg-primary/20 px-4 py-1.5 text-sm font-semibold hover:bg-primary/30 disabled:opacity-40">
-                {detailsState.busy ? "Saving…" : "Save profile details"}</button>
-              {!can && <span className="text-xs text-muted">Created by another organization: read only</span>}
+                {detailsState.busy ? dict.body.players.saving : dict.body.players.saveDetails}</button>
+              {!can && <span className="text-xs text-muted">{dict.body.players.readOnly}</span>}
               {detailsState.ok && !detailsChanged && <span role="status" className="text-xs text-ok">{detailsState.ok}</span>}
               {detailsState.err && <span role="alert" className="text-xs text-danger">{detailsState.err}</span>}
             </div>
@@ -299,6 +301,7 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
 }
 
 export function PlayersList() {
+  const { t: dict } = useLocale();
   const focus = useSearchParams().get("player");
   const [list, setList] = useState<PlayerListEntry[] | null | undefined>(undefined);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -330,26 +333,26 @@ export function PlayersList() {
     <main className="mx-auto w-full max-w-[1400px] px-4 py-6" data-page="players">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Players</h1>
-          <p className="text-sm text-muted">Enter what you know about each player once. Reels and reports show it. The video never fills these in.</p>
+          <h1 className="text-2xl font-bold">{dict.body.analysis.players}</h1>
+          <p className="text-sm text-muted">{dict.body.players.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by position"
             className="rounded-ctl border border-line bg-canvas px-3 py-2 text-sm">
-            <option value="">All positions</option>
+            <option value="">{dict.body.players.allPositions}</option>
             {Object.entries(POSITION_NAMES).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
           </select>
           <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
             <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} className="rounded border-line" />
-            <span>Confirmed roles only</span>
+            <span>{dict.body.players.confirmedRolesOnly}</span>
           </label>
-          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder="Search by name or OTSI Player ID…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder={dict.body.players.searchPlaceholder}
             className="w-full max-w-xs rounded-ctl border border-line bg-canvas px-3 py-2 text-sm" />
         </div>
       </div>
-      {list === undefined && <p className="text-muted">Loading…</p>}
-      {list === null && <p role="alert" className="text-danger">The players could not be loaded.</p>}
-      {list && shown.length === 0 && <p className="text-muted">{list.length ? "No player matches the search." : "No players yet. Add players to a match team sheet, or confirm who a player is in Analysis."}</p>}
+      {list === undefined && <p className="text-muted">{dict.common.loading}</p>}
+      {list === null && <p role="alert" className="text-danger">{dict.body.reports.playersNotLoaded}</p>}
+      {list && shown.length === 0 && <p className="text-muted">{list.length ? dict.body.players.noMatch : dict.body.players.noPlayersYet}</p>}
       <ul aria-label="Players" className="space-y-3">
         {shown.map((e) => (
           <Row key={e.player_id} e={e} countries={countries} focus={focus === e.player_id}

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
 import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 
 const ROWS = [855, 939, 1024, 1110];
 
@@ -52,6 +53,7 @@ function Thumb({ m, a, o, y }: { m: RecentMatch | undefined; a: number; o: [numb
 }
 
 export function RecentMatches() {
+  const { t } = useLocale();
   const [list, setList] = useState<RecentMatch[] | null | undefined>(undefined);   // undefined = loading, null = could not read
   const [reload, setReload] = useState(0);
   useEffect(() => { void api<RecentMatch[]>("/v1/overview/recent-matches").then(setList, () => setList(null)); }, [reload]);
@@ -62,10 +64,10 @@ export function RecentMatches() {
     <section aria-label="Recent matches" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
       <P x={39} y={757} w={791} h={405} />
       <ACC x={55} y={771} h={26} />
-      <T x={76} y={783} size={27} weight={600} as="h2">Recent Matches</T>
+      <T x={76} y={783} size={27} weight={600} as="h2">{t.body.home.recentMatches}</T>
       <Link href="/library" className={s.cta} aria-label="View all matches in the Library"
         style={{ left: u(680), top: u(770 - 101), width: u(124), height: u(34) }}>
-        <T o={[680, 770]} x={774} y={786} size={21} color="#33a8ff" align="right" as="span">View All</T>
+        <T o={[680, 770]} x={774} y={786} size={21} color="#33a8ff" align="right" as="span">{t.body.home.viewAll}</T>
         <Ic o={[680, 770]} x={790} y={786} k="arr" size={20} color="#33a8ff" />
       </Link>
 
@@ -80,10 +82,10 @@ export function RecentMatches() {
             <T o={o} x={195} y={y + 22} size={19} weight={600} align="center" as="span">{m ? clock(m.duration_us) : "—"}</T>
             <B o={o} x={250} y={y - 20} w={40} h={40} style={{ background: "#e8eef8", borderRadius: "50%", opacity: 0.9 }} />
             <T o={o} x={319} y={y - 14} size={21} weight={600} as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? title(m) : failed ? "Couldn't load recent matches" : first ? "No matches analysed yet" : "—"}
+              {m ? title(m) : failed ? t.body.home.matchesLoadFailed : first ? t.body.home.noMatchesYet : "—"}
             </T>
             <T o={o} x={319} y={y + 16} size={18} color="#b9cbe2" as="span" style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {m ? subtitle(m) : failed ? "Tap to try again" : first ? "Uploaded matches will be listed here" : "—"}
+              {m ? subtitle(m) : failed ? t.body.home.tapRetry : first ? t.body.home.matchesListedHere : "—"}
             </T>
             <T o={o} x={737} y={y} size={26} weight={700} align="center" as="span">{m ? score(m) : "—"}</T>
             <Ic o={o} x={791} y={y} k="gt" size={20} color="#cfe0f5" />

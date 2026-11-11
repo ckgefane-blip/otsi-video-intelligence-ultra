@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { tc, type Ui } from "./kit";
 import { locate, type Studio } from "./useStudio";
 import { Adjustments } from "./Adjustments";
@@ -56,6 +57,7 @@ export function insightsIn(ev: MatchEvents | null, a: number, b: number, player:
 const mainOf = (list: Insight[]) => list.filter((i) => i.his).sort((x, y) => x.rank - y.rank || x.at - y.at)[0] ?? null;
 
 export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: Ui }) {
+  const { t: dict } = useLocale();
   const tab = st.inspTab, setTab = st.setInspTab;
   const [match, setMatch] = useState<Match | null>(null);
   const reel = st.reel;
@@ -109,7 +111,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
 
       {tab === 1 ? (
         <div data-insights={String(insights.length)} className="absolute" style={{ left: u(1990), top: u(280 - 101), width: u(526), height: u(530), overflowY: "auto", fontSize: u(18), color: "#cfe0f5" }}>
-          {!span ? <p style={{ margin: u(20), color: "#8ea3bf" }}>Select a clip to see what the engine found in it.</p>
+          {!span ? <p style={{ margin: u(20), color: "#8ea3bf" }}>{dict.body.studio.selectClip}</p>
             : !insights.length ? <p style={{ margin: u(20), color: "#8ea3bf" }}>{events && events.state === "READY" ? "The engine found no event inside this clip." : noEvents}</p> : (
             <>
               <p style={{ margin: `${u(6)} ${u(8)} ${u(10)}`, fontSize: u(15), color: "#8ea3bf" }}>
@@ -146,7 +148,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
           <T x={2226} y={303} size={20} weight={600} style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{title}</T>
           <T x={2226} y={337} size={20} color="#b9cbe2" style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{line2}</T>
           <T x={2226} y={371} size={20} color="#b9cbe2">{span ? `${tc(span.in)} – ${tc(span.out)}` : "—"}</T>
-          <T x={1993} y={431} size={24} weight={600} as="h2">Clip Details</T>
+          <T x={1993} y={431} size={24} weight={600} as="h2">{dict.body.studio.clipDetails}</T>
           {ROWS.map(([k, l, y]) => (
             <div key={l}><Ic x={2006} y={y} k={k} size={24} color="#cfe0f5" /><T x={2030} y={y} size={20} color="#cfe0f5">{l}</T></div>
           ))}

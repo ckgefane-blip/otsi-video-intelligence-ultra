@@ -14,6 +14,7 @@ import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/Design
 import { api } from "@/lib/api";
 import { STATE_COLOR, STATE_LABEL } from "@/lib/jobs";
 import { Capabilities } from "./Capabilities";
+import { useLocale } from "@/lib/i18n";
 import { HowItWorks } from "./HowItWorks";
 
 const Ctx = createContext<HomeInbox | null | undefined>(undefined);
@@ -58,11 +59,12 @@ export function HomeGuidance() {
 }
 
 function ReviewInbox({ inbox }: { inbox: HomeInbox }) {
+  const { t } = useLocale();
   return (
     <section aria-label="Review inbox" data-section="p01-inbox">
       <P x={1841} y={757} w={681} h={405} />
       <ACC x={1857} y={771} h={26} />
-      <T x={1880} y={784} size={27} weight={600} as="h2">Review inbox</T>
+      <T x={1880} y={784} size={27} weight={600} as="h2">{t.body.home.reviewInbox}</T>
       <T x={2504} y={786} size={19} color="#8ea3bf" align="right">{inbox.items.length ? `${inbox.items.length} to do` : "All clear"}</T>
       {inbox.items.length === 0 && (
         <T x={1880} y={850} size={20} color="#b9cbe2" style={{ maxWidth: u(600), whiteSpace: "normal", lineHeight: 1.4 }}>
@@ -87,6 +89,7 @@ function ReviewInbox({ inbox }: { inbox: HomeInbox }) {
 
 /** the same jobs as the top-bar tray: what runs or waits now, else what finished in the last day */
 function ActiveJobs() {
+  const { t } = useLocale();
   const [list, setList] = useState<JobList | null>(null);
   useEffect(() => {
     let live = true;
@@ -101,7 +104,7 @@ function ActiveJobs() {
     <section aria-label="Active jobs" data-section="p01-jobs">
       <P x={39} y={1180} w={2483} h={247} />
       <ACC x={63} y={1213} h={49} />
-      <T x={87} y={1238} size={34} weight={700} as="h2">Active jobs</T>
+      <T x={87} y={1238} size={34} weight={700} as="h2">{t.body.home.activeJobs}</T>
       <T x={86} y={1291} size={22} color="#cfe0f5">{list ? `${list.running} running · ${list.active - list.running} waiting or paused` : "Reading…"}</T>
       <T x={86} y={1325} size={19} color="#8ea3bf">{active.length ? "Manage them from the jobs icon in the top bar." : list?.jobs.length ? "Nothing runs now; the last day's jobs:" : "No engine job in the last day."}</T>
       {shown.map((j, i) => {

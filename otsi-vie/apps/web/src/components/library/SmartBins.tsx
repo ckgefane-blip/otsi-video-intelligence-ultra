@@ -11,6 +11,7 @@ import { hitHref, SMART_HINT, type SearchKind, type SmartBin, type SmartBinItems
 import Link from "next/link";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { u } from "@/components/stage/DesignStage";
 
 const GROUP: Record<SearchKind, string> = { MATCH: "Matches", PLAYER: "Players", REEL: "Reels", PROJECT: "Projects", MOMENT: "Moments", MARKER: "Markers" };
@@ -27,6 +28,7 @@ export function useSmartBins(): { bins: SmartBin[] | null; reload: () => Promise
 const shell = "fixed left-1/2 top-24 z-50 w-[min(640px,calc(100vw-32px))] -translate-x-1/2 rounded-card border border-line bg-panel p-4 shadow-2xl";
 
 export function NewBinDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: (b: SmartBin) => void }) {
+  const { t: dict } = useLocale();
   const [name, setName] = useState(""), [q, setQ] = useState(""), [err, setErr] = useState<string | null>(null), [busy, setBusy] = useState(false);
   useEffect(() => { if (open) { setName(""); setQ(""); setErr(null); } }, [open]);
   const save = async () => {
@@ -39,7 +41,7 @@ export function NewBinDialog({ open, onOpenChange, onSaved }: { open: boolean; o
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content className={shell} data-new-bin>
-          <Dialog.Title className="text-base font-semibold">New Smart Bin</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.library.newSmartBin}</Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted">A saved search that fills itself: it always holds what the search finds now.</Dialog.Description>
           <label className="mt-3 block text-sm">Search
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. event:goal is:confirmed" aria-label="Bin search" maxLength={80}
@@ -104,14 +106,15 @@ export function BinDialog({ bin, onOpenChange, onDeleted }: { bin: SmartBin | nu
 
 /** the Library tree's Smart Bins section */
 export function SmartBinsTree({ head, row, count }: { head: CSSProperties; row: (on: boolean) => CSSProperties; count: CSSProperties }) {
+  const { t: dict } = useLocale();
   const { bins, reload } = useSmartBins();
   const [making, setMaking] = useState(false);
   const [open, setOpen] = useState<SmartBin | null>(null);
   return (
     <>
       <div style={head}>
-        <span>Smart Bins</span>
-        <button type="button" data-tree="new-bin" onClick={() => setMaking(true)} aria-label="New Smart Bin" title="Save a search as a bin that fills itself"
+        <span>{dict.body.library.smartBins}</span>
+        <button type="button" data-tree="new-bin" onClick={() => setMaking(true)} aria-label={dict.body.library.newSmartBin} title="Save a search as a bin that fills itself"
           style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: u(18), cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }} data-smart-bins>

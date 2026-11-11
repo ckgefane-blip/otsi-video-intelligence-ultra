@@ -21,6 +21,7 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { copyLink, MoreMenu } from "@/components/stage/MoreMenu";
 import { Hit } from "@/components/workspace/shared";
 import type { DialogName } from "./Dialogs";
+import { useLocale } from "@/lib/i18n";
 
 export interface Report {
   player: PlayerIdentity | null;
@@ -89,6 +90,7 @@ function RailInner({ r }: { r: Report }) {
 export const Rail = memo(RailInner);
 
 function HeroInner({ r }: { r: Report }) {
+  const { t: dict } = useLocale();
   const p = r.player;
   const idText = !p ? null : p.canonical_otsi_id ?? "Provisional player: no OTSI Player ID yet";
   const pr = r.profile, team = pr?.latest_team ?? null;
@@ -112,7 +114,7 @@ function HeroInner({ r }: { r: Report }) {
       <B x={1213} y={320} w={2} h={36} style={{ background: "#2a4a75" }} />
       <B x={1241} y={318} w={58} h={39} style={{ background: "#3a5a88", borderRadius: u(4) }} />
       <T x={1314} y={338} size={24} style={{ maxWidth: u(260), overflow: "hidden", textOverflow: "ellipsis" }}>{pr?.nationality?.name ?? "Nationality —"}</T>
-      {p && <Link href={`/players?player=${p.player_id}`} className="absolute" style={{ left: u(1600), top: u(338 - 101 - 14), fontSize: u(19), color: "#33a8ff" }}>Edit profile ›</Link>}
+      {p && <Link href={`/players?player=${p.player_id}`} className="absolute" style={{ left: u(1600), top: u(338 - 101 - 14), fontSize: u(19), color: "#33a8ff" }}>{dict.body.reports.editProfile}</Link>}
       {([["Age", 963, pr?.age ?? "—"], ["Height", 1082, "—"], ["Weight", 1242, "—"], ["Preferred Foot", 1410, foot]] as const).map(([l, x, v]) => (
         <div key={l}><T x={x} y={399} size={18} color="#b9cbe2" align="center">{l}</T><T x={x} y={431} size={26} weight={600} align="center">{String(v)}</T></div>
       ))}
@@ -150,7 +152,7 @@ function HeroInner({ r }: { r: Report }) {
         return (
           <>
             <B x={1581} y={196} w={365} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
-            <T x={1616} y={224} size={22}>Identity &amp; Evidence</T>
+            <T x={1616} y={224} size={22}>{dict.body.reports.identityEvidence}</T>
             <div title="Identity: tracks a person confirmed as this player. Evidence coverage: the share of his time on camera measured on a calibrated pitch. This is not an accuracy score: the engine's accuracy is not measured yet."><Ic x={1855} y={224} k="help" size={26} color="#8ea3bf" /></div>
             <B x={1599} y={257} w={156} h={156} style={{ borderRadius: "50%", background: cov != null ? `conic-gradient(#1e90ff ${cov * 100}%,#0a2a52 0)` : "#0a2a52" }} />
             <B x={1615} y={273} w={124} h={124} style={{ borderRadius: "50%", background: "#06142a" }} />
@@ -167,7 +169,7 @@ function HeroInner({ r }: { r: Report }) {
 
       {/* Player Role & Summary */}
       <B x={1964} y={196} w={574} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
-      <T x={1987} y={223} size={22} weight={600}>Player Role &amp; Summary</T>
+      <T x={1987} y={223} size={22} weight={600}>{dict.body.reports.roleSummary}</T>
       <B x={2419} y={208} w={92} h={37} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), opacity: p && r.can.assess ? 1 : 0.7 }} />
       <Ic x={2445} y={227} k="edit" size={20} /><T x={2467} y={227} size={18}>Edit</T>
       {!p ? <Hit x={2419} y={208} w={92} h={37} label="Edit role and summary" onClick={r.pick} />
@@ -179,7 +181,7 @@ function HeroInner({ r }: { r: Report }) {
           <>
             <T x={1987} y={268} size={24} weight={600}>Role not assessed</T>
             <T x={1990} y={303} size={20} color="#b9cbe2">{r.assessment?.unpublished_changes && r.can.assess ? "A draft is written: publish it to show it here." : "An analyst-approved role summary appears here."}</T>
-            <T x={1988} y={401} size={17} color="#8ea3bf">No traits recorded</T>
+            <T x={1988} y={401} size={17} color="#8ea3bf">{dict.body.reports.noTraits}</T>
           </>
         );
         return (
@@ -219,6 +221,7 @@ function measured(l: string, m: PlayerMeasures | null): [string, string, string]
 const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, measuresFailed, focused }: {
   label: string; x: number; w: number; icon: string; first: boolean; measures: PlayerMeasures | null; measuresFailed: boolean; focused: boolean;
 }) {
+  const { t: dict } = useLocale();
   const m = measured(label, measures);
   const cover = m && KPI_COVER[label] ? kpiCoverage(KPI_COVER[label]!, measures) : null;
   return (
@@ -231,7 +234,7 @@ const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, meas
         ? <T x={x + 104} y={575} size={19} color="#ff8a8a">Load failed</T>
         : m || !measures
           ? <T x={x + 104} y={575} size={30} weight={700}>{m?.[0] ?? "—"}</T>
-          : <T x={x + 104} y={575} size={19} color="#8ea3bf">Not measured</T>}
+          : <T x={x + 104} y={575} size={19} color="#8ea3bf">{dict.body.reports.notMeasured}</T>}
       <T x={x + 104} y={609} size={19} color="#b9cbe2">{measuresFailed ? "could not be loaded" : m?.[1] ?? (measures && KPI_EVIDENCE[label] === "NOT_MEASURED" ? "not measured" : "—")}</T>
       {cover && (
         <T x={x + 14} y={628} size={13} color="#7f97b5" style={{ maxWidth: u(w - 28), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -242,8 +245,9 @@ const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, meas
 });
 
 function KpisInner({ r }: { r: Report }) {
+  const { t: dict } = useLocale();
   return (
-    <section id="p08-kpi" aria-label="Key metrics" data-section="p08-s06" data-cards={String(KPIS.length)}>
+    <section id="p08-kpi" aria-label={dict.body.reports.keyMetrics} data-section="p08-s06" data-cards={String(KPIS.length)}>
       {KPIS.map(([l, x, w, icon], i) => (
         <KpiCard key={l} label={l} x={x} w={w} icon={icon} first={i === 0} measures={r.measures} measuresFailed={r.measuresFailed} focused={r.focus === "p08-kpi"} />
       ))}

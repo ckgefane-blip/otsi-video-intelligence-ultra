@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { typing } from "@/lib/keymap";
 import { Inspector } from "./Inspector";
 import { ProfileIntroDialog } from "@/components/reels/PlayerProfileIntro";
@@ -21,6 +22,7 @@ import { T, u } from "@/components/stage/DesignStage";
 const TAB_OF: Record<string, number> = { "p06-spotlight": 0, "p06-overlays": 1, "p06-branding": 2 };
 
 function Sections({ r }: { r: ReelState | null }) {
+  const { t: dict } = useLocale();
   const reel = r?.reel ?? null;
   const [draft, setDraft] = useState<SpotlightSettings | null>(null);
   const [name, setName] = useState("");
@@ -65,10 +67,10 @@ function Sections({ r }: { r: ReelState | null }) {
       if (name.trim() && name.trim() !== reel.name) body.name = name.trim();
       const saved = await api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: body });
       await r?.reload();
-      setNote({ ok: true, text: "Project saved." });
+      setNote({ ok: true, text: dict.body.reels.projectSaved });
       return saved;
     } catch (x) {
-      setNote({ ok: false, text: x instanceof ApiProblem ? x.message : "The project was not saved." });
+      setNote({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.reels.notSaved });
       return null;
     }
   }, [reel, draft, name, r]);
@@ -101,7 +103,7 @@ function Sections({ r }: { r: ReelState | null }) {
         {reel?.player && <ProfileIntroDialog playerId={reel.player.player_id} reelId={reel.id} open={introOpen} onContinue={closeIntro} onClose={closeIntro} />}
         {/* owner 2026-11-02: messages sit in the strip above the preview, never on the picture */}
         {msg && <T x={470} y={113} size={17} color={msg.ok ? "#3ee6a8" : "#ff8a8a"} style={{ maxWidth: u(1500) }} as="p">{msg.text}</T>}
-        {reel && dirty && <T x={2030} y={113} size={16} color="#f5b82e" align="right">Unsaved changes</T>}
+        {reel && dirty && <T x={2030} y={113} size={16} color="#f5b82e" align="right">{dict.body.reels.unsavedChanges}</T>}
       </StageProvider>
     </DesignStage>
   );

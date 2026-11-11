@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { Hit } from "@/components/workspace/shared";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import type { ExportState } from "./state";
 import { ReportPreviewDialog } from "./ReportPreview";
 
@@ -158,6 +159,7 @@ export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
 
 /** Deliver to Client: who gets it, the link's terms, then the sender's own mail app */
 export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
+  const { t: dict } = useLocale();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [team, setTeam] = useState<string[]>([]);
@@ -190,7 +192,7 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="deliver" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Deliver to Client</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.exports.deliverToClient}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             A private link to the finished reel is made only when the video&apos;s rights allow sharing (checked again whenever it is opened). Your own mail app opens
             with the email ready: you send it. The delivery is recorded; the app counts how often the link is opened.
@@ -209,8 +211,8 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
               <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={o.notifyClient} onChange={(x) => o.setNotifyClient(x.target.checked)} />Notify client</label>
               {o.notifyClient && (
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <label className="grid gap-1">Client&apos;s name<input aria-label="Client name" value={name} maxLength={255} onChange={(x) => setName(x.target.value)} className={field} /></label>
-                  <label className="grid gap-1">Client&apos;s email<input aria-label="Client email" type="email" value={email} maxLength={255} onChange={(x) => setEmail(x.target.value)} className={field} /></label>
+                  <label className="grid gap-1">{dict.body.exports.clientName}<input aria-label="Client name" value={name} maxLength={255} onChange={(x) => setName(x.target.value)} className={field} /></label>
+                  <label className="grid gap-1">{dict.body.exports.clientEmail}<input aria-label="Client email" type="email" value={email} maxLength={255} onChange={(x) => setEmail(x.target.value)} className={field} /></label>
                 </div>
               )}
               <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={o.notifyTeam} onChange={(x) => o.setNotifyTeam(x.target.checked)} />Notify team</label>
@@ -222,7 +224,7 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
                   ))}
                 </ul>
               )}
-              <label className="grid gap-1 text-xs">Message (optional)
+              <label className="grid gap-1 text-xs">{dict.body.exports.message}
                 <textarea aria-label="Delivery message" value={o.message} rows={3} maxLength={MESSAGE_MAX} onChange={(x) => o.setMessage(x.target.value)} className={field} />
                 <span className="justify-self-end text-muted">{o.message.length}/{MESSAGE_MAX}</span>
               </label>
@@ -238,7 +240,7 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
           )}
           {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
           <h3 className="mb-1 mt-4 font-semibold">Deliveries of this reel</h3>
-          {!o.deliveries?.length ? <p className="text-xs text-muted">None yet.</p> : (
+          {!o.deliveries?.length ? <p className="text-xs text-muted">{dict.body.exports.noneYet}</p> : (
             <ul className="grid gap-1 text-xs" aria-label="Deliveries">
               {o.deliveries.map((d) => (
                 <li key={d.id} data-delivery={d.state} className="rounded-ctl border border-line px-2 py-1">

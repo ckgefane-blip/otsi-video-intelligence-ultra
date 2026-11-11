@@ -1,3 +1,4 @@
+"use client";
 /**
  * Page 01 Section 08 — six platform capability tiles (approved reference 01_HOME_OVERVIEW, "Platform Capabilities").
  *
@@ -6,6 +7,7 @@
  */
 import Link from "next/link";
 import { ACC, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+import { useLocale } from "@/lib/i18n";
 
 /** icon, title, two description lines, tile x, tile y, icon colour, destination */
 const TILES: [string, string, [string, string], number, number, string, string][] = [
@@ -18,14 +20,15 @@ const TILES: [string, string, [string, string], number, number, string, string][
 ];
 
 export function Capabilities() {
+  const { t } = useLocale();
   return (
     <section aria-label="Platform capabilities grid" data-section="p01-s08">
       <P x={1841} y={757} w={681} h={405} />
       <ACC x={1857} y={771} h={26} />
-      <T x={1880} y={784} size={27} weight={600} as="h2">Platform Capabilities</T>
+      <T x={1880} y={784} size={27} weight={600} as="h2">{t.body.home.capabilities}</T>
       <Link href="/processing" className={s.cta} aria-label="View all capabilities on AI Processing"
         style={{ left: u(2380), top: u(770 - 101), width: u(124), height: u(34) }}>
-        <T o={[2380, 770]} x={2474} y={786} size={21} color="#33a8ff" align="right" as="span">View All</T>
+        <T o={[2380, 770]} x={2474} y={786} size={21} color="#33a8ff" align="right" as="span">{t.body.home.viewAll}</T>
         <Ic o={[2380, 770]} x={2489} y={786} k="arr" size={20} color="#33a8ff" />
       </Link>
       {TILES.map(([icon, title, [l1, l2], x, y, colour, href]) => {

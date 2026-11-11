@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { isUuid } from "@/lib/identity";
 import { Inspector } from "./Inspector";
 import { MediaBin } from "./MediaBin";
@@ -22,6 +23,7 @@ import type { Ui } from "./kit";
 import { useStudio } from "./useStudio";
 
 function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { t: dict } = useLocale();
   const router = useRouter();
   const [reels, setReels] = useState<Reel[] | null | undefined>(undefined);
   useEffect(() => { if (open) void api<Reel[]>("/v1/reels").then(setReels, () => setReels(null)); }, [open]);
@@ -30,11 +32,11 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">Choose a reel</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.studio.chooseReel}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Reels are made in the Reel Builder for a confirmed player; edit their clips here.</Dialog.Description>
-          {reels === undefined && <p className="text-muted">Loading…</p>}
-          {reels === null && <p role="alert" className="text-danger">The reels could not be loaded.</p>}
-          {reels?.length === 0 && <p className="text-muted">No reels yet. <a className="text-primary underline" href="/reels">Make one in the Reel Builder</a>.</p>}
+          {reels === undefined && <p className="text-muted">{dict.common.loading}</p>}
+          {reels === null && <p role="alert" className="text-danger">{dict.body.studio.reelsLoadFailed}</p>}
+          {reels?.length === 0 && <p className="text-muted">{dict.body.studio.noReelsYet} <a className="text-primary underline" href="/reels">{dict.body.studio.makeInReelBuilder}</a>.</p>}
           <ul className="space-y-1" aria-label="Reels">
             {reels?.map((r) => (
               <li key={r.id}>

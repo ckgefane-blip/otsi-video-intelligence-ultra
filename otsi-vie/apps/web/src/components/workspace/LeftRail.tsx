@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { AnalysisRun } from "@otsi-vie/contracts";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { formatDuration } from "@/lib/format";
 import { B, T, u } from "@/components/stage/DesignStage";
 import { Box, OverlayIcon, Toggle } from "@/components/tactics/kit";
@@ -124,6 +125,7 @@ function TeamsAtKickoff({ run, seedUs, onTeach, onClear, disabled }: { run: Anal
 }
 
 function MatchCard({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws, match } = s;
   const video = ws?.video ?? null, tracks = ws?.tracks ?? null;
   const title = match ? `${match.home?.name ?? "—"} vs ${match.away?.name ?? "—"}` : video ? (video.title ?? video.original_filename ?? "Untitled video") : "No match selected";
@@ -137,7 +139,7 @@ function MatchCard({ s }: { s: Shared }) {
   return (
     <section aria-label="Match" data-section="p04-s01">
       <Box x={22} y={118} w={370 + dw} h={382} />
-      <T x={47} y={153} size={28} weight={700} as="h2">Match</T>
+      <T x={47} y={153} size={28} weight={700} as="h2">{dict.body.analysis.match}</T>
       <Hit x={300 + dw} y={133} w={85} h={42} label="Choose the match video" onClick={s.onPick}>
         <T o={[300, 133]} x={318} y={155} size={22} color="#8ea3bf" as="span">···</T>
         <T o={[300, 133]} x={358} y={155} size={24} as="span">⌄</T>
@@ -189,6 +191,7 @@ function Radio({ y, label, selected, count, reason, onSelect }: { y: number; lab
 }
 
 function Filters({ s, dy }: { s: Shared; dy: number }) {
+  const { t: dict } = useLocale();
   const { ws, match, team, setTeam, teams } = s;
   const dw = useDw();
   const finished = !!ws?.run;
@@ -198,7 +201,7 @@ function Filters({ s, dy }: { s: Shared; dy: number }) {
   const selY = team === "all" ? 1000 + dy : rows.find((r) => r[2]?.club_id === team)?.[0] ?? 1000 + dy;
   return (
     <>
-      <T x={48} y={957 + dy} size={22} weight={700} as="h3">Team Filter</T>
+      <T x={48} y={957 + dy} size={22} weight={700} as="h3">{dict.body.analysis.teamFilter}</T>
       <B x={38} y={selY - 20} w={338 + dw} h={40} style={{ border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6), background: "#0d3a78" }} />
       <div role="radiogroup" aria-label="Team filter">
         <Radio y={1000 + dy} label="All Players" selected={team === "all"} count={people} onSelect={() => setTeam("all")} />
@@ -207,7 +210,7 @@ function Filters({ s, dy }: { s: Shared; dy: number }) {
             {...(t && t.tracks > 0 ? { onSelect: () => setTeam(t.club_id) } : {})} />
         ))}
       </div>
-      <T x={48} y={1134 + dy} size={22} weight={700} as="h3">Time Range</T>
+      <T x={48} y={1134 + dy} size={22} weight={700} as="h3">{dict.body.analysis.timeRange}</T>
       <B x={38} y={1157 + dy} w={338 + dw} h={36} style={{ border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6), background: "#0d3a78" }} />
       <TimeRange s={s} dy={dy} />
     </>
@@ -215,6 +218,7 @@ function Filters({ s, dy }: { s: Shared; dy: number }) {
 }
 
 export function LeftRail({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const [side, setSide] = useState(0);
   const [calOpen, setCalOpen] = useState(false);
   const [ballOpen, setBallOpen] = useState(false);
@@ -244,7 +248,7 @@ export function LeftRail({ s }: { s: Shared }) {
 
         {side === 0 && (
           <>
-            <T x={48} y={599} size={22} weight={700} as="h3">Visual Overlays</T>
+            <T x={48} y={599} size={22} weight={700} as="h3">{dict.body.analysis.visualOverlays}</T>
             {OVERLAYS.map(([n, y, key, icon]) => (
               <div key={n}>
                 <OverlayIcon x={48} y={y - 12} k={icon} on={!!key && !!layers?.[key]} />
@@ -273,7 +277,7 @@ export function LeftRail({ s }: { s: Shared }) {
                 </div>
                 <LineupsBlock videoId={ws.video.id} canWrite={ws.canWrite} onReview={() => setLineupsOpen(true)} onName={() => setNamingOpen(true)} lineups={lineups} />
               </>
-            ) : <span style={{ color: "#8ea3bf" }}>Choose a match video first.</span>}
+            ) : <span style={{ color: "#8ea3bf" }}>{dict.body.analysis.chooseVideo}</span>}
           </nav>
         )}
       </section>

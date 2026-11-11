@@ -15,6 +15,7 @@ import { MoreMenu } from "@/components/stage/MoreMenu";
 import { reelActions } from "@/lib/actions";
 import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { mmss, playback, Playback, reelSeconds, reloadRenderedReels, useRenderedReels } from "./renderedReels";
+import { useLocale } from "@/lib/i18n";
 
 /** card x and the drawn placeholder's first gradient colour (reference PH) */
 const CARDS: [number, string][] = [[867, "#27487a"], [1185, "#4a2a30"], [1502, "#4a1a28"]];
@@ -22,14 +23,15 @@ const CARDS: [number, string][] = [[867, "#27487a"], [1185, "#4a2a30"], [1502, "
 const plain = { position: "absolute" as const, padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit" };
 
 function ReelCard({ x, tone, reel, empty, failed }: { x: number; tone: string; reel: Reel | undefined; empty: boolean; failed: boolean }) {
+  const { t } = useLocale();
   const [play, setPlay] = useState<Playback | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flash = (t: string) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 2000); };
+  const flash = (msg: string) => { setNote(msg); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 2000); };
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const get = async () => play ?? await playback(reel!);
-  const title = reel ? (reel.player?.display_name ?? reel.name) : failed ? "Couldn't load reels" : empty ? "No reels yet" : "—";
-  const sub = reel ? reel.name : failed ? "Tap to retry" : empty ? "Generated reels appear here" : "—";
+  const title = reel ? (reel.player?.display_name ?? reel.name) : failed ? t.body.home.couldntLoadReels : empty ? t.body.home.noReelsYet : "—";
+  const sub = reel ? reel.name : failed ? t.body.home.tapRetry : empty ? t.body.home.reelsAppearHere : "—";
 
   return (
     <div role="group" aria-label={reel ? `Reel: ${title}, ${sub}` : title} data-reel={reel?.id ?? "none"}>
@@ -61,7 +63,7 @@ function ReelCard({ x, tone, reel, empty, failed }: { x: number; tone: string; r
         <T x={x + 8} y={1030} size={23} weight={600}>{title}</T>
       )}
       {failed ? (
-        <button type="button" onClick={() => reloadRenderedReels()} aria-label="Reels could not be read. Retry"
+        <button type="button" onClick={() => reloadRenderedReels()} aria-label={t.body.home.reelsReadFailed}
           style={{ position: "absolute", left: u(x + 8), top: u(1058 - 101), transform: "translateY(-50%)", padding: 0, border: 0,
             background: "transparent", color: "#33a8ff", fontSize: u(20), fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
             maxWidth: u(280), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</button>
@@ -85,6 +87,7 @@ function ReelCard({ x, tone, reel, empty, failed }: { x: number; tone: string; r
 }
 
 export function SampleReels() {
+  const { t } = useLocale();
   const reels = useRenderedReels();
   const failed = reels === null;                                               // a failed read, not "no reels yet"
   const empty = reels !== undefined && !failed && reels.length === 0;
@@ -92,10 +95,10 @@ export function SampleReels() {
     <section aria-label="Sample reels gallery" data-section="p01-s07" data-count={reels ? String(Math.min(3, reels.length)) : reels === null ? "error" : "loading"}>
       <P x={850} y={757} w={968} h={405} />
       <ACC x={866} y={771} h={26} />
-      <T x={891} y={783} size={27} weight={600} as="h2">Sample Reels</T>
+      <T x={891} y={783} size={27} weight={600} as="h2">{t.body.home.sampleReels}</T>
       <Link href="/library" className={s.cta} aria-label="View all reels in the Library"
         style={{ left: u(1658), top: u(770 - 101), width: u(124), height: u(34) }}>
-        <T o={[1658, 770]} x={1752} y={786} size={21} color="#33a8ff" align="right" as="span">View All</T>
+        <T o={[1658, 770]} x={1752} y={786} size={21} color="#33a8ff" align="right" as="span">{t.body.home.viewAll}</T>
         <Ic o={[1658, 770]} x={1767} y={786} k="arr" size={20} color="#33a8ff" />
       </Link>
       {CARDS.map(([x, tone], i) => <ReelCard key={x} x={x} tone={tone} reel={reels?.[i]} empty={empty && i === 0} failed={failed && i === 0} />)}

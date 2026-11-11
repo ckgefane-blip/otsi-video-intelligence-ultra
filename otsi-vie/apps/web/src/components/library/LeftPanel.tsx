@@ -17,6 +17,7 @@ import Link from "next/link";
 import { memo, useEffect, useState, type ReactNode } from "react";
 import { KIND, marksOf, type Kind } from "@/components/workspace/TimelinePanel";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { MoreMenu } from "@/components/stage/MoreMenu";
 import { videoActions } from "@/lib/actions";
@@ -47,12 +48,13 @@ const halfOf = (p: MatchPeriods | null, r: TimeRange) => (r === "h1" ? p?.first 
 
 /** the Events tab: what the engine found in the selected video, by kind (in one half when the Time Range says so) */
 function EventCounts({ videoId, span, rangeLabel }: { videoId: string | null; span: { start_us: number; end_us: number } | null; rangeLabel: string | null }) {
+  const { t: dict } = useLocale();
   const [ev, setEv] = useState<MatchEvents | null | undefined>(undefined);
   useEffect(() => { setEv(undefined); if (videoId) void api<MatchEvents>(`/v1/videos/${videoId}/events`).then(setEv, () => setEv(null)); }, [videoId]);
   const all = ev ? marksOf(ev) : null;
   const marks = all && span ? Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v.filter((m) => m.at >= span.start_us && m.at < span.end_us)])) as typeof all : all;
   const total = marks ? EVENT_KINDS.filter((k) => k !== "Key Passes" && k !== "Tackles" && k !== "Interceptions" && k !== "Fouls").reduce((n, k) => n + marks[k].length, 0) : 0;
-  const msg = !videoId ? "Select an asset with a video in the table." : ev === undefined ? "Loading the events…" : ev === null ? "The events could not be loaded."
+  const msg = !videoId ? dict.body.library.selectAsset : ev === undefined ? "Loading the events…" : ev === null ? "The events could not be loaded."
     : !total ? "No events found yet. Events are found once the ball is followed (Analysis › AI Tools › Ball)." : null;
   if (msg) return <T x={37} y={668} size={18} color="#8ea3bf" style={{ maxWidth: u(345), whiteSpace: "normal" }}>{msg}</T>;
   return (
@@ -76,6 +78,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
   /** A.14: the panel shows the Library tree (true) or the selected asset's match (false, the approved panel) */
   browse: boolean; setBrowse: (b: boolean) => void; tree: ReactNode;
 }) {
+  const { t: dict } = useLocale();
   const [prefs, savePrefs] = useOverlayPrefs();
   const periods = usePeriods(videoId);
   const [range, setRange] = useState<TimeRange>("full");
@@ -126,7 +129,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
   return (
     <aside aria-label="Match context of the selected asset">
       <P x={20} y={121} w={381} h={1294} />
-      <T x={39} y={156} size={24} weight={700} as="h2">Match</T>
+      <T x={39} y={156} size={24} weight={700} as="h2">{dict.body.analysis.match}</T>
       {switcher}
       <MoreMenu x={325} y={156} k="hdots" size={24} label="More for this match" side="right"
         items={videoId ? [...videoActions(videoId), { label: "Set score and match details", href: `/upload?video=${videoId}` }] : []}
@@ -161,7 +164,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
 
       {showView && (
         <>
-          <T x={37} y={630} size={20} weight={600} as="h3">Visual Overlays</T>
+          <T x={37} y={630} size={20} weight={600} as="h3">{dict.body.analysis.visualOverlays}</T>
           {OVERLAYS.map(([k, l, y, key, why]) => {
             const on = key ? prefs[key] : false;
             return (
@@ -181,7 +184,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
 
       {showFilters && (
         <div style={{ transform: fy ? `translateY(${u(fy)})` : undefined }}>
-          <T x={37} y={980} size={20} weight={600} as="h3">Team Filter</T>
+          <T x={37} y={980} size={20} weight={600} as="h3">{dict.body.analysis.teamFilter}</T>
           <B x={34} y={teamY - 21} w={353} h={42} style={{ background: "#0a2b55", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(8) }} />
           <div role="radiogroup" aria-label="Team filter for the asset table">
             {teamRows.map(([t, l, y]) => {
@@ -204,7 +207,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
               );
             })}
           </div>
-          <T x={37} y={1170} size={20} weight={600} as="h3">Time Range</T>
+          <T x={37} y={1170} size={20} weight={600} as="h3">{dict.body.analysis.timeRange}</T>
           {(() => {
             const rows: [TimeRange | "custom", string, number][] = [["full", "Full Match", 1218], ["h1", "1st Half", 1261], ["h2", "2nd Half", 1302], ["custom", "Custom Range", 1343]];
             const y0 = rows.find((r) => r[0] === range)![2];
@@ -235,7 +238,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
 
       {side === 2 && (
         <>
-          <T x={37} y={630} size={20} weight={600} as="h3">Events</T>
+          <T x={37} y={630} size={20} weight={600} as="h3">{dict.body.library.events}</T>
           <EventCounts videoId={videoId} span={span} rangeLabel={rangeLabel} />
         </>
       )}

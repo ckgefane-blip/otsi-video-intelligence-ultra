@@ -19,6 +19,7 @@ import Link from "next/link";
 import { memo, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { MediaInfoDialog } from "@/components/media/MediaInfoDialog";
 import { AccessDialog } from "./AccessDialog";
 import type { Asset } from "./useLibrary";
@@ -41,6 +42,7 @@ function Action({ x, y, icon, ix, tx, label, onClick, why, primary, say }: { x: 
 }
 
 export const SelectedItem = memo(function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset | null; match: Match | null; onClose: () => void; reload: () => Promise<void>; canWrite: boolean }) {
+  const { t: dict } = useLocale();
   const [play, setPlay] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [naming, setNaming] = useState(false);
@@ -119,7 +121,7 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
 
       <section aria-label="Selected-item metadata" data-section="p09-s08">
         <T x={2025} y={503} size={26} weight={700} style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>{a?.title ?? "No asset selected"}</T>
-        <button type="button" aria-label="Edit the name" title={renamable ? "Rename" : whyNoRename} aria-disabled={!renamable || undefined}
+        <button type="button" aria-label="Edit the name" title={renamable ? dict.body.library.rename : whyNoRename} aria-disabled={!renamable || undefined}
           onClick={() => { if (!renamable) return flash(whyNoRename); setName(a!.title); setNaming(true); }} className={`${s.a} ${s.framed}`}
           style={{ left: u(2406), top: u(484 - 101), width: u(111), height: u(42), padding: 0, border: 0, color: "inherit", font: "inherit", cursor: "pointer", ...IN }}>
           <Ic o={[2406, 484]} x={2432} y={505} k="edit" size={22} />
@@ -152,10 +154,10 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
             color: "#fff", font: "inherit", cursor: "pointer", opacity: download ? 1 : 0.6 }}>
           <B o={[2025, 1075]} x={2467} y={1085} w={1.5} h={38} style={{ background: "#4fa8ff" }} />
           <Ic o={[2025, 1075]} x={2194} y={1104} k="dl" size={28} />
-          <T o={[2025, 1075]} x={2231} y={1104} size={24} weight={600} as="span">Download</T>
+          <T o={[2025, 1075]} x={2231} y={1104} size={24} weight={600} as="span">{dict.body.library.download}</T>
           <Ic o={[2025, 1075]} x={2494} y={1104} k="chev" size={22} />
         </button>
-        <Action x={2025} y={1145} icon="link" ix={2115} tx={2144} label="Share" why={pickFirst} say={flash}
+        <Action x={2025} y={1145} icon="link" ix={2115} tx={2144} label={dict.body.library.share} why={pickFirst} say={flash}
           onClick={a?.href ? () => { void navigator.clipboard?.writeText(`${location.origin}${a.href}`).then(() => flash("Link copied (members of your organization can open it)"), () => flash("Copy failed")); } : undefined} />
         <Action x={2279} y={1145} icon="doc" ix={2369} tx={2398} label="Duplicate" say={flash}
           why={!a ? pickFirst : !reel ? "Only a reel can be duplicated: a copy of a video or match would be the same footage twice" : "Your role can view reels but not copy them"}
@@ -163,15 +165,15 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
             void api<Reel>(`/v1/reels/${reel.id}/duplicate`, { method: "POST" }).then(async (c) => { await reload(); flash(`Copied as "${c.name}"`); },
               (x) => flash(x instanceof ApiProblem ? x.message : "The reel could not be copied"));
           } : undefined} />
-        <Action x={2025} y={1208} icon="send" ix={2073} tx={2107} label="Send to Client" say={flash} why={!a ? pickFirst : "Only a reel is sent to a client: open it in Export & Delivery"}
+        <Action x={2025} y={1208} icon="send" ix={2073} tx={2107} label={dict.body.library.sendToClient} say={flash} why={!a ? pickFirst : "Only a reel is sent to a client: open it in Export & Delivery"}
           onClick={reel ? () => { window.location.href = `/exports?reel=${reel.id}`; } : undefined} />
         {videoId ? (
-          <Link href={`/videos/${videoId}/analyze`} className={`${s.a} ${s.framed}`} aria-label="Open in Analysis"
+          <Link href={`/videos/${videoId}/analyze`} className={`${s.a} ${s.framed}`} aria-label={dict.body.library.openInAnalysis}
             style={{ left: u(2279), top: u(1208 - 101), width: u(240), height: u(52), background: "#08294d", borderRadius: u(8), ["--bc" as string]: "#1e6fc0", color: "inherit", textDecoration: "none" }}>
             <Ic o={[2279, 1208]} x={2319} y={1234} k="bars3" size={24} color="#33a8ff" />
-            <T o={[2279, 1208]} x={2351} y={1234} size={21} weight={600} color="#33a8ff" as="span">Open in Analysis</T>
+            <T o={[2279, 1208]} x={2351} y={1234} size={21} weight={600} color="#33a8ff" as="span">{dict.body.library.openInAnalysis}</T>
           </Link>
-        ) : <Action x={2279} y={1208} icon="bars3" ix={2319} tx={2351} label="Open in Analysis" why={a ? "This asset has no source video" : pickFirst} primary say={flash} />}
+        ) : <Action x={2279} y={1208} icon="bars3" ix={2319} tx={2351} label={dict.body.library.openInAnalysis} why={a ? "This asset has no source video" : pickFirst} primary say={flash} />}
         {note && <T x={2272} y={1268} size={16} color="#33a8ff" align="center">{note}</T>}
       </section>
 

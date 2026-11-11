@@ -17,12 +17,14 @@ import type { ReelState } from "@/components/reels/ReelBuilder";
 import { HistoryDialog } from "@/components/reels/HistoryDialog";
 import { Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { Btn, frame, IN, type Ui } from "./kit";
 import { openKeymap } from "@/lib/keymap";
 import { typing } from "./shortcuts";
 import { LAYOUTS, type Layout, type Studio } from "./useStudio";
 
 export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Studio; ui: Ui; note: string | null }) {
+  const { t: dict } = useLocale();
   const reel = st.reel;
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
@@ -65,7 +67,7 @@ export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Stu
 
   return (
     <section aria-label="Editor header and action toolbar" data-section="p07-s01">
-      <Link href={reel ? `/reels/${reel.id}` : "/reels"} aria-label="Back to the Reel Builder" className={`${s.a} ${s.framed}`}
+      <Link href={reel ? `/reels/${reel.id}` : "/reels"} aria-label={dict.body.studio.backToReelBuilder} className={`${s.a} ${s.framed}`}
         style={{ left: u(28), top: u(120 - 101), width: u(64), height: u(62), ...IN }}>
         <Ic o={[28, 120]} x={60} y={151} k="back" size={32} color="#33a8ff" />
       </Link>
@@ -86,26 +88,26 @@ export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Stu
             style={{ height: u(40), padding: `0 ${u(16)}`, borderRadius: u(8), fontSize: u(19), fontFamily: "inherit", cursor: "pointer", color: "#fff",
               border: `${u(1.5)} solid ${st.layout === l ? "#33a8ff" : "#1d4f8a"}`, background: st.layout === l ? "#0f4f9a" : "#0a2447" }}>{LAYOUTS[l].label}</button>
         ))}
-        <button type="button" aria-label="Keyboard shortcuts" data-shortcuts onClick={openKeymap} title="Keyboard shortcuts (?)"
+        <button type="button" aria-label={dict.body.studio.keyboardShortcuts} data-shortcuts onClick={openKeymap} title="Keyboard shortcuts (?)"
           style={{ width: u(40), height: u(40), borderRadius: u(8), fontSize: u(20), fontWeight: 700, fontFamily: "inherit", cursor: "pointer", color: "#cfe0f5",
             border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447" }}>?</button>
         <button type="button" aria-label="History of this reel" data-history-open disabled={!reel} onClick={() => setHist(true)} title="Every change to this reel; undo back to any point"
           style={{ height: u(40), padding: `0 ${u(14)}`, borderRadius: u(8), fontSize: u(19), fontFamily: "inherit", cursor: reel ? "pointer" : "default", color: "#cfe0f5",
-            border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", opacity: reel ? 1 : 0.5 }}>History{r?.history?.entries.length ? ` (${r.history.entries.length})` : ""}</button>
+            border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", opacity: reel ? 1 : 0.5 }}>{dict.body.reels.history}{r?.history?.entries.length ? ` (${r.history.entries.length})` : ""}</button>
       </div>
       <HistoryDialog r={r} open={hist} onOpenChange={setHist} />
       <Btn x={1677} y={120} w={192} h={62} label="Save Project: name the reel" style={IN} dim={!edit}
         onClick={need(() => { setName(reel!.name); setNaming(true); })}>
         <Ic o={[1677, 120]} x={1714} y={151} k="sav" size={28} color="#cfe0f5" />
-        <T o={[1677, 120]} x={1743} y={152} size={21} weight={600} as="span">Save Project</T>
+        <T o={[1677, 120]} x={1743} y={152} size={21} weight={600} as="span">{dict.body.reels.saveProject}</T>
       </Btn>
-      <Btn x={1886} y={120} w={128} h={62} label="Undo" style={IN} dim={!edit || !st.canUndo} onClick={need(() => (st.canUndo ? st.undo() : ui.say("Nothing to undo yet")))}>
+      <Btn x={1886} y={120} w={128} h={62} label={dict.body.studio.undo} style={IN} dim={!edit || !st.canUndo} onClick={need(() => (st.canUndo ? st.undo() : ui.say("Nothing to undo yet")))}>
         <Ic o={[1886, 120]} x={1922} y={151} k="undo" size={28} color={st.canUndo ? "#cfe0f5" : "#6a7f9c"} />
-        <T o={[1886, 120]} x={1948} y={152} size={21} weight={600} color={st.canUndo ? undefined : "#6a7f9c"} as="span">Undo</T>
+        <T o={[1886, 120]} x={1948} y={152} size={21} weight={600} color={st.canUndo ? undefined : "#6a7f9c"} as="span">{dict.body.studio.undo}</T>
       </Btn>
-      <Btn x={2031} y={120} w={129} h={62} label="Redo" style={IN} dim={!edit || !st.canRedo} onClick={need(() => (st.canRedo ? st.redo() : ui.say("Nothing to redo")))}>
+      <Btn x={2031} y={120} w={129} h={62} label={dict.body.studio.redo} style={IN} dim={!edit || !st.canRedo} onClick={need(() => (st.canRedo ? st.redo() : ui.say("Nothing to redo")))}>
         <Ic o={[2031, 120]} x={2066} y={151} k="redo" size={28} color={st.canRedo ? "#cfe0f5" : "#6a7f9c"} />
-        <T o={[2031, 120]} x={2095} y={152} size={21} weight={st.canRedo ? 600 : 400} color={st.canRedo ? undefined : "#6a7f9c"} as="span">Redo</T>
+        <T o={[2031, 120]} x={2095} y={152} size={21} weight={st.canRedo ? 600 : 400} color={st.canRedo ? undefined : "#6a7f9c"} as="span">{dict.body.studio.redo}</T>
       </Btn>
       <Btn x={2176} y={120} w={144} h={62} label={`Suggest: add the ${missing.length} moments the engine suggests`} dim={!edit || missing.length === 0}
         style={{ background: "linear-gradient(90deg,#2a1ab0,#3a2ae0)", borderRadius: u(8), ...frame("#5a4af0") }}

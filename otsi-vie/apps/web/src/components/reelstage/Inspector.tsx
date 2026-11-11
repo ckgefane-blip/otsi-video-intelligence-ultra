@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api, apiBlob } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { Hit } from "@/components/workspace/shared";
 import { ConfirmRender } from "./ConfirmRender";
 import { ReelExtras } from "./ReelExtras";
@@ -129,6 +130,7 @@ function Slider({ label, y, pct, on, onPct, note }: { label: string; y: number; 
 }
 
 export function Inspector() {
+  const { t: dict } = useLocale();
   const { r, draft, setDraft, name, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro } = useStage();
   const reel = r?.reel ?? null;
   const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
@@ -200,7 +202,7 @@ export function Inspector() {
 
       <section id="p06-spotlight" aria-label="Spotlight controls" data-section="p06-s09">
         <P x={2065} y={195} w={475} h={411} style={border("p06-spotlight")} />
-        <T x={2086} y={227} size={23} weight={600} as="h2">Spotlight Controls</T>
+        <T x={2086} y={227} size={23} weight={600} as="h2">{dict.body.reels.spotlightControls}</T>
         {/* B.16 (ADR-092): built-in starting looks; any slider change makes it "Custom" */}
         <select aria-label="Spotlight preset" data-spotlight-preset={presetOf(set) ?? "custom"} value={presetOf(set) ?? ""} disabled={!canEdit}
           title={SPOTLIGHT_PRESETS.find((p) => p.key === presetOf(set))?.note ?? "Custom: your own slider values"}
@@ -228,7 +230,7 @@ export function Inspector() {
 
       <section id="p06-target" aria-label="Player targeting" data-section="p06-s10">
         <P x={2065} y={618} w={475} h={204} style={border("p06-target")} />
-        <T x={2086} y={647} size={23} weight={600} as="h2">Player Targeting</T>
+        <T x={2086} y={647} size={23} weight={600} as="h2">{dict.body.reels.playerTargeting}</T>
         <Ic x={2105} y={693} k="tgt" size={30} />
         <T x={2149} y={693} size={20}>Auto Track Player</T>
         <Switch x={2461} y={693} on={set.auto_track} off={!canEdit} />
@@ -273,7 +275,7 @@ export function Inspector() {
 
       <section id="p06-branding" aria-label="Branding" data-section="p06-s12">
         <P x={2065} y={1080} w={475} h={182} style={border("p06-branding")} />
-        <T x={2086} y={1108} size={23} weight={600} as="h2">Branding</T>
+        <T x={2086} y={1108} size={23} weight={600} as="h2">{dict.body.reels.branding}</T>
         {/* ADR-050 (owner 2026-11-02): event tags, the match card and an intro / outro video, in one dialog */}
         <button type="button" data-reel-extras="" onClick={() => setExtras(true)} disabled={!canEdit} title={canEdit ? undefined : reel ? "You cannot edit this reel" : "Open a reel first"}
           className="absolute disabled:opacity-60" style={{ left: u(2259), width: u(260), textAlign: "right", top: u(1096 - 101), fontSize: u(18), color: "#33a8ff" }}>
@@ -301,14 +303,14 @@ export function Inspector() {
         </select>}
         <B x={2083} y={1351} w={214} h={57} style={{ ...input, opacity: render?.state === "SUCCEEDED" ? 1 : 0.7 }} />
         <Ic x={2119} y={1380} k="eye" size={26} />
-        <T x={2147} y={1380} size={20} weight={600}>{mode === "render" ? "Showing render" : "Preview Render"}</T>
-        <Hit x={2083} y={1351} w={214} h={57} label="Preview Render" pressed={mode === "render"} {...(render?.state === "SUCCEEDED" ? { onClick: () => setMode(mode === "render" ? "clip" : "render") } : { reason: "No finished render yet: Generate Reel first" })} />
+        <T x={2147} y={1380} size={20} weight={600}>{mode === "render" ? "Showing render" : dict.body.reels.previewRender}</T>
+        <Hit x={2083} y={1351} w={214} h={57} label={dict.body.reels.previewRender} pressed={mode === "render"} {...(render?.state === "SUCCEEDED" ? { onClick: () => setMode(mode === "render" ? "clip" : "render") } : { reason: "No finished render yet: Generate Reel first" })} />
         <B x={2311} y={1351} w={213} h={57} style={{ ...input, opacity: canEdit && dirty ? 1 : 0.8, ...(saving === "saved" && !dirty ? { borderColor: "#3ee6a8" } : canEdit && dirty ? { borderColor: "#33a8ff" } : {}) }} />
         <Ic x={2357} y={1380} k="fold" size={26} color={saving === "saved" && !dirty ? "#3ee6a8" : "#fff"} />
         <T x={2386} y={1380} size={20} weight={600} color={saving === "saved" && !dirty ? "#3ee6a8" : undefined}>
-          {saving === "saving" ? "Saving…" : saving === "saved" && !dirty ? "Saved ✓" : "Save Project"}
+          {saving === "saving" ? "Saving…" : saving === "saved" && !dirty ? "Saved ✓" : dict.body.reels.saveProject}
         </T>
-        <Hit x={2311} y={1351} w={213} h={57} label="Save Project" {...(canEdit && saving !== "saving" ? { onClick: () => void saveNow() } : { reason: !reel ? "Open a reel first" : saving === "saving" ? "Saving…" : "You cannot edit this reel" })} />
+        <Hit x={2311} y={1351} w={213} h={57} label={dict.body.reels.saveProject} {...(canEdit && saving !== "saving" ? { onClick: () => void saveNow() } : { reason: !reel ? "Open a reel first" : saving === "saving" ? "Saving…" : "You cannot edit this reel" })} />
       </section>
     </>
   );

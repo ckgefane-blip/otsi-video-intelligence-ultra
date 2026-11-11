@@ -16,6 +16,7 @@ import { Switch } from "@/components/reelstage/shared";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Hit } from "@/components/workspace/shared";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { useExport } from "./state";
 
 const DAYS = [1, 3, 7, 14, 30];
@@ -23,6 +24,7 @@ const shareable = (r: VideoRights | null) => rightsAllowShare(r);          // B.
 const STATE_WORDS: Record<string, string> = { ANALYSIS_ONLY: "Analysis only", INTERNAL: "Internal only", EXPORT_ALLOWED: "Export allowed", PUBLIC: "Public", UNKNOWN: "Unknown", EXPIRED: "Expired" };
 
 export function SharePanel({ focus }: { focus: boolean }) {
+  const { t: dict } = useLocale();
   const e = useExport();
   const { organization } = useAuth();
   const admin = !!organization && ["OWNER", "ADMIN"].includes(organization.role);
@@ -74,7 +76,7 @@ export function SharePanel({ focus }: { focus: boolean }) {
     <section id="p10-delivery" aria-label="Shareable link" data-section="p10-s11" data-share-state={badge[0]}>
       <P x={1630} y={980} w={475} h={317} style={focus ? { borderColor: "#33a8ff" } : undefined} />
       <B x={1645} y={995} w={3} h={25} style={{ background: "#1e90ff" }} />
-      <T x={1662} y={1009} size={22} weight={600} as="h2">Shareable Link</T>
+      <T x={1662} y={1009} size={22} weight={600} as="h2">{dict.body.exports.shareableLink}</T>
       <B x={1957} y={993} w={144} h={34} style={{ background: "#1a2840", border: `${u(1.5)} solid #4a5a78`, borderRadius: u(8) }} />
       <B x={1969} y={1003} w={16} h={16} style={{ borderRadius: "50%", background: badge[1] }} /><T x={1994} y={1011} size={17} color="#dfe8f5">{badge[0]}</T>
 
@@ -128,6 +130,7 @@ export function SharePanel({ focus }: { focus: boolean }) {
 function ShareDialog({ open, onOpenChange, rights, links, admin, canEdit, videoId, onChanged }: {
   open: boolean; onOpenChange(o: boolean): void; rights: VideoRights | null; links: ShareLink[] | null; admin: boolean; canEdit: boolean; videoId: string | null; onChanged(): Promise<void>;
 }) {
+  const { t: dict } = useLocale();
   const [state, setState] = useState<"EXPORT_ALLOWED" | "PUBLIC" | "INTERNAL" | "ANALYSIS_ONLY">("EXPORT_ALLOWED");
   const [uses, setUses] = useState<string[]>(["VIEW", "SHARE"]);
   const [until, setUntil] = useState("");
@@ -192,7 +195,7 @@ function ShareDialog({ open, onOpenChange, rights, links, admin, canEdit, videoI
           ) : <p className="mb-4 text-xs text-muted">Only an Owner or Admin records a video&apos;s rights.</p>}
 
           <h3 className="mb-1 font-semibold">Links to this render</h3>
-          {!links?.length ? <p className="text-xs text-muted">No links yet.</p> : (
+          {!links?.length ? <p className="text-xs text-muted">{dict.body.exports.noLinksYet}</p> : (
             <ul className="grid gap-1 text-xs" aria-label="Share links">
               {links.map((l) => (
                 <li key={l.id} data-link={l.state} className="flex items-center justify-between gap-2 rounded-ctl border border-line px-2 py-1">

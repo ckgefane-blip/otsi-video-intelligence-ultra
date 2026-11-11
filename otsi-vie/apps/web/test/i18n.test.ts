@@ -87,6 +87,47 @@ describe("dictionaries (ADR-139)", () => {
   });
 });
 
+describe("page bodies (ADR-139 follow-up)", () => {
+  const bodyKeys = (group: string) =>
+    leaves(en as unknown as Record<string, unknown>).map(([p]) => p).filter((p) => p.startsWith(`body.${group}.`));
+
+  it("covers the eight in-scope pages, with the expected key counts", () => {
+    expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
+    expect(bodyKeys("home").length).toBe(43);
+    expect(bodyKeys("analysis").length).toBe(13);
+    expect(bodyKeys("reels").length).toBe(26);
+    expect(bodyKeys("studio").length).toBe(17);
+    expect(bodyKeys("reports").length).toBe(17);
+    expect(bodyKeys("library").length).toBe(25);
+    expect(bodyKeys("exports").length).toBe(23);
+    expect(bodyKeys("players").length).toBe(44);
+  });
+
+  it("the body strings are actually translated in each locale (spot checks)", () => {
+    const ru = getDictionary("ru").body;
+    expect(ru.home.viewAll).toBe("Смотреть все");
+    expect(ru.reels.saveProject).toBe("Сохранить проект");
+    expect(ru.players.position).toBe("Позиция");
+    expect(ru.studio.chooseReel).toBe("Выберите ролик");
+    const es = getDictionary("es").body;
+    expect(es.home.viewAll).toBe("Ver todo");
+    expect(es.reports.notMeasured).toBe("No medido");
+    const de = getDictionary("de").body;
+    expect(de.reels.saveProject).toBe("Projekt speichern");
+    expect(de.exports.deliverToClient).toBe("An Kunden liefern");
+    const fr = getDictionary("fr").body;
+    expect(fr.reports.choosePlayer).toBe("Choisissez un joueur");
+    expect(fr.library.newProject).toBe("Nouveau projet");
+  });
+
+  it("a body key missing from a partial still falls back to English", () => {
+    const merged = mergeDictionary(en, { body: { home: { viewAll: "Смотреть все" } } });
+    expect(merged.body.home.viewAll).toBe("Смотреть все");
+    expect(merged.body.home.recentMatches).toBe(en.body.home.recentMatches);
+    expect(merged.body.reels.saveProject).toBe(en.body.reels.saveProject);
+  });
+});
+
 describe("locale detection", () => {
   it("maps a BCP 47 tag to the nearest supported locale", () => {
     expect(localeFromLanguageTag("ru-RU")).toBe("ru");

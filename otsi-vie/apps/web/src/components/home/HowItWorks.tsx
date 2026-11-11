@@ -1,3 +1,4 @@
+"use client";
 /**
  * Page 01 Section 09 — five-stage How It Works (approved reference 01_HOME_OVERVIEW, "how it works").
  *
@@ -8,24 +9,26 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ACC, B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { UploadMax } from "./UploadMax";
+import { useLocale } from "@/lib/i18n";
 
-const STEPS: [number, string, [string, ReactNode], number, string][] = [
-  [422, "Upload Video", ["Upload a match or training video", <>(MP4, MOV, up to <UploadMax />).</>], 410, "/upload"],
-  [837, "Analyze with AI", ["Our AI automatically detects players,", "tracks the ball and extracts key events."], 822, "/processing"],
-  [1281, "Select a Player", ["Choose any player and filter by", "actions, phase, or game context."], 1253, "/analysis"],
-  [1705, "Generate Reel", ["Create a professional highlight reel", "with custom filters and branding."], 1669, "/reels"],
-  [2139, "Export & Share", ["Download a detailed PDF report", "or share reels with your team."], 2108, "/exports"],
-];
 const card = { background: "#06142a", border: `${u(1.5)} solid #17406f`, borderRadius: u(6) };
 
 export function HowItWorks() {
+  const { t } = useLocale();
+  const STEPS: [number, string, [string, ReactNode], number, string][] = [
+    [422, t.body.home.uploadVideo, [t.body.home.stepUploadDesc, <>(MP4, MOV, up to <UploadMax />).</>], 410, "/upload"],
+    [837, t.body.home.stepAnalyze, [t.body.home.stepAnalyzeDescA, t.body.home.stepAnalyzeDescB], 822, "/processing"],
+    [1281, t.body.home.stepSelect, [t.body.home.stepSelectDescA, t.body.home.stepSelectDescB], 1253, "/analysis"],
+    [1705, t.body.home.stepGenerate, [t.body.home.stepGenerateDescA, t.body.home.stepGenerateDescB], 1669, "/reels"],
+    [2139, t.body.home.stepExport, [t.body.home.stepExportDescA, t.body.home.stepExportDescB], 2108, "/exports"],
+  ];
   return (
     <section aria-label="How It Works journey" data-section="p01-s09">
       <P x={39} y={1180} w={2483} h={247} />
       <ACC x={63} y={1213} h={49} />
-      <T x={87} y={1238} size={34} weight={700} as="h2">How It Works</T>
-      <T x={86} y={1291} size={24} color="#cfe0f5">From video to valuable insights</T>
-      <T x={86} y={1327} size={24} color="#cfe0f5">in minutes.</T>
+      <T x={87} y={1238} size={34} weight={700} as="h2">{t.body.home.howItWorks}</T>
+      <T x={86} y={1291} size={24} color="#cfe0f5">{t.body.home.howItWorksSubtitle}</T>
+      <T x={86} y={1327} size={24} color="#cfe0f5">{t.body.home.howItWorksSubtitleB}</T>
 
       <div aria-hidden>
         {/* 1 upload */}

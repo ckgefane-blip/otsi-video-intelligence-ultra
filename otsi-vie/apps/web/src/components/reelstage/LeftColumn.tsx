@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Hit } from "@/components/workspace/shared";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { MusicPicker, useMusic } from "./MusicPicker";
 import { ReelSourceChoice } from "@/components/reels/ReelBuilder";
 import { input, secs, useStage } from "./shared";
@@ -22,6 +23,7 @@ import { notBuilt } from "@/lib/devMode";
 const STEPS: [string, number, string][] = [["Select Player", 403, "p06-target"], ["Choose Moments", 496, "p06-moments"], ["Edit & Style", 588, "p06-spotlight"], ["Export", 681, "p06-output"]];
 
 export function LeftColumn() {
+  const { t: dict } = useLocale();
   const { r, name, setName, jump, draft, setDraft } = useStage();
   const [musicOpen, setMusicOpen] = useState(false);
   const [music] = useMusic();
@@ -53,9 +55,9 @@ export function LeftColumn() {
     <>
       <section aria-label="Reel workflow" data-section="p06-s02">
         <P x={20} y={122} w={398} h={654} />
-        <Link href="/reels" aria-label="Back to Reels" className="absolute" style={{ left: u(40), top: u(136 - 101), width: u(200), height: u(36) }}>
+        <Link href="/reels" aria-label={dict.body.reels.backToReels} className="absolute" style={{ left: u(40), top: u(136 - 101), width: u(200), height: u(36) }}>
           <Ic o={[40, 136]} x={58} y={154} k="back" size={26} color="#33a8ff" />
-          <T o={[40, 136]} x={87} y={154} size={22} color="#33a8ff" as="span">Back to Reels</T>
+          <T o={[40, 136]} x={87} y={154} size={22} color="#33a8ff" as="span">{dict.body.reels.backToReels}</T>
         </Link>
         <T x={45} y={209} size={46} weight={700} as="h1">Reel Builder</T>
         <T x={45} y={253} size={36} weight={700} color="#1e90ff" as="h2">Spotlight Composer</T>
@@ -78,7 +80,7 @@ export function LeftColumn() {
 
       <section aria-label="Aspect ratio" data-section="p06-s03" data-aspect={aspect}>
         <P x={20} y={787} w={398} h={193} />
-        <T x={40} y={817} size={22} weight={600} as="h3">Aspect Ratio</T>
+        <T x={40} y={817} size={22} weight={600} as="h3">{dict.body.reels.aspectRatio}</T>
         <div role="radiogroup" aria-label="Aspect ratio">
           {([["16:9", "YouTube, Web", 36, 92, "cam"], ["9:16", "Reels, Shorts", 132, 90, "ph"], ["1:1", "Instagram", 226, 88, "sq"], ["4:5", "Feed posts", 318, 86, "sq"]] as const).map(([a, d, x, w, icon]) => {
             const on = aspect === a;
@@ -97,20 +99,20 @@ export function LeftColumn() {
 
       <section aria-label="Reel info" data-section="p06-s04">
         <P x={20} y={992} w={398} h={423} />
-        <T x={40} y={1027} size={24} weight={600} as="h3">Reel Info</T>
-        <T x={40} y={1052} size={19} color="#8ea3bf">Title</T>
+        <T x={40} y={1027} size={24} weight={600} as="h3">{dict.body.reels.reelInfo}</T>
+        <T x={40} y={1052} size={19} color="#8ea3bf">{dict.body.reels.reelTitle}</T>
         <input aria-label="Reel title" placeholder="Enter a reel title" value={name} maxLength={200} disabled={!canEdit} onChange={(e) => setName(e.target.value)}
           className="absolute" style={{ left: u(38), top: u(1066 - 101), width: u(363), height: u(53), boxSizing: "border-box", padding: `0 ${u(13)}`, color: "#fff", fontSize: u(20), outline: "none", ...input }} />
-        <T x={40} y={1147} size={19} color="#8ea3bf">Description (optional)</T>
+        <T x={40} y={1147} size={19} color="#8ea3bf">{dict.body.reels.reelDescription}</T>
         <textarea aria-label="Reel description" placeholder="Describe this reel (optional)" disabled title={notBuilt("a reel has no description field")}
           className="absolute" style={{ left: u(38), top: u(1160 - 101), width: u(363), height: u(52), boxSizing: "border-box", padding: u(13), color: "#fff", fontSize: u(20), resize: "none", opacity: 0.7, ...input }} />
-        <T x={40} y={1252} size={19} color="#8ea3bf">Duration</T>
+        <T x={40} y={1252} size={19} color="#8ea3bf">{dict.body.reels.duration}</T>
         <B x={128} y={1226} w={273} h={52} style={input}>
           <span style={{ position: "absolute", left: u(18), top: "50%", transform: "translateY(-50%)", fontSize: u(20), whiteSpace: "nowrap" }}>Auto (Best Moments)</span>
         </B>
         <Ic x={381} y={1252} k="chev" size={20} color="#8ea3bf" />
         <div aria-label="The reel's duration is the total of its clips" title="Automatic: the total of the clips you add" className="absolute" style={{ left: u(128), top: u(1226 - 101), width: u(273), height: u(52) }} />
-        <T x={40} y={1318} size={19} color="#8ea3bf">Music</T>
+        <T x={40} y={1318} size={19} color="#8ea3bf">{dict.body.reels.music}</T>
         <B x={128} y={1294} w={273} h={52} style={input} />
         <Ic x={153} y={1320} k="note" size={28} color={tune ? "#3ee6a8" : "#cfe0f5"} />
         <T x={181} y={1320} size={20} color={tune ? "#fff" : "#cfe0f5"} style={{ maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tune ?? "Choose music"}</T>
@@ -120,7 +122,7 @@ export function LeftColumn() {
         {musicOpen && draft && <MusicPicker settings={draft} onChange={setDraft} onClose={() => setMusicOpen(false)} />}
         {/* ADR-131: which matches this reel covers — "All matches" makes a NEW cross-match reel and opens it; this reel is untouched.
             For a cross-match reel the row is a read-only summary (length + rule version). The row ends at y1414, inside the panel. */}
-        <T x={40} y={1360} size={19} color="#8ea3bf">Matches</T>
+        <T x={40} y={1360} size={19} color="#8ea3bf">{dict.body.reels.matches}</T>
         <div className="absolute" style={{ left: u(38), top: u(1378 - 101), width: u(363) }}>
           <ReelSourceChoice compact />
         </div>

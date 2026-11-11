@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { Btn, IN, NOT_BUILT, tc, type Ui } from "./kit";
 import { MOMENT_MIME } from "./MediaBin";
 import { locate, reviewTime, trimEdge, type Placed, type Studio } from "./useStudio";
@@ -73,6 +74,7 @@ const kindName = (k: TransitionKind) => KINDS.find(([x]) => x === k)![1];
 const mmss = (t: number) => { const s = Math.round(t / 1e6); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
 
 export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: Ui }) {
+  const { t: dict } = useLocale();
   const [zoom, setZoom] = useState(1);
   const [hidden, setHidden] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -340,7 +342,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
         ))}
         <B x={1421} y={860} w={1} h={32} style={{ background: "#12335f" }} />
         <B x={2078} y={860} w={1} h={32} style={{ background: "#12335f" }} />
-        <Btn x={2270} y={862} w={26} h={26} label="Zoom out" onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say("Already showing the whole reel")}>
+        <Btn x={2270} y={862} w={26} h={26} label={dict.body.studio.zoomOut} onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say("Already showing the whole reel")}>
           <Ic o={[2270, 862]} x={2283} y={875} k="zo" size={26} color="#cfe0f5" />
         </Btn>
         <div className="absolute" style={{ left: u(2300), top: u(862 - 101), width: u(178), height: u(26) }}>
@@ -350,7 +352,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
           <input type="range" min={1} max={8} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Timeline zoom"
             style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", cursor: "pointer" }} />
         </div>
-        <Btn x={2485} y={862} w={26} h={26} label="Zoom in" onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say("Maximum zoom")}>
+        <Btn x={2485} y={862} w={26} h={26} label={dict.body.studio.zoomIn} onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say("Maximum zoom")}>
           <Ic o={[2485, 862]} x={2498} y={875} k="zi" size={26} color="#cfe0f5" />
         </Btn>
       </section>

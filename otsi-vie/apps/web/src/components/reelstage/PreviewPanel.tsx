@@ -16,6 +16,7 @@ import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { Sel } from "@/components/tactics/kit";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { Hit, Thumb } from "@/components/workspace/shared";
 import { FOOT_NAMES, POSITION_NAMES } from "@/components/players/PlayersList";
 import { teamCode } from "@/lib/team";
@@ -59,9 +60,10 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
 
 /** a cross-match reel in render mode has no single match to score: the rendered reel carries a per-clip event tag instead */
 const AllMatchesNote = memo(function AllMatchesNote() {
+  const { t: dict } = useLocale();
   return (
     <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6), display: "flex", alignItems: "center", justifyContent: "center", fontSize: u(20), color: "#cfe0f5" }}>
-      All matches
+      {dict.body.reels.allMatches}
     </B>
   );
 });
@@ -83,6 +85,7 @@ const Scoreboard = memo(function Scoreboard({ match }: { match: Match | null }) 
 
 
 export function PreviewPanel() {
+  const { t: dict } = useLocale();
   const { r, mode, setMode, draft } = useStage();
   const reel = r?.reel ?? null;
   const router = useRouter();
@@ -189,11 +192,11 @@ export function PreviewPanel() {
           fontSize: u(17), color: spotNote.seen === 0 ? "#f5b82e" : "#dbe8f8", pointerEvents: "none" }}>{spotNote.text}</div>}
         {!reel && (
           <div className="absolute" style={{ left: u(1020 - SCENE.x), top: u(360 - SCENE.y), width: u(520), textAlign: "center", fontSize: u(22), color: "#dbe8f8" }}>
-            {listFailed ? (<>Reels could not be loaded. <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>Try again</button></>) : list === null ? "Loading reels…" : list.length === 0 ? (
+            {listFailed ? (<>{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>{dict.common.retry}</button></>) : list === null ? "Loading reels…" : list.length === 0 ? (
               <>No reel yet. In the Analysis workspace, confirm who a player is, then choose &quot;Create highlight reel&quot;.</>
             ) : (
               <>
-                <div style={{ marginBottom: u(10), fontWeight: 600 }}>Open a reel</div>
+                <div style={{ marginBottom: u(10), fontWeight: 600 }}>{dict.body.reels.openReel}</div>
                 <ul aria-label="Reels" style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: u(190), overflowY: "auto" }}>
                   {list.map((x) => (
                     <li key={x.id} style={{ marginBottom: u(6) }}>

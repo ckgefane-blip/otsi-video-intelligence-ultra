@@ -21,6 +21,7 @@ import { B, Ic, P, T, stageStyles, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { ScopesPanel } from "./Scopes";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { IN, tc, type Ui } from "./kit";
 import { jkl } from "@/lib/keymap";
 import { typing } from "./shortcuts";
@@ -56,6 +57,7 @@ const toolName = (k: DrawKind) => (k === "ARROW" ? "Arrow" : k === "LINE" ? "Lin
 const icon = (x: number) => ({ position: "absolute" as const, left: u(x - 22), top: u(783 - 101 - 22), width: u(44), height: u(44), padding: 0, border: 0, background: "transparent", cursor: "pointer" });
 
 export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
+  const { t: dict } = useLocale();
   const reel = st.reel;
   const [video, setVideo] = useState<Video | null>(null);
   const [pb, setPb] = useState<Playback | null>(null);
@@ -420,7 +422,7 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
           </svg>
         )}
         <div ref={zoomEl} data-preview-zoom style={{ position: "absolute", inset: 0, transformOrigin: "0 0" }}>
-          {url && <video ref={el} src={url} preload="metadata" playsInline muted={muted} aria-label="Reel preview" data-look={lookOn ? "on" : "off"}
+          {url && <video ref={el} src={url} preload="metadata" playsInline muted={muted} aria-label={dict.body.studio.reelPreview} data-look={lookOn ? "on" : "off"}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: cover ? "cover" : "contain", visibility: message ? "hidden" : "visible",
               filter: lookOn ? "url(#otsi-look)" : undefined }} />}
           {url && !message && under?.gap && (

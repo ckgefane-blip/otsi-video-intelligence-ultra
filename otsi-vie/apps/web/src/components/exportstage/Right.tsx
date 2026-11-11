@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Reel, ReelAspectT } from "@otsi-vie/contracts";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { Sel } from "@/components/tactics/kit";
 import { Switch } from "@/components/reelstage/shared";
@@ -66,6 +67,7 @@ const TABS: [string, string, number, number, string, string][] = [["Export", "cl
   ["Reports", "doc", 2271, 200, "p10-reports", "Reports"], ["Delivery", "cloud", 2444, 168, "p10-delivery", "Delivery"]];
 
 export function Right() {
+  const { t: dict } = useLocale();
   const e = useExport();
   const reel = e.reel;
   const canEdit = e.canEdit && !e.busy && !!reel;
@@ -96,20 +98,20 @@ export function Right() {
       <section id="p10-settings" aria-label="Export settings" data-section="p10-s07" data-codec={e.codec} data-bitrate={e.bitrate}>
         <P x={1830} y={200} w={710} h={455} style={hl(e.focus === "p10-settings")} />
         <B x={1849} y={216} w={3} h={28} style={{ background: "#1e90ff" }} />
-        <T x={1871} y={230} size={24} weight={600} as="h2">Export Settings</T>
+        <T x={1871} y={230} size={24} weight={600} as="h2">{dict.body.exports.exportSettings}</T>
         <T x={2508} y={230} size={20} color="#33a8ff" align="right">Reset</T>
         <Hit x={2440} y={214} w={80} h={32} label="Reset the export settings" onClick={e.reset} />
-        <T x={1851} y={287} size={21}>Output Preset</T>
+        <T x={1851} y={287} size={21}>{dict.body.exports.outputPreset}</T>
         <Sel x={2020} y={263} w={495} h={46} label="Output preset" value={e.preset} options={e.presets.map((p) => [p.id, p.scope === "BUILT_IN" ? p.name : `${p.name} (${p.scope === "PERSONAL" ? "mine" : "organization"})`] as [Preset, string])} onChange={(v) => e.setPreset(v)} style={{ ...field, fontSize: u(21) }} pad={24} />
         {/* B.22 (ADR-097): the preset library */}
         <button type="button" data-open-presets="" onClick={e.openLibrary} className="absolute" title="Choose, save or delete export presets"
           style={{ left: u(1851), top: u(306), height: u(26), padding: 0, background: "none", border: 0, color: "#33a8ff", fontSize: u(16), cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>Presets…</button>
         <Formats e={e} />
-        <T x={1851} y={378} size={21}>Resolution</T>
+        <T x={1851} y={378} size={21}>{dict.body.exports.resolution}</T>
         <Sel x={1994} y={355} w={224} h={45} label="Resolution" value="src" options={[["src", "Same as source"], ["4k", "4K (3840 × 2160)", "the renderer keeps the source resolution"], ["hd", "Full HD (1920 × 1080)", "the renderer keeps the source resolution"]]} style={field} pad={20} />
-        <T x={2256} y={377} size={21}>Frame Rate</T>
+        <T x={2256} y={377} size={21}>{dict.body.exports.frameRate}</T>
         <Sel x={2379} y={355} w={136} h={45} label="Frame rate" value="src" options={[["src", "Source"], ["60", "60 fps", "the renderer keeps the source frame rate"], ["30", "30 fps", "the renderer keeps the source frame rate"]]} style={field} pad={20} />
-        <T x={1851} y={434} size={21}>Aspect Ratio</T>
+        <T x={1851} y={434} size={21}>{dict.body.reels.aspectRatio}</T>
         <div role="radiogroup" aria-label="Aspect ratio">
           {([["16:9", "Landscape", 1995, 123, "cam"], ["9:16", "Vertical", 2132, 117, "ph"], ["1:1", "Square", 2263, 120, "sq"], ["4:5", "Social", 2396, 121, "sq"]] as const).map(([a, d, x, w, icon]) => {
             const on = reel?.aspect === a || (!reel && a === "16:9");
@@ -124,9 +126,9 @@ export function Right() {
             );
           })}
         </div>
-        <T x={1851} y={576} size={21}>File Format</T>
+        <T x={1851} y={576} size={21}>{dict.body.exports.fileFormat}</T>
         <Sel x={1994} y={553} w={224} h={45} label="File format" value={e.codec} options={FORMATS.map(([c, l]) => [c, l] as [typeof e.codec, string])} onChange={(v) => e.setCodec(v)} style={field} pad={20} />
-        <T x={2276} y={576} size={21}>Quality</T>
+        <T x={2276} y={576} size={21}>{dict.body.exports.quality}</T>
         <Sel x={2384} y={555} w={131} h={43} label="Quality" value={quality} options={QUALITY.map(([l]) => [l, `       ${l}`] as [string, string])} onChange={(v) => e.setBitrate(QUALITY.find(([l]) => l === v)![1])} style={field} pad={10} />
         <Ic x={2411} y={577} k="layers" size={26} color="#33a8ff" />
         {/* C.3 (ADR-103): OpenTimelineIO (.otio) and .otsi-reel manifest interchange */}
@@ -203,16 +205,17 @@ function ClearAll({ finished }: { finished: number }) {
 }
 
 function Queue({ rows }: { rows: Reel[] }) {
+  const { t: dict } = useLocale();
   const e = useExport();
   const shown = rows.slice(0, 4);
   if (e.reels === null && !e.reelsFailed) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">Loading the render queue…</T>;
   if (e.reelsFailed) return (<>
-    <T x={815} y={1150} size={20} color="#8ea3bf" align="center">The render queue could not be loaded.</T>
+    <T x={815} y={1150} size={20} color="#8ea3bf" align="center">{dict.body.exports.renderQueueNotLoaded}</T>
     <B x={760} y={1190} w={180} h={40} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8) }} />
     <T x={850} y={1205} size={18} color="#33a8ff" align="center">Try again</T>
     <Hit x={760} y={1190} w={180} h={40} label="Try again: read the reels again" onClick={() => void e.reload()} />
   </>);
-  if (!shown.length) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">No render jobs queued</T>;
+  if (!shown.length) return <T x={815} y={1150} size={20} color="#8ea3bf" align="center">{dict.body.exports.noRenderJobs}</T>;
   return (
     <div role="list" aria-label="Render jobs" className="absolute" style={{ left: u(462), top: u(1040 - 101), width: u(707), height: u(245), overflowY: "auto" }}>
       {shown.map((r) => {
@@ -235,6 +238,7 @@ function Queue({ rows }: { rows: Reel[] }) {
 }
 
 function Footer({ o }: { o: Outbox }) {
+  const { t: dict } = useLocale();
   const e = useExport();
   const r = e.reel?.latest_render ?? null;
   const res = (r?.result ?? null) as { width?: number; height?: number; duration_s?: number; encoder?: string } | null;
@@ -250,7 +254,7 @@ function Footer({ o }: { o: Outbox }) {
     <section aria-label="Render progress" data-section="p10-s13" data-render-state={r?.state ?? "NONE"}>
       <P x={30} y={1312} w={2510} h={110} />
       <B x={40} y={1326} w={3} h={26} style={{ background: "#1e90ff" }} />
-      <T x={57} y={1337} size={22} weight={600} as="h2">Render Progress</T>
+      <T x={57} y={1337} size={22} weight={600} as="h2">{dict.body.exports.renderProgress}</T>
       {stages.map(([l, cx, tx], i) => {
         const done = st === 4 ? i !== 2 || (!!o.bundle && !o.making) : st > i, now = st === i || (st === 4 && i === 2 && o.making);
         return (
@@ -269,13 +273,13 @@ function Footer({ o }: { o: Outbox }) {
       <T x={1561} y={1380} size={18} color="#33a8ff" style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
         {ready ? `${res?.width ?? "—"}×${res?.height ?? "—"} · ${res?.duration_s ?? "—"} s${last?.link ? ` · link opened ${last.link.opened}×` : ""}` : r?.state === "FAILED" ? "The render failed." : r ? "Rendering…" : "Nothing has been rendered yet."}</T>
       <B x={1948} y={1331} w={243} h={68} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), opacity: ready ? 1 : 0.7 }} />
-      <Ic x={1995} y={1365} k="dl" size={28} /><T x={2040} y={1365} size={22} weight={600}>Download All</T>
+      <Ic x={1995} y={1365} k="dl" size={28} /><T x={2040} y={1365} size={22} weight={600}>{dict.body.exports.downloadAll}</T>
       <Hit x={1948} y={1331} w={243} h={68} label={o.picks.length ? `Download All: the render and ${o.picks.length} file${o.picks.length > 1 ? "s" : ""} in one ZIP` : "Download All: the render"}
         {...(!ready ? { reason: "Nothing has been rendered yet" } : o.making ? { reason: "Making the files…" } : o.picks.length && !e.canEdit ? { reason: "Your role can download the render; untick the files" } : { onClick: o.downloadAll })} />
       <B x={2211} y={1331} w={315} h={68} style={{ background: "#0a84ff", borderRadius: u(8), opacity: ready && e.canEdit ? 1 : 0.6 }} />
-      <Ic x={2257} y={1365} k="send" size={28} /><T x={2291} y={1365} size={22} weight={600}>Deliver to Client</T>
+      <Ic x={2257} y={1365} k="send" size={28} /><T x={2291} y={1365} size={22} weight={600}>{dict.body.exports.deliverToClient}</T>
       <B x={2467} y={1341} w={1.5} h={48} style={{ background: "#4fa8ff" }} /><Ic x={2496} y={1365} k="chev" size={22} />
-      <Hit x={2211} y={1331} w={315} h={68} label="Deliver to Client" {...(!ready ? { reason: "Render the reel first" } : !e.canEdit ? { reason: "Your role can look, not deliver" } : { onClick: () => o.setDialog(true) })} />
+      <Hit x={2211} y={1331} w={315} h={68} label={dict.body.exports.deliverToClient} {...(!ready ? { reason: "Render the reel first" } : !e.canEdit ? { reason: "Your role can look, not deliver" } : { onClick: () => o.setDialog(true) })} />
       {e.msg && <T x={1561} y={1318} size={15} color={e.msg.ok ? "#3ee6a8" : "#ff8a8a"}>{e.msg.text}</T>}
     </section>
   );
@@ -283,6 +287,7 @@ function Footer({ o }: { o: Outbox }) {
 
 /** Branded Overlays: the reel's logo, lower third, match info and intro / outro, as the next render draws them */
 function Branding() {
+  const { t: dict } = useLocale();
   const e = useExport();
   const b = useMemo(() => branding(e), [e.reel, e.brand]);
   const reel = e.reel;
@@ -320,7 +325,7 @@ function Branding() {
   const summary = !reel ? "Open a reel first" : !b.any ? "No branding in the render" : [b.on.logo && `Logo: ${b.logo?.name ?? "chosen"}`, b.on.lower_third && "Player name", b.on.score_bug && "Match info", b.on.intro && "Intro / outro"].filter(Boolean).join(" · ");
   return (
     <>
-      <T x={2345} y={701} size={15} color="#cfe0f5">Include Branding</T>
+      <T x={2345} y={701} size={15} color="#cfe0f5">{dict.body.exports.includeBranding}</T>
       <Switch x={2464} y={700} on={b.any} off={!can} />
       <Hit x={2460} y={686} w={64} h={30} label="Include branding" pressed={b.any} {...(can ? { onClick: master } : { reason: why })} />
       <div className="absolute" style={{ left: u(1851), top: u(735 - 101), width: u(284), height: u(65), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), background: "#041022",

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { parsePlayerRef, type PlayerRef } from "@/lib/identity";
 import { typing } from "@/lib/keymap";
 import { Lower } from "./Bottom";
@@ -20,6 +21,7 @@ import { AssessmentDialog, DossierDialog, NotesDialog, ReportDialog, type Dialog
 import { Hero, Kpis, Rail, RAIL, type Report } from "./Top";
 
 function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { t: dict } = useLocale();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Pick<PlayerIdentity, "player_id" | "display_name" | "canonical_otsi_id" | "canonical_state">[] | null | undefined>(undefined);
@@ -38,13 +40,13 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-player">
-          <Dialog.Title className="text-base font-semibold">Choose a player</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.reports.choosePlayer}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Players in your organization's registry. A report is addressed by the permanent OTSI Player ID.
-            {" "}<Link href="/players" className="text-primary hover:underline">Players list: enter their profiles ›</Link></Dialog.Description>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder="Search by name…" className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
+            {" "}<Link href="/players" className="text-primary hover:underline">{dict.body.reports.playersListLink}</Link></Dialog.Description>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search players" placeholder={dict.body.reports.searchPlayers} className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
           {hits === undefined && <p className="text-muted">Loading…</p>}
-          {hits === null && <p role="alert" className="text-danger">The players could not be loaded.</p>}
-          {hits?.length === 0 && <p className="text-muted">No player found.</p>}
+          {hits === null && <p role="alert" className="text-danger">{dict.body.reports.playersNotLoaded}</p>}
+          {hits?.length === 0 && <p className="text-muted">{dict.body.reports.noPlayerFound}</p>}
           <ul aria-label="Players" className="space-y-1">
             {hits?.map((p) => (
               <li key={p.player_id}>

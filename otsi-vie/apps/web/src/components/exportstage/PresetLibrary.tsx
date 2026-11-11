@@ -8,6 +8,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { LOUDNESS_TARGETS, type ExportOutput, type ExportPreset } from "@otsi-vie/contracts";
 import { useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 
 const CHOICES: [string, ExportOutput][] = [["Reel 16:9", { profile: "REEL", aspect: "16:9" }], ["Reel 9:16", { profile: "REEL", aspect: "9:16" }],
   ["Reel 1:1", { profile: "REEL", aspect: "1:1" }], ["Reel 4:5", { profile: "REEL", aspect: "4:5" }], ["Reel in its own frame", { profile: "REEL", aspect: null }],
@@ -19,6 +20,7 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
   presets: ExportPreset[]; canAdmin: boolean; canSave: boolean; codec: string; bitrate: number; open: boolean; onOpenChange(o: boolean): void;
   reload(): Promise<void>; choose(id: string): void;
 }) {
+  const { t: dict } = useLocale();
   const [name, setName] = useState(""), [scope, setScope] = useState<"PERSONAL" | "ORGANIZATION">("PERSONAL");
   const [picked, setPicked] = useState<Set<number>>(new Set([4])), [lufs, setLufs] = useState<number | null>(null), [withFormat, setWithFormat] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="preset-library" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Export presets</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.exports.exportPresets}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Choose a preset, or save which files you want as a new one.</Dialog.Description>
           <ul className="mb-4 space-y-1.5" data-preset-list>
             {presets.map((p) => (
@@ -57,7 +59,7 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
           </ul>
           {canSave ? (
             <fieldset className="space-y-2 rounded border border-line p-3" data-preset-new>
-              <legend className="px-1 text-xs text-muted">New preset</legend>
+              <legend className="px-1 text-xs text-muted">{dict.body.exports.newPreset}</legend>
               <input aria-label="Preset name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Name, e.g. Club socials" className="w-full rounded border border-line bg-raised px-2 py-1" />
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {CHOICES.map(([l], i) => (
@@ -74,7 +76,7 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
                 <label className="flex items-center gap-1"><input type="radio" name="scope" checked={scope === "PERSONAL"} onChange={() => setScope("PERSONAL")} />Just for me</label>
                 <label className="flex items-center gap-1" title={canAdmin ? undefined : "Only an owner or admin can share a preset with everyone"}>
                   <input type="radio" name="scope" disabled={!canAdmin} checked={scope === "ORGANIZATION"} onChange={() => setScope("ORGANIZATION")} />For the organization</label>
-                <button type="button" data-preset-save onClick={() => void save()} className="ml-auto rounded bg-primary px-3 py-1 font-semibold text-white">Save preset</button>
+                <button type="button" data-preset-save onClick={() => void save()} className="ml-auto rounded bg-primary px-3 py-1 font-semibold text-white">{dict.body.exports.savePreset}</button>
               </div>
             </fieldset>
           ) : <p className="text-xs text-muted">Your role can choose presets, not save them.</p>}

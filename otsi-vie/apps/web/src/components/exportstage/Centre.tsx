@@ -19,6 +19,7 @@ import { Switch } from "@/components/reelstage/shared";
 import { Hit } from "@/components/workspace/shared";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { sec, useExport } from "./state";
 import { notBuilt } from "@/lib/devMode";
 
@@ -62,18 +63,19 @@ export function Workflow() {
 }
 
 function Picker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { t: dict } = useLocale();
   const e = useExport();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-reel">
-          <Dialog.Title className="text-base font-semibold">Open a reel to export</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.exports.openReelToExport}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Reels of your organization. Make one from a confirmed player in the Analysis workspace.</Dialog.Description>
           {e.reels === null && !e.reelsFailed && <p className="text-muted">Loading…</p>}
-          {e.reelsFailed && (<><p className="text-muted">Reels could not be loaded.</p>
+          {e.reelsFailed && (<><p className="text-muted">{dict.body.reels.reelsNotLoaded}</p>
             <button type="button" onClick={() => void e.reload()} className="rounded-ctl border border-line px-3 py-1.5">Try again</button></>)}
-          {e.reels?.length === 0 && !e.reelsFailed && <p className="text-muted">No reels yet.</p>}
+          {e.reels?.length === 0 && !e.reelsFailed && <p className="text-muted">{dict.body.studio.noReelsYet}</p>}
           <ul aria-label="Reels" className="space-y-1">
             {e.reels?.map((r) => (
               <li key={r.id}>
@@ -91,6 +93,7 @@ function Picker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boole
 }
 
 export function Summary() {
+  const { t: dict } = useLocale();
   const e = useExport();
   const [open, setOpen] = useState(false);
   const rows: [string, string, number, string][] = [["ball", "Source Match", 865, e.match?.title ?? "—"], ["ball", "Competition", 900, e.match?.competition ?? "—"],
@@ -98,12 +101,12 @@ export function Summary() {
   return (
     <section aria-label="Project summary" data-section="p10-s03" data-reel={e.reel?.id ?? ""}>
       <P x={30} y={644} w={396} h={651} />
-      <T x={49} y={673} size={23} weight={600} as="h2">Project Summary</T>
+      <T x={49} y={673} size={23} weight={600} as="h2">{dict.body.exports.projectSummary}</T>
       <B x={48} y={706} w={365} h={127} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(8) }} />
       <B x={49} y={707} w={138} h={121} style={{ background: "radial-gradient(circle at 50% 38%,#e8b898 0,#c98c6a 13%,transparent 14%),linear-gradient(135deg,#1b4d8f,#0b2a52)", borderRadius: u(6) }} />
       <T x={204} y={735} size={24} weight={600} style={{ maxWidth: u(200), overflow: "hidden", textOverflow: "ellipsis" }}>{e.reel?.name ?? "No project open"}</T>
-      <T x={204} y={764} size={22} color="#e3eefb">{e.reel ? (e.reel.player?.display_name ?? "No player") : "Open a reel to export"}</T>
-      <Hit x={48} y={706} w={365} h={127} label="Open a reel to export" onClick={() => setOpen(true)} />
+      <T x={204} y={764} size={22} color="#e3eefb">{e.reel ? (e.reel.player?.display_name ?? "No player") : dict.body.exports.openReelToExport}</T>
+      <Hit x={48} y={706} w={365} h={127} label={dict.body.exports.openReelToExport} onClick={() => setOpen(true)} />
       {rows.map(([icon, l, y, v]) => (
         <div key={l}>
           <Ic x={60} y={y} k={icon} size={24} color="#8ea3bf" />

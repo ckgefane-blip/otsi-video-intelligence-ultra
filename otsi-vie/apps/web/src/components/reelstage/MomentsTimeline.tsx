@@ -16,6 +16,7 @@ import Link from "next/link";
 import { type DragEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { Hit } from "@/components/workspace/shared";
 import { DraftDialog } from "./DraftDialog";
@@ -62,6 +63,7 @@ const startDrag = (e: DragEvent, d: Drag, label: string) => {
 };
 
 export function Moments() {
+  const { t: dict } = useLocale();
   const { r, focus } = useStage();
   const reel = r?.reel ?? null;
   // ADR-131: a cross-match reel's moments are the best-moments selection (selected + left out with reasons), not the ranked
@@ -157,7 +159,7 @@ export function Moments() {
       ))}
       <button type="button" data-history-open disabled={!reel} onClick={() => setHist(true)} title="Every change to this reel; undo back to any point"
         className="absolute" style={{ left: u(1342), top: u(887 - 101), height: u(36), padding: `0 ${u(12)}`, fontSize: u(18), fontWeight: 600, color: "#fff",
-          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>History</button>
+          background: "#0a2447", border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: reel ? "pointer" : "default", opacity: reel ? 1 : 0.45 }}>{dict.body.reels.history}</button>
       <HistoryDialog r={r} open={hist} onOpenChange={setHist} />
       <Hit x={1830} y={890} w={210} h={40} label="View all moments" {...((isCross ? crossItems.length : moments.length) > 5 ? { onClick: () => { const el = scroller.current; if (el) el.scrollTo({ left: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 ? 0 : el.scrollLeft + 5 * stride * (el.clientWidth / (5 * stride)), behavior: "smooth" }); } } : { reason: (isCross ? crossItems.length : moments.length) ? "All moments are shown" : "No moments yet" })} />
       <T x={1846} y={910} size={19} color="#33a8ff">View All Moments</T>
@@ -263,6 +265,7 @@ const ClipEditor = memo(function ClipEditor({ sel, idx, total, edit, setEdit, ca
 });
 
 export function Timeline() {
+  const { t: dict } = useLocale();
   const { r } = useStage();
   const reel = r?.reel ?? null;
   const clips = reel?.clips ?? [];
@@ -372,7 +375,7 @@ export function Timeline() {
       onDragLeave={(e) => { const to = e.relatedTarget as Node | null; if (to && !section.current?.contains(to)) setDropAt(null); }}>
       <P x={445} y={1150} w={1593} h={265} />
       <B x={675} y={1152} w={1} h={261} style={{ background: "#12335f" }} />
-      <Ic x={475} y={1225} k="film" size={26} color="#d6e4f7" /><T x={508} y={1225} size={20} color="#d6e4f7">Video Clips</T>
+      <Ic x={475} y={1225} k="film" size={26} color="#d6e4f7" /><T x={508} y={1225} size={20} color="#d6e4f7">{dict.body.reels.videoClips}</T>
       <Ic x={475} y={1272} k="sun" size={26} color="#d6e4f7" /><T x={508} y={1272} size={20} color="#d6e4f7">Spotlight Effects</T>
       <T x={467} y={1319} size={30} color="#d6e4f7" style={{ fontFamily: "Georgia,serif" }}>T</T><T x={508} y={1319} size={20} color="#d6e4f7">Text &amp; Overlays</T>
       <Ic x={475} y={1370} k="note" size={26} color="#d6e4f7" /><T x={508} y={1370} size={20} color="#d6e4f7">Audio</T>
@@ -395,7 +398,7 @@ export function Timeline() {
 
       {clips.length === 0 ? (
         <>
-          <T x={1360} y={1229} size={19} color="#8ea3bf" align="center">Add moments to build the reel</T>
+          <T x={1360} y={1229} size={19} color="#8ea3bf" align="center">{dict.body.reels.addMoments}</T>
           <T x={1360} y={1276} size={17} color="#8ea3bf" align="center">No spotlight effects</T>
           <T x={1360} y={1319} size={19} color="#8ea3bf" align="center">No text or overlays</T>
           <Ic x={720} y={1378} k="note" size={28} color="#cfe0f5" /><T x={748} y={1378} size={20} color="#cfe0f5">No audio selected</T>

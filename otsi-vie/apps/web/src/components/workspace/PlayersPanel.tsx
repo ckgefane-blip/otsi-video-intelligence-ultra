@@ -19,6 +19,7 @@ import { teamCode } from "@/lib/team";
 import { B, Ic, T, u } from "@/components/stage/DesignStage";
 import { Box } from "@/components/tactics/kit";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { assignmentOf, clock, Hit, isPerson, Thumb, type Shared } from "./shared";
 import { useDw } from "./ResizableColumns";
 import { HeatPitch, measuredText, useHeatZones } from "./HeatPitch";
@@ -33,6 +34,7 @@ const row = { display: "flex", gap: u(10), alignItems: "flex-start", width: "100
 
 /** the Events tab: every event found, a row to watch it and accept/reject it (ADR-118) */
 function EventsTab({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws } = s;
   const dw = useDw();
   const marks = useMemo(() => allMarks(marksOf(ws?.events.data ?? null)), [ws?.events.data]);
@@ -56,7 +58,7 @@ function EventsTab({ s }: { s: Shared }) {
     }
   };
 
-  if (!ws?.run) return <T x={2276 + dw / 2} y={480} size={20} color="#8ea3bf" align="center">No finished analysis yet: no events.</T>;
+  if (!ws?.run) return <T x={2276 + dw / 2} y={480} size={20} color="#8ea3bf" align="center">{dict.body.analysis.noFinishedAnalysis}</T>;
   if (!marks.length) return <T x={2276 + dw / 2} y={480} size={20} color="#8ea3bf" align="center" style={{ maxWidth: u(460) }}>No events found yet. Events are found once the ball is followed (AI Tools → Ball).</T>;
   const rejectedCount = ws.events.data?.rejected_events_count ?? 0;
   return (
@@ -137,6 +139,7 @@ function EventsTab({ s }: { s: Shared }) {
 
 /** the Clips tab: the clips of the reels made from this video */
 function ClipsTab({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws } = s;
   const dw = useDw();
   const videoId = ws?.video?.id ?? null;
@@ -150,7 +153,7 @@ function ClipsTab({ s }: { s: Shared }) {
         <div key={r.id}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: u(8), padding: `${u(6)} ${u(6)}`, fontSize: u(17), fontWeight: 700 }}>
             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name} · {r.clips.length} clips</span>
-            <Link href={`/reels/${r.id}`} style={{ color: "#33a8ff", fontWeight: 400, flex: "none" }}>Open in Reel Builder ›</Link>
+            <Link href={`/reels/${r.id}`} style={{ color: "#33a8ff", fontWeight: 400, flex: "none" }}>{dict.body.analysis.openInReelBuilder}</Link>
           </div>
           {r.clips.map((c, i) => (
             <button key={c.id} type="button" role="listitem" data-clip={c.id} style={row} onClick={() => ws?.seek(c.in_pts_us)}>
@@ -170,6 +173,7 @@ const code = (n: string | null | undefined) => teamCode(n);
 const bars = (c: number | null) => (c === null ? 0 : c >= 0.85 ? 4 : c >= 0.7 ? 3 : c >= 0.5 ? 2 : 1);
 
 function Players({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws, kits, match, team, setTeam, teams } = s;
   const [tab, setTab] = useState(0);
   const [q, setQ] = useState("");
@@ -256,6 +260,7 @@ function Players({ s }: { s: Shared }) {
 }
 
 function Inspector({ s }: { s: Shared }) {
+  const { t: dict } = useLocale();
   const { ws, kits } = s;
   const t = ws?.tracks?.find((x) => x.track_id === ws.selectedId) ?? null;
   const a = t ? assignmentOf(kits, t) : null;
@@ -349,13 +354,13 @@ function Inspector({ s }: { s: Shared }) {
           <T x={2031} y={1169} size={15} color="#8ea3bf" style={{ maxWidth: u(490 + dw), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {`Seen ${clock(t.first_pts_us)}–${clock(t.last_pts_us)} · ${t.observation_count} detections · conf ${t.mean_confidence?.toFixed(2) ?? "—"}${won !== null ? ` · ball won ${won} · pressures ${pressed}` : ""}`}</T>
         </div>
-      ) : <T x={2031} y={1169} size={15} color="#8ea3bf">Click a box on the video or a player in the list.</T>}
+      ) : <T x={2031} y={1169} size={15} color="#8ea3bf">{dict.body.analysis.clickBox}</T>}
       <IdentifyDialog open={identifying} onOpenChange={setIdentifying} />
       <PropertiesDialog s={s} track={t} open={props} onOpenChange={setProps} />
       <div data-create-reel>
         <B x={2031} y={1356} w={489 + dw} h={56} style={{ borderRadius: u(8), border: `${u(1.5)} solid ${player ? "#1f8cff" : "#1f5a9c"}`, background: player ? "#0a4aa8" : "#0a2a55", opacity: player && !busy ? 1 : 0.8 }} />
         <Ic x={2090} y={1384} k="reel" size={30} color={player ? "#fff" : "#8fc4ff"} />
-        <T x={2132} y={1372} size={22} weight={700} color={player ? "#fff" : "#33a8ff"}>Create Highlight Reel</T>
+        <T x={2132} y={1372} size={22} weight={700} color={player ? "#fff" : "#33a8ff"}>{dict.body.analysis.createReel}</T>
         <T x={2132} y={1397} size={15} color={err ? "#ff8a8a" : player ? "#cfe3ff" : "#8ea3bf"} style={{ maxWidth: u(380 + dw), overflow: "hidden", textOverflow: "ellipsis" }}>
           {err ?? (player ? `for ${player.display_name}` : !t ? "select a player first" : isBall ? "select a player, not the ball" : "first say who this player is (click)")}</T>
         <Hit x={2031} y={1356} w={489 + dw} h={56} label="Create highlight reel" {...(player && !busy ? { onClick: createReel } : t && !isBall && !player ? { onClick: () => setIdentifying(true) }

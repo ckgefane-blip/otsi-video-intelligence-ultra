@@ -15,6 +15,7 @@ import { MoreMenu, copyLink, type MoreItem } from "@/components/stage/MoreMenu";
 import { reelActions, renderActions, videoActions } from "@/lib/actions";
 import { typing } from "@/lib/keymap";
 import { api, ApiProblem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { ArchiveDialog } from "@/components/exportstage/ArchiveBundle";
 import type { ArchiveSubjectKind, LibraryFolder, Match, Member, Reel, RemovableKind, RemovalPreview, SavedSearch, TrashEntry } from "@otsi-vie/contracts";
 import { ITEM_KIND, NO_FILTERS, RANGES, TABS, type Asset, type Filters, type Kind } from "./useLibrary";
@@ -221,6 +222,7 @@ function MoveDialog({ target, folders, close, done }: { target: MoveTarget | nul
 const KIND_LABEL: Record<RemovableKind, string> = { reel: "Reel", render: "Rendered file", video: "Video", match: "Match", project: "Project", folder: "Folder" };
 
 function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close: () => void; canWrite: boolean; changed: (msg: string) => Promise<void> }) {
+  const { t: dict } = useLocale();
   const [rows, setRows] = useState<TrashEntry[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -242,13 +244,13 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(640px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">Trash</Dialog.Title>
+          <Dialog.Title className="text-base font-semibold">{dict.body.library.trash}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Everything deleted from the Library. Restore brings back an item and everything that was deleted with it. Nothing here is erased.</Dialog.Description>
           {err && <p role="alert" className="mb-2 text-danger">{err}</p>}
           {!rows && !err && <p className="text-muted">Loading…</p>}
-          {rows && rows.length === 0 && <p className="text-muted">The Trash is empty.</p>}
+          {rows && rows.length === 0 && <p className="text-muted">{dict.body.library.trashEmpty}</p>}
           {rows && rows.length > 0 && (
-            <ul aria-label="Deleted items" className="-mx-1 flex-1 space-y-1 overflow-y-auto px-1">
+            <ul aria-label={dict.body.library.deletedItems} className="-mx-1 flex-1 space-y-1 overflow-y-auto px-1">
               {rows.map((t) => (
                 <li key={t.id} data-trash={t.kind} className="flex items-center gap-3 rounded-ctl border border-line px-3 py-2">
                   <div className="min-w-0 flex-1">
@@ -304,6 +306,7 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
 
 /** a new Library folder (New Project ▾ › New folder) */
 function NewFolderDialog({ open, close, done }: { open: boolean; close: () => void; done: (f: LibraryFolder) => Promise<void> }) {
+  const { t: dict } = useLocale();
   const [name, setName] = useState(""); const [err, setErr] = useState<string | null>(null);
   useEffect(() => { setName(""); setErr(null); }, [open]);
   const go = async () => {
@@ -323,7 +326,7 @@ function NewFolderDialog({ open, close, done }: { open: boolean; close: () => vo
             {err && <p role="alert" className="text-danger">{err}</p>}
             <div className="flex justify-end gap-2">
               <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">Cancel</Dialog.Close>
-              <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">Create folder</button>
+              <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.body.library.createFolder}</button>
             </div>
           </form>
         </Dialog.Content>
@@ -431,6 +434,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
   /** A.14: the Trash and New folder dialogs, opened here or from the left tree */
   trash: boolean; setTrash: (o: boolean) => void; newFolder: boolean; setNewFolder: (o: boolean) => void;
 }) {
+  const { t: dict } = useLocale();
   const creators = useMemo(() => members.filter((m) => (all ?? []).some((a) => a.createdBy === m.user_id)), [members, all]);
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -492,7 +496,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         <T x={448} y={149} size={46} weight={700} as="h1">Library / Project Center</T>
         {openFolder ? (
           <div className="absolute" style={{ left: u(449), top: u(178 - 101), height: u(32), display: "flex", alignItems: "center", gap: u(10), fontSize: u(22) }}>
-            <button type="button" onClick={() => setFolder(null)} style={{ background: "transparent", border: 0, padding: 0, color: "#33a8ff", font: "inherit", cursor: "pointer" }}>All assets</button>
+            <button type="button" onClick={() => setFolder(null)} style={{ background: "transparent", border: 0, padding: 0, color: "#33a8ff", font: "inherit", cursor: "pointer" }}>{dict.body.library.allAssets}</button>
             <span style={{ color: "#5d7699" }}>›</span>
             <span data-open-folder={openFolder.id} style={{ color: "#ffd36a", fontWeight: 600 }}>Folder: {openFolder.name}</span>
             <span style={{ color: "#9fb3cc" }}>· {openFolder.item_count} item{openFolder.item_count === 1 ? "" : "s"}</span>
@@ -504,7 +508,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
           onClick={() => (canWrite ? setCreating(true) : say("Your role can view the library but not create projects"))} className="absolute"
           style={{ left: u(1714), top: u(132 - 101), width: u(206), height: u(63), border: 0, padding: 0, borderRadius: `${u(8)} 0 0 ${u(8)}`, background: "#0a84ff", color: "#fff", font: "inherit", cursor: "pointer" }}>
           <Ic o={[1714, 132]} x={1755} y={164} k="plus" size={26} />
-          <T o={[1714, 132]} x={1786} y={164} size={24} weight={600} as="span">New Project</T>
+          <T o={[1714, 132]} x={1786} y={164} size={24} weight={600} as="span">{dict.body.library.newProject}</T>
         </button>
         <button type="button" aria-label="More ways to add" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className="absolute"
           style={{ left: u(1920), top: u(132 - 101), width: u(50), height: u(63), border: 0, padding: 0, borderRadius: `0 ${u(8)} ${u(8)} 0`, background: "#0a84ff", cursor: "pointer" }}>
@@ -547,26 +551,26 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
       <section aria-label="Search and advanced filters" data-section="p09-s03">
         <label className="absolute" style={{ left: u(425), top: u(326 - 101), width: u(443), height: u(62), ...field }}>
           <Ic o={[426.5, 327.5]} x={458} y={356} k="srch" size={28} color="#cfe0f5" />
-          <input value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder="Search projects, players, tags, or content…" aria-label="Search the library"
+          <input value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder={dict.body.library.searchLibrary} aria-label="Search the library"
             style={{ position: "absolute", left: u(487 - 426.5), top: 0, width: u(370), height: "100%", background: "transparent", border: 0, outline: "none", color: "#e3eefb", fontSize: u(20), fontFamily: "inherit" }} />
         </label>
         <FilterBox x={883} w={142} label="Type" value={f.type} onChange={(v) => setF({ ...f, type: v })}
           options={[["all", "All Types"], ...(["Reel", "Match", "Folder", "Project", "Export", "Video"] as Kind[]).map((k) => [k, `${k}s`] as [Kind, string])]} />
-        <FilterBox x={1036} w={201} label="Competition" size={19} value={f.competition} onChange={(v) => setF({ ...f, competition: v })}
+        <FilterBox x={1036} w={201} label={dict.body.library.competition} size={19} value={f.competition} onChange={(v) => setF({ ...f, competition: v })}
           options={[["all", "All Competitions"], ...(competitions.length ? competitions.map((c) => [c, c] as [string, string]) : [["none", "Competitions", "none recorded on your matches yet"] as [string, string, string]])]} />
         <FilterBox x={1249} w={202} label="Team" value={f.team} onChange={(v) => setF({ ...f, team: v })} options={[["all", "All Teams"], ...(teams.length ? teams.map((t) => [t, t] as [string, string]) : [["none", "Teams", "no match with clubs yet"] as [string, string, string]])]} />
-        <FilterBox x={1462} w={176} label="Created By" value={f.creator} onChange={(v) => setF({ ...f, creator: v })}
+        <FilterBox x={1462} w={176} label={dict.body.library.createdBy} value={f.creator} onChange={(v) => setF({ ...f, creator: v })}
           options={[["any", "Any User"], ...(me && creators.some((m) => m.user_id === me) ? [[me, "Me"] as [string, string]] : []),
             ...creators.filter((m) => m.user_id !== me).map((m) => [m.user_id, m.display_name] as [string, string]),
             ...(creators.length ? [] : [["none", "Members", "nobody has created an asset yet"] as [string, string, string]])]} />
         <FilterBox x={1649} w={214} label="Date Range" value={f.range} onChange={(v) => setF({ ...f, range: v })} options={RANGES.map(([v, l]) => [v, l] as [string, string])} />
         <button type="button" aria-disabled={!filtered || undefined} onClick={() => (filtered ? setF(NO_FILTERS) : say("No filters are set"))} className="absolute"
-          style={{ left: u(1885), top: u(356 - 101 - 14), height: u(28), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(20), fontFamily: "inherit", cursor: "pointer", opacity: filtered ? 1 : 0.6, whiteSpace: "nowrap" }}>Clear Filters</button>
+          style={{ left: u(1885), top: u(356 - 101 - 14), height: u(28), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(20), fontFamily: "inherit", cursor: "pointer", opacity: filtered ? 1 : 0.6, whiteSpace: "nowrap" }}>{dict.body.library.clearFilters}</button>
       </section>
 
       <section aria-label="Saved searches" data-section="p09-s04">
         <T x={431} y={436} size={19} color="#cfe0f5" as="h2">Saved Searches:</T>
-        {saved.length === 0 ? <T x={578} y={438} size={19} color="#8ea3bf">No saved searches yet</T> : (
+        {saved.length === 0 ? <T x={578} y={438} size={19} color="#8ea3bf">{dict.body.library.noSavedSearches}</T> : (
           <ul aria-label="Your saved searches" className="absolute" style={{ left: u(578), top: u(420 - 101), width: u(930), height: u(36), margin: 0, padding: 0, listStyle: "none", display: "flex", gap: u(8), overflow: "hidden" }}>
             {saved.map((sv) => (
               <li key={sv.id} style={{ display: "flex", alignItems: "center", gap: u(6), padding: `0 ${u(10)}`, borderRadius: u(6), background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, fontSize: u(17), whiteSpace: "nowrap" }}>
@@ -587,7 +591,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
           className={`${s.a} ${s.framed}`} style={{ left: u(1658), top: u(417 - 101), width: u(228), height: u(42), background: "#08203f", borderRadius: u(8), ["--bc" as string]: "#17406f",
             border: 0, padding: 0, color: "inherit", font: "inherit", cursor: "pointer", opacity: !filtered && tab === 0 ? 0.6 : 1 }}>
           <Ic o={[1658, 417]} x={1684} y={438} k="plus" size={22} color="#33a8ff" />
-          <T o={[1658, 417]} x={1708} y={438} size={19} color="#33a8ff" as="span">Save Current Search</T>
+          <T o={[1658, 417]} x={1708} y={438} size={19} color="#33a8ff" as="span">{dict.body.library.saveSearch}</T>
         </button>
       </section>
 
@@ -618,7 +622,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         </button>
         {Y.slice(0, 9).map((y) => <B key={y} x={427} y={y + 45} w={1554} h={1} style={{ background: "#10294a" }} />)}
         {all === undefined && (
-          <T x={1204} y={587} size={20} color="#8ea3bf" align="center"><span role="status">Loading the Library…</span></T>
+          <T x={1204} y={587} size={20} color="#8ea3bf" align="center"><span role="status">{dict.body.library.loadingLibrary}</span></T>
         )}
         {all === null && (
           <button type="button" onClick={() => void reload()} className="absolute" aria-label="Try loading the Library again"

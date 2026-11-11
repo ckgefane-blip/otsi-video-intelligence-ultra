@@ -62,10 +62,11 @@ dictionary key exists in English first, and the other four are partial dictionar
   in the English dictionary is present as a non-empty string in every locale, and that a synthetic partial falls back to
   English for the keys it omits. If a future string is added in English and not yet translated, the test still passes (the
   fallback is English) — the gap is visible in the UI as an English string, never as a blank.
-- 43 strings per language, in four groups: `nav` (the 10 navigation labels), `common` (10 actions: Search, Sign out, Save,
+- 251 strings per language, in five groups: `nav` (the 10 navigation labels), `common` (10 actions: Search, Sign out, Save,
   Cancel, Close, Back, Continue, Loading…, Try again, Language), `pages` (the 10 page titles + subtitles, taken verbatim from
   `lib/pages.ts` — the same strings the app already shows, translated, not reworded), `shell` (the 3 header strings: the search
-  button's label and hint, and "Language").
+  button's label and hint, and "Language"), and `body` (the 208 page-body strings added 2026-11-11 — see the follow-up at the
+  end of this ADR).
 - **Proper nouns stay untranslated:** OTSI VIE, Spotlight Composer, player names, club names, league names, OTSI PINs, and
   measured numbers. "Reels" stays "Reels" in Spanish, German and French (the standard product term in those markets) and is
   "Ролики" in Russian. "Ctrl+K" is not translated (it is a key name).
@@ -79,9 +80,11 @@ dictionary key exists in English first, and the other four are partial dictionar
 - **Translated today:** the navigation labels in the header (the English label stays the key into the tab layout and the link
   identity — only the text the person reads changes, so the approved tab positions never move), the search button's label and
   hint, and the switcher itself (its legend and the "Language" label). A longer translated label cannot overlap the next tab:
-  `.tab` now clips with an ellipsis; in English every label fits its cell, so there is no visual change.
-- **Not translated yet (deliberate, recorded):** the bodies of the ten pages — their headings, buttons, tables, dialogs and
-  empty states are still English. The dictionary is built so a page body adopts it one string at a time (import `useLocale`,
+  `.tab` now clips with an ellipsis; in English every label fits its cell, so there is no visual change. The page bodies of
+  the eight in-scope pages are translated too (2026-11-11 follow-up at the end of this ADR).
+- **Not translated yet (deliberate, recorded):** the bodies of Upload, AI Processing and Tactical Intelligence — their
+  headings, buttons, tables, dialogs and empty states are still English — and the deeper strings listed as known gaps in the
+  2026-11-11 follow-up below. The dictionary is built so a page body adopts it one string at a time (import `useLocale`,
   read `t`, replace the literal) without any change to the provider, the switcher or the fallback. Page bodies are the
   follow-up, in the same pattern, not half-built here.
 - The provider wraps the app layout (`app/(app)/layout.tsx`), outside the Guided / Pro provider, so the whole app — header
@@ -129,3 +132,89 @@ dictionary key exists in English first, and the other four are partial dictionar
 - The sign-in page in the five languages.
 - A native-speaker review of the Russian, Spanish, German and French strings.
 - A sixth language, if the owner asks — the system takes one partial dictionary.
+
+## Follow-up done 2026-11-11: page bodies (Muse, `muse/ultra-main`)
+
+The eight in-scope pages now read their core body strings from the dictionaries — 208 new `body` strings per language
+(251 strings per language in total: home 43, analysis 13, reels 26, studio 17, reports 17, library 25, exports 23,
+players 44), all four translations written by hand in the same pattern as the original 43, English still the fallback.
+`mergeDictionary` merges `body` group by group, so a missing body key is English by construction, and the completeness
+test (`test/i18n.test.ts`, now also asserting the per-group counts and body spot checks) covers every new leaf.
+`test/i18nBody.test.tsx` proves the wiring through the provider: a component reads Russian/Spanish body strings from a
+stored locale and English with none stored; the TrustStrip renders its translated heading in Russian.
+
+What is wired, per page (headings, primary buttons, empty states and the main table/filter labels; the dictionary key
+is the string the person reads):
+
+- **Home** — hero (eyebrow, title, subtitle, Upload Video, Paste Link), the five How It Works steps, Featured Reel,
+  Recent Matches, Sample Reels, Trust Strip, Platform Capabilities heading, Review inbox / Active jobs headings.
+  The four home sections that were server components (HeroSection, TrustStrip, HowItWorks, Capabilities) are now
+  client components (`"use client"` added; they render only presentational markup, Link and already-client children,
+  so nothing else changes) so they can read the locale.
+- **Analysis** — Match, Visual Overlays, Team Filter, Time Range, "Choose a match video first.", Players-tab
+  empty state, "Click a box…", Create Highlight Reel, Open in Reel Builder, All Events, Lineups heading.
+- **Reel Builder** — Reel Info (title, description, duration, music, matches, aspect ratio), Back to Reels,
+  Spotlight Controls, Player Targeting, Branding, Preview Render, Save Project, History, Video Clips,
+  "Add moments to build the reel", the render dialog, the reel picker ("Open a reel", "Reels could not be loaded."),
+  "Project saved." / "The project was not saved." / "Unsaved changes".
+- **Clip Studio** — reel picker ("Choose a reel", "No reels yet.", "Make one in the Reel Builder",
+  "The reels could not be loaded."), header (Back to the Reel Builder, Save Project, Undo, Redo, History,
+  Keyboard shortcuts), media bin (Assets, search, Suggested moments, Templates), Clip Details,
+  "Select a clip to see what the engine found in it.", reel preview, timeline zoom.
+- **Player Reports** — player picker (Choose a player, search, "No player found.", "The players could not be
+  loaded.", "Players list: enter their profiles ›"), Identity & Evidence, Key metrics, Player Role & Summary,
+  "Not measured", "No traits recorded", "Edit profile ›", Heatmap, Action Map, Event Timeline, Scouting Report,
+  "No scout notes recorded.", "View Full Report".
+- **Library** — New Project, search, All assets, Competition / Created By filters, Clear Filters, "No saved
+  searches yet", Save Current Search, "Loading the Library…", Trash dialog ("The Trash is empty.",
+  "Deleted items"), "Create folder", Match / Events / Team Filter / Time Range / Visual Overlays in the left
+  panel, "Select an asset with a video in the table.", Open in Analysis, Download, Rename, Share, Send to
+  Client, Smart Bins / New Smart Bin.
+- **Export** — Project Summary, "Open a reel to export", "Reels could not be loaded.", "No reels yet.",
+  Export Settings (Output Preset, Resolution, Frame Rate, Aspect Ratio, File Format, Quality, Include Branding),
+  Render Progress, "No render jobs queued", "The render queue could not be loaded.", Download All,
+  Deliver to Client (dialog title, client name/email, message, "None yet."), Shareable Link, "No links yet.",
+  Export presets / New preset / Save preset.
+- **Players** — the whole list page: heading, subtitle, All positions, Confirmed roles only, search, loading /
+  load-failed / no-match / no-players empty states, the row labels (Position, Nationality, Preferred foot,
+  Birth date, Team · No.), Provisional / Confirmed / Confirm, Save / Saving… / "Saved & confirmed." /
+  "Could not save. Try again.", the profile-details form for the intro (all field labels, height/weight
+  validation, photo, "Save profile details", read-only note), "Open report ›", "Provisional: no OTSI Player
+  ID yet", "Not recorded". Position and preferred-foot *names* in the dropdowns stay English (see gaps).
+
+Deliberately left untranslated (known gaps, not half-wired — the English string stays where the dictionary has no
+key, and the fallback guarantees no blank):
+
+- The bodies of **Upload, AI Processing and Tactical Intelligence** (not in this piece's scope).
+- **Home:** the six Platform Capabilities tiles (title + two lines each), the Review inbox "to do / All clear /
+  Nothing waits…" lines and the Active jobs status lines, the How It Works placeholder labels ("Player name",
+  "Position • Team") inside the aria-hidden illustrations, "MP4, MOV, up to …" and "YouTube, Hudl, Wyscout…"
+  format notes, save/bookmark tooltips ("Save reel (not available yet)"), playback/copy flash notes.
+- **Analysis:** the Players-tab search placeholder, the "Tracks & Presence" section (no such literal exists in
+  the UI text — only in a code comment), the Lineups dialog table (Use / No. / Name / Role, Home/Away team,
+  Starter / Substitute), Identify/Properties dialogs, event-kind chips.
+- **Reel Builder:** the inspector tabs (Spotlight / Overlays / Branding), MusicPicker and ReelExtras dialogs,
+  WhoQueue ("This is him" / "Not him"), DraftDialog, the History dialog, moment/clip menus ("Move earlier",
+  "Remove clip", "Trim"), "View All Moments".
+- **Clip Studio:** the Media Bin tabs (Media Bin / Graphics / Audio / Templates), Templates dialog copy,
+  EditPanels (blocks), Scopes/Adjustments panels, "Select a clip" fallbacks in the inspector.
+- **Player Reports:** the report dialogs (Dossier, Notes, Tags, Traits, Share link, PDF reports), "Role not
+  assessed", "Confirmed / Unverified", "Load failed", "could not be loaded", the rail labels (Overview /
+  Performance / Attacking Analysis), comparison and insights sections.
+- **Library:** the asset-table column headers (Title / Type / Rights / Evidence / Profile / Device / Updated /
+  Status), the Delete / Move / Archive dialogs, AccessDialog, "New folder" dialog title, "Manage Access".
+- **Export:** the Export & Delivery hero subtitle (it repeats the already-translated page subtitle), the
+  workflow step labels and reasons, Share dialog rights/roles copy, ExportPreflight / ArchiveBundle /
+  Interchange dialogs, "Record the video's rights" copy.
+- **Players:** position names (Goalkeeper, Right back, …) and foot names (Left / Right / Both / Unknown) in the
+  dropdowns, "Role confirmed." / "Could not confirm role." / "Profile details saved." / "The upload failed."
+  status lines, photo rights-holder copy, "Height/Weight" placeholder examples.
+- The **sign-in page and public pages** stay English (outside the app layout, as before).
+
+Verification (2026-11-11): web typecheck clean apart from the 1 pre-existing
+`test/formationsPanel.test.tsx` `assigned_by` error; full web vitest 73 files / 333 tests, all passing (was 72 / 326:
++3 tests in `test/i18n.test.ts`, +4 in the new `test/i18nBody.test.tsx`); `next build` succeeds 25/25 pages.
+Line endings preserved on every edited file (all 22 CRLF files still CRLF). Not verified: a click-through of a
+translated page in a running browser (no running engine here) — visual confirmation on the owner's host is the
+honest last step, as with every UI pass. The four translations were written by the author, not checked by a native
+speaker; a native-speaker review is still follow-up.

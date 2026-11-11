@@ -15,6 +15,7 @@ import { B, Ic, T, u } from "@/components/stage/DesignStage";
 import { MoreMenu } from "@/components/stage/MoreMenu";
 import { reelActions } from "@/lib/actions";
 import { mmss, playback as fetchPlayback, Playback, reelSeconds, reloadRenderedReels, useRenderedReels } from "./renderedReels";
+import { useLocale } from "@/lib/i18n";
 
 /** the rendered file's video codec as the render was configured (H.264 / AV1 / VP9) */
 const codec = (r: Reel) => String((r.last_good_render?.config as { codec?: string } | undefined)?.codec ?? "—").toUpperCase().replace("H264", "H.264");
@@ -24,6 +25,7 @@ const chip = { background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderR
 const iconButton = { position: "absolute" as const, padding: 0, border: 0, background: "transparent", color: "inherit", cursor: "pointer", font: "inherit" };
 
 export function FeaturedReel() {
+  const { t } = useLocale();
   const reels = useRenderedReels();
   const reel = reels === undefined ? undefined : (reels?.[0] ?? null);        // undefined = loading
   const failed = reels === null;                                               // a failed read, not "no featured reel"
@@ -50,7 +52,7 @@ export function FeaturedReel() {
       </B>
       {!play && (
         <>
-          <T x={2025} y={163} size={22} weight={600} ls={3} color="#33a8ff">FEATURED REEL</T>
+          <T x={2025} y={163} size={22} weight={600} ls={3} color="#33a8ff">{t.body.home.featuredReel}</T>
           <B x={2454} y={148} w={45} h={34} style={{ background: "#0a0a05", border: `${u(2)} solid #f5b82e`, borderRadius: u(4) }} />
           <T x={2476} y={165} size={20} weight={700} color="#f5b82e" align="center">{reel ? quality(result.height) : "—"}</T>
 
@@ -63,18 +65,18 @@ export function FeaturedReel() {
           </button>
 
           <T x={2025} y={381} size={32} weight={700} style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
-            {reel ? (reel.player?.display_name ?? reel.name) : failed ? "Couldn't load reels" : reel === null ? "No featured reel" : ""}
+            {reel ? (reel.player?.display_name ?? reel.name) : failed ? t.body.home.couldntLoadReels : reel === null ? t.body.home.noFeaturedReel : ""}
           </T>
           {failed ? (
-            <button type="button" onClick={() => reloadRenderedReels()} aria-label="Reels could not be read. Retry"
+            <button type="button" onClick={() => reloadRenderedReels()} aria-label={t.body.home.reelsReadFailed}
               style={{ position: "absolute", left: u(2025), top: u(414 - 101), transform: "translateY(-50%)", padding: 0, border: 0,
                 background: "transparent", color: "#33a8ff", fontSize: u(25), fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Couldn't load reels — tap to retry
+              {t.body.home.featuredLoadFailed}
             </button>
           ) : (
             <T x={2025} y={414} size={25} color="#e3eefb" style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {reel ? reel.name : reel === null ? "Published reels appear here" : ""}
+              {reel ? reel.name : reel === null ? t.body.home.publishedReelsHere : ""}
             </T>
           )}
           <B x={2417} y={395} w={74} h={34} style={{ background: "rgba(0,10,25,.85)", borderRadius: u(6) }} />
@@ -101,7 +103,7 @@ export function FeaturedReel() {
         onClick={() => { void navigator.clipboard?.writeText(`${location.origin}/reels/${reel!.id}`).then(() => flash("Link copied"), () => flash("Copy failed")); }}
         style={{ ...iconButton, left: u(2320), top: u(542 - 101 - 22), width: u(108), height: u(44), cursor: reel ? "pointer" : "default" }}>
         <Ic o={[2320, 520]} x={2341} y={542} k="share" size={32} />
-        <T o={[2320, 520]} x={2370} y={543} size={23} as="span">Share</T>
+        <T o={[2320, 520]} x={2370} y={543} size={23} as="span">{t.body.library.share}</T>
       </button>
       <MoreMenu x={2486} y={542} w={40} h={44} size={30} color="#fff" label="More reel actions" items={reel ? reelActions(reel) : []}
         empty="No finished reel yet: make one in the Reel Builder" />

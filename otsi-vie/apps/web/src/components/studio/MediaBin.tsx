@@ -19,6 +19,7 @@
 import { binMoments, type BrandAsset, type ReelMoment, type ReelTemplate, type SmartBinItems, type SpotlightSettings, type OrgTemplate, type OrgTemplateKind } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import { BeatStatusRow } from "./BeatGridInfo";
 import { binCount, useSmartBins } from "@/components/library/SmartBins";
 import type { ReelState } from "@/components/reels/ReelBuilder";
@@ -32,6 +33,7 @@ const dur = (m: ReelMoment) => `${((m.out_pts_us - m.in_pts_us) / 1e6).toFixed(1
 export const MOMENT_MIME = "application/x-otsi-moment";
 
 export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Studio; onPick: () => void; say: (m: string) => void }) {
+  const { t: dict } = useLocale();
   const tab = st.binTab, setTab = st.setBinTab;
   const [q, setQ] = useState("");
   const [hideUsed, setHideUsed] = useState(false);
@@ -60,7 +62,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
   return (
     <section aria-label="Media bin / asset browser" data-section="p07-s02" data-moments={String(shown.length)}>
       <P x={28} y={210} w={627} h={610} />
-      <div role="tablist" aria-label="Assets">
+      <div role="tablist" aria-label={dict.body.studio.assets}>
         {TABS.map(([l, x], i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className="absolute"
             style={{ left: u(x - 20), top: u(220 - 101), width: u(l.length * 12 + 40), height: u(44), padding: 0, border: 0, background: "transparent", cursor: "pointer", font: "inherit" }}>
@@ -73,7 +75,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
 
       <label className="absolute" style={{ left: u(48), top: u(284 - 101), width: u(512), height: u(52), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), background: "#041022" }}>
         <Ic o={[48, 284]} x={75} y={310} k="srch" size={26} color="#cfe0f5" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search clips, players, tags..." aria-label="Search the media bin"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.studio.searchBin} aria-label="Search the media bin"
           style={{ position: "absolute", left: u(102 - 48), top: 0, width: u(400), height: "100%", background: "transparent", border: 0, outline: "none",
             color: "#e3eefb", fontSize: u(20), fontFamily: "inherit" }} className="placeholder:text-[#9fb3cc]" />
       </label>
@@ -92,7 +94,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
               <select value={binId} onChange={(e) => setBinId(e.target.value)} aria-label="Show suggested moments or a Smart Bin" data-bin-select className="absolute"
                 style={{ left: u(190), top: u(352 - 101), width: u(440), height: u(34), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(6),
                   color: "#e3eefb", fontSize: u(19), fontFamily: "inherit" }}>
-                <option value="">{st.reel.player ? `${st.reel.player.display_name} · suggested moments` : "Suggested moments"}</option>
+                <option value="">{st.reel.player ? `${st.reel.player.display_name} · suggested moments` : dict.body.studio.suggestedMoments}</option>
                 {bins.map((b) => <option key={b.id} value={b.id}>{`Smart Bin: ${b.name} (${binCount(b)})`}</option>)}
               </select>
             ) : <T x={196} y={368} size={20} color="#e3eefb">{st.reel?.player ? `${st.reel.player.display_name} · suggested moments` : "All media"}</T>}
@@ -101,7 +103,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
             <button type="button" onClick={onPick} className="absolute" style={{ left: u(191), top: u(570 - 101), width: u(300), height: u(40), borderRadius: u(8),
               border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", color: "#e3eefb", fontSize: u(20), cursor: "pointer", fontFamily: "inherit" }}>Choose a reel to edit</button>
           ) : empty ? <T x={341} y={590} size={20} color="#8ea3bf" align="center">{empty}</T> : (
-            <ul aria-label="Suggested moments" className="absolute" style={{ left: u(X0), top: u(Y0 - 101), width: u(590), height: u(410), margin: 0, padding: 0, listStyle: "none", overflowY: "auto" }}>
+            <ul aria-label={dict.body.studio.suggestedMoments} className="absolute" style={{ left: u(X0), top: u(Y0 - 101), width: u(590), height: u(410), margin: 0, padding: 0, listStyle: "none", overflowY: "auto" }}>
               {shown.map((m, i) => {
                 const x = (i % COLS) * (TW + GX), y = Math.floor(i / COLS) * (TH + GY);
                 const sel = st.preview?.in_pts_us === m.in_pts_us && st.preview.out_pts_us === m.out_pts_us;
@@ -136,6 +138,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
 
 /** ADR-109 (v3 Phase C.10): Organization templates for Spotlight, Style and Branding; save this reel's settings, apply modularly, or delete */
 function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boolean; onPick: () => void; say: (m: string) => void; hit: (t: any) => boolean }) {
+  const { t: dict } = useLocale();
   const [name, setName] = useState("");
   const [saveKind, setSaveKind] = useState<OrgTemplateKind>("FULL");
   const [kindFilter, setKindFilter] = useState<"ALL" | OrgTemplateKind>("ALL");
@@ -203,7 +206,7 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
           {st.orgTemplates === null ? <p style={cell}>Loading…</p> : orgList.length === 0 ? (
             <p style={cell}>No templates match this filter. Save this reel's settings above to reuse across the team.</p>
           ) : (
-            <ul aria-label="Templates" style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(6) }}>
+            <ul aria-label={dict.body.studio.templates} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(6) }}>
               {orgList.map((t) => (
                 <li key={t.id} data-template={t.id} style={{ display: "flex", alignItems: "center", gap: u(8), padding: `${u(6)} ${u(10)}`, borderRadius: u(8), border: `${u(1.5)} solid #17406f`, background: "#041022" }}>
                   <span style={{ flex: 1, minWidth: 0 }}>

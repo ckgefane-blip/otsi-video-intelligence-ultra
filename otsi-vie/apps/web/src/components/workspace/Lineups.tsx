@@ -7,6 +7,7 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { AppliedLineups, LineupCard, Lineups } from "@otsi-vie/contracts";
+import { useLocale } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
@@ -30,6 +31,7 @@ export function useLineups(videoId: string | undefined) {
 }
 
 export function LineupsBlock({ videoId, canWrite, onReview, onName, lineups }: { videoId: string; canWrite: boolean; onReview: () => void; onName: () => void; lineups: ReturnType<typeof useLineups> }) {
+  const { t: dict } = useLocale();
   const dw = useDw();
   const [err, setErr] = useState<string | null>(null);
   const d = lineups.data, r = d?.read ?? null;
@@ -44,7 +46,7 @@ export function LineupsBlock({ videoId, canWrite, onReview, onName, lineups }: {
   const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: "pointer" } as const;
   return (
     <div data-lineups-block style={{ display: "flex", flexDirection: "column", gap: u(10), width: u(330 + dw), marginTop: u(18), fontSize: u(17) }}>
-      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>Lineups</div>
+      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>{dict.body.analysis.lineups}</div>
       {!r && <span style={line}>The team sheets the broadcast shows (numbers and names) can name the players. The engine reads them after each analysis.</span>}
       {r && (r.status === "QUEUED" || r.status === "RUNNING") && <span role="status" style={line}>Reading the lineups… {r.stage_message ?? ""}{r.progress !== null ? ` (${Math.round(r.progress)}%)` : ""}</span>}
       {r?.status === "FAILED" && <span role="alert" style={{ color: "#ff8a8a" }}>{r.failure_detail ?? "The lineups could not be read."}</span>}
