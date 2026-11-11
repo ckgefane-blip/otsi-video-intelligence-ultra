@@ -54,15 +54,21 @@ function runCommand(cmd, args, options = {}) {
   // unquoted and cmd.exe then fails with `'C:\Program' is not
   // recognized`. So build the command line with every part quoted and
   // run it via cmd.exe /d /s /c (the /s strips the outer quotes,
-  // leaving the quoted path + args). This is the only place a .cmd is
-  // started: corepack.cmd (via resolveCorepack).
+  // leaving the quoted path + args). Pass it verbatim
+  // (windowsVerbatimArguments): without that, Node adds its own
+  // escaping on top of the quoted command line and cmd.exe misreads
+  // the start of the path as a network path ("The network path was
+  // not found"). This is the only place a .cmd is started:
+  // corepack.cmd (via resolveCorepack).
   let spawnCmd = cmd;
   let spawnArgs = args;
+  let spawnOpts = {};
   if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd)) {
     const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
     const commandLine = [cmd, ...args].map(quote).join(' ');
     spawnCmd = process.env.ComSpec || 'cmd.exe';
     spawnArgs = ['/d', '/s', '/c', `"${commandLine}"`];
+    spawnOpts.windowsVerbatimArguments = true;
   }
   return new Promise((resolve, reject) => {
     let child;
@@ -71,6 +77,7 @@ function runCommand(cmd, args, options = {}) {
         cwd,
         env: env || process.env,
         windowsHide: true,
+        ...spawnOpts,
       });
     } catch (err) {
       reject(new Error(`Could not start ${cmd}: ${err.message}`));
