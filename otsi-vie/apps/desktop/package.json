@@ -16,6 +16,9 @@
     "start": "electron .",
     "check": "node --check main.js && node --check backend.js && node --check licence.js && node --check hardware.js && node --check components.js && node --check preload.js && node --check scripts/compile-bytecode.js && node --check scripts/after-pack.js",
     "compile:bytecode": "node scripts/compile-bytecode.js",
+    "predist": "npm install",
+    "predist:portable": "npm install",
+    "predist:nsis": "npm install",
     "dist": "electron-builder --win",
     "dist:portable": "electron-builder --win portable",
     "dist:nsis": "electron-builder --win nsis"

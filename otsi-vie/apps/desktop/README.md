@@ -276,7 +276,11 @@ stage first, then build. Staging goes in `otsi-vie/.local/packaging/`
    Electron's own Node is used.
 6. **MySQL ZIP** at `.local/packaging/mysql-8.4.6-winx64.zip`
    (https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.6-winx64.zip,
-   260,772,595 bytes) — removed when SQLite is approved.
+   260,772,595 bytes) — the bundle stays until the SQLite conversion
+   passes all eight safeguards and the staged rollout reaches the
+   owner's PC (ADR-144 §1.2, docs/sqlite-rollout.md); only then is it
+   removed. SQLite is approved, but the bundle is still required for
+   this build.
 7. **Bytecode:** `npm run compile:bytecode` (bytenode, with the same
    Electron version as the packaged app, on the Windows runner —
    bytecode cannot be cross-compiled). If Electron is ever upgraded past
