@@ -201,15 +201,14 @@
   novel method (e.g. identity-confirmed spotlight tracking) qualifies before any public disclosure, and until then
   those methods stay trade secrets (compiled, private repo, NDAs).
 
-### 1.9 The repo is public and must go private (urgent, owner only)
+### 1.9 The repo is now private (done 2026-11-11, owner only)
 
-- `ckgefane-blip/otsi-video-intelligence-ultra` is a **PUBLIC** GitHub repo (checked 2026-11-11 via the GitHub API:
-  `"visibility": "public"`). Anyone can copy the whole engine. The owner makes it private himself (GitHub →
-  Settings → Danger zone → Change visibility → Make private). The write token has Contents only, no Administration
-  permission — the API flip was tried and failed with 403 — so this cannot be done from here and no workaround is
-  attempted.
+- `ckgefane-blip/otsi-video-intelligence-ultra` was a **PUBLIC** GitHub repo (checked 2026-11-11 via the GitHub API:
+  `"visibility": "public"`). The owner made it private himself the same day (~13:22, confirmed via the API:
+  `"visibility": "private"`). The write token has Contents only, no Administration permission — the API flip was
+  tried and failed with 403 — so this could not be done from here and no workaround was attempted.
 - **Consequence the owner already accepted:** the current test app clones/pulls the repo without signing in, so it
-  will stop updating once the repo is private, until the new installer (no git on user PCs) replaces it.
+  stopped updating once the repo went private, until the new installer (no git on user PCs) replaces it.
 
 ### 1.10 Decisions needed from the owner
 
