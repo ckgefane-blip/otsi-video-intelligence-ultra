@@ -35,7 +35,7 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Injectable, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import {
   AddClipRequest, AssembleRequest, BEST_MOMENTS_RULE_VERSION, ClipFx, ReviewComment, SetClipFxRequest, CandidatesRequest, CandidatesResponse, buildCandidates, type AssembledClip, CreateReelRequest, CreateRenderRequest, CrossMatchLength, CrossMatchMomentWindowRequest, CrossMatchSelection, crossMatchClipLabel, selectCrossMatchMoments, Reel, ReelMoment, ReelPath, RenderJob, ReorderClipsRequest, SetClipEffectRequest, SetTransitionRequest, SpotlightSettings,
-  BoundarySuggestion, suggestBoundary, UpdateClipRequest, UpdateReelRequest, clipOutputUs, slotUs, BatchRenderRequest, BatchRenderResult, Preflight, preflightChecks, outputAspect, uniqueOutputs, SetAllTransitionsRequest, transitionsForAll, normaliseEffect, type ClipEffect, EXPORT_PROFILES, ExportProfile, isRejected, momentCoverage, SwapClipRequest,
+  BoundarySuggestion, suggestBoundary, UpdateClipRequest, UpdateReelRequest, clipOutputUs, slotUs, BatchRenderRequest, BatchRenderResult, Preflight, preflightChecks, outputAspect, uniqueOutputs, SetAllTransitionsRequest, transitionsForAll, normaliseEffect, type ClipEffect, EXPORT_PROFILES, ExportProfile, isRejected, momentCoverage, SwapClipRequest, TOKEN_COSTS,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
 import { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -48,6 +48,7 @@ import { notHidden } from "../../core/access";
 import { Db, Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 import { AnalysisService } from "../analysis/analysis";
+import { WalletService } from "../wallet/wallet";
 import { CrossMatchService, EVENT_SCORE, eventLabel, eventMomentsForVideo } from "./cross-match";
 import { ProfileIntroService } from "../profileintro/profileintro";
 import { BrandService, rightsOk } from "./brand";
@@ -96,7 +97,8 @@ export interface BlockClipRow { in_pts_us: number; out_pts_us: number; label: st
 export class ReelsService {
   constructor(private readonly db: Db, @Inject(AnalysisService) private readonly analysis: AnalysisService, @Inject(BrandService) private readonly brand: BrandService,
               @Inject(ProfileIntroService) private readonly intro: ProfileIntroService,
-              @Inject(CrossMatchService) private readonly crossMatch: CrossMatchService) {}
+              @Inject(CrossMatchService) private readonly crossMatch: CrossMatchService,
+              @Inject(WalletService) private readonly wallet: WalletService) {}
 
   /** ADR-131: a reel's length cap in microseconds — a cross-match reel's chosen length, else 10 minutes as today. */
   private capUs(r: RowDataPacket): number {
@@ -1020,6 +1022,9 @@ export class ReelsService {
       transitions: reel.transitions.map((t) => ({ clip_id: t.clip_id, kind: t.kind, duration_us: t.duration_ms * 1000 })) };
     const manifestHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
     await this.db.tx(async (c) => {
+      // ADR-140: a render costs 10 tokens, charged at enqueue in this same transaction, so a render that fails to
+      // enqueue charges nothing. An idempotent replay returns the earlier render above and never re-charges.
+      await this.wallet.charge(c, p.organizationId, p.userId, { type: "REEL_RENDER", id: renderId, amount: TOKEN_COSTS.reelRender, reason: `Render of reel ${id} (10 tokens).` });
       await c.query("INSERT INTO render_jobs (id, reel_id, organization_id, requested_by, config, idempotency_key) VALUES (?, ?, ?, ?, ?, ?)",
         [renderId, id, p.organizationId, p.userId, JSON.stringify({ ...snapshot, snapshot_sha256: manifestHash }), key]);
       await c.query("UPDATE reel_projects SET status = 'RENDERING' WHERE id = ?", [id]);
@@ -1051,10 +1056,13 @@ export class ReelsService {
       const r = rows[0];
       if (!r) throw notFound("Render");
       if (r.state !== "QUEUED" && r.state !== "RUNNING") throw new ApiError(409, "RENDER_NOT_RUNNING", "This render has already finished.");
+      const wasQueued = r.state === "QUEUED";
       await c.query("UPDATE render_jobs SET state = 'CANCELLED', completed_at = CURRENT_TIMESTAMP(6) WHERE id = ?", [renderId]);
       await c.query("UPDATE worker_jobs SET state = 'CANCELLED', claim_token = NULL, lease_expires_at = NULL, finished_at = CURRENT_TIMESTAMP(6) "
         + "WHERE organization_id = ? AND kind = 'RENDER' AND subject_id = ? AND state IN ('QUEUED', 'RUNNING', 'PAUSED')", [p.organizationId, renderId]);
       await c.query("UPDATE reel_projects SET status = 'DRAFT' WHERE id = ? AND status = 'RENDERING'", [r.reel_id]);
+      // ADR-140: a render cancelled before it started never produced output, so its tokens come back.
+      if (wasQueued) await this.wallet.refundForJob(c, p.organizationId, p.userId, { type: "REEL_RENDER", id: renderId, reason: "Render cancelled before it started, so its tokens were returned." });
       await recordChange(c, userActor(p), { action: "reel.render_cancelled", entityType: "reel", entityId: r.reel_id as string, after: { render_id: renderId } });
     });
     return this.render(renderId, p);

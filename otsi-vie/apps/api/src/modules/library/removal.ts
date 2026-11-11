@@ -27,6 +27,7 @@ import { Db, Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 import { insertRun } from "../analysis/run";
 import { MediaService } from "../media/media";
+import { WalletService } from "../wallet/wallet";
 import { uuidParam } from "../players/players.controller";
 import { PROJECT_WRITERS } from "../projects/projects";
 
@@ -54,7 +55,7 @@ const NOUN: Record<RemovableKind, string> = { reel: "reel", render: "rendered fi
 
 @Injectable()
 export class LibraryRemovalService {
-  constructor(private readonly db: Db, private readonly media: MediaService) {}
+  constructor(private readonly db: Db, private readonly media: MediaService, private readonly wallet: WalletService) {}
 
   // ---------------------------------------------------------------- what a delete takes
 
@@ -319,8 +320,8 @@ export class LibraryRemovalService {
     const [runs] = await c.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM pipeline_runs WHERE video_id = ? AND organization_id = ?", [id, p.organizationId]);
     if (o[0]?.send_to_analysis && Number(runs[0]!.n) === 0) {
       // A.11: a video whose rights do not allow analysis comes back without one (the analysis can be started once they are recorded)
-      const runId = await insertRun(c, userActor(p), p.organizationId, id, { profile: o[0].stabilize_video ? "HIGH_ACCURACY" : "STANDARD" })
-        .catch((e: unknown) => { if (e instanceof ApiError && e.code === "RIGHTS_REQUIRED") return null; throw e; });
+      const runId = await insertRun(c, userActor(p), p.organizationId, id, { profile: o[0].stabilize_video ? "HIGH_ACCURACY" : "STANDARD" }, this.wallet)
+        .catch((e: unknown) => { if (e instanceof ApiError && (e.code === "RIGHTS_REQUIRED" || e.code === "INSUFFICIENT_TOKENS")) return null; throw e; });
       if (runId) await c.query("UPDATE video_ingest_options SET auto_outcome = 'STARTED', auto_run_id = ?, auto_detail = NULL, auto_decided_at = CURRENT_TIMESTAMP(6) WHERE video_id = ?", [runId, id]);
     }
   }

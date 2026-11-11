@@ -40,7 +40,7 @@ describe("command palette", () => {
     render(<CommandPalette />);
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const input = screen.getByRole("combobox", { name: "Search" });
-    expect(screen.getAllByRole("option")).toHaveLength(4 + 10);          // a Viewer: Players, Matches, Keyboard shortcuts, Security (no Upload, no Team) + 10 pages
+    expect(screen.getAllByRole("option")).toHaveLength(5 + 10);          // a Viewer: Players, Matches, Wallet, Keyboard shortcuts, Security (no Upload, no Team) + 10 pages
     expect(screen.queryByText("Upload a video")).toBeNull();
     fireEvent.change(input, { target: { value: "clip" } });
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([expect.stringContaining("Clip Studio"), expect.stringContaining("Search the Library for")]);

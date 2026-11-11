@@ -24,7 +24,7 @@ import { Body, Controller, Delete, Get, HttpCode, Inject, Injectable, Param, Pos
 import {
   AddPlayerNoteRequest, AssessmentBody, COHORT_MIN_SEEN_S, COHORT_NAMES, CohortGroup, CohortMetric, CreateDossierRequest, Dossier, PlayerAssessment, PlayerComparison,
   PlayerInsight, PlayerInsights, PlayerMeasures, PlayerNotes, PlayerReportJob, POSITION_LINES, SaveAssessmentRequest, SetPlayerTagsRequest, SPRINT_KMH, type HeatZones,
-  DEFAULT_REPORT_DESIGN, MakeReportRequest, REPORT_SECTIONS, ReportPreviewPage, type PlayerIdentity, type PlayerProfile, type ReportDesign,
+  DEFAULT_REPORT_DESIGN, MakeReportRequest, REPORT_SECTIONS, ReportPreviewPage, TOKEN_COSTS, type PlayerIdentity, type PlayerProfile, type ReportDesign,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
@@ -41,6 +41,7 @@ import { ApiError, notFound } from "../../core/problem";
 import { LocalStore } from "../../core/storage";
 import { AnalysisService } from "../analysis/analysis";
 import { HeatZonesService } from "../analysis/heat";
+import { WalletService } from "../wallet/wallet";
 import { uuidParam } from "../players/players.controller";
 import { playerProfile, PlayersService } from "../players/players.service";
 import { identityGate, requireIdentity } from "./gate";
@@ -142,7 +143,8 @@ export class PlayerReportService {
   private readonly store: LocalStore | null;
   private measureCache = new Map<string, { at: number; value: PlayerMeasures }>();
   constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db, @Inject(PlayersService) private readonly players: PlayersService,
-              @Inject(HeatZonesService) private readonly heat: HeatZonesService, @Inject(AnalysisService) private readonly analysis: AnalysisService) {
+              @Inject(HeatZonesService) private readonly heat: HeatZonesService, @Inject(AnalysisService) private readonly analysis: AnalysisService,
+              @Inject(WalletService) private readonly wallet: WalletService) {
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
   }
 
@@ -378,13 +380,18 @@ export class PlayerReportService {
     return ReportPreviewPage.parse({ html, gate: await identityGate(this.db, playerId, p.organizationId), generated_at: at.toISOString() });
   }
 
-  async makeReport(playerId: string, p: Principal, design: ReportDesign = DEFAULT_REPORT_DESIGN): Promise<PlayerReportJob> {
+  async makeReport(playerId: string, p: Principal, design: ReportDesign = DEFAULT_REPORT_DESIGN, opts: { charge?: boolean } = {}): Promise<PlayerReportJob> {
     if (!this.store) throw new ApiError(503, "STORAGE_NOT_CONFIGURED", "Media storage is not configured on this server.");
     await this.players.identity(playerId, p);
     await requireIdentity(this.db, playerId, p.organizationId);                                    // B.24: nothing about an unconfirmed identity leaves the page
     const id = uuidv7(), videoIds = await this.videosOf(playerId, p);
-    await this.db.rows(`INSERT INTO report_jobs (id, organization_id, player_id, requested_by, state, report_type, config) VALUES (?, ?, ?, ?, 'RUNNING', 'PLAYER_REPORT', ?)`,
-      [id, p.organizationId, playerId, p.userId, JSON.stringify({ video_ids: videoIds, design })]);
+    await this.db.tx(async (c) => {
+      // ADR-140: a player report costs 10 tokens, charged at enqueue in this same transaction, so a report that fails
+      // to start charges nothing. An export pack that embeds a fresh report charges the pack, not this (charge: false).
+      if (opts.charge !== false) await this.wallet.charge(c, p.organizationId, p.userId, { type: "PLAYER_REPORT", id, amount: TOKEN_COSTS.playerReport, reason: `Player report for ${playerId} (10 tokens).` });
+      await c.query(`INSERT INTO report_jobs (id, organization_id, player_id, requested_by, state, report_type, config) VALUES (?, ?, ?, ?, 'RUNNING', 'PLAYER_REPORT', ?)`,
+        [id, p.organizationId, playerId, p.userId, JSON.stringify({ video_ids: videoIds, design })]);
+    });
     try {
       const html = await this.reportHtmlOf(playerId, p, new Date(), design);
       const pdf = await printPdf(html, "OTSI VIE player report");
@@ -401,6 +408,13 @@ export class PlayerReportService {
     } catch (e) {
       const why = e instanceof ApiError ? e.message : "The PDF could not be made.";
       await this.db.rows("UPDATE report_jobs SET state = 'FAILED', failure = ?, completed_at = CURRENT_TIMESTAMP(6) WHERE id = ?", [why.slice(0, 255), id]);
+      // ADR-140: the report failed before producing output, so its tokens come back. Best-effort: a refund that
+      // itself fails must not hide the report's own failure; the FAILED row is the record either way.
+      if (opts.charge !== false) {
+        await this.db.tx(async (c) => {
+          await this.wallet.refundForJob(c, p.organizationId, p.userId, { type: "PLAYER_REPORT", id, reason: `Player report for ${playerId} failed before producing output, so its tokens were returned.` });
+        }).catch(() => undefined);
+      }
       if (e instanceof ApiError) throw e;
       throw new ApiError(500, "REPORT_FAILED", why);
     }

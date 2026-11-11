@@ -7,10 +7,10 @@ import { EMPTY_CTX } from "../src/lib/workContext";
 describe("command palette", () => {
   it("offers only what the role may do", () => {
     const ids = (role: string | null) => matchCommands(commands(EMPTY_CTX), role, "").map((c) => c.id);
-    expect(ids("OWNER")).toEqual(["upload", "players", "matches", "admin", "team", "keys", "security"]);
-    expect(ids("EDITOR")).toEqual(["upload", "players", "matches", "keys", "security"]);
-    expect(ids("VIEWER")).toEqual(["players", "matches", "keys", "security"]);
-    expect(ids(null)).toEqual(["players", "matches", "keys", "security"]);
+    expect(ids("OWNER")).toEqual(["upload", "players", "matches", "admin", "wallet", "billing", "team", "keys", "security"]);
+    expect(ids("EDITOR")).toEqual(["upload", "players", "matches", "wallet", "keys", "security"]);
+    expect(ids("VIEWER")).toEqual(["players", "matches", "wallet", "keys", "security"]);
+    expect(ids(null)).toEqual(["players", "matches", "wallet", "keys", "security"]);
   });
 
   it("puts the open reel and match first", () => {
@@ -20,7 +20,7 @@ describe("command palette", () => {
 
   it("matches the words, the label's start first", () => {
     const m = (q: string) => matchCommands(commands(EMPTY_CTX), "OWNER", q).map((c) => c.id);
-    expect(m("up")).toEqual(["upload"]);
+    expect(m("up")).toEqual(["upload", "billing"]);   // "top up" is in Billing's words
     expect(m("invite")).toEqual(["team"]);
     expect(m("2fa")).toEqual(["security"]);
     expect(m("  MATCH ")).toEqual(["matches", "upload"]);   // "a match" is in Upload's hint

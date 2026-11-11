@@ -2,22 +2,34 @@
  * Creating an analysis run (Blocks 05-06). One function, used by the "start analysis" request AND by the server's automatic start after an
  * upload ("Send to Analysis", subscriber jobs.auto_analysis), so both write exactly the same run, steps, audit row and event.
  */
-import { CreateAnalysisRequest, PROFILES } from "@otsi-vie/contracts";
+import { analysisCostTokens, CreateAnalysisRequest, PROFILES } from "@otsi-vie/contracts";
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, type Actor } from "../../core/audit";
 import type { Executor } from "../../core/db";
 import { ApiError } from "../../core/problem";
 import { analysisRightsBlock } from "../sharing/rights";
+import type { WalletService } from "../wallet/wallet";
 
 export const RUN_STEPS = ["SHOTS", "DETECT", "TRACK", "IDENTIFY"] as const;
 
-/** Inserts a QUEUED run with its steps in the caller's transaction and announces it (analysis.requested). Returns the run id. */
-export async function insertRun(c: Executor, actor: Actor, organizationId: string, videoId: string, body: CreateAnalysisRequest): Promise<string> {
+/** Inserts a QUEUED run with its steps in the caller's transaction and announces it (analysis.requested). Returns the run id.
+ *  When a wallet is passed, the run's token cost (ADR-140: 1 token per started minute of the video's measured duration) is
+ *  charged in this same transaction, so a run that fails to enqueue charges nothing. Callers without a wallet to pass — the
+ *  outbox auto-analysis subscriber has no services — do not charge yet (ADR-140 §7, known gap). */
+export async function insertRun(c: Executor, actor: Actor, organizationId: string, videoId: string, body: CreateAnalysisRequest, wallet?: WalletService): Promise<string> {
   // A.11 (ADR-077): only a video whose current rights allow analysis is analysed, whoever or whatever starts it
   const blocked = await analysisRightsBlock(c, organizationId, videoId);
   if (blocked) throw new ApiError(409, "RIGHTS_REQUIRED", blocked.text);
   const id = uuidv7();
+  if (wallet) {
+    // ADR-140: analysis is charged at enqueue. A video with no measured duration cannot be priced: the run is refused
+    // rather than charged a guessed number.
+    const [vrows] = await c.query<RowDataPacket[]>("SELECT duration_us FROM video_sources WHERE id = ? AND organization_id = ?", [videoId, organizationId]);
+    const cost = analysisCostTokens(vrows[0]?.duration_us === null || vrows[0]?.duration_us === undefined ? null : Number(vrows[0].duration_us));
+    if (cost === null) throw new ApiError(409, "VIDEO_DURATION_UNKNOWN", "This video has no measured duration, so its token cost cannot be worked out. The analysis did not start and nothing was charged.");
+    await wallet.charge(c, organizationId, actor.kind === "USER" ? actor.userId : null, { type: "ANALYSIS", id, amount: cost, reason: `Analysis of video ${videoId}: ${cost} tokens for ${cost} minute(s) of footage.` });
+  }
   // the profile's settings, written out in full: the worker obeys the run's config and the run records exactly how it was analysed
   const prof = PROFILES[body.profile];
   const grids = body.tiles === undefined ? prof.grids : body.tiles === 1 ? [] : [2];

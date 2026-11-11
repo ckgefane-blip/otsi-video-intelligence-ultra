@@ -1,6 +1,6 @@
 "use client";
 import * as Dialog from "@radix-ui/react-dialog";
-import { LogOut, ShieldCheck, Sliders, Users } from "lucide-react";
+import { LogOut, ShieldCheck, Sliders, Users, Wallet } from "lucide-react";
 import type { Me } from "@otsi-vie/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -148,6 +148,12 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
             <button type="button" data-two-step-open onClick={() => router.push("/settings/security")}
               className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
               <ShieldCheck className="h-4 w-4" /> 2-step sign-in
+            </button>
+          </Dialog.Close>
+          <Dialog.Close asChild>
+            <button type="button" data-wallet-open onClick={() => router.push("/settings/wallet")}
+              className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
+              <Wallet className="h-4 w-4" /> Token Wallet
             </button>
           </Dialog.Close>
           <button type="button" data-welcome-replay onClick={() => router.push("/welcome")}

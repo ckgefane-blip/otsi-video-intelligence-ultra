@@ -18,6 +18,8 @@ export function commands(ctx: Ctx): Command[] {
     { id: "players", label: "Players", hint: "Every player the organization has recorded", href: "/players", roles: ALL, words: "roster people list" },
     { id: "matches", label: "Matches", hint: "Matches, clubs and team sheets", href: "/matches", roles: ALL, words: "fixtures games clubs teams" },
     { id: "admin", label: "Admin console", hint: "Models, workers, concurrency, audit log", href: "/settings/admin", roles: MANAGERS, words: "admin console workers concurrency models audit logs system governance" },
+    { id: "wallet", label: "Token Wallet", hint: "Balance, ledger, token packs", href: "/settings/wallet", roles: ALL, words: "wallet tokens balance credits packs buy ledger billing" },
+    { id: "billing", label: "Billing", hint: "Pack requests, top-ups, refunds, ledger", href: "/settings/admin/billing", roles: MANAGERS, words: "billing invoices bank transfer top up refund adjust packs" },
     { id: "team", label: "Team and roles", hint: "Invite people, change roles", href: "/settings/team", roles: MANAGERS, words: "invite members users access" },
     { id: "keys", label: "Keyboard shortcuts", hint: "Every key, this page's first (also: ?)", href: KEYMAP_HREF, roles: ALL, words: "keys keyboard hotkeys map" },
     { id: "security", label: "Security: two-step sign-in", hint: "Your account's sign-in protection", href: "/settings/security", roles: ALL, words: "password mfa 2fa account" },

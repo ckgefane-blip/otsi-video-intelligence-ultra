@@ -27,6 +27,7 @@ import { ApiError, notFound } from "../../core/problem";
 import { LocalStore } from "../../core/storage";
 import { uuidParam } from "../players/players.controller";
 import { insertRun } from "./run";
+import { WalletService } from "../wallet/wallet";
 
 const MAX_WINDOW_US = 20_000_000;
 /** appearance cosine of a track's first and last thirds below this: it may contain two people (worker: vie_worker.analyze.DRIFT_WARNING) */
@@ -43,7 +44,7 @@ export class AnalysisService {
   private readonly store: LocalStore | null;
   private readonly key: Buffer;
 
-  constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db) {
+  constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db, @Inject(WalletService) private readonly wallet: WalletService) {
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
     // signing key for media URLs: configured in deployments; otherwise per process (URLs then end with a restart)
     this.key = cfg.mediaSigningKey ? Buffer.from(cfg.mediaSigningKey, "utf8") : randomBytes(32);
@@ -80,7 +81,7 @@ export class AnalysisService {
     if (v.state !== "INGESTED") throw new ApiError(409, "VIDEO_NOT_READY", "Only a verified video can be analysed.");
     const open = await this.db.one<RowDataPacket>("SELECT id FROM pipeline_runs WHERE video_id = ? AND organization_id = ? AND status IN ('QUEUED', 'RUNNING')", [videoId, p.organizationId]);
     if (open) throw new ApiError(409, "ANALYSIS_ALREADY_RUNNING", "This video is already being analysed.");
-    const id = await this.db.tx((c) => insertRun(c, userActor(p), p.organizationId, videoId, body));
+    const id = await this.db.tx((c) => insertRun(c, userActor(p), p.organizationId, videoId, body, this.wallet));
     return this.view(await this.run(id, p));
   }
 
@@ -98,10 +99,14 @@ export class AnalysisService {
       const [rows] = await c.query<RowDataPacket[]>("SELECT status FROM pipeline_runs WHERE id = ? AND organization_id = ? FOR UPDATE", [id, p.organizationId]);
       if (!rows[0]) throw notFound("Analysis run");
       if (!["QUEUED", "RUNNING"].includes(rows[0].status as string)) throw new ApiError(409, "RUN_NOT_ACTIVE", "This run has already finished.");
+      const wasQueued = rows[0].status === "QUEUED";
       await c.query("UPDATE pipeline_runs SET status = 'CANCELLED', finished_at = CURRENT_TIMESTAMP(6) WHERE id = ?", [id]);
       await c.query("UPDATE pipeline_steps SET status = 'CANCELLED' WHERE run_id = ? AND status IN ('QUEUED', 'RUNNING')", [id]);
       await c.query("UPDATE worker_jobs SET state = 'CANCELLED', finished_at = CURRENT_TIMESTAMP(6) WHERE organization_id = ? AND subject_type = 'analysis_run' AND subject_id = ? AND state IN ('QUEUED', 'PAUSED')",
         [p.organizationId, id]);
+      // ADR-140: a run cancelled before it started never produced output, so its tokens come back. A run already
+      // running has done work: its tokens stay spent.
+      if (wasQueued) await this.wallet.refundForJob(c, p.organizationId, p.userId, { type: "ANALYSIS", id, reason: "Analysis cancelled before it started, so its tokens were returned." });
       await recordChange(c, userActor(p), { action: "analysis.cancelled", entityType: "analysis_run", entityId: id });
     });
     return this.get(id, p);

@@ -12,7 +12,7 @@
  */
 import { Body, Controller, Get, HttpCode, Inject, Injectable, Param, Post, Query, Res, UseGuards } from "@nestjs/common";
 import { BUILTIN_PRESETS, BUNDLE_ITEM_NAMES, BundleItemKind, CreateBundleRequest, CreateDeliveryRequest, CreatedDelivery, Delivery, ExportBundle,
-  InterchangeExport, PreviewKind, ReportPreview, buildInterchangeExport, type PlayerEvent, type PlayerMeasures, type Reel } from "@otsi-vie/contracts";
+  InterchangeExport, PreviewKind, ReportPreview, TOKEN_COSTS, buildInterchangeExport, type PlayerEvent, type PlayerMeasures, type Reel } from "@otsi-vie/contracts";
 import type { FastifyReply } from "fastify";
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
@@ -32,6 +32,7 @@ import { LocalStore } from "../../core/storage";
 import { AnalysisService } from "../analysis/analysis";
 import { HeatZonesService } from "../analysis/heat";
 import { PlayerReportService } from "../playerreport/playerreport";
+import { WalletService } from "../wallet/wallet";
 import { uuidParam } from "../players/players.controller";
 import { PROJECT_WRITERS } from "../projects/projects";
 import { ExportPresetsService } from "../reels/export-presets";
@@ -160,7 +161,8 @@ export class ExportsService {
   constructor(@Inject(CONFIG) cfg: Config, private readonly db: Db, @Inject(ReelsService) private readonly reels: ReelsService,
               @Inject(HeatZonesService) private readonly heat: HeatZonesService, @Inject(PlayerReportService) private readonly reports: PlayerReportService,
               @Inject(AnalysisService) private readonly analysis: AnalysisService, @Inject(SharingService) private readonly sharing: SharingService,
-              @Inject(ExportPresetsService) private readonly presets: ExportPresetsService) {
+              @Inject(ExportPresetsService) private readonly presets: ExportPresetsService,
+              @Inject(WalletService) private readonly wallet: WalletService) {
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
   }
 
@@ -228,8 +230,15 @@ export class ExportsService {
     const store = this.needStore();
     const { reel, projectId, render } = await this.finished(reelId, p);
     const id = uuidv7();
-    await this.db.rows("INSERT INTO export_bundles (id, organization_id, reel_id, render_id, requested_by, items) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, p.organizationId, reelId, render.id, p.userId, JSON.stringify(body.items)]);
+    await this.db.tx(async (c) => {
+      // ADR-140: an export pack costs 10 tokens, charged at enqueue in this same transaction, so a pack that fails
+      // to start charges nothing. The pack's items are made one by one afterwards; a single item failing does not
+      // refund the pack (the other items were produced), and a report embedded in the pack is covered by this
+      // charge, not charged again (see the makeReport call below).
+      await this.wallet.charge(c, p.organizationId, p.userId, { type: "EXPORT_PACK", id, amount: TOKEN_COSTS.exportPack, reason: `Export pack for reel ${reelId} (10 tokens).` });
+      await c.query("INSERT INTO export_bundles (id, organization_id, reel_id, render_id, requested_by, items) VALUES (?, ?, ?, ?, ?, ?)",
+        [id, p.organizationId, reelId, render.id, p.userId, JSON.stringify(body.items)]);
+    });
     const playerId = reel.player?.player_id ?? null;
     const org = String((await this.db.one<RowDataPacket>("SELECT name FROM organizations WHERE id = ?", [p.organizationId]))?.name ?? "");
     let events: PlayerEvent[] | null = null;
@@ -239,7 +248,7 @@ export class ExportsService {
       try {
         if (!playerId) throw new NotMeasured("The reel has no player.");
         if (kind === "PERFORMANCE_PDF") {
-          const job = await this.reports.makeReport(playerId, p);
+          const job = await this.reports.makeReport(playerId, p, undefined, { charge: false });   // ADR-140: the pack's 10 tokens cover this report
           const a = await this.db.one<RowDataPacket>("SELECT a.id, a.byte_size, a.sha256 FROM report_jobs j JOIN assets a ON a.id = j.output_asset_id WHERE j.id = ?", [job.id]);
           if (!a) throw new Error("The report has no file.");
           await this.db.rows("INSERT INTO export_bundle_items (bundle_id, kind, state, asset_id, report_job_id, byte_size, sha256) VALUES (?, ?, 'SUCCEEDED', ?, ?, ?, ?)",

@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from migrate import connect  # noqa: E402
 
-APPEND_ONLY = {"audit_events", "track_identity_decisions", "event_decisions", "identity_review_history", "track_link_decisions", "match_roster_changes", "run_team_assignments", "jersey_number_decisions", "formation_decisions"}
+APPEND_ONLY = {"audit_events", "track_identity_decisions", "event_decisions", "identity_review_history", "track_link_decisions", "match_roster_changes", "run_team_assignments", "jersey_number_decisions", "formation_decisions", "wallet_ledger"}
 # Written ONLY through the allocator / merge procedures (ADR-016): the runtime account may read them, never write them directly.
 PROCEDURE_OWNED = {"canonical_id_issuances", "canonical_id_sequences", "player_merges", "countries"}
 # players: the runtime account may edit descriptive attributes only; the canonical ID, state, merge link and provenance are set by the

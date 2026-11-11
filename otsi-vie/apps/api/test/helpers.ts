@@ -40,6 +40,7 @@ export async function seedMember(db: mysql.Connection, role = "OWNER", orgId?: s
   const subject = `sub-${randomUUID()}`;
   await db.query("INSERT INTO users (id, external_subject, email, display_name) VALUES (?, ?, ?, ?)", [userId, subject, `${subject}@test.invalid`, "Test User"]);
   await db.query("INSERT INTO memberships (organization_id, user_id, role, status) VALUES (?, ?, ?, 'ACTIVE')", [org, userId, role]);
+  await seedWallet(db, org);
   return { userId, subject, orgId: org, role, headers: { authorization: `Bearer ${await token(subject)}`, "x-organization-id": org } };
 }
 
@@ -56,6 +57,17 @@ export async function seedTracks(db: mysql.Connection, m: Member, n = 1): Promis
     trackIds.push(t);
   }
   return { runId, videoId, trackIds };
+}
+
+/** ADR-140: the token wallet charges at enqueue, so a test organization needs tokens before its flows can start
+ *  an analysis, a render, a report or an export pack. One clearly-labelled test grant per organization, as an
+ *  ADJUSTMENT row with its reason — never a silent balance. Tests that need an UNFUNDED wallet (the 402 path)
+ *  create their organization with raw SQL instead of seedMember. */
+export async function seedWallet(db: mysql.Connection, orgId: string, tokens = 100_000): Promise<void> {
+  const [rows] = await db.query<mysql.RowDataPacket[]>("SELECT COALESCE(SUM(amount), 0) AS balance FROM wallet_ledger WHERE organization_id = ?", [orgId]);
+  const balance = Number(rows[0]?.balance ?? 0) + tokens;
+  await db.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, idempotency_key, reason) VALUES (?, ?, 'ADJUSTMENT', ?, ?, ?, ?)",
+    [uuidv7(), orgId, tokens, balance, `test-seed:${orgId}:${balance}`, "Test fixture: funds the organization so pre-existing flows can enqueue (ADR-140)."]);
 }
 
 export const key = () => `k-${randomUUID()}`;
