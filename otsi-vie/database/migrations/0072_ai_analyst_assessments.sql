@@ -38,7 +38,7 @@ CREATE TABLE `ai_analyst_assessments` (
   `model` VARCHAR(128) NOT NULL,
   `prompt_version` VARCHAR(32) NOT NULL,
   `post_check` JSON NOT NULL,
-  `stale` TINYINT(1) NOT NULL DEFAULT 0,
+  `stale` TINYINT NOT NULL DEFAULT 0,
   `not_enough_data_reason` VARCHAR(500) NULL,
   `failure` VARCHAR(500) NULL,
   `requested_by` CHAR(36) NOT NULL,
