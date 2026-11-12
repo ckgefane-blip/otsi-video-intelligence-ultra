@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
-import { AdminConsole } from "@/components/admin/AdminConsole";
-import { SettingsNav } from "@/components/settings/SettingsNav";
+import { PlatformHealth } from "@/components/admin/PlatformHealth";
+import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
-export const metadata: Metadata = { title: "Admin Console" };
+export const metadata: Metadata = { title: "Platform Health" };
 
 /**
- * Account / Governance > Admin console: Members, Model Registry, Worker Concurrency & Audit Logs.
- * Available to Owners and Admins (v3 Phase D.3, ADR-111).
+ * Admin Console > Platform Health (SOT, Admin.dc.html): review inbox,
+ * jobs running, licence, release control and models, plus the concurrency
+ * sliders and the review inbox. Available to Owners and Admins (Advanced).
+ * The Settings side nav is shared by the Settings and Admin Console pages.
+ * The old tabbed AdminConsole is no longer routed here; its content lives
+ * on the new pages (gates → release, models → models, retention/audit →
+ * compliance, concurrency/workers → this page).
  */
 export default function AdminPage() {
   return (
-    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4" data-page="settings-admin">
-      <SettingsNav current="admin" />
-      <AdminConsole />
+    <div className="flex min-h-full w-full" data-stage="settings-admin" data-page="settings-admin">
+      <SettingsSideNav current="admin" />
+      <PlatformHealth />
     </div>
   );
 }

@@ -68,6 +68,9 @@ export const AdminConcurrencySettings = z.object({
   max_concurrent_analysis: z.number().int().min(1).max(16).default(1),
   max_concurrent_ingest: z.number().int().min(1).max(16).default(2),
   queue_paused: z.boolean().default(false),
+  analysis_paused: z.boolean().default(false),
+  renders_paused: z.boolean().default(false),
+  ingest_paused: z.boolean().default(false),
 });
 export type AdminConcurrencySettings = z.infer<typeof AdminConcurrencySettings>;
 

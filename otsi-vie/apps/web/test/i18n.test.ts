@@ -447,6 +447,10 @@ describe("dictionaries (ADR-139)", () => {
       "body.admin.releaseColStatus",
       "body.admin.releaseGateG06Name",
       "body.admin.compBackups",
+      "body.admin.healthLicence",
+      "body.admin.healthConcAnalysis",
+      "body.admin.healthConcRenders",
+      "body.admin.healthConcIngests",
       "body.admin.queueActiveWord",
       "body.admin.gdprAction",
       "body.admin.gdprColDate",
@@ -549,7 +553,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // Group E (2026-11-11): Admin + Settings + Wallet + Shell + Auth, and
     // the Home extension (KPI cards, capability tiles, hero metrics, hero
     // player card, review inbox, active jobs).
-    expect(bodyKeys("admin").length).toBe(250);
+    expect(bodyKeys("admin").length).toBe(274);
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
     expect(bodyKeys("shell").length).toBe(244);
