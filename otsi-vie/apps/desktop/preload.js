@@ -10,6 +10,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('otsi', {
   onStatus: (fn) => ipcRenderer.on('status', (_event, text) => fn(text)),
+  /** one start-up step at a time ({ id, label, state: 'active' | 'done' | 'warn' }): the splash renders its
+   *  steps from these events, so the list shows every real stage instead of three hardcoded rows */
+  onStep: (fn) => ipcRenderer.on('step', (_event, step) => fn(step)),
   onLog: (fn) => ipcRenderer.on('log', (_event, line) => fn(line)),
   onUpdateStatus: (fn) => ipcRenderer.on('update-status', (_event, text) => fn(text)),
   onHardware: (fn) => ipcRenderer.on('hardware', (_event, data) => fn(data)),

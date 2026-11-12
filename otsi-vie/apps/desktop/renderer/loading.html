@@ -13,9 +13,10 @@
     user-select: none;
     overflow: hidden;
   }
-  /* the SOT splash (Splash.dc.html), fitted to the 480x380 loading window: the centred logo, the progress
-   * bar, "Starting the engine…" with the version, the three start-up steps, and the offline-grace footer.
-   * The faint pitch outline sits behind it all, as in the SOT. */
+  /* the SOT splash (Splash.dc.html), fitted to the 480x480 loading window: the centred logo, the progress
+   * bar, "Starting the engine…" with the version, the start-up steps, and the offline-grace footer.
+   * The faint pitch outline sits behind it all, as in the SOT. The steps are NOT in the markup: the main
+   * process sends one step event per real stage and the list below grows from those events. */
   #status-view {
     position: relative;
     display: flex;
@@ -156,11 +157,7 @@
         <div class="bar"><div id="bar-fill"></div></div>
         <div class="bar-row"><span class="sub" id="status">Starting the engine…</span><span class="ver" id="version">v—</span></div>
       </div>
-      <ul class="steps" id="steps">
-        <li data-step="workspace"><span class="todo" aria-hidden="true"></span><span class="mut">Local workspace opened</span></li>
-        <li data-step="models"><span class="todo" aria-hidden="true"></span><span class="mut">Loading analysis models</span></li>
-        <li data-step="licence"><span class="todo" aria-hidden="true"></span><span class="mut">Checking licence</span></li>
-      </ul>
+      <ul class="steps" id="steps"><!-- steps arrive from the main process, one per real start-up stage --></ul>
     </div>
     <p class="foot">Video work runs on this computer · offline grace period applies when the server can’t be reached</p>
   </div>
@@ -220,46 +217,61 @@
     $('error-view').classList.toggle('hidden', view !== 'error');
   }
 
-  /* The three start-up steps, driven by the status text the main process sends. The SOT shows the
-   * middle of the start-up: the workspace open, the models loading, the licence still to check. */
+  /* The start-up steps, one per real stage, driven by the step events the main process sends
+   * ({ id, label, state }). The list starts empty and grows as stages begin: a step appears when
+   * its stage starts, turns done when the next stage starts, and warns if its stage fails. Nothing
+   * here is hardcoded to a fixed set of steps, and no step is inferred from the status text. */
   const CHECK = '<svg class="ok" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>';
   const SPIN = '<span class="spin" aria-hidden="true"></span>';
   const TODO = '<span class="todo" aria-hidden="true"></span>';
   const WARN = '<span class="warn" aria-hidden="true">!</span>';
-  function setStep(name, state) {
-    const li = document.querySelector(`#steps [data-step="${name}"]`);
-    if (!li) return;
+  function paintStep(li, state) {
     const icon = li.firstElementChild;
     const label = li.lastElementChild;
     icon.outerHTML = state === 'done' ? CHECK : state === 'active' ? SPIN : state === 'warn' ? WARN : TODO;
-    label.className = state === 'done' ? '' : state === 'active' ? '' : 'mut';
-    if (state === 'warn') label.className = '';
+    label.className = state === 'done' || state === 'active' || state === 'warn' ? '' : 'mut';
+  }
+  function renderStep(step) {
+    if (!step || !step.id) return;
+    let li = document.querySelector(`#steps [data-step="${step.id}"]`);
+    if (!li) {
+      li = document.createElement('li');
+      li.dataset.step = step.id;
+      li.innerHTML = '<span class="todo" aria-hidden="true"></span><span class="mut"></span>';
+      $('steps').appendChild(li);
+    }
+    li.lastElementChild.textContent = step.label || step.id;
+    // a new stage starting means every stage before it finished
+    if (step.state === 'active') {
+      document.querySelectorAll('#steps li').forEach((el) => { if (el !== li) paintStep(el, 'done'); });
+    }
+    paintStep(li, step.state || 'active');
   }
   function setProgress(pct) { $('bar-fill').style.width = pct + '%'; }
   function applyStatus(text) {
     $('status').textContent = text;
-    // the main process's start-up order (main.js): Starting / Checking this PC / AI runtimes /
-    // database / AI models / licence / Starting the engine / Opening the engine
+    // the progress bar only: the steps come from the step events, not from this text
     if (/licence expired/i.test(text)) {
-      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'warn'); setProgress(70);
+      setProgress(70);
     } else if (/opening the engine/i.test(text)) {
-      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'done'); setProgress(100);
+      setProgress(100);
     } else if (/starting the engine/i.test(text)) {
-      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'done'); setProgress(90);
+      setProgress(90);
     } else if (/checking the licence/i.test(text)) {
-      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'active'); setProgress(70);
+      setProgress(70);
     } else if (/models ready|ai models/i.test(text)) {
-      setStep('workspace', 'done'); setStep('models', 'active'); setStep('licence', 'pending'); setProgress(38);
+      setProgress(38);
     } else if (/database/i.test(text)) {
-      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(25);
+      setProgress(25);
     } else if (/ai runtimes|checking this pc/i.test(text)) {
-      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(15);
+      setProgress(15);
     } else {
-      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(8);
+      setProgress(8);
     }
   }
 
   window.otsi.onStatus((text) => applyStatus(text));
+  window.otsi.onStep((step) => renderStep(step));
   // the update and hardware notes are not shown on the SOT splash; they are still collected into the
   // log so the error view can show them if the start-up fails.
   window.otsi.onUpdateStatus((text) => { if (text) appendLog('[update] ' + text + '\n'); });

@@ -87,6 +87,15 @@ function setStatus(text) {
   }
 }
 
+/** one start-up step, sent as a structured event so the splash renders its steps from the real stages
+ *  instead of three hardcoded rows: { id, label, state }. The splash marks every earlier step done
+ *  when a new one turns active, so the main process only has to announce each stage as it starts. */
+function setStep(id, label, state) {
+  if (loadingWin && !loadingWin.isDestroyed()) {
+    loadingWin.webContents.send('step', { id, label, state });
+  }
+}
+
 function sendUpdateStatus(text) {
   if (text) pushLog(`-- update: ${text}\n`);
   if (loadingWin && !loadingWin.isDestroyed()) {
@@ -130,7 +139,7 @@ function waitForOwner() {
 function createLoadingWindow() {
   loadingWin = new BrowserWindow({
     width: 480,
-    height: 380,
+    height: 480, // tall enough for every start-up step to load out dynamically (up to 9 with the owner step)
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -332,6 +341,7 @@ async function startup() {
   };
 
   setStatus('Starting OTSI VIE...');
+  setStep('starting', 'Starting OTSI VIE', 'active');
 
   // The installer ships pre-built code. If a bundled component is missing
   // or corrupt, say so plainly and stop — never download source or build.
@@ -346,6 +356,7 @@ async function startup() {
   checkAborted();
 
   setStatus('Checking this PC...');
+  setStep('hardware', 'Checking this PC', 'active');
   const detection = await backend.hardware.detect(data);
   sendHardware(detection);
   pushLog(`Hardware: ${detection.summary}\n`);
@@ -353,6 +364,7 @@ async function startup() {
   checkAborted();
 
   setStatus('Checking the AI runtimes...');
+  setStep('runtimes', 'Checking the AI runtimes', 'active');
   const runtime = backend.ensureAiRuntime(engine, log);
   if (!runtime.ok) {
     if (devMode) {
@@ -387,15 +399,18 @@ async function startup() {
   checkAborted();
 
   setStatus('Setting up the database...');
+  setStep('database', 'Setting up the database', 'active');
   const { env, mysqlSupervisor } = await backend.prepareDatabase(engine, data, userData, detection, log, devMode);
   checkAborted();
 
   setStatus('Getting the AI models ready (first time, a few minutes)...');
+  setStep('models', 'Loading analysis models', 'active');
   await backend.ensureModels(engine, data, log);
   checkAborted();
 
   if (!backend.ownerMarkerExists(data)) {
     setStatus('One last thing: your owner account.');
+    setStep('owner', 'Setting up your owner account', 'active');
     showOwnerForm();
     const details = await waitForOwner();
     checkAborted();
@@ -426,14 +441,17 @@ async function startup() {
   // the compiled native engine enforces the licence. The shell never
   // treats a plain flag as proof.
   setStatus('Checking the licence...');
+  setStep('licence', 'Checking licence', 'active');
   const licenceStatus = await backend.licence.refreshLicence(userData, log);
   if (licenceStatus.note) pushLog(`Licence: ${licenceStatus.note}\n`);
   if (licenceStatus.state === 'expired') {
     setStatus('Licence expired — analysis stays paused until the app can reach the server again.');
+    setStep('licence', 'Checking licence', 'warn');
   }
   checkAborted();
 
   setStatus('Starting the engine...');
+  setStep('engine', 'Starting the engine', 'active');
   backendHandle = backend.startBackend(engine, data, env, backendLogStream, log, mysqlSupervisor, devMode);
   // If the engine process dies, say so at once instead of waiting 4 minutes.
   const first = await Promise.race([
@@ -448,6 +466,7 @@ async function startup() {
   checkAborted();
 
   setStatus('Opening the engine...');
+  setStep('opening', 'Opening the engine', 'active');
   createMainWindow();
   if (loadingWin && !loadingWin.isDestroyed()) loadingWin.close();
 
