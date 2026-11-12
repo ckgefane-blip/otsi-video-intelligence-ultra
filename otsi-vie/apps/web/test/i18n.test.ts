@@ -460,6 +460,10 @@ describe("dictionaries (ADR-139)", () => {
       "body.home.hmQualityFhd",
       "body.home.hmQualityUhd",
       "body.shell.jcTokens",             // "Tokens" is the product term in every language
+      "body.library.lbTracking",         // German "Tracking" is the same word
+      "body.library.lbTag",              // German "Tag" is the same word
+      "body.library.lbDetails",          // German "Details" is the same word
+      "body.library.lbCollections",      // French "Collections" is the same word
       "body.shell.ksGeneral",            // Spanish "General" is the same word
       "body.admin.severityInfo",
       "body.admin.metricWorkers",
@@ -588,7 +592,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("reels").length).toBe(212);
     expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(338);
-    expect(bodyKeys("library").length).toBe(650);
+    expect(bodyKeys("library").length).toBe(690);
     expect(bodyKeys("exports").length).toBe(90);
     expect(bodyKeys("players").length).toBe(110);
     expect(bodyKeys("matches").length).toBe(108);

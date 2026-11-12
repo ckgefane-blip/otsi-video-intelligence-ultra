@@ -1,0 +1,89 @@
+/** SOT rebuild page 14 (alphabetical), Library: the three-column SOT layout — the left panel (Match + overlays + team + time),
+ * the centre (header, the selected video, search and the items table) and the right inspector (Collections + Folders + Smart bins). */
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { LibraryStage } from "@/components/library/LibraryStage";
+
+const api = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api", () => ({ api, ApiProblem: class ApiProblem extends Error { constructor(public code: string, msg: string) { super(msg); } } }));
+vi.mock("next/link", () => ({ default: ({ href, children, ...p }: { href: string; children: React.ReactNode }) => <a href={href} {...p}>{children}</a> }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push: vi.fn() }), usePathname: () => "/library" }));
+vi.mock("@/components/auth/AuthProvider", () => ({ useAuth: () => ({ organization: { organization_id: "org-1", role: "OWNER" }, me: { user: { id: "u1" } } }) }));
+vi.mock("@/lib/currentVideo", () => ({ recallVideo: () => null }));
+vi.mock("@/components/media/VideoPlayer", () => ({ VideoPlayer: ({ empty }: { empty?: { title: string; body: string } }) => <div data-testid="player">{empty?.title ?? ""}</div> }));
+
+const MATCH = {
+  id: "11111111-1111-4111-8111-111111111111", competition: "Abkhazia Premier League", season: null, kickoff_at: null, venue: null,
+  home: { id: "h1", name: "Nart", short_name: "Nart" }, away: { id: "a1", name: "Ercakhu", short_name: "Ercakhu" },
+  home_score: null, away_score: null, version: 1, video_ids: ["22222222-2222-4222-8222-222222222222"], roster: [],
+};
+const REEL = {
+  id: "55555555-5555-4555-8555-555555555555", name: "Chinazom Godwin — highlights", video_id: "22222222-2222-4222-8222-222222222222",
+  player: { display_name: "Chinazom Godwin" }, clips: new Array(58).fill({}), duration_us: 597200000, created_at: "2026-11-10T00:00:00Z",
+  updated_at: "2026-11-10T00:00:00Z", last_good_render: { id: "r1", has_output: true }, latest_render: null, created_by: null,
+  aspect: "16:9", formats: [],
+};
+const PLAYER = {
+  player_id: "44444444-4444-4444-8444-444444444444", display_name: "Chinazom Godwin", canonical_otsi_id: "OTSI-NGA-2026-000001",
+  profile: { position: "DM", latest_team: { jersey_number: 4, position: "DM", team: "FC Ercakhu" } },
+};
+const EVENTS = { video_id: "22222222-2222-4222-8222-222222222222", state: "READY", ball_track_id: null, match_time: true, counted_s: 0, possession_known_s: 0,
+  teams: [], passes: new Array(13).fill({}), changes: new Array(8).fill({}), shots: [], pressures: new Array(6).fill({}), set_pieces: new Array(51).fill({}), goals: [], rejected_events_count: 0 };
+
+api.mockImplementation((path: string) => {
+  if (path === "/v1/reels") return Promise.resolve([REEL]);
+  if (path === "/v1/matches") return Promise.resolve([MATCH]);
+  if (path === "/v1/projects") return Promise.resolve([]);
+  if (path === "/v1/videos") return Promise.resolve([]);
+  if (path === "/v1/library/folders") return Promise.resolve([]);
+  if (path === "/v1/library/folder-items") return Promise.resolve([]);
+  if (path === "/v1/templates") return Promise.resolve([]);
+  if (path === "/v1/library/facts") return Promise.resolve({ videos: [] });
+  if (path === "/v1/player-list") return Promise.resolve([PLAYER]);
+  if (path === "/v1/smart-bins") return Promise.resolve([]);
+  if (path === "/v1/saved-searches") return Promise.resolve([]);
+  if (path.startsWith("/v1/videos/") && path.endsWith("/events")) return Promise.resolve(EVENTS);
+  if (path.startsWith("/v1/videos/") && path.endsWith("/match-periods")) return Promise.resolve({ state: "CONFIRMED", first: null, second: null });
+  if (path.startsWith("/v1/videos/") && path.endsWith("/playback")) return Promise.reject(new Error("no footage"));
+  return Promise.reject(new Error(`unexpected ${path}`));
+});
+
+describe("Library (SOT)", () => {
+  it("shows the SOT's three columns and the real items", async () => {
+    render(<LibraryStage />);
+    await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
+    // left panel: match + overlays + team + time
+    expect(screen.getByText("Visual overlays")).toBeInTheDocument();
+    expect(screen.getByText("Player Boxes")).toBeInTheDocument();
+    expect(screen.getByText("Ball Tracking")).toBeInTheDocument();
+    expect(screen.getByText("All Players")).toBeInTheDocument();
+    expect(screen.getByText("Full Match")).toBeInTheDocument();
+    // centre: header + player + search + table
+    expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
+    expect(screen.getByText("Upload a match video")).toBeInTheDocument();
+    expect(screen.getByTestId("player")).toHaveTextContent("No playable footage");
+    expect(screen.getByPlaceholderText("Search videos, players, reels and reports")).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
+    expect(screen.getByText("Chinazom Godwin — highlights")).toBeInTheDocument();
+    expect(screen.getAllByText("78 events").length).toBeGreaterThan(0);
+    expect(screen.getByText("#4 · DM · FC Ercakhu")).toBeInTheDocument();
+    expect(screen.getByText("58 clips")).toBeInTheDocument();
+    // right inspector: collections + folders + smart bins
+    expect(screen.getByText("Collections")).toBeInTheDocument();
+    expect(screen.getByText("All items")).toBeInTheDocument();
+    expect(screen.getByText("No folders yet.")).toBeInTheDocument();
+    expect(screen.getByText("Unconfirmed players")).toBeInTheDocument();
+    expect(screen.getByText("Players without a report")).toBeInTheDocument();
+    expect(screen.getByText("Save a search to reuse it.")).toBeInTheDocument();
+  });
+
+  it("the bulk bar is disabled with nothing checked", async () => {
+    render(<LibraryStage />);
+    await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
+    expect(screen.getByText("0 selected")).toBeInTheDocument();
+    for (const label of ["Move", "Tag", "Access", "Export", "Delete"]) {
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+    }
+  });
+});
