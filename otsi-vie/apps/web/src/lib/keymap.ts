@@ -7,7 +7,7 @@
  *   Reel Builder ReelStage: undo / redo
  *   Player Reports ReportStage: [ / ] move between report sections
  *   Library LibraryMain: [ / ] move between asset tabs
- *   Export ExportStage: [ / ] move between the export tabs
+ *   Export ExportStage: [ / ] switch between the Reel and Scouting Pack export types
  */
 export type KeyScope = "everywhere" | "studio" | "analysis" | "reels" | "reports" | "library" | "exports";
 export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" | "Compare" }
@@ -73,9 +73,9 @@ export const LIBRARY_KEYS: Shortcut[] = [
   { keys: "[ / ]", does: "Previous / next asset tab", group: "App" },
 ];
 
-/** Export: move between the export tabs (the same tabs the tab buttons open) */
+/** Export: [ / ] switch between the Reel and Scouting Pack export types (the SOT page's seg; the old page's tabs are gone) */
 export const EXPORTS_KEYS: Shortcut[] = [
-  { keys: "[ / ]", does: "Previous / next export tab", group: "App" },
+  { keys: "[ / ]", does: "Previous / next export type", group: "App" },
 ];
 
 export const KEYMAP: KeyRow[] = [

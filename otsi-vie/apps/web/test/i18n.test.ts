@@ -179,6 +179,19 @@ describe("dictionaries (ADR-139)", () => {
       "body.analysis.scoreLabel",
       "body.analysis.tabTeams",
       "body.analysis.tabTracks",
+      "body.exports.exReel",               // es/de/fr "Reel"
+      "body.exports.exRender",             // es "Render"
+      "body.exports.exFormat",             // de/fr "Format"
+      "body.exports.exCodec",              // de/fr "Codec"
+      "body.exports.exFrameRateSource",    // fr "Source"
+      "body.exports.exQualityMaster",      // de/fr "Master"
+      "body.exports.exFileNamePh",         // filename pattern, same in all locales
+      "body.exports.exRecipientEmailPh",   // email example, same in all locales
+      "body.exports.exSendClient",         // fr "Client"
+      "body.exports.exMessage",            // fr "Message"
+      "body.exports.exPasswordPh",         // de "Optional"
+      "body.exports.exManifest",           // de "Manifest"
+      "body.exports.exTokens",             // es "{a} tokens"
       "body.exportstage.archiveVideoBlocked",
       "body.exportstage.aspectSocial",
       "body.exportstage.aspectVertical",
@@ -540,7 +553,12 @@ describe("dictionaries (ADR-139)", () => {
       // studio keys, several of them legitimate French video-editing
       // loanwords (Clips, Timeline, Look, Intro, Beats, Constant, Accent,
       // Saturation). French is the highest at 252.
-      expect(same.length, locale).toBeLessThan(260);
+      // Page 9 Export (2026-11-12) raised it from 260 to 270: 58 new
+      // export keys, several of them legitimate French video/loanwords
+      // (Reel, Format, Codec, Master, Source, Client, Message) and two
+      // patterns that are the same in every locale (the file name and the
+      // email example). French is the highest at 263.
+      expect(same.length, locale).toBeLessThan(270);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -559,7 +577,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(338);
     expect(bodyKeys("library").length).toBe(650);
-    expect(bodyKeys("exports").length).toBe(32);
+    expect(bodyKeys("exports").length).toBe(90);
     expect(bodyKeys("players").length).toBe(110);
     expect(bodyKeys("matches").length).toBe(108);
     expect(bodyKeys("upload").length).toBe(435);
