@@ -12,7 +12,7 @@ const leaves = (o: Tree, p = ""): [string, string][] =>
 const SAME = new Set(["Clip Studio", "Reels", "Reel", "reel", "Reel Builder", "Intro", "Passes", "passes", "Spotlight", "Status", "Normal", "normal", "Zoom", "Linear",
   "Vertical", "Design", "Editor", "Detector", "EXPERIMENTAL", "Tokens", "tokens", "Pro", "E-mail", "Instagram", "YouTube, Web", "Reels, Shorts",
   "OTSI Player ID", "CPU / DirectML", "Naira (₦)", "Full HD (1920 × 1080)", "1 item", "· 1 item", "1 reel", "{a} reels", "search event:goal type:moment", "Interface",
-  "Codec", "[player]-[match]-reel.mp4", "name@club.com", "you@club.com", "{a} tokens", "xA", "SD 480p", "HD 720p", "Full HD 1080p", "4K 2160p", "Tokens", "Scouting"]);
+  "Codec", "[player]-[match]-reel.mp4", "name@club.com", "you@club.com", "{a} tokens", "xA", "SD 480p", "HD 720p", "Full HD 1080p", "4K 2160p", "Tokens", "Scouting", "Pos."]);
 const plain = (s: string) => /[A-Za-z]{3,}/.test(s.replace(/\{\w+\}/g, "")) && !/^[\s·]*(Reel|Best Moment Rule|OpenTimelineIO|\.otsi-reel|Passes \(p90\)|Vertical \d)/.test(s)
   && !/\b(min|fps|Mbps|LUFS|Ctrl)\b/.test(s);
 

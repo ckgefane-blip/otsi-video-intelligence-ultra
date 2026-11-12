@@ -468,6 +468,10 @@ describe("dictionaries (ADR-139)", () => {
       "body.reports.rpTabClips",           // French "Clips" is the same word
       "body.reports.rpClips",              // French and Spanish "Clips" is the same word
       "body.reports.rpMatch",              // French "Match" is the same word
+      "body.players.plPos",              // French "Pos." is the same word
+      "body.players.plClub",             // French "Club" is the same word
+      "body.players.plPin",              // Russian "OTSI PIN" is the same acronym
+      "body.players.plTracks",           // German "Tracks" is the same word
       "body.library.lbTag",              // German "Tag" is the same word
       "body.library.lbDetails",          // German "Details" is the same word
       "body.library.lbCollections",      // French "Collections" is the same word
@@ -601,7 +605,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("reports").length).toBe(386);
     expect(bodyKeys("library").length).toBe(690);
     expect(bodyKeys("exports").length).toBe(90);
-    expect(bodyKeys("players").length).toBe(110);
+    expect(bodyKeys("players").length).toBe(148);
     expect(bodyKeys("matches").length).toBe(108);
     expect(bodyKeys("upload").length).toBe(485);
     expect(bodyKeys("processing").length).toBe(302);

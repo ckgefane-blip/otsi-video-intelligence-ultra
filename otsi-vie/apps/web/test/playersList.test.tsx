@@ -1,7 +1,7 @@
 /**
- * v3 Phase E.8 (ADR-122): Player roles confirmed by a person UI tests.
+ * Players — profile editor (SOT Page 18 of 31): the table, the identity filter, the intro preview and the inspector form.
  */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PlayersList } from "@/components/players/PlayersList";
 
@@ -11,79 +11,95 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => ({ get: vi.fn(() => null) }),
 }));
 
-describe("PlayersList role confirmation (ADR-122)", () => {
-  it("renders players with confirmed/provisional role badges and filters by confirmed role", async () => {
-    api.mockImplementation((url: string) => {
-      if (url === "/v1/countries") return Promise.resolve([]);
-      if (url === "/v1/player-list") {
-        return Promise.resolve([
-          {
-            player_id: "0193132e-5034-7bc3-9565-df048bb01001",
-            display_name: "Luka Modric",
-            canonical_otsi_id: "OTSI-HRV-2026-000001",
-            profile: {
-              birth_date: "1985-09-09",
-              age: 41,
-              preferred_foot: "BOTH",
-              nationality: { code: "HRV", name: "Croatia" },
-              position: "CM",
-              role_confirmed: true,
-              role_confirmation_state: "ROLE_CONFIRMED",
-              role_confirmed_by: "0193132e-user-1",
-              role_confirmed_at: "2026-11-09T00:00:00.000Z",
-              role_confirmed_by_name: "Lead Analyst",
-              latest_team: null,
-              editable: true,
-            },
-          },
-          {
-            player_id: "0193132e-5034-7bc3-9565-df048bb01002",
-            display_name: "Toni Kroos",
-            canonical_otsi_id: "OTSI-DEU-2026-000002",
-            profile: {
-              birth_date: "1990-01-04",
-              age: 36,
-              preferred_foot: "BOTH",
-              nationality: { code: "DEU", name: "Germany" },
-              position: "CM",
-              role_confirmed: false,
-              role_confirmation_state: "ROLE_PROVISIONAL",
-              role_confirmed_by: null,
-              role_confirmed_at: null,
-              latest_team: null,
-              editable: true,
-            },
-          },
-        ]);
-      }
-      return Promise.resolve(null);
+const modric = {
+  player_id: "0193132e-5034-7bc3-9565-df048bb01001",
+  display_name: "Luka Modric",
+  canonical_otsi_id: "OTSI-HRV-2026-000001",
+  profile: {
+    birth_date: "1985-09-09", age: 41, preferred_foot: "BOTH", nationality: { code: "HRV", name: "Croatia" },
+    position: "CM", role_confirmed: true, role_confirmation_state: "ROLE_CONFIRMED", role_confirmed_by: "0193132e-user-1",
+    role_confirmed_at: "2026-11-09T00:00:00.000Z", role_confirmed_by_name: "Lead Analyst", latest_team: null, editable: true,
+    details: null,
+  },
+};
+const kroos = {
+  player_id: "0193132e-5034-7bc3-9565-df048bb01002",
+  display_name: "Toni Kroos",
+  canonical_otsi_id: null,
+  profile: {
+    birth_date: "1990-01-04", age: 36, preferred_foot: "BOTH", nationality: { code: "DEU", name: "Germany" },
+    position: "CM", role_confirmed: false, role_confirmation_state: "ROLE_PROVISIONAL", role_confirmed_by: null,
+    role_confirmed_at: null, latest_team: null, editable: true, details: null,
+  },
+};
+
+function mockApi() {
+  api.mockImplementation((url: string) => {
+    if (url === "/v1/countries") return Promise.resolve([{ code: "HRV", name: "Croatia" }, { code: "DEU", name: "Germany" }]);
+    if (url === "/v1/player-list") return Promise.resolve([modric, kroos]);
+    if (url === `/v1/players/${modric.player_id}/measures`) return Promise.resolve({ tracks: 10, videos: 1, seen_s: 600, measured_s: 540, distance_m: 1000, top_speed_kmh: 25, dropped_steps: 0, high_speed_m: null, sprint_m: null, sprints: 0, mean_confidence: 0.9, heat: null, events: null, halves: { confirmed: 0, proposed: 0, unknown: 1 } });
+    if (url === `/v1/players/${kroos.player_id}/measures`) return Promise.resolve({ tracks: 0, videos: 0, seen_s: 0, measured_s: 0, distance_m: null, top_speed_kmh: null, dropped_steps: 0, high_speed_m: null, sprint_m: null, sprints: 0, mean_confidence: null, heat: null, events: null, halves: { confirmed: 0, proposed: 0, unknown: 0 } });
+    if (url === `/v1/players/${modric.player_id}/profile-intro`) return Promise.resolve({
+      player: { display_name: "Luka Modric", canonical_otsi_id: "OTSI-HRV-2026-000001", player_id: modric.player_id },
+      profile: modric.profile, verified: true, verified_rule: "", stats: { games_analysed: 1, minutes_seen: 10, goals: 0, assists: null, basis: "", assists_reason: "Assists are not measured." },
+      heat: null, recent_form: { ratings: null, reason: "Not measured" },
     });
+    if (url === `/v1/players/${kroos.player_id}/profile-intro`) return Promise.resolve({
+      player: { display_name: "Toni Kroos", canonical_otsi_id: null, player_id: kroos.player_id },
+      profile: kroos.profile, verified: false, verified_rule: "", stats: { games_analysed: 0, minutes_seen: 0, goals: 0, assists: null, basis: "", assists_reason: "Assists are not measured." },
+      heat: null, recent_form: { ratings: null, reason: "Not measured" },
+    });
+    return Promise.reject(new Error(`unexpected ${url}`));
+  });
+}
 
+describe("PlayersList SOT (Page 18)", () => {
+  it("renders the table with PIN, tracks and coverage, the identity filter, the intro preview and the inspector", async () => {
+    mockApi();
     render(<PlayersList />);
+    expect(await screen.findAllByText("Luka Modric")).toBeTruthy();
+    // table headers + rows
+    expect(screen.getByText("OTSI PIN")).toBeInTheDocument();
+    expect(screen.getByText("OTSI-HRV-2026-000001")).toBeInTheDocument();
+    expect(await screen.findByText("10 in 1 videos")).toBeInTheDocument();
+    expect(await screen.findByText("90%")).toBeInTheDocument();
+    expect(screen.getAllByText("Confirmed").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Unconfirmed").length).toBeGreaterThan(0);
+    expect(screen.getByText("An OTSI PIN is issued when identity is confirmed in Analysis.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review identities" })).toBeInTheDocument();
+    // identity filter seg
+    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
+    // intro preview for the selected player (Modric, first row)
+    await waitFor(() => expect(screen.getByText("Profile Intro preview")).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Open full 16:9 intro" })).toBeInTheDocument();
+    // inspector: the selected player's form
+    expect(screen.getByLabelText("Position")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nationality")).toBeInTheDocument();
+    expect(screen.getByText("Save profile")).toBeInTheDocument();
+    expect(screen.getByText("Discard")).toBeInTheDocument();
+    expect(screen.getByText("Empty fields stay empty.")).toBeInTheDocument();
+  });
 
-    // Wait for list to render
-    const modric = await screen.findByText("Luka Modric");
-    expect(modric).toBeDefined();
-    expect(screen.getByText("Toni Kroos")).toBeDefined();
-
-    // Check confirmed badge on Modric and provisional badge on Kroos
-    expect(screen.getByText("✓ Confirmed")).toBeDefined();
-    expect(screen.getByText("Provisional")).toBeDefined();
-
-    // Filter by position: CM with confirmedOnly active (default)
-    const positionSelect = screen.getByLabelText("Filter by position");
-    fireEvent.change(positionSelect, { target: { value: "CM" } });
-
-    // Modric (confirmed CM) should remain, Kroos (provisional CM) should be filtered out
-    expect(screen.queryByText("Luka Modric")).not.toBeNull();
+  it("filters the table by identity (Confirmed / Unconfirmed)", async () => {
+    mockApi();
+    render(<PlayersList />);
+    await screen.findAllByText("Luka Modric");
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    expect(screen.getAllByText("Luka Modric").length).toBeGreaterThan(0);
     expect(screen.queryByText("Toni Kroos")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Unconfirmed" }));
+    expect(screen.queryByText("Luka Modric")).toBeNull();
+    expect(screen.getAllByText("Toni Kroos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    expect(screen.getAllByText("Luka Modric").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Toni Kroos").length).toBeGreaterThan(0);
+  });
 
-    // Uncheck confirmed only
-    const confirmedCheckbox = screen.getByLabelText("Confirmed roles only");
-    fireEvent.click(confirmedCheckbox);
-
-    // Both should now be shown
-    expect(screen.queryByText("Luka Modric")).not.toBeNull();
-    expect(screen.queryByText("Toni Kroos")).not.toBeNull();
+  it("selecting a row switches the inspector to that player", async () => {
+    mockApi();
+    render(<PlayersList />);
+    await screen.findAllByText("Luka Modric");
+    fireEvent.click(screen.getByRole("button", { name: /Toni Kroos/ }));
+    await waitFor(() => expect(screen.getByLabelText("Nationality")).toHaveValue("DEU"));
   });
 });

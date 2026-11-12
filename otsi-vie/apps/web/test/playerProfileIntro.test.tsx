@@ -274,6 +274,12 @@ function mockPlayersApi(entry: ReturnType<typeof playerEntry>, updatedProfile?: 
   api.mockImplementation((url: string, init?: { method?: string }) => {
     if (url === "/v1/player-list") return Promise.resolve([entry]);
     if (url === "/v1/countries") return Promise.resolve([{ code: "FRA", name: "France" }]);
+    if (url === `/v1/players/${entry.player_id}/measures`) return Promise.resolve({ tracks: 0, videos: 0, seen_s: 0, measured_s: 0, distance_m: null, top_speed_kmh: null, dropped_steps: 0, high_speed_m: null, sprint_m: null, sprints: 0, mean_confidence: null, heat: null, events: null, halves: { confirmed: 0, proposed: 0, unknown: 0 } });
+    if (url === `/v1/players/${entry.player_id}/profile-intro`) return Promise.resolve({
+      player: { display_name: entry.display_name, canonical_otsi_id: entry.canonical_otsi_id, player_id: entry.player_id },
+      profile: entry.profile, verified: true, verified_rule: "", stats: { games_analysed: 0, minutes_seen: 0, goals: 0, assists: null, basis: "", assists_reason: ASSISTS_REASON },
+      heat: null, recent_form: { ratings: null, reason: FORM_REASON },
+    });
     if (url === `/v1/players/${entry.player_id}/profile-details` && init?.method === "PATCH") return Promise.resolve(updatedProfile);
     if (url === `/v1/players/${entry.player_id}/photo` && init?.method === "POST") return Promise.resolve(updatedProfile);
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -282,8 +288,7 @@ function mockPlayersApi(entry: ReturnType<typeof playerEntry>, updatedProfile?: 
 
 async function openDetails() {
   render(<PlayersList />);
-  expect(await screen.findByText("Sugh")).toBeTruthy();
-  fireEvent.click(screen.getByText("Profile details for the intro"));
+  expect(await screen.findAllByText("Sugh")).toBeTruthy();
 }
 
 describe("PlayersList profile details", () => {
@@ -292,8 +297,11 @@ describe("PlayersList profile details", () => {
     const updated = profile({ details: details({ height_cm: 182, club_name: "Old Club", strengths: ["Pace"], photo_url: null, photo_asset_id: null }) });
     mockPlayersApi(entry, updated);
     await openDetails();
-    fireEvent.change(screen.getByLabelText("Sugh height in centimetres"), { target: { value: "182" } });
-    fireEvent.click(screen.getByText("Save profile details"));
+    const height = screen.getByLabelText("Height");
+    fireEvent.change(height, { target: { value: "182" } });
+    // the inspector's Save only enables once a field actually changed
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save profile" })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/players/${entry.player_id}/profile-details`,
       expect.objectContaining({ method: "PATCH", json: { height_cm: 182 } })));
     expect(await screen.findByText("Profile details saved.")).toBeTruthy();
@@ -304,19 +312,26 @@ describe("PlayersList profile details", () => {
     const updated = profile({ details: details({ height_cm: 180, club_name: null, strengths: ["Pace"], photo_url: null, photo_asset_id: null }) });
     mockPlayersApi(entry, updated);
     await openDetails();
-    fireEvent.change(screen.getByLabelText("Sugh club"), { target: { value: "" } });
-    fireEvent.click(screen.getByText("Save profile details"));
+    fireEvent.change(screen.getByLabelText("Club"), { target: { value: "" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save profile" })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/players/${entry.player_id}/profile-details`,
       expect.objectContaining({ json: { club_name: null } })));
   });
 
-  it("caps strengths at 6 inputs in the form", async () => {
+  it("adds a strength on Enter and caps strengths at 6", async () => {
     mockPlayersApi(playerEntry());
     await openDetails();
-    expect(screen.getAllByLabelText(/Sugh strength \d/)).toHaveLength(1);
-    for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText("+ Add strength"));
-    expect(screen.getAllByLabelText(/Sugh strength \d/)).toHaveLength(6);
-    expect((screen.getByText("+ Add strength") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Pace")).toBeInTheDocument();
+    for (const s of ["Vision", "Tackling", "Stamina", "Composure", "Speed"]) {
+      fireEvent.change(screen.getByPlaceholderText("Type a strength, press Enter"), { target: { value: s } });
+      fireEvent.keyDown(screen.getByPlaceholderText("Type a strength, press Enter"), { key: "Enter" });
+    }
+    expect(screen.getByText("Speed")).toBeInTheDocument();
+    // the sixth strength fills the cap; a seventh is refused
+    fireEvent.change(screen.getByPlaceholderText("Type a strength, press Enter"), { target: { value: "Heading" } });
+    fireEvent.keyDown(screen.getByPlaceholderText("Type a strength, press Enter"), { key: "Enter" });
+    expect(screen.queryByText("Heading")).toBeNull();
   });
 
   it("uploads the photo as raw bytes with the rights meta header, like the brand uploads", async () => {
@@ -325,7 +340,7 @@ describe("PlayersList profile details", () => {
     mockPlayersApi(entry, updated);
     await openDetails();
     const file = new File([new Uint8Array([137, 80, 78, 71])], "photo.png", { type: "image/png" });
-    fireEvent.change(screen.getByLabelText("Sugh photo"), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText("Upload photo"), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText("Sugh photo rights holder"), { target: { value: "The club" } });
     fireEvent.change(screen.getByLabelText("Sugh photo rights basis"), { target: { value: "OWN_BRAND" } });
     fireEvent.click(screen.getByLabelText(/I confirm we have the right to show this photo/));
@@ -342,11 +357,11 @@ describe("PlayersList profile details", () => {
     mockPlayersApi(playerEntry());
     await openDetails();
     const big = new File([new Uint8Array(512 * 1024 + 1)], "big.png", { type: "image/png" });
-    fireEvent.change(screen.getByLabelText("Sugh photo"), { target: { files: [big] } });
+    fireEvent.change(screen.getByLabelText("Upload photo"), { target: { files: [big] } });
     expect(screen.getByText("The picture is larger than 512 KB.")).toBeTruthy();
     expect((screen.getByText("Upload photo") as HTMLButtonElement).disabled).toBe(true);
     const bad = new File(["x"], "photo.gif", { type: "image/gif" });
-    fireEvent.change(screen.getByLabelText("Sugh photo"), { target: { files: [bad] } });
+    fireEvent.change(screen.getByLabelText("Upload photo"), { target: { files: [bad] } });
     expect(screen.getByText("Choose a PNG or JPEG picture.")).toBeTruthy();
     expect(api.mock.calls.filter(([u]: unknown[]) => (u as string).endsWith("/photo"))).toHaveLength(0);
   });
