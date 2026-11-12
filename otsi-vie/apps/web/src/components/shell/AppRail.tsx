@@ -2,14 +2,17 @@
 /**
  * Desktop UI v2 (owner-approved Source of Truth, 2026-11-11): the left rail replaces the header's tab strip.
  *
- * - 240 px with labels, or 64 px icons only; the toggle (and Ctrl/Cmd+B) collapses it and the choice is remembered in this browser.
+ * - Visible and adjustable, like the sidebars in Muse / Claude Code / Codex and the SOT UI:
+ *   240 px with labels by default; drag the right edge to widen or narrow it (64–320 px),
+ *   drag it narrow and it collapses to icons only; the toggle (and Ctrl/Cmd+B) collapses it
+ *   and double-click on the edge resets it to 240. The width is remembered in this browser.
  * - The same ten destinations as before, in the approved order, each opening on the work context (lib/workContext.ts navHref),
  *   then Settings and Admin. Entries marked `advanced: true` (formerly `pro: true`) are offered only in the Advanced interface.
  * - Labels are read from the dictionary (ADR-139); the English label stays the link identity.
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
 import {
   BarChart3, Clapperboard, Crosshair, Download, FileText, FolderOpen, Home, LayoutGrid, PanelLeftClose, Scissors, Settings, Shield, Upload,
 } from "lucide-react";
@@ -18,7 +21,8 @@ import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { useLocale } from "@/lib/i18n";
 
-export const RAIL_STORAGE_KEY = "otsi-vie.rail";
+export const RAIL_STORAGE_KEY = "otsi-vie.rail.v2";
+const MIN_W = 64, MAX_W = 320, DEFAULT_W = 240;
 
 type NavKey = "home" | "upload" | "processing" | "analysis" | "tactical" | "reels" | "studio" | "reports" | "library" | "export";
 interface RailEntry { key: NavKey; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> }
@@ -37,8 +41,14 @@ const ENTRIES: Record<string, RailEntry> = {
   Export: { key: "export", icon: Download },
 };
 
-function readRail(): boolean {
-  try { return localStorage.getItem(RAIL_STORAGE_KEY) === "collapsed"; } catch { return false; }
+function readRail(): number {
+  try {
+    const v = Number(localStorage.getItem(RAIL_STORAGE_KEY));
+    return Number.isFinite(v) ? Math.min(MAX_W, Math.max(MIN_W, v)) : DEFAULT_W;
+  } catch { return DEFAULT_W; }
+}
+function saveRail(w: number) {
+  try { localStorage.setItem(RAIL_STORAGE_KEY, String(Math.round(w))); } catch { /* blocked storage: this visit only */ }
 }
 
 export function AppRail() {
@@ -46,16 +56,39 @@ export function AppRail() {
   const items = navItems(path);
   const { t } = useLocale();
   const { mode } = useInterfaceMode();
-  const [collapsed, setCollapsed] = useState(false);
+  const [width, setWidth] = useState(DEFAULT_W);
+  const collapsed = width <= MIN_W;
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
-  useEffect(() => { setCollapsed(readRail()); }, []);
+  useEffect(() => { setWidth(readRail()); }, []);
 
-  const toggle = () => setCollapsed((c) => {
-    const next = !c;
-    try { localStorage.setItem(RAIL_STORAGE_KEY, next ? "collapsed" : "expanded"); } catch { /* blocked storage: this visit only */ }
+  const toggle = () => setWidth((w) => {
+    const next = w <= MIN_W ? DEFAULT_W : MIN_W;
+    saveRail(next);
     return next;
   });
+  // drag the right edge to resize, like the sidebars in Claude Code / Codex:
+  // pull it narrow and it collapses to icons; double-click the edge resets to 240.
+  const dragRef = useRef<HTMLDivElement | null>(null);
+  const startDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startX = e.clientX, startW = width;
+    const el = dragRef.current;
+    if (!el) return;
+    el.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => setWidth(Math.min(MAX_W, Math.max(MIN_W, startW + (ev.clientX - startX))));
+    const up = (ev: PointerEvent) => {
+      const w = Math.min(MAX_W, Math.max(MIN_W, startW + (ev.clientX - startX)));
+      const final = w < 120 ? MIN_W : w;
+      setWidth(final);
+      saveRail(final);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+  };
+  const resetWidth = () => { setWidth(DEFAULT_W); saveRail(DEFAULT_W); };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) { e.preventDefault(); toggle(); }
@@ -64,7 +97,6 @@ export function AppRail() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const width = collapsed ? 64 : 240;
   const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-medium leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   const settingsActive = /^\/settings(\/|$)/.test(path) && !/^\/settings\/admin/.test(path);
@@ -113,6 +145,9 @@ export function AppRail() {
           {!collapsed && <><span className="flex-1 text-left">{t.desktop.railCollapse}</span><span className="vie-kbd">Ctrl B</span></>}
         </button>
       </div>
+      <div ref={dragRef} role="separator" aria-orientation="vertical" aria-label={t.desktop.railExpandAria}
+        title={t.desktop.railExpandAria} onPointerDown={startDrag} onDoubleClick={resetWidth}
+        className="absolute right-0 top-0 h-full w-[6px] cursor-ew-resize touch-none hover:bg-primary/50 focus-visible:bg-primary/50 focus-visible:outline-none" />
     </aside>
   );
 }

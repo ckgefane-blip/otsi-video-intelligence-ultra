@@ -136,7 +136,7 @@ function createLoadingWindow() {
     maximizable: false,
     title: 'OTSI VIE',
     icon: windowIcon(),
-    backgroundColor: '#0b1e3a',
+    backgroundColor: '#0A0B0D',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -230,7 +230,7 @@ function createMainWindow() {
     minHeight: 650,
     title: 'OTSI VIE',
     icon: windowIcon(),
-    backgroundColor: '#0b1e3a',
+    backgroundColor: '#0A0B0D',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
