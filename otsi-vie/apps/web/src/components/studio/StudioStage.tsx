@@ -1,9 +1,18 @@
 "use client";
 /**
- * Page 07 Clip Studio / Timeline Editor on the approved composition (corrected reference 07_CLIP_STUDIO). The reel comes from the
- * address (?reel=); its data and actions come from the Reel Builder hook (useReel, ADR-035), so the studio and the Reel Builder edit
- * the same saved reel. Opened without one, it opens the most recently edited reel (owner 2026-11-02: "page 07 needs populating"); with no
- * reels at all the sections show the reference's empty state and the Media Bin offers the reel chooser.
+ * Page 07 Clip Studio (SOT, Studio.dc.html).
+ *
+ * The reel comes from the address (?reel=); its data and actions come
+ * from the Reel Builder hook (useReel, ADR-035), so the studio and the
+ * Reel Builder edit the same saved reel. Opened without one, it opens
+ * the most recently edited reel; with no reels at all the sections show
+ * the empty state and the Media Bin offers the reel chooser. The layout
+ * is the SOT's: a top row (Media Bin | centre with the telestration bar
+ * over the preview | inspector) and the four-lane timeline at the
+ * bottom. There is no header here — the undo / redo shortcuts
+ * (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y) live in this file. The preview is
+ * the working compositor (its own transport, spotlight, zoom and
+ * drawings); the SOT's simpler control bar is not a replacement for it.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Reel } from "@otsi-vie/contracts";
@@ -16,7 +25,7 @@ import { isUuid } from "@/lib/identity";
 import { Inspector } from "./Inspector";
 import { MediaBin } from "./MediaBin";
 import { Preview } from "./Preview";
-import { StudioHeader } from "./StudioHeader";
+import { TelestrationBar } from "./TelestrationBar";
 import { Timeline } from "./Timeline";
 import type { Ui } from "./kit";
 import { useStudio } from "./useStudio";
@@ -56,21 +65,37 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 function Sections({ r }: { r: ReelState | null }) {
   const st = useStudio(r);
   const [picking, setPicking] = useState(false);
+  const [binTab, setBinTab] = useState(0);
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ui: Ui = {
     say: (t) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 3500); },
     pick: () => setPicking(true),
   };
+  // undo / redo (was in the old StudioHeader; the SOT has no header)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest("input, select, textarea, [contenteditable]")) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      if (e.key === "z" || e.key === "Z") { e.preventDefault(); if (e.shiftKey) st.redo(); else st.undo(); }
+      if (e.key === "y" || e.key === "Y") { e.preventDefault(); st.redo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [st]);
   return (
-    <div className="flex h-[calc(100dvh-180px)] min-h-[640px] flex-col gap-3">
-      <StudioHeader r={r} st={st} ui={ui} note={note} />
-      <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_320px] gap-3">
-        <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} />
-        <Preview st={st} ui={ui} />
+    <div className="flex min-h-full w-full flex-col" data-stage="studio" data-page="studio">
+      <div className="flex min-h-0 flex-1">
+        <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} binTab={binTab} setBinTab={setBinTab} />
+        <main className="flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto bg-canvas p-2.5">
+          <TelestrationBar st={st} ui={ui} />
+          <Preview st={st} ui={ui} />
+          {note && <p role="status" className="t-small text-center text-muted">{note}</p>}
+        </main>
         <Inspector r={r} st={st} ui={ui} />
       </div>
-      <Timeline r={r} st={st} ui={ui} />
+      <Timeline r={r} st={st} ui={ui} setBinTab={setBinTab} />
       <ReelPicker open={picking} onOpenChange={setPicking} />
     </div>
   );

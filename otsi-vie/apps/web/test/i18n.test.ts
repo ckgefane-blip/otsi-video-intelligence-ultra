@@ -316,6 +316,18 @@ describe("dictionaries (ADR-139)", () => {
       "body.studio.colorLabel",
       "body.studio.colourCyan",
       "body.studio.corner",
+      "body.studio.csAccent",                   // French "Accent"
+      "body.studio.csBeatsLane",               // "Beats" in es/de/fr
+      "body.studio.csClips",                   // "Clips" in es/de/fr
+      "body.studio.csConstant",                // French "Constant"
+      "body.studio.csIntro",                   // "Intro" in es/de/fr
+      "body.studio.csLook",                    // "Look" in de/fr
+      "body.studio.csLooks",                   // "Looks" in es/de/fr
+      "body.studio.csReelBuilder",             // product name, same in every language
+      "body.studio.csToolText",                // German "Text"
+      "body.studio.csVideoLane",               // German "V1 · Video"
+      "body.studio.lookSaturation",            // French "Saturation"
+      "body.studio.timelineLabel",             // German/French "Timeline"
       "body.studio.drawCount",
       "body.studio.dualOff",
       "body.studio.dualOn",
@@ -522,7 +534,11 @@ describe("dictionaries (ADR-139)", () => {
       // Match, Reels, Moments, Pages, Notifications, Assistant) and
       // placeholder-only templates. French is the highest at 235, German
       // at 216, Spanish at 167, Russian at 36.
-      expect(same.length, locale).toBeLessThan(250);
+      // Page 7 Clip Studio (2026-11-12) raised it from 250 to 260: 53 new
+      // studio keys, several of them legitimate French video-editing
+      // loanwords (Clips, Timeline, Look, Intro, Beats, Constant, Accent,
+      // Saturation). French is the highest at 252.
+      expect(same.length, locale).toBeLessThan(260);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -538,7 +554,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("home").length).toBe(97);
     expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(212);
-    expect(bodyKeys("studio").length).toBe(723);
+    expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(338);
     expect(bodyKeys("library").length).toBe(650);
     expect(bodyKeys("exports").length).toBe(32);

@@ -9,7 +9,7 @@ const leaves = (o: Tree, p = ""): [string, string][] =>
   Object.entries(o).flatMap(([k, v]) => (typeof v === "string" ? [[p + k, v] as [string, string]] : leaves(v, `${p}${k}.`)));
 
 /** same in both languages: Portuguese words, loanwords used in Brazilian Portuguese, units, names, code */
-const SAME = new Set(["Clip Studio", "Reels", "Reel", "reel", "Passes", "passes", "Spotlight", "Status", "Normal", "normal", "Zoom", "Linear",
+const SAME = new Set(["Clip Studio", "Reels", "Reel", "reel", "Reel Builder", "Intro", "Passes", "passes", "Spotlight", "Status", "Normal", "normal", "Zoom", "Linear",
   "Vertical", "Design", "Editor", "Detector", "EXPERIMENTAL", "Tokens", "tokens", "Pro", "E-mail", "Instagram", "YouTube, Web", "Reels, Shorts",
   "OTSI Player ID", "CPU / DirectML", "Naira (₦)", "Full HD (1920 × 1080)", "1 item", "· 1 item", "1 reel", "{a} reels", "search event:goal type:moment", "Interface"]);
 const plain = (s: string) => /[A-Za-z]{3,}/.test(s.replace(/\{\w+\}/g, "")) && !/^[\s·]*(Reel|Best Moment Rule|OpenTimelineIO|\.otsi-reel|Passes \(p90\)|Vertical \d)/.test(s)
