@@ -5885,6 +5885,15 @@ export interface Dictionary {
       passwordMin: string;
       typeAgain: string;
       createJoin: string;
+      inviteHeroTitle: string;
+      inviteHeroSub: string;
+      inviteVideoLocal: string;
+      inviteYouAreInvited: string;
+      inviteIntro: string;
+      inviteEmailHint: string;
+      invitePasswordHint: string;
+      inviteAcceptCreate: string;
+      inviteAlreadyAccount: string;
       welcome: string;
       welcomeNameQ: string;
       nameExample: string;
@@ -11845,6 +11854,15 @@ export const en: Dictionary = {
       passwordMin: "(at least 12 characters)",
       typeAgain: "Type it again",
       createJoin: "Create my account and join",
+      inviteHeroTitle: "Prove what a player did on the pitch.",
+      inviteHeroSub: "Every player tracked under one OTSI PIN. Every number measured by the engine — and where it was not measured, the software says so.",
+      inviteVideoLocal: "Video work stays on this computer",
+      inviteYouAreInvited: "You're invited",
+      inviteIntro: "{a} invited you as {b}. Create your account to accept.",
+      inviteEmailHint: "The invite is tied to this address.",
+      invitePasswordHint: "At least 12 characters.",
+      inviteAcceptCreate: "Accept invite & create account",
+      inviteAlreadyAccount: "Already have an account?",
       welcome: "Welcome to OTSI VIE",
       welcomeNameQ: "What should we call you? This is the name your team will see.",
       nameExample: "For example: Edmond Osio",
@@ -17801,6 +17819,15 @@ export const ru: DeepPartial<Dictionary> = {
       passwordMin: "(не менее 12 символов)",
       typeAgain: "Введите ещё раз",
       createJoin: "Создать учётную запись и присоединиться",
+      inviteHeroTitle: "Докажите, что игрок сделал на поле.",
+      inviteHeroSub: "Каждый игрок отслеживается под одним OTSI PIN. Каждое число измерено движком — а где не измерено, программа так и говорит.",
+      inviteVideoLocal: "Видеообработка остаётся на этом компьютере",
+      inviteYouAreInvited: "Вас пригласили",
+      inviteIntro: "{a} пригласил вас как {b}. Создайте учётную запись, чтобы принять.",
+      inviteEmailHint: "Приглашение привязано к этому адресу.",
+      invitePasswordHint: "Не менее 12 символов.",
+      inviteAcceptCreate: "Принять приглашение и создать учётную запись",
+      inviteAlreadyAccount: "Уже есть учётная запись?",
       welcome: "Добро пожаловать в OTSI VIE",
       welcomeNameQ: "Как нам вас называть? Это имя будет видеть ваша команда.",
       nameExample: "Например: Edmond Osio",
@@ -23757,6 +23784,15 @@ export const es: DeepPartial<Dictionary> = {
       passwordMin: "(al menos 12 caracteres)",
       typeAgain: "Escríbela de nuevo",
       createJoin: "Crear mi cuenta y unirme",
+      inviteHeroTitle: "Demuestra lo que hizo un jugador en el campo.",
+      inviteHeroSub: "Cada jugador se sigue con un único OTSI PIN. Cada número lo mide el motor — y donde no se midió, el programa lo dice.",
+      inviteVideoLocal: "El trabajo de vídeo se queda en este ordenador",
+      inviteYouAreInvited: "Te han invitado",
+      inviteIntro: "{a} te invitó como {b}. Crea tu cuenta para aceptar.",
+      inviteEmailHint: "La invitación está vinculada a esta dirección.",
+      invitePasswordHint: "Al menos 12 caracteres.",
+      inviteAcceptCreate: "Aceptar la invitación y crear cuenta",
+      inviteAlreadyAccount: "¿Ya tienes cuenta?",
       welcome: "Bienvenido a OTSI VIE",
       welcomeNameQ: "¿Cómo debemos llamarte? Es el nombre que verá tu equipo.",
       nameExample: "Por ejemplo: Edmond Osio",
@@ -29713,6 +29749,15 @@ export const de: DeepPartial<Dictionary> = {
       passwordMin: "(mindestens 12 Zeichen)",
       typeAgain: "Erneut eingeben",
       createJoin: "Mein Konto erstellen und beitreten",
+      inviteHeroTitle: "Beweisen Sie, was ein Spieler auf dem Platz getan hat.",
+      inviteHeroSub: "Jeder Spieler wird unter einem einzigen OTSI PIN verfolgt. Jede Zahl wird von der Engine gemessen — und wo sie nicht gemessen wurde, sagt die Software es.",
+      inviteVideoLocal: "Videoarbeit bleibt auf diesem Computer",
+      inviteYouAreInvited: "Sie sind eingeladen",
+      inviteIntro: "{a} hat Sie als {b} eingeladen. Erstellen Sie Ihr Konto, um anzunehmen.",
+      inviteEmailHint: "Die Einladung ist an diese Adresse gebunden.",
+      invitePasswordHint: "Mindestens 12 Zeichen.",
+      inviteAcceptCreate: "Einladung annehmen und Konto erstellen",
+      inviteAlreadyAccount: "Haben Sie bereits ein Konto?",
       welcome: "Willkommen bei OTSI VIE",
       welcomeNameQ: "Wie sollen wir Sie nennen? Diesen Namen sieht Ihr Team.",
       nameExample: "Zum Beispiel: Edmond Osio",
@@ -35669,6 +35714,15 @@ export const fr: DeepPartial<Dictionary> = {
       passwordMin: "(au moins 12 caractères)",
       typeAgain: "Saisissez-le à nouveau",
       createJoin: "Créer mon compte et rejoindre",
+      inviteHeroTitle: "Prouvez ce qu'un joueur a fait sur le terrain.",
+      inviteHeroSub: "Chaque joueur est suivi sous un seul OTSI PIN. Chaque nombre est mesuré par le moteur — et là où il n'a pas été mesuré, le logiciel le dit.",
+      inviteVideoLocal: "Le travail vidéo reste sur cet ordinateur",
+      inviteYouAreInvited: "Vous êtes invité",
+      inviteIntro: "{a} vous a invité en tant que {b}. Créez votre compte pour accepter.",
+      inviteEmailHint: "L'invitation est liée à cette adresse.",
+      invitePasswordHint: "Au moins 12 caractères.",
+      inviteAcceptCreate: "Accepter l'invitation et créer un compte",
+      inviteAlreadyAccount: "Vous avez déjà un compte ?",
       welcome: "Bienvenue sur OTSI VIE",
       welcomeNameQ: "Comment devons-nous vous appeler ? C’est le nom que votre équipe verra.",
       nameExample: "Par exemple : Edmond Osio",
@@ -41635,6 +41689,15 @@ export const pt: DeepPartial<Dictionary> = {
       "passwordMin": "(pelo menos 12 caracteres)",
       "typeAgain": "Digite-a novamente",
       "createJoin": "Criar minha conta e participar",
+      "inviteHeroTitle": "Prove o que um jogador fez em campo.",
+      "inviteHeroSub": "Cada jogador é acompanhado com um único OTSI PIN. Cada número é medido pelo motor — e onde não foi medido, o software diz isso.",
+      "inviteVideoLocal": "O trabalho de vídeo fica neste computador",
+      "inviteYouAreInvited": "Você foi convidado",
+      "inviteIntro": "{a} convidou você como {b}. Crie sua conta para aceitar.",
+      "inviteEmailHint": "O convite está vinculado a este endereço.",
+      "invitePasswordHint": "Pelo menos 12 caracteres.",
+      "inviteAcceptCreate": "Aceitar convite e criar conta",
+      "inviteAlreadyAccount": "Já tem uma conta?",
       "welcome": "Boas-vindas ao OTSI VIE",
       "welcomeNameQ": "Como devemos chamar você? Este é o nome que sua equipe verá.",
       "nameExample": "Por exemplo: Edmond Osio",

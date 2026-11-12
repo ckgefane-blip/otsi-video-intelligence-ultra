@@ -29,7 +29,7 @@ export default {
         ok: v("ok"),
         danger: v("danger"),
       },
-      fontFamily: { sans: ['"Inter Variable"', "Inter", "system-ui", "Segoe UI", "sans-serif"] },
+      fontFamily: { sans: ['"Segoe UI Variable Text"', '"Segoe UI"', "system-ui", "-apple-system", '"Inter Variable"', "Inter", "sans-serif"] },
       borderRadius: { card: "12px", ctl: "8px" },
       boxShadow: { glow: "0 0 0 1px rgb(var(--primary) / 0.35), 0 0 24px rgb(var(--primary) / 0.25)" },
     },

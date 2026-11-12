@@ -546,7 +546,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
     expect(bodyKeys("shell").length).toBe(244);
-    expect(bodyKeys("auth").length).toBe(79);
+    expect(bodyKeys("auth").length).toBe(88);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {
