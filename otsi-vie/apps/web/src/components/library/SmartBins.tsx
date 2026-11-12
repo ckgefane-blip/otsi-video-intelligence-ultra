@@ -9,9 +9,10 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { hitHref, SMART_HINT, type SearchKind, type SmartBin, type SmartBinItems } from "@otsi-vie/contracts";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
+import { treeCount, treeHead, treeRow } from "./treeStyle";
 
 const GROUP = (d: Dictionary): Record<SearchKind, string> => ({ MATCH: d.body.library.tabMatches, PLAYER: d.body.library.binGroupPlayers, REEL: d.body.library.tabReels, PROJECT: d.body.library.kindPluralProject, MOMENT: d.body.library.binGroupMoments, MARKER: d.body.library.binGroupMarkers });
 export const binCount = (b: SmartBin) => `${b.count}${b.more ? "+" : ""}`;
@@ -105,14 +106,14 @@ export function BinDialog({ bin, onOpenChange, onDeleted }: { bin: SmartBin | nu
 }
 
 /** the Library tree's Smart Bins section */
-export function SmartBinsTree({ head, row, count }: { head: CSSProperties; row: (on: boolean) => CSSProperties; count: CSSProperties }) {
+export function SmartBinsTree() {
   const { t: dict } = useLocale();
   const { bins, reload } = useSmartBins();
   const [making, setMaking] = useState(false);
   const [open, setOpen] = useState<SmartBin | null>(null);
   return (
     <>
-      <div style={head}>
+      <div className={treeHead}>
         <span>{dict.body.library.smartBins}</span>
         <button type="button" data-tree="new-bin" onClick={() => setMaking(true)} aria-label={dict.body.library.newSmartBin} title={dict.body.library.binTreeNewTitle}
           style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: 13, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
@@ -122,10 +123,10 @@ export function SmartBinsTree({ head, row, count }: { head: CSSProperties; row: 
           : bins.length === 0 ? <li style={{ fontSize: 13, color: "#8ea3bf", padding: "4px 12px", whiteSpace: "normal" }}>{dict.body.library.binsEmpty}</li>
           : bins.map((b) => (
             <li key={b.id}>
-              <button type="button" onClick={() => setOpen(b)} style={row(open?.id === b.id)} data-tree={`bin-${b.id}`} title={b.q}>
+              <button type="button" onClick={() => setOpen(b)} className={treeRow(open?.id === b.id)} data-tree={`bin-${b.id}`} title={b.q}>
                 <span aria-hidden style={{ width: 22, textAlign: "center", flex: "none", color: "#a98bff" }}>✦</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
-                <span style={count}>{binCount(b)}</span>
+                <span className={treeCount}>{binCount(b)}</span>
               </button>
             </li>
           ))}

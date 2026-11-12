@@ -13,6 +13,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
 import { ago, agoTemplates, badge, jobStateLabel, pollMs, STATE_COLOR } from "@/lib/jobs";
 import { useLocale } from "@/lib/i18n";
+import { JOBS_OPEN_EVENT, publishJobs } from "@/lib/jobsLive";
+import { setWalletBusy } from "@/lib/wallet";
 
 type Styles = Record<string, string>;
 
@@ -28,7 +30,7 @@ export function JobTray({ styles }: { styles: Styles }) {
 
   const load = useCallback(async () => {
     if (!org) return;
-    try { setList(await api<JobList>("/v1/jobs")); } catch { /* keep the last list; the next read tries again */ }
+    try { const l = await api<JobList>("/v1/jobs"); setList(l); publishJobs(l); } catch { /* keep the last list; the next read tries again */ }
   }, [org]);
 
   useEffect(() => {
@@ -45,6 +47,15 @@ export function JobTray({ styles }: { styles: Styles }) {
     return () => window.clearInterval(t);
   }, [every, load, org]);
   useEffect(() => { if (open) void load(); }, [open, load]);
+  // the live activity line opens the Jobs Center; the wallet reads faster while jobs run
+  useEffect(() => {
+    const on = () => setOpen(true);
+    window.addEventListener(JOBS_OPEN_EVENT, on);
+    return () => window.removeEventListener(JOBS_OPEN_EVENT, on);
+  }, []);
+  useEffect(() => {
+    setWalletBusy((list?.jobs ?? []).some((j) => j.state === "RUNNING" || j.state === "QUEUED"));
+  }, [list]);
 
   if (status !== "signed-in" || !org) return null;
   const b = badge(list);

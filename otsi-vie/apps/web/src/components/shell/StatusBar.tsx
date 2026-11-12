@@ -13,6 +13,7 @@ import { fill } from "@/lib/fill";
 import { useLocale } from "@/lib/i18n";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { formatGB, useTierLimit } from "@/lib/uploadTier";
+import { ActivityLine } from "./ActivityLine";
 
 export function StatusBar() {
   const { t } = useLocale();
@@ -39,6 +40,7 @@ export function StatusBar() {
       <Item label={d.accuracy} value={measured ? d.accuracyMeasured : d.accuracyNotMeasured} tone={measured ? "ok" : "amber"} />
       {tierName && lim?.maxBytes ? <span>{fill(d.tierLine, { a: tierName, b: formatGB(lim.maxBytes) })}</span> : null}
       <Item label={d.tokens} value={wallet === undefined ? "…" : wallet === null ? "—" : String(wallet.spendable_balance)} />
+      <ActivityLine />
       <span className="ml-auto">{mode === "advanced" ? d.modeAdvanced : d.modeGuided}</span>
     </footer>
   );

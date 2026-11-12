@@ -4,11 +4,9 @@
  * player, ADR-069), search and commands (Ctrl/Cmd+K, ADR-070), notifications (ADR-075), the Jobs Center (ADR-060), the keyboard map
  * ("?", ADR-071) and the account. Every widget is the existing one: only its place changed (the header's tab strip moved to AppRail).
  */
-import type { WalletBalance } from "@otsi-vie/contracts";
 import { Search } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { KEYMAP_EVENT } from "@/lib/keymap";
-import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import styles from "./AppTopBar.module.css";
 import { CommandPalette } from "./CommandPalette";
@@ -17,28 +15,8 @@ import { JobTray } from "./JobTray";
 import { KeyboardMap } from "./KeyboardMap";
 import { NotificationBell } from "./NotificationBell";
 import { ProfileChip } from "./ProfileChip";
-
-/** Live token balance in the top bar (GET /v1/wallet), amber while below 90. */
-function TokenPill() {
-  const { t } = useLocale();
-  const [balance, setBalance] = useState<number | null | undefined>(undefined);
-  useEffect(() => {
-    let live = true;
-    api<WalletBalance>("/v1/wallet").then((x) => live && setBalance(x.spendable_balance), () => live && setBalance(null));
-    return () => { live = false; };
-  }, []);
-  const value = balance === undefined ? "…" : balance === null ? "—" : String(balance);
-  const low = typeof balance === "number" && balance < 90;
-  return (
-    <span
-      data-tokens
-      title={t.desktop.tokens}
-      style={{ color: low ? "rgb(var(--amber))" : "rgb(var(--ink2))", fontSize: 11, lineHeight: "16px", whiteSpace: "nowrap" }}
-    >
-      {t.desktop.tokens} {value}
-    </span>
-  );
-}
+import { ThemeSwitch } from "./ThemeSwitch";
+import { TokenCounter } from "./TokenCounter";
 
 export function AppTopBar() {
   const { t } = useLocale();
@@ -58,7 +36,8 @@ export function AppTopBar() {
       <JobTray styles={styles} />
       <button type="button" className={styles.keys} aria-label={t.desktop.shortcuts} title={t.desktop.shortcuts}
         onClick={() => window.dispatchEvent(new Event(KEYMAP_EVENT))} data-keymap-open>?</button>
-      <TokenPill />
+      <ThemeSwitch />
+      <TokenCounter />
       <ProfileChip styles={styles} />
       <CommandPalette open={search} onOpenChange={setSearch} />
       <KeyboardMap />

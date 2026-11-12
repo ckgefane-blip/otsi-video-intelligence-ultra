@@ -9,11 +9,12 @@
  * Only what is recorded; counts come from the same list the table shows.
  */
 import type { LibraryFolder, TrashEntry } from "@otsi-vie/contracts";
-import { memo, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { TABS, type Asset } from "./useLibrary";
 import { useLocale } from "@/lib/i18n";
 import { SmartBinsTree } from "./SmartBins";
+import { treeCount, treeHead, treeRow } from "./treeStyle";
 
 export const SHARED_TAB = TABS.findIndex(([, l]) => l === "Shared With Me");
 
@@ -27,21 +28,13 @@ export function treeCounts(all: Asset[]): { all: number; shared: number; folders
   };
 }
 
-const row = (on: boolean): CSSProperties => ({
-  display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 40, padding: "0 12px", borderRadius: 8, border: 0, textAlign: "left",
-  background: on ? "#0a2b55" : "transparent", outline: on ? "1.5px solid #1e90ff" : "none", color: on ? "#fff" : "#d6e4f7", font: "inherit", fontSize: 13, cursor: "pointer",
-});
-const count: CSSProperties = { marginLeft: "auto", color: "#8ea3bf", fontSize: 13 };
-const head: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: "14px 4px 4px", fontSize: 12, fontWeight: 400,
-  letterSpacing: "0.06em", textTransform: "uppercase", color: "#8ea3bf" };
-
 function Item({ on, label, n, onClick, icon, data }: { on: boolean; label: string; n: number | null; onClick: () => void; icon: ReactNode; data: string }) {
   return (
     <li>
-      <button type="button" aria-current={on ? "true" : undefined} onClick={onClick} style={row(on)} data-tree={data} title={label}>
+      <button type="button" aria-current={on ? "true" : undefined} onClick={onClick} className={treeRow(on)} data-tree={data} title={label}>
         <span aria-hidden style={{ width: 22, textAlign: "center", flex: "none" }}>{icon}</span>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-        {n !== null && <span style={count}>{n}</span>}
+        {n !== null && <span className={treeCount}>{n}</span>}
       </button>
     </li>
   );
@@ -65,7 +58,7 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         <Item data="all" on={folder === null && tab === 0} label={dict.body.library.treeAll} n={c.all} icon="▦" onClick={() => go(0, null)} />
       </ul>
-      <div style={head}>
+      <div className={treeHead}>
         <span>{dict.body.library.treeFolders}</span>
         <button type="button" data-tree="new-folder" onClick={() => (canWrite ? newFolder() : say(dict.body.library.newFolderRoleSay))}
           aria-label={dict.body.library.newFolder} title={canWrite ? dict.body.library.treeMakeFolder : dict.body.library.treeRoleNoFolders}
@@ -75,15 +68,15 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
         {c.folders.length === 0 && <li className="px-3 py-1 text-sm text-muted">{dict.body.library.treeNoFolders}{canWrite ? dict.body.library.treeNoFoldersHint : ""}</li>}
         {c.folders.map((fo) => <Item key={fo.id} data={`folder-${fo.id}`} on={folder === fo.id} label={fo.name} n={fo.item_count} icon={<span style={{ color: "#f5b82e" }}>▰</span>} onClick={() => go(0, fo.id)} />)}
       </ul>
-      <div style={head}><span>{dict.body.library.treePeople}</span></div>
+      <div className={treeHead}><span>{dict.body.library.treePeople}</span></div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         <Item data="shared" on={folder === null && tab === SHARED_TAB} label={dict.body.library.tabShared} n={c.shared} icon="👤" onClick={() => go(SHARED_TAB, null)} />
       </ul>
-      <div style={head}><span>{dict.body.library.treeDeleted}</span></div>
+      <div className={treeHead}><span>{dict.body.library.treeDeleted}</span></div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         <Item data="trash" on={false} label={dict.body.library.trash} n={trash} icon="🗑" onClick={openTrash} />
       </ul>
-      <SmartBinsTree head={head} row={row} count={count} />
+      <SmartBinsTree />
     </nav>
   );
 });

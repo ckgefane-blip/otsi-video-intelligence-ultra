@@ -71,6 +71,9 @@ export interface Dictionary {
     exitFullscreen: string;
     playbackUnavailable: string;
     overlaysTitle: string;
+    analysisIdentityTitle: string;
+    analysisOpenWorkspace: string;
+    analysisFrameByFrame: string;
     ovBoxes: string;
     ovIds: string;
     ovTracks: string;
@@ -6012,6 +6015,9 @@ export const en: Dictionary = {
     exitFullscreen: "Exit fullscreen",
     playbackUnavailable: "Playback unavailable",
     overlaysTitle: "Visual overlays",
+    analysisIdentityTitle: "Identity review",
+    analysisOpenWorkspace: "Open workspace",
+    analysisFrameByFrame: "Frame by frame",
     ovBoxes: "Player Boxes",
     ovIds: "Player IDs",
     ovTracks: "Player Tracks",
@@ -11960,6 +11966,9 @@ export const ru: DeepPartial<Dictionary> = {
     exitFullscreen: "Выйти из полного экрана",
     playbackUnavailable: "Воспроизведение недоступно",
     overlaysTitle: "Визуальные слои",
+    analysisIdentityTitle: "Проверка личности",
+    analysisOpenWorkspace: "Открыть рабочую область",
+    analysisFrameByFrame: "Покадрово",
     ovBoxes: "Рамки игроков",
     ovIds: "ID игроков",
     ovTracks: "Траектории игроков",
@@ -17908,6 +17917,9 @@ export const es: DeepPartial<Dictionary> = {
     exitFullscreen: "Salir de pantalla completa",
     playbackUnavailable: "Reproducción no disponible",
     overlaysTitle: "Capas visuales",
+    analysisIdentityTitle: "Revisión de identidad",
+    analysisOpenWorkspace: "Abrir espacio de trabajo",
+    analysisFrameByFrame: "Fotograma a fotograma",
     ovBoxes: "Recuadros de jugadores",
     ovIds: "ID de jugadores",
     ovTracks: "Trayectorias de jugadores",
@@ -23856,6 +23868,9 @@ export const de: DeepPartial<Dictionary> = {
     exitFullscreen: "Vollbild beenden",
     playbackUnavailable: "Wiedergabe nicht verfügbar",
     overlaysTitle: "Visuelle Overlays",
+    analysisIdentityTitle: "Identitätsprüfung",
+    analysisOpenWorkspace: "Arbeitsbereich öffnen",
+    analysisFrameByFrame: "Bild für Bild",
     ovBoxes: "Spielerboxen",
     ovIds: "Spieler-IDs",
     ovTracks: "Spielerwege",
@@ -29804,6 +29819,9 @@ export const fr: DeepPartial<Dictionary> = {
     exitFullscreen: "Quitter le plein écran",
     playbackUnavailable: "Lecture indisponible",
     overlaysTitle: "Calques visuels",
+    analysisIdentityTitle: "Vérification d’identité",
+    analysisOpenWorkspace: "Ouvrir l’espace de travail",
+    analysisFrameByFrame: "Image par image",
     ovBoxes: "Cadres des joueurs",
     ovIds: "ID des joueurs",
     ovTracks: "Trajectoires des joueurs",
@@ -35753,6 +35771,9 @@ export const pt: DeepPartial<Dictionary> = {
     "exitFullscreen": "Sair da tela cheia",
     "playbackUnavailable": "Reprodução indisponível",
     "overlaysTitle": "Sobreposições visuais",
+    "analysisIdentityTitle": "Revisão de identidade",
+    "analysisOpenWorkspace": "Abrir espaço de trabalho",
+    "analysisFrameByFrame": "Quadro a quadro",
     "ovBoxes": "Caixas dos jogadores",
     "ovIds": "IDs dos jogadores",
     "ovTracks": "Trajetórias dos jogadores",
