@@ -621,6 +621,11 @@ async function prepareDatabase(root, data, userDataDir, detection, log, devMode)
   const env = {
     OTSI_VIE_DB_DSN: appDsn,
     OTSI_VIE_DB_BACKEND: backend,
+    // The API's SQLite file (OTSI_VIE_DB_PATH). loadConfig and
+    // loadWorkerConfig require it when the backend is sqlite; the DSN
+    // alone is not enough, and without it the API and bootstrap-owner
+    // refuse to start with "missing required setting OTSI_VIE_DB_PATH".
+    ...(sqlite ? { OTSI_VIE_DB_PATH: sqliteDbPath(data) } : {}),
     OTSI_VIE_JWT_ISSUER: `http://127.0.0.1:${WEB_PORT}/`,
     OTSI_VIE_JWT_AUDIENCE: 'otsi-vie-api',
     OTSI_VIE_LOCAL_SIGNING_KEY_FILE: keyFile,
