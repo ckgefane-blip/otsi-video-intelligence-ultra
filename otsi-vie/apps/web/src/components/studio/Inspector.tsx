@@ -15,7 +15,6 @@
 import type { Match, MatchEvents, Video } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
 import { tc, type Ui } from "./kit";
@@ -24,7 +23,7 @@ import { Adjustments } from "./Adjustments";
 import { ProjectInfo } from "./ProjectInfo";
 import { NOT_YET } from "@/lib/devMode";
 
-const field = { background: "#06142a", borderRadius: u(6) };
+const field = { background: "#06142a", borderRadius: 6 };
 
 /** one engine event inside a clip: what, when, whether it is the reel player's, and how sure the engine is */
 interface Insight { at: number; label: string; his: boolean; rank: number; evidence: string }
@@ -58,8 +57,8 @@ const mainOf = (list: Insight[]) => list.filter((i) => i.his).sort((x, y) => x.r
 export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: Ui }) {
   const { t: dict } = useLocale();
   const tab = st.inspTab, setTab = st.setInspTab;
-  const ROWS: [string, string, number][] = [["user", dict.body.studio.playerRow, 471], ["ball", dict.body.studio.matchRow, 524], ["ball", dict.body.studio.eventTypeRow, 577], ["clk", dict.body.studio.timestampRow, 631], ["tag", dict.body.studio.tagsRow, 682], ["note", dict.body.studio.notesRow, 737]];
-  const TABS: [string, number][] = [[dict.body.studio.clipInspectorTab, 1993], [dict.body.studio.clipEventsTab, 2171], [dict.body.studio.adjustmentsTab, 2318]];
+  const ROWS = [dict.body.studio.playerRow, dict.body.studio.matchRow, dict.body.studio.eventTypeRow, dict.body.studio.timestampRow, dict.body.studio.tagsRow, dict.body.studio.notesRow];
+  const TABS = [dict.body.studio.clipInspectorTab, dict.body.studio.clipEventsTab, dict.body.studio.adjustmentsTab];
   const [match, setMatch] = useState<Match | null>(null);
   const reel = st.reel;
   const [events, setEvents] = useState<MatchEvents | null | undefined>(undefined);
@@ -96,98 +95,108 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
   };
 
   return (
-    <section aria-label={dict.body.studio.clipInspectorAria} data-section="p07-s04" data-selected={placed?.clip.id ?? (moment ? "moment" : "none")}>
-      <P x={1972} y={205} w={562} h={620} />
-      <div role="tablist" aria-label={dict.body.studio.inspectorAria}>
-        {TABS.map(([l, x], i) => (
-          <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className="absolute"
-            style={{ left: u(x - 11), top: u(215 - 101), width: u(l.length * 12 + 22), height: u(44), padding: 0, border: 0, background: "transparent", cursor: "pointer", font: "inherit" }}>
-            <T o={[x - 11, 215]} x={x} y={235} size={22} weight={tab === i ? 600 : 400} color={tab === i ? "#33a8ff" : "#cfe0f5"} as="span">{l}</T>
-          </button>
+    <section aria-label={dict.body.studio.clipInspectorAria} data-section="p07-s04" data-selected={placed?.clip.id ?? (moment ? "moment" : "none")}
+      className="vie-panel flex min-h-0 flex-col p-3">
+      <div role="tablist" aria-label={dict.body.studio.inspectorAria} className="flex gap-1 border-b border-line">
+        {TABS.map((l, i) => (
+          <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
+            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted"}`}>{l}</button>
         ))}
       </div>
-      <Ic x={2502} y={235} k="exv" size={26} color="#cfe0f5" />
-      <B x={TABS[tab]![1] - 11} y={259} w={145} h={3} style={{ background: "#1e90ff" }} />
-      <B x={1974} y={262} w={558} h={1} style={{ background: "#12335f" }} />
 
-      {tab === 1 ? (
-        <div data-insights={String(insights.length)} className="absolute" style={{ left: u(1990), top: u(280 - 101), width: u(526), height: u(530), overflowY: "auto", fontSize: u(18), color: "#cfe0f5" }}>
-          {!span ? <p style={{ margin: u(20), color: "#8ea3bf" }}>{dict.body.studio.selectClip}</p>
-            : !insights.length ? <p style={{ margin: u(20), color: "#8ea3bf" }}>{events && events.state === "READY" ? dict.body.studio.noEventInClip : noEvents}</p> : (
-            <>
-              <p style={{ margin: `${u(6)} ${u(8)} ${u(10)}`, fontSize: u(15), color: "#8ea3bf" }}>
-                {dict.body.studio.engineFoundBetween.replace("{a}", tc(span.in)).replace("{b}", tc(span.out))}
-              </p>
-              <ul aria-label={dict.body.studio.engineEventsInClip} style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {insights.map((i, k) => (
-                  <li key={k} data-his={i.his ? "1" : "0"} style={{ display: "flex", alignItems: "center", gap: u(10), padding: `${u(8)} ${u(10)}`, marginBottom: u(6), borderRadius: u(6),
-                    background: i.his ? "#0a2447" : "#06142a", border: `${u(1.5)} solid ${i.his ? "#1e90ff" : "#12335f"}` }}>
-                    <span style={{ color: "#8ea3bf", width: u(70), flex: "none" }}>{tc(i.at)}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>{i.label}{i.his && reel?.player ? ` · ${reel.player.display_name}` : ""}</span>
-                    <span title={i.evidence === "INFERRED" ? dict.body.studio.workedOut : dict.body.studio.seenByEngine}
-                      style={{ fontSize: u(13), padding: `${u(2)} ${u(6)}`, borderRadius: u(4), background: i.evidence === "INFERRED" ? "#3a2a08" : "#08311f", color: i.evidence === "INFERRED" ? "#ffc66d" : "#3ee6a8" }}>
-                      {i.evidence === "INFERRED" ? dict.body.tactics.inferredLabel : dict.body.studio.detectedBadge}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      ) : tab === 2 ? (
-        <div className="absolute" style={{ left: u(1984), top: u(270 - 101), width: u(538), height: u(548), overflowY: "auto" }}>
+      <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
+        {tab === 1 ? (
+          <div data-insights={String(insights.length)} className="t-body">
+            {!span ? <p className="m-5 text-muted">{dict.body.studio.selectClip}</p>
+              : !insights.length ? <p className="m-5 text-muted">{events && events.state === "READY" ? dict.body.studio.noEventInClip : noEvents}</p> : (
+              <>
+                <p className="t-small mx-2 mb-2.5 mt-1.5">
+                  {dict.body.studio.engineFoundBetween.replace("{a}", tc(span.in)).replace("{b}", tc(span.out))}
+                </p>
+                <ul aria-label={dict.body.studio.engineEventsInClip} className="list-none space-y-1.5 p-0">
+                  {insights.map((i, k) => (
+                    <li key={k} data-his={i.his ? "1" : "0"}
+                      className={`flex items-center gap-2.5 rounded-md border px-2.5 py-2 ${i.his ? "border-primary bg-[#0a2447]" : "border-line bg-[#06142a]"}`}>
+                      <span className="t-tc w-[70px] shrink-0 text-muted">{tc(i.at)}</span>
+                      <span className="min-w-0 flex-1">{i.label}{i.his && reel?.player ? ` · ${reel.player.display_name}` : ""}</span>
+                      <span title={i.evidence === "INFERRED" ? dict.body.studio.workedOut : dict.body.studio.seenByEngine}
+                        className="rounded px-1.5 py-0.5 text-xs font-semibold"
+                        style={{ background: i.evidence === "INFERRED" ? "#3a2a08" : "#08311f", color: i.evidence === "INFERRED" ? "#ffc66d" : "#3ee6a8" }}>
+                        {i.evidence === "INFERRED" ? dict.body.tactics.inferredLabel : dict.body.studio.detectedBadge}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        ) : tab === 2 ? (
           <Adjustments r={r} st={st} ui={ui} placed={placed} suggestAt={main?.at ?? null} />
-        </div>
-      ) : tab !== 0 ? <T x={2253} y={520} size={20} color="#8ea3bf" align="center">{dict.body.studio.tabNotYet.replace("{a}", TABS[tab]![0]).replace("{b}", NOT_YET)}</T>
-        : !chosen && !moment && reel ? (   // B.19 (ADR-093): nothing chosen: the reel itself, and a way to choose the clip at the playhead
-        <ProjectInfo reel={reel} match={match} total={st.total} canPick={!!placed} onPick={() => placed && r?.setSelectedClip(placed.clip.id)} />
-      ) : (
-        <>
-          <B x={1993} y={287} w={215} h={104} style={{ borderRadius: u(5), background: "radial-gradient(ellipse at 45% 38%,#e0b090 0,#c98c6a 6%,transparent 7%),radial-gradient(ellipse at 45% 85%,#6fb8ee 0,#2a6fb8 35%,transparent 70%),linear-gradient(180deg,#27487a,#2d7a3a 30%,#1d5a28)" }} />
-          <B x={2152} y={361} w={52} h={27} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4) }} />
-          <T x={2178} y={375} size={17} weight={600} align="center">{span ? `${Math.round((span.out - span.in) / 1e6)}s` : "—"}</T>
-          <T x={2226} y={303} size={20} weight={600} style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{title}</T>
-          <T x={2226} y={337} size={20} color="#b9cbe2" style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{line2}</T>
-          <T x={2226} y={371} size={20} color="#b9cbe2">{span ? `${tc(span.in)} – ${tc(span.out)}` : "—"}</T>
-          <T x={1993} y={431} size={24} weight={600} as="h2">{dict.body.studio.clipDetails}</T>
-          {ROWS.map(([k, l, y]) => (
-            <div key={l}><Ic x={2006} y={y} k={k} size={24} color="#cfe0f5" /><T x={2030} y={y} size={20} color="#cfe0f5">{l}</T></div>
-          ))}
-          <B x={2174} y={449} w={340} h={44} style={field} />
-          <B x={2185} y={454} w={34} h={34} style={{ background: "radial-gradient(circle at 50% 38%,#e0b090 0,#b98466 24%,#2a3a58 25%)", borderRadius: u(5) }} />
-          <T x={2229} y={471} size={20} color={span && reel?.player ? "#e3eefb" : "#8ea3bf"} style={{ maxWidth: u(280), overflow: "hidden", textOverflow: "ellipsis" }}>
-            {span && reel?.player ? `${reel.player.display_name}${reel.player.canonical_otsi_id ? ` · ${reel.player.canonical_otsi_id}` : ""}` : span ? dict.body.studio.noPlayerOnReel : dict.body.studio.selectClipLabel}
-          </T>
-          <B x={2174} y={502} w={340} h={44} style={field} />
-          <B x={2178} y={506} w={36} h={36} style={{ background: "radial-gradient(circle,#f2c56b 0,#6cc4ff 50%,#fff 56%)", borderRadius: "50%" }} />
-          <T x={2229} y={524} size={20} color={span && match ? "#e3eefb" : "#8ea3bf"} style={{ maxWidth: u(280), overflow: "hidden", textOverflow: "ellipsis" }}>
-            {span && match ? `${match.home?.name ?? "—"} vs ${match.away?.name ?? "—"}` : span ? dict.body.studio.videoNotLinked : dict.body.studio.selectClipLabel}
-          </T>
-          <B x={2174} y={555} w={340} h={44} style={field} />
-          <Ic x={2198} y={577} k="pass" size={24} color="#cfe0f5" />
-          <div title={main ? dict.body.studio.engineReadingNotReviewed.replace("{a}", main.evidence === "INFERRED" ? dict.body.studio.inferredWord : dict.body.studio.detectedWord) : undefined} data-event-type={main?.label ?? "none"}>
-            <T x={2227} y={577} size={20} color={main ? "#e3eefb" : "#8ea3bf"} style={{ maxWidth: u(280), overflow: "hidden", textOverflow: "ellipsis" }}>
-              {!span ? dict.body.studio.selectClipLabel : main ? `${main.label} · ${tc(main.at)}` : noEvents}</T>
+        ) : tab !== 0 ? <p className="t-body mt-5 text-center text-muted">{dict.body.studio.tabNotYet.replace("{a}", TABS[tab]!).replace("{b}", NOT_YET)}</p>
+          : !chosen && !moment && reel ? (   // B.19 (ADR-093): nothing chosen: the reel itself, and a way to choose the clip at the playhead
+          <ProjectInfo reel={reel} match={match} total={st.total} canPick={!!placed} onPick={() => placed && r?.setSelectedClip(placed.clip.id)} />
+        ) : (
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="relative h-[104px] w-[215px] shrink-0 overflow-hidden rounded-md border border-line bg-[#0b2a52]">
+                <span className="t-tc absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-white">{span ? `${Math.round((span.out - span.in) / 1e6)}s` : "—"}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="t-panel truncate">{title}</p>
+                <p className="t-body truncate text-muted">{line2}</p>
+                <p className="t-tc mt-1">{span ? `${tc(span.in)} – ${tc(span.out)}` : "—"}</p>
+              </div>
+            </div>
+            <h2 className="t-section">{dict.body.studio.clipDetails}</h2>
+            <div>
+              <p className="t-label">{ROWS[0]}</p>
+              <div className="mt-1 rounded-md px-3 py-2 t-body" style={field}>
+                {span && reel?.player ? `${reel.player.display_name}${reel.player.canonical_otsi_id ? ` · ${reel.player.canonical_otsi_id}` : ""}` : span ? dict.body.studio.noPlayerOnReel : dict.body.studio.selectClipLabel}
+              </div>
+            </div>
+            <div>
+              <p className="t-label">{ROWS[1]}</p>
+              <div className="mt-1 rounded-md px-3 py-2 t-body" style={field}>
+                {span && match ? `${match.home?.name ?? "—"} vs ${match.away?.name ?? "—"}` : span ? dict.body.studio.videoNotLinked : dict.body.studio.selectClipLabel}
+              </div>
+            </div>
+            <div>
+              <p className="t-label">{ROWS[2]}</p>
+              <div className="mt-1 rounded-md px-3 py-2 t-body" style={field}
+                title={main ? dict.body.studio.engineReadingNotReviewed.replace("{a}", main.evidence === "INFERRED" ? dict.body.studio.inferredWord : dict.body.studio.detectedWord) : undefined} data-event-type={main?.label ?? "none"}>
+                {!span ? dict.body.studio.selectClipLabel : main ? `${main.label} · ${tc(main.at)}` : noEvents}
+              </div>
+            </div>
+            <div>
+              <p className="t-label">{ROWS[3]}</p>
+              <div className="mt-1 flex items-center gap-2 rounded-lg border border-line2 bg-canvas px-3.5 py-2 t-body text-muted">
+                {canTrim ? (
+                  <form className="flex w-full items-center gap-2" onSubmit={(e) => { e.preventDefault(); applyTrim(); }} aria-label={dict.body.studio.trimClip}>
+                    <input aria-label={dict.body.studio.inPoint} value={inS} onChange={(e) => setIn(e.target.value)} onBlur={applyTrim} inputMode="decimal"
+                      className="t-tc w-[110px] bg-transparent text-ink outline-none" />
+                    <span>–</span>
+                    <input aria-label={dict.body.studio.outPoint} value={outS} onChange={(e) => setOut(e.target.value)} onBlur={applyTrim} inputMode="decimal"
+                      className="t-tc w-[110px] bg-transparent text-ink outline-none" />
+                    <span className="t-small">s</span>
+                  </form>
+                ) : <span>{span ? `${(span.in / 1e6).toFixed(2)} – ${(span.out / 1e6).toFixed(2)} s` : "—"}</span>}
+              </div>
+            </div>
+            <div>
+              <p className="t-label">{ROWS[4]}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="t-body text-muted">{dict.body.studio.noTags}</span>
+                <button type="button" disabled title={dict.body.studio.tagsNotStored} aria-label={dict.body.studio.addTagNA}
+                  className="t-panel flex h-10 w-10 items-center justify-center rounded-md border border-line2 bg-raised opacity-60">+</button>
+              </div>
+            </div>
+            <div>
+              <p className="t-label">{ROWS[5]}</p>
+              <ClipNotes r={r} st={st} span={placed ? span : null} ui={ui} />
+            </div>
           </div>
-          <div className="absolute" style={{ left: u(2174), top: u(608 - 101), width: u(340), height: u(44), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`, borderRadius: u(8),
-            background: "#041022", display: "flex", alignItems: "center", gap: u(8), padding: `0 ${u(14)}`, fontSize: u(20), color: "#8ea3bf" }}>
-            {canTrim ? (
-              <form style={{ display: "flex", alignItems: "center", gap: u(8), width: "100%" }} onSubmit={(e) => { e.preventDefault(); applyTrim(); }} aria-label={dict.body.studio.trimClip}>
-                <input aria-label={dict.body.studio.inPoint} value={inS} onChange={(e) => setIn(e.target.value)} onBlur={applyTrim} inputMode="decimal"
-                  style={{ width: u(110), background: "transparent", border: 0, color: "#e3eefb", fontSize: "inherit", fontFamily: "inherit", outline: "none" }} />
-                <span>–</span>
-                <input aria-label={dict.body.studio.outPoint} value={outS} onChange={(e) => setOut(e.target.value)} onBlur={applyTrim} inputMode="decimal"
-                  style={{ width: u(110), background: "transparent", border: 0, color: "#e3eefb", fontSize: "inherit", fontFamily: "inherit", outline: "none" }} />
-                <span style={{ fontSize: u(16) }}>s</span>
-              </form>
-            ) : <span>{span ? `${(span.in / 1e6).toFixed(2)} – ${(span.out / 1e6).toFixed(2)} s` : "—"}</span>}
-          </div>
-          <T x={2176} y={682} size={19} color="#8ea3bf">{dict.body.studio.noTags}</T>
-          <B x={2473} y={662} w={40} h={40} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6), opacity: 0.6 }} />
-          <span title={dict.body.studio.tagsNotStored} aria-label={dict.body.studio.addTagNA}><Ic x={2493} y={682} k="plus" size={20} /></span>
-          <ClipNotes r={r} st={st} span={placed ? span : null} ui={ui} />
-        </>
-      )}
+        )}
+      </div>
     </section>
   );
 }
@@ -212,18 +221,16 @@ function ClipNotes({ r, st, span, ui }: { r: ReelState | null; st: Studio; span:
     void st.addNote(text.trim(), pts).then(() => setText(""), () => ui.say(dict.body.studio.noteNotSaved)).finally(() => setBusy(false));
   };
   return (
-    <div className="absolute" style={{ left: u(2174), top: u(714 - 101), width: u(340), height: u(92), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`,
-      borderRadius: u(8), background: "#041022", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="mt-1 flex flex-col overflow-hidden rounded-lg border border-line2 bg-canvas">
       {mine.length > 0 && (
-        <ul aria-label={dict.body.studio.notesOnClip} style={{ margin: 0, padding: `${u(4)} ${u(12)} 0`, listStyle: "none", overflowY: "auto", flex: 1, fontSize: u(15), color: "#cfe0f5", lineHeight: 1.25 }}>
-          {mine.map((n) => <li key={n.id} title={`${n.author.display_name} · ${tc(n.at_pts_us ?? 0)}`}><span style={{ color: "#8ea3bf" }}>{tc(n.at_pts_us ?? 0)}</span> {n.body}</li>)}
+        <ul aria-label={dict.body.studio.notesOnClip} className="t-body max-h-24 list-none overflow-y-auto px-3 pb-0 pt-1 leading-snug">
+          {mine.map((n) => <li key={n.id} title={`${n.author.display_name} · ${tc(n.at_pts_us ?? 0)}`}><span className="text-muted">{tc(n.at_pts_us ?? 0)}</span> {n.body}</li>)}
         </ul>
       )}
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} style={{ flex: mine.length ? "0 0 auto" : 1, display: "flex" }}>
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex">
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={255} disabled={busy} aria-label={dict.body.studio.addClipNoteAria}
           placeholder={span ? (can ? dict.body.studio.addClipNotes : dict.body.studio.roleCannotNotes) : dict.body.studio.addClipNotesShort}
-          style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: "none", color: "#e3eefb", fontSize: u(mine.length ? 16 : 20), fontFamily: "inherit",
-            padding: `${u(mine.length ? 4 : 10)} ${u(15)}`, alignSelf: mine.length ? "auto" : "flex-start" }} />
+          className="t-body min-w-0 flex-1 bg-transparent px-3.5 py-2.5 outline-none" />
       </form>
     </div>
   );

@@ -1,14 +1,16 @@
 "use client";
 /**
  * Page 09 Sections 07–10 — selected-item preview, metadata, quick actions and collaborator access (approved reference
- * 09_LIBRARY_PROJECT_CENTER, "right panel").
+ * 09_LIBRARY_PROJECT_CENTER, "right panel"), laid out in the page's flow.
  *
- * The preview plays the asset's real file: a rendered reel's MP4 (GET /v1/renders/:id/playback), otherwise the source video's playback
- * copy. Details are what was recorded (competition, match, featured player, creator, dates, length, file size, resolution); tags are
- * not recorded, so "—". Download gives the rendered MP4 only; Share copies the in-app link; Edit renames a reel or project; Open
- * in Analysis opens the source video. Duplicate copies a reel (POST /v1/reels/:id/duplicate: same player, pinned identities, settings and
- * clips; renders, links and notes are not copied). Send to Client opens the reel's Export & Delivery page (ADR-058). Nothing is a dead
- * control: Send to Client and Duplicate on anything but a reel and anything that needs a selection say why when clicked.
+ * The preview plays the asset's real file through the shared VideoPlayer: a rendered reel's MP4 (GET /v1/renders/:id/playback),
+ * otherwise the source video's playback copy (GET /v1/videos/:id/playback). With nothing to play it says so and names the next
+ * action, instead of a decorative frame. Details are what was recorded (competition, match, featured player, creator, dates,
+ * length, file size, resolution); tags are not recorded, so "—". Download gives the rendered MP4 only; Share copies the in-app
+ * link; Edit renames a reel or project; Open in Analysis opens the source video. Duplicate copies a reel (POST /v1/reels/:id/duplicate:
+ * same player, pinned identities, settings and clips; renders, links and notes are not copied). Send to Client opens the reel's
+ * Export & Delivery page (ADR-058). Nothing is a dead control: Send to Client and Duplicate on anything but a reel and anything
+ * that needs a selection say why when clicked.
  * Collaborators (ADR-057) shows who can see the item: its project's people and whether only they (and Owners / Admins) may see it, or
  * everyone in the organization. Manage Access opens the project's access list (AccessDialog); the server enforces it on every route.
  * A.12 (ADR-078): Media Info, in the heading, opens everything recorded about the item's source video (MediaInfoDialog).
@@ -17,30 +19,20 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { type LibraryFolder, type Match, type Member, type Playback, type Project, type ProjectPermission, type Reel } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { memo, useEffect, useRef, useState } from "react";
-import { B, Ic, P, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+import { Download, Info, Link2, Pencil, Play, Send, X } from "lucide-react";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { kindLabel, statusLabel, type Asset } from "./useLibrary";
 import { MediaInfoDialog } from "@/components/media/MediaInfoDialog";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { AccessDialog } from "./AccessDialog";
 
-const IN = { background: "#041022", borderRadius: u(8), ["--bc" as string]: "#17406f" };
-const ROWS = (d: Dictionary): [string, string, number][] => [["ball", d.body.library.selCompetition, 688], ["calendar", d.body.library.selMatch, 737], ["user", d.body.library.selPlayers, 786], ["cir", d.body.library.selCreatedBy, 832],
-  ["clock", d.body.library.selCurated, 873], ["clock", d.body.library.selDuration, 913], ["img", d.body.library.selFileSize, 952], ["img", d.body.library.selResolution, 988], ["tagdot", d.body.library.selTags, 1031]];
+const ROWS = (d: Dictionary): [string, string][] => [[d.body.library.selCompetition, "ball"], [d.body.library.selMatch, "calendar"], [d.body.library.selPlayers, "user"],
+  [d.body.library.selCreatedBy, "cir"], [d.body.library.selCurated, "clock"], [d.body.library.selDuration, "clock"], [d.body.library.selFileSize, "img"],
+  [d.body.library.selResolution, "img"], [d.body.library.selTags, "tagdot"]];
 const permName = (p: ProjectPermission, d: Dictionary): string => ({ READ: d.body.library.permViewer, REVIEW: d.body.library.permReviewer, EDIT: d.body.library.permEditor, ADMIN: d.body.library.permManager })[p];
 const mb = (b: number | null) => (b === null ? "—" : b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : `${(b / 1e6).toFixed(1)} MB`);
 const dur = (us: number | null) => (us ? `${Math.floor(us / 6e7)}:${String(Math.round(us / 1e6) % 60).padStart(2, "0")}` : "—");
-
-function Action({ x, y, icon, ix, tx, label, onClick, why, primary, say }: { x: number; y: number; icon: string; ix: number; tx: number; label: string; onClick?: (() => void) | undefined; why: string; primary?: boolean; say: (t: string) => void }) {
-  return (
-    <button type="button" aria-label={label} title={onClick ? label : why} aria-disabled={!onClick || undefined} onClick={onClick ?? (() => say(why))} className={`${s.a} ${s.framed}`}
-      style={{ left: u(x), top: u(y - 101), width: u(240), height: u(52), padding: 0, border: 0, color: "inherit", font: "inherit", cursor: "pointer",
-        opacity: onClick ? 1 : 0.55, ...(primary ? { background: "#08294d", borderRadius: u(8), ["--bc" as string]: "#1e6fc0" } : IN) }}>
-      <Ic o={[x, y]} x={ix} y={y + 26} k={icon} size={24} color={primary ? "#33a8ff" : "#cfe0f5"} />
-      <T o={[x, y]} x={tx} y={y + 26} size={21} weight={600} color={primary ? "#33a8ff" : undefined} as="span">{label}</T>
-    </button>
-  );
-}
 
 export const SelectedItem = memo(function SelectedItem({ a, match, onClose, reload, canWrite }: { a: Asset | null; match: Match | null; onClose: () => void; reload: () => Promise<void>; canWrite: boolean }) {
   const { t: dict } = useLocale();
@@ -91,112 +83,120 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
   ] : ROWS(dict).map(() => "—");
 
   return (
-    <>
-      <P x={2003} y={121} w={537} h={1299} />
-      <T x={2027} y={156} size={25} weight={600} color="#33a8ff" as="h2">{dict.body.library.selHeading}</T>
-      <button type="button" onClick={() => (videoId ? setInfo(true) : flash(a ? dict.body.library.selNoSourceVideo : pickFirst))} className="absolute" data-action="media-info"
-        title={a?.kind === "Video" ? dict.body.library.selMediaInfoFile : dict.body.library.selMediaInfoSource}
-        style={{ left: u(2330), top: u(156 - 101 - 13), width: u(145), height: u(26), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(18),
-          fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", textAlign: "right", opacity: videoId ? 1 : 0.6 }}>{dict.body.library.selMediaInfo}</button>
+    <aside aria-label={dict.body.library.selHeading} className="vie-panel flex min-w-0 flex-col gap-3 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="t-panel text-primary">{dict.body.library.selHeading}</h2>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => (videoId ? setInfo(true) : flash(a ? dict.body.library.selNoSourceVideo : pickFirst))} data-action="media-info"
+            title={a?.kind === "Video" ? dict.body.library.selMediaInfoFile : dict.body.library.selMediaInfoSource}
+            className="flex items-center gap-1 px-1 py-1 text-sm text-primary hover:underline disabled:opacity-60">
+            <Info className="h-4 w-4" aria-hidden />{dict.body.library.selMediaInfo}
+          </button>
+          <button type="button" aria-label={dict.body.library.selClearSelection} onClick={a ? onClose : () => flash(dict.body.library.selNothingSelected)} className="vie-ib h-7 w-7">
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+      </div>
       <MediaInfoDialog videoId={videoId} name={a?.kind === "Video" ? a.title : dict.body.library.selSourceOf.replace("{a}", a?.title ?? "")} open={info} onOpenChange={setInfo} />
-      <button type="button" aria-label={dict.body.library.selClearSelection} onClick={a ? onClose : () => flash(dict.body.library.selNothingSelected)} className="absolute"
-        style={{ left: u(2490), top: u(142 - 101), width: u(30), height: u(30), padding: 0, border: 0, background: "transparent", cursor: "pointer" }}>
-        <Ic o={[2490, 142]} x={2505} y={157} k="x" size={24} />
-      </button>
-      <B x={2003} y={185} w={537} h={1} style={{ background: "#12335f" }} />
 
       <section aria-label={dict.body.library.selPreviewSection} data-section="p09-s07">
-        <B x={2025} y={208} w={493} h={260} style={{ borderRadius: u(8), overflow: "hidden",
-          background: "radial-gradient(ellipse at 70% 30%,#e3b898 0,#c98c6a 6%,transparent 7%),radial-gradient(ellipse at 60% 110%,#7cc2f2 0,#3a86c8 40%,transparent 70%),linear-gradient(135deg,#27487a,#0e2040)" }}>
-          {play && <video src={play} controls autoPlay playsInline aria-label={dict.body.library.selPreviewAria.replace("{a}", a?.title ?? "")} style={{ width: "100%", height: "100%", background: "#000", display: "block" }} />}
-        </B>
-        {!play && (
-          <button type="button" aria-label={canPlay ? dict.body.library.selPlay.replace("{a}", a!.title) : dict.body.library.selNothingToPlay}
-            onClick={() => (canPlay ? void start() : flash(a ? dict.body.library.selNoVideoToPlay : pickFirst))} className="absolute"
-            style={{ left: u(2232), top: u(307 - 101), width: u(72), height: u(72), padding: 0, border: 0, borderRadius: "50%", background: "rgba(10,20,40,.7)", cursor: "pointer" }}>
-            <span style={{ position: "absolute", left: u(26), top: u(21), width: u(26), height: u(32), background: "#fff", clipPath: "polygon(0 0,100% 50%,0 100%)" }} />
-          </button>
+        {play ? (
+          <VideoPlayer src={play} label={dict.body.library.selPreviewAria.replace("{a}", a?.title ?? "")} autoPlay />
+        ) : (
+          <div className="relative grid aspect-video place-items-center overflow-hidden rounded-md border border-line bg-p0">
+            <button type="button" aria-label={canPlay ? dict.body.library.selPlay.replace("{a}", a?.title ?? "") : dict.body.library.selNothingToPlay}
+              onClick={() => (canPlay ? void start() : flash(a ? dict.body.library.selNoVideoToPlay : pickFirst))}
+              className="grid h-[72px] w-[72px] place-items-center rounded-full border border-white/40 bg-black/60 text-white hover:bg-black/80">
+              <Play className="ml-1 h-8 w-8 fill-current" aria-hidden />
+            </button>
+            {a?.durationUs ? <span className="absolute bottom-1.5 right-1.5 rounded-sm bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">{dur(a.durationUs)}</span> : null}
+            {!canPlay && <span className="absolute bottom-1.5 left-1.5 text-xs text-muted">{a ? dict.body.library.selNoVideoToPlay : pickFirst}</span>}
+          </div>
         )}
-        {!play && <><B x={2432} y={423} w={74} h={32} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(6) }} /><T x={2469} y={439} size={22} weight={600} align="center">{dur(a?.durationUs ?? null)}</T></>}
       </section>
 
-      <section aria-label={dict.body.library.selMetaSection} data-section="p09-s08">
-        <T x={2025} y={503} size={26} weight={700} style={{ maxWidth: u(370), overflow: "hidden", textOverflow: "ellipsis" }}>{a?.title ?? dict.body.library.selNoAssetSelected}</T>
-        <button type="button" aria-label="Edit the name" title={renamable ? dict.body.library.rename : whyNoRename} aria-disabled={!renamable || undefined}
-          onClick={() => { if (!renamable) return flash(whyNoRename); setName(a!.title); setNaming(true); }} className={`${s.a} ${s.framed}`}
-          style={{ left: u(2406), top: u(484 - 101), width: u(111), height: u(42), padding: 0, border: 0, color: "inherit", font: "inherit", cursor: "pointer", ...IN }}>
-          <Ic o={[2406, 484]} x={2432} y={505} k="edit" size={22} />
-          <T o={[2406, 484]} x={2476} y={505} size={19} as="span">{dict.body.library.selEdit}</T>
-        </button>
+      <section aria-label={dict.body.library.selMetaSection} data-section="p09-s08" className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 flex-1 truncate t-panel">{a?.title ?? dict.body.library.selNoAssetSelected}</h3>
+          <button type="button" aria-label="Edit the name" title={renamable ? dict.body.library.rename : whyNoRename} aria-disabled={!renamable || undefined}
+            onClick={() => { if (!renamable) return flash(whyNoRename); setName(a!.title); setNaming(true); }}
+            className="vie-btn vie-btn-sm shrink-0">
+            <Pencil className="h-3.5 w-3.5" aria-hidden />{dict.body.library.selEdit}
+          </button>
+        </div>
         {a && (
-          <>
-            <B x={2025} y={538} w={a.kind.length * 11 + 30} h={35} style={{ background: "#0a84ff", borderRadius: u(6) }} />
-            <T x={2025 + (a.kind.length * 11 + 30) / 2} y={556} size={18} align="center">{kindLabel(a.kind, dict)}</T>
-            <B x={2035 + a.kind.length * 11 + 30} y={538} w={a.status.length * 10 + 30} h={35} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6) }} />
-            <T x={2035 + a.kind.length * 11 + 30 + (a.status.length * 10 + 30) / 2} y={556} size={18} align="center">{statusLabel(a.status, dict)}</T>
-          </>
+          <p className="flex flex-wrap gap-1.5">
+            <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-white">{kindLabel(a.kind, dict)}</span>
+            <span className="rounded-md border border-line bg-raised px-2 py-0.5 text-xs">{statusLabel(a.status, dict)}</span>
+          </p>
         )}
-        <T x={2027} y={599} size={22} color="#d6e4f7" style={{ maxWidth: u(490), overflow: "hidden", textOverflow: "ellipsis" }}>{a ? a.sub : dict.body.library.selSelectToSee}</T>
-        <dl style={{ margin: 0 }}>
-          {ROWS(dict).map(([k, l, y], i) => (
-            <div key={l}>
-              <Ic x={2040} y={y === 737 ? 736 : y} k={k} size={26} color="#cfe0f5" />
-              <T x={2073} y={y === 737 ? 736 : y} size={20} color="#cfe0f5" as="span">{l}</T>
-              <T x={2244} y={y} size={20} color="#e3eefb" as="span" style={{ maxWidth: u(270), overflow: "hidden", textOverflow: "ellipsis" }}>{vals[i]}</T>
+        <p className="truncate text-sm text-muted">{a ? a.sub : dict.body.library.selSelectToSee}</p>
+        <dl className="m-0 flex flex-col">
+          {ROWS(dict).map(([l], i) => (
+            <div key={l} className="flex items-baseline gap-2 border-b border-line/40 py-1 text-sm last:border-0">
+              <dt className="w-32 shrink-0 text-muted">{l}</dt>
+              <dd className="m-0 min-w-0 flex-1 truncate">{vals[i]}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section aria-label={dict.body.library.selActionsSection} data-section="p09-s09">
+      <section aria-label={dict.body.library.selActionsSection} data-section="p09-s09" className="flex flex-col gap-2">
         <button type="button" aria-label={dict.body.library.selDownloadMp4Aria} title={download ? dict.body.library.selDownload : dict.body.library.selOnlyRendered} aria-disabled={!download || undefined}
           onClick={download ?? (() => flash(a ? dict.body.library.selOnlyRenderedLong : pickFirst))}
-          className="absolute" style={{ left: u(2025), top: u(1075 - 101), width: u(494), height: u(58), padding: 0, border: 0, borderRadius: u(8), background: "#0a84ff",
-            color: "#fff", font: "inherit", cursor: "pointer", opacity: download ? 1 : 0.6 }}>
-          <B o={[2025, 1075]} x={2467} y={1085} w={1.5} h={38} style={{ background: "#4fa8ff" }} />
-          <Ic o={[2025, 1075]} x={2194} y={1104} k="dl" size={28} />
-          <T o={[2025, 1075]} x={2231} y={1104} size={24} weight={600} as="span">{dict.body.library.download}</T>
-          <Ic o={[2025, 1075]} x={2494} y={1104} k="chev" size={22} />
+          className="vie-btn vie-btn-pri w-full disabled:opacity-60">
+          <Download className="h-4 w-4" aria-hidden />{dict.body.library.download}
         </button>
-        <Action x={2025} y={1145} icon="link" ix={2115} tx={2144} label={dict.body.library.share} why={pickFirst} say={flash}
-          onClick={a?.href ? () => { void navigator.clipboard?.writeText(`${location.origin}${a.href}`).then(() => flash(dict.body.library.selLinkCopied), () => flash(dict.body.library.selCopyFailed)); } : undefined} />
-        <Action x={2279} y={1145} icon="doc" ix={2369} tx={2398} label={dict.body.library.selDuplicate} say={flash}
-          why={!a ? pickFirst : !reel ? dict.body.library.selOnlyReelDuplicate : dict.body.library.selRoleNoCopy}
-          onClick={reel && canWrite ? () => {
-            void api<Reel>(`/v1/reels/${reel.id}/duplicate`, { method: "POST" }).then(async (c) => { await reload(); flash(dict.body.library.selCopiedAs.replace("{a}", c.name)); },
-              (x) => flash(x instanceof ApiProblem ? x.message : dict.body.library.selDuplicateFailed));
-          } : undefined} />
-        <Action x={2025} y={1208} icon="send" ix={2073} tx={2107} label={dict.body.library.sendToClient} say={flash} why={!a ? pickFirst : dict.body.library.selOnlyReelClient}
-          onClick={reel ? () => { window.location.href = `/exports?reel=${reel.id}`; } : undefined} />
-        {videoId ? (
-          <Link href={`/videos/${videoId}/analyze`} className={`${s.a} ${s.framed}`} aria-label={dict.body.library.openInAnalysis}
-            style={{ left: u(2279), top: u(1208 - 101), width: u(240), height: u(52), background: "#08294d", borderRadius: u(8), ["--bc" as string]: "#1e6fc0", color: "inherit", textDecoration: "none" }}>
-            <Ic o={[2279, 1208]} x={2319} y={1234} k="bars3" size={24} color="#33a8ff" />
-            <T o={[2279, 1208]} x={2351} y={1234} size={21} weight={600} color="#33a8ff" as="span">{dict.body.library.openInAnalysis}</T>
-          </Link>
-        ) : <Action x={2279} y={1208} icon="bars3" ix={2319} tx={2351} label={dict.body.library.openInAnalysis} why={a ? dict.body.library.selNoSourceVideo : pickFirst} primary say={flash} />}
-        {note && <T x={2272} y={1268} size={16} color="#33a8ff" align="center">{note}</T>}
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" aria-label={dict.body.library.share} title={a?.href ? dict.body.library.share : pickFirst}
+            onClick={a?.href ? () => { void navigator.clipboard?.writeText(`${location.origin}${a.href}`).then(() => flash(dict.body.library.selLinkCopied), () => flash(dict.body.library.selCopyFailed)); } : () => flash(pickFirst)}
+            className="vie-btn">
+            <Link2 className="h-4 w-4" aria-hidden />{dict.body.library.share}
+          </button>
+          <button type="button" aria-label={dict.body.library.selDuplicate}
+            title={!a ? pickFirst : !reel ? dict.body.library.selOnlyReelDuplicate : dict.body.library.selRoleNoCopy}
+            onClick={reel && canWrite ? () => {
+              void api<Reel>(`/v1/reels/${reel.id}/duplicate`, { method: "POST" }).then(async (c) => { await reload(); flash(dict.body.library.selCopiedAs.replace("{a}", c.name)); },
+                (x) => flash(x instanceof ApiProblem ? x.message : dict.body.library.selDuplicateFailed));
+            } : () => flash(!a ? pickFirst : !reel ? dict.body.library.selOnlyReelDuplicate : dict.body.library.selRoleNoCopy)}
+            className="vie-btn">
+            {dict.body.library.selDuplicate}
+          </button>
+          <button type="button" aria-label={dict.body.library.sendToClient} title={reel ? dict.body.library.sendToClient : !a ? pickFirst : dict.body.library.selOnlyReelClient}
+            onClick={reel ? () => { window.location.href = `/exports?reel=${reel.id}`; } : () => flash(!a ? pickFirst : dict.body.library.selOnlyReelClient)}
+            className="vie-btn">
+            <Send className="h-4 w-4" aria-hidden />{dict.body.library.sendToClient}
+          </button>
+          {videoId ? (
+            <Link href={`/videos/${videoId}/analyze`} aria-label={dict.body.library.openInAnalysis} className="vie-btn">
+              {dict.body.library.openInAnalysis}
+            </Link>
+          ) : (
+            <button type="button" aria-label={dict.body.library.openInAnalysis} title={a ? dict.body.library.selNoSourceVideo : pickFirst}
+              onClick={() => flash(a ? dict.body.library.selNoSourceVideo : pickFirst)} className="vie-btn">
+              {dict.body.library.openInAnalysis}
+            </button>
+          )}
+        </div>
+        {note && <p role="status" className="text-center text-xs text-primary">{note}</p>}
       </section>
 
-      <section aria-label={dict.body.library.selAccessSection} data-section="p09-s10">
-        <B x={2003} y={1281} w={537} h={1} style={{ background: "#12335f" }} />
-        <T x={2029} y={1311} size={22} weight={600} as="h2">{dict.body.library.selCollaborators}</T>
-        <B x={2178} y={1297} w={36} h={30} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6) }} />
-        <T x={2196} y={1312} size={17} align="center">{a?.project ? a.project.collaborators.length : "—"}</T>
-        <T x={2510} y={1310} size={18} color="#33a8ff" align="right" style={{ opacity: a?.project ? 1 : 0.6 }}>
+      <section aria-label={dict.body.library.selAccessSection} data-section="p09-s10" className="flex flex-col gap-2 border-t border-line pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{dict.body.library.selCollaborators} {a?.project ? <span className="ml-1 rounded-md border border-line bg-raised px-1.5 text-xs">{a.project.collaborators.length}</span> : null}</h2>
           <button type="button" data-manage-access onClick={() => (!a ? flash(pickFirst) : !a.project ? flash(a.kind === "Folder" ? dict.body.library.selFolderAccess : dict.body.library.selMatchAccess) : setAccess(true))}
-            style={{ background: "transparent", border: 0, padding: 0, color: "inherit", font: "inherit", cursor: "pointer" }}>{dict.body.library.manageAccess}</button>
-        </T>
-        {!a?.project ? <T x={2029} y={1369} size={18} color="#8ea3bf">{a ? dict.body.library.selNotInProject : dict.body.library.selSelectAsset}</T> : (
-          <ul aria-label={dict.body.library.selPeopleAria} className="absolute" style={{ left: u(2029), top: u(1349 - 101), width: u(490), height: u(40), margin: 0, padding: 0, listStyle: "none", display: "flex", alignItems: "center", gap: u(8) }}>
+            className="text-sm text-primary hover:underline disabled:opacity-60">{dict.body.library.manageAccess}</button>
+        </div>
+        {!a?.project ? <p className="text-sm text-muted">{a ? dict.body.library.selNotInProject : dict.body.library.selSelectAsset}</p> : (
+          <ul aria-label={dict.body.library.selPeopleAria} className="flex flex-wrap items-center gap-1.5">
             {a.project.collaborators.slice(0, 6).map((m) => (
               <li key={m.user_id} title={`${m.display_name} · ${permName(m.permission, dict)}`} aria-label={`${m.display_name}, ${permName(m.permission, dict)}`}
-                style={{ width: u(38), height: u(38), borderRadius: "50%", background: "#2b5ff0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: u(15), fontWeight: 700 }}>
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                 {m.display_name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
               </li>
             ))}
-            {a.project.collaborators.length > 6 && <li style={{ fontSize: u(16), color: "#cfe0f5" }}>+{a.project.collaborators.length - 6}</li>}
-            <li style={{ fontSize: u(15), color: "#8ea3bf", marginLeft: u(6) }}>{a.project.access === "RESTRICTED" ? dict.body.library.selOnlyThesePeople : dict.body.library.peopleEveryone}</li>
+            {a.project.collaborators.length > 6 && <li className="text-xs text-ink">+{a.project.collaborators.length - 6}</li>}
+            <li className="ml-1 text-xs text-muted">{a.project.access === "RESTRICTED" ? dict.body.library.selOnlyThesePeople : dict.body.library.peopleEveryone}</li>
           </ul>
         )}
       </section>
@@ -219,6 +219,6 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-    </>
+    </aside>
   );
 });

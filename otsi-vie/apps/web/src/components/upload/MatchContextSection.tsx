@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 02 Section 02 — match context metadata sidebar (approved reference 02_UPLOAD_INGEST, "left", first panel).
+ * Page 02 Section 02 — match context panel, on the Desktop UI flow layout.
  *
  * Competition, Season and Match come from the organization's real match records (GET /v1/matches: competition, season, clubs,
  * kick-off). Choosing a match links it to the selected upload at once (POST /v1/videos/:id/match), or to the next upload as soon as it
@@ -9,11 +9,11 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Match } from "@otsi-vie/contracts";
+import { ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { MatchLinker } from "@/components/matches/MatchPanels";
-import { Ic, P, T, u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
-import { DATE_TAG, Sel, usePage02 } from "./page02";
+import { DATE_TAG, usePage02 } from "./page02";
 import { useUpload } from "./UploadWorkspace";
 
 const NEW = "__new";
@@ -54,30 +54,42 @@ export function MatchContextSection() {
     chooseMatch(v || null);
   };
 
+  const selectCls = "mt-1 w-full rounded-ctl border border-line bg-canvas px-2 py-2 text-sm";
   return (
-    <section aria-label={d.matchContext} data-section="p02-s02" data-match={current ?? ""}>
-      <P x={22} y={122} w={383} h={open ? 356 : 62} />
-      <T x={42} y={153} size={25} weight={600} as="h2">{d.matchContext}</T>
-      <T x={214} y={153} size={21} color="#9fb3cc">{d.optional}</T>
-      <button type="button" aria-expanded={open} aria-label={open ? d.foldMatchContext : d.showMatchContext} onClick={() => setOpen((o) => !o)}
-        className="absolute" style={{ left: u(362), top: u(139 - 101), width: u(28), height: u(28), padding: 0, border: 0, background: "transparent", cursor: "pointer",
-          transform: open ? undefined : "rotate(180deg)" }}>
-        <Ic o={[362, 139]} x={376} y={153} k="u_up" size={20} />
-      </button>
+    <section aria-label={d.matchContext} data-section="p02-s02" data-match={current ?? ""} className="vie-panel">
+      <div className="vie-ph">
+        <h2 className="t-panel">{d.matchContext} <span className="font-normal text-muted">{d.optional}</span></h2>
+        <button type="button" aria-expanded={open} aria-label={open ? d.foldMatchContext : d.showMatchContext} onClick={() => setOpen((o) => !o)} className="vie-ib !h-7 !w-7">
+          <ChevronUp className={`h-4 w-4 transition-transform ${open ? "" : "rotate-180"}`} aria-hidden />
+        </button>
+      </div>
       {open && (
-        <>
-          <T x={41} y={196} size={20} color="#cfe0f5" as="span">{dict.body.library.competition}</T>
-          <Sel x={41} y={211} w={345} h={54} label={dict.body.library.competition} value={competition} placeholder={d.chooseCompetition}
-            options={competitions.length ? competitions.map((c) => [c, c] as [string, string]) : [["none", d.competitions, none]]}
-            onChange={(v) => { setCompetition(v); setSeason(""); }} />
-          <T x={41} y={292} size={20} color="#cfe0f5" as="span">{d.season}</T>
-          <Sel x={41} y={308} w={345} h={54} label={d.season} value={season} placeholder={d.chooseSeason}
-            options={seasons.length ? seasons.map((x) => [x, x] as [string, string]) : [["none", d.seasons, competition ? d.noSeasonForCompetition : none]]}
-            onChange={setSeason} />
-          <T x={41} y={389} size={20} color="#cfe0f5" as="span">{dict.body.analysis.match}</T>
-          <Sel x={41} y={404} w={345} h={55} label={dict.body.analysis.match} value={current ?? ""} placeholder={d.selectMatch}
-            options={[...shown.map((m) => [m.id, name(m, tag)] as [string, string]), [NEW, d.newMatchOption]]} onChange={pickMatch} />
-        </>
+        <div className="space-y-3 p-3 text-sm">
+          <label className="block">
+            <span className="t-label">{dict.body.library.competition}</span>
+            <select aria-label={dict.body.library.competition} value={competition} onChange={(e) => { setCompetition(e.target.value); setSeason(""); }} className={selectCls}>
+              <option value="">{d.chooseCompetition}</option>
+              {competitions.length ? competitions.map((c) => <option key={c} value={c}>{c}</option>)
+                : <option value="none" disabled>{none}</option>}
+            </select>
+          </label>
+          <label className="block">
+            <span className="t-label">{d.season}</span>
+            <select aria-label={d.season} value={season} onChange={(e) => setSeason(e.target.value)} className={selectCls}>
+              <option value="">{d.chooseSeason}</option>
+              {seasons.length ? seasons.map((x) => <option key={x} value={x}>{x}</option>)
+                : <option value="none" disabled>{competition ? d.noSeasonForCompetition : none}</option>}
+            </select>
+          </label>
+          <label className="block">
+            <span className="t-label">{dict.body.analysis.match}</span>
+            <select aria-label={dict.body.analysis.match} value={current ?? ""} onChange={(e) => pickMatch(e.target.value)} className={selectCls}>
+              <option value="">{d.selectMatch}</option>
+              {shown.map((m) => <option key={m.id} value={m.id}>{name(m, tag)}</option>)}
+              <option value={NEW}>{d.newMatchOption}</option>
+            </select>
+          </label>
+        </div>
       )}
 
       <Dialog.Root open={creating} onOpenChange={setCreating}>

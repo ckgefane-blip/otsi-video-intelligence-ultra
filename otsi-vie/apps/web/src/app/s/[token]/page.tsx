@@ -44,32 +44,36 @@ export default function SharedReelPage() {
   }, [token]);
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-3 py-8" data-shared-page>
-      <p className="text-xs font-semibold tracking-wide text-muted">OTSI VIE · {view?.kind === "REPORT" ? t.body.auth.sharedReport : t.body.auth.sharedVideo}</p>
+      <p className="flex items-center gap-2 t-small font-semibold">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/otsi-mark.png" alt="" className="h-5 w-auto" draggable={false} />
+        OTSI VIE · {view?.kind === "REPORT" ? t.body.auth.sharedReport : t.body.auth.sharedVideo}
+      </p>
       {problem ? (
-        <div role="alert" className="rounded-card border border-line bg-panel p-6 text-sm">{problem}</div>
+        <div role="alert" className="vie-panel p-6 t-body">{problem}</div>
       ) : locked !== null && !view ? (
-        <form onSubmit={(e) => void unlock(e)} className="grid max-w-sm gap-2 rounded-card border border-line bg-panel p-6 text-sm" data-share-password>
-          <label className="grid gap-1">{t.body.auth.sharedProtected}
+        <form onSubmit={(e) => void unlock(e)} className="grid max-w-sm gap-2 vie-panel p-6 t-body" data-share-password>
+          <label className="t-label grid gap-1">{t.body.auth.sharedProtected}
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus autoComplete="current-password" maxLength={128}
-              className="rounded-ctl border border-line bg-canvas px-2 py-1.5" aria-label={t.body.auth.sharedPasswordAria} />
+              className="rounded-ctl border border-line bg-canvas px-2 py-1.5 t-body text-ink outline-none focus:border-primary" aria-label={t.body.auth.sharedPasswordAria} />
           </label>
-          {locked && <p role="alert" className="text-danger">{locked}</p>}
-          <button type="submit" disabled={!pw} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{t.body.auth.sharedOpen}</button>
+          {locked && <p role="alert" className="t-body text-danger">{locked}</p>}
+          <button type="submit" disabled={!pw} className="vie-btn vie-btn-pri justify-self-start">{t.body.auth.sharedOpen}</button>
         </form>
       ) : !view ? (
-        <p className="text-sm text-muted">{t.body.auth.loading}</p>
+        <p className="t-small">{t.body.auth.loading}</p>
       ) : (
         <>
-          <h1 className="text-xl font-semibold">{view.title}</h1>
-          {view.player_name && <p className="text-sm text-muted">{view.player_name}</p>}
+          <h1 className="t-page">{view.title}</h1>
+          {view.player_name && <p className="t-small">{view.player_name}</p>}
           {view.kind === "REPORT"
             ? <iframe data-shared-report src={view.url} title={view.player_name ? t.body.auth.sharedReportTitlePlayer.replace("{a}", view.player_name) : t.body.auth.sharedReportTitle} className="h-[80vh] w-full rounded-card border border-line bg-white" />
             : <Player view={view} token={token} password={opened.current} onComments={(comments) => setView({ ...view, comments })} />}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-            {view.download_url && <a href={view.download_url} className="rounded-ctl border border-line px-3 py-1.5 text-fg">{t.body.auth.sharedDownload}</a>}
+          <div className="flex flex-wrap items-center gap-3 t-small">
+            {view.download_url && <a href={view.download_url} className="vie-btn vie-btn-sm">{t.body.auth.sharedDownload}</a>}
             {view.link_expires_at && <span>{t.body.auth.sharedValidUntil.replace("{a}", new Date(view.link_expires_at).toLocaleString())}</span>}
           </div>
-          <p className="text-xs text-muted">{view.notice}</p>
+          <p className="t-small">{view.notice}</p>
         </>
       )}
     </div>
@@ -99,26 +103,26 @@ function Player({ view, token, password, onComments }: { view: SharedView; token
     <>
       <video ref={ref} data-shared-video src={view.url} controls playsInline className="w-full rounded-card bg-black" />
       {view.can_comment && (
-        <section aria-label={t.body.auth.sharedComments} className="grid gap-2 rounded-card border border-line bg-panel p-4 text-sm" data-shared-comments={String(view.comments.length)}>
-          <h2 className="font-semibold">{t.body.auth.sharedComments}</h2>
-          {!view.comments.length ? <p className="text-xs text-muted">{t.body.auth.sharedNoComments}</p> : (
+        <section aria-label={t.body.auth.sharedComments} className="grid gap-2 vie-panel p-4 t-body" data-shared-comments={String(view.comments.length)}>
+          <h2 className="t-section">{t.body.auth.sharedComments}</h2>
+          {!view.comments.length ? <p className="t-small">{t.body.auth.sharedNoComments}</p> : (
             <ul className="grid gap-2">
               {view.comments.map((c) => (
                 <li key={c.id}>
                   <span className="font-semibold">{c.name}</span>
-                  {c.at_s !== null && <button type="button" onClick={() => seek(c.at_s!)} className="ml-1 text-xs text-primary">{t.body.auth.sharedAt.replace("{a}", clock(c.at_s))}</button>}
-                  <span className="text-xs text-muted"> · {new Date(c.created_at).toLocaleString()}</span>
+                  {c.at_s !== null && <button type="button" onClick={() => seek(c.at_s!)} className="ml-1 t-small text-primary">{t.body.auth.sharedAt.replace("{a}", clock(c.at_s))}</button>}
+                  <span className="t-small"> · {new Date(c.created_at).toLocaleString()}</span>
                   <p>{c.body}</p>
                 </li>
               ))}
             </ul>
           )}
           <form onSubmit={(e) => void send(e)} className="grid gap-2 border-t border-line pt-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t.body.auth.sharedYourName} aria-label={t.body.auth.sharedYourName} className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={255} rows={2} placeholder={t.body.auth.sharedYourComment} aria-label={t.body.auth.sharedYourComment} className="rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-            <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={atNow} onChange={(e) => setAtNow(e.target.checked)} />{t.body.auth.sharedPin}</label>
-            {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-            <button type="submit" disabled={busy || !name.trim() || !text.trim()} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? t.body.auth.sharedSending : t.body.auth.sharedSend}</button>
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t.body.auth.sharedYourName} aria-label={t.body.auth.sharedYourName} className="rounded-ctl border border-line bg-canvas px-2 py-1.5 outline-none focus:border-primary" />
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={255} rows={2} placeholder={t.body.auth.sharedYourComment} aria-label={t.body.auth.sharedYourComment} className="rounded-ctl border border-line bg-canvas px-2 py-1.5 outline-none focus:border-primary" />
+            <label className="flex items-center gap-2 t-small"><input type="checkbox" checked={atNow} onChange={(e) => setAtNow(e.target.checked)} />{t.body.auth.sharedPin}</label>
+            {err && <p role="alert" className="t-small text-danger">{err}</p>}
+            <button type="submit" disabled={busy || !name.trim() || !text.trim()} className="vie-btn vie-btn-pri vie-btn-sm justify-self-start">{busy ? t.body.auth.sharedSending : t.body.auth.sharedSend}</button>
           </form>
         </section>
       )}

@@ -7,13 +7,14 @@
  *   Evidence  analysed or not, tracks, person-confirmed tracks
  *   Profile   analysis profile (video, match), frame (reel), export profile (export)
  *   Device    the screen an output is made for; the camera of a source video is not recorded
+ * The first column is the asset's real thumbnail (GET /v1/videos/:id/thumbnail) — or the honest empty tile when its video has none.
  * Rows share the card view's selection (checkboxes) and bulk actions, and its click (select the row; a folder opens).
  */
 import { deviceOf, evidenceLine, EXPORT_PROFILES, PROFILE_LABEL, rightsLine, type LibraryFacts, type Reel, type Video, type VideoFacts } from "@otsi-vie/contracts";
 import { memo, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { u } from "@/components/stage/DesignStage";
 import { useLocale, type Dictionary } from "@/lib/i18n";
+import { AssetThumb } from "./AssetThumb";
 import { kindLabel, statusLabel, type Asset } from "./useLibrary";
 
 export type LibraryView = "cards" | "table";
@@ -58,9 +59,6 @@ export function videoOfMatchMap(all: Asset[]): Map<string, string> {
   return m;
 }
 
-const th: React.CSSProperties = { position: "sticky", top: 0, background: "#06162d", textAlign: "left", fontWeight: 600, color: "#cfe0f5", padding: `${u(10)} ${u(10)}`, fontSize: u(18), whiteSpace: "nowrap", zIndex: 1 };
-const td: React.CSSProperties = { padding: `${u(10)} ${u(10)}`, fontSize: u(18), color: "#d6e4f7", borderTop: `${u(1)} solid #10294a`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: u(260) };
-
 export const LibraryTable = memo(function LibraryTable({ rows, all, facts, checked, setChecked, selected, onRow }: {
   rows: Asset[]; all: Asset[]; facts: Map<string, VideoFacts> | null; checked: Set<string>; setChecked: (s: Set<string>) => void; selected: string | null; onRow: (a: Asset) => void;
 }) {
@@ -69,30 +67,32 @@ export const LibraryTable = memo(function LibraryTable({ rows, all, facts, check
   const allOn = rows.length > 0 && rows.every((a) => checked.has(a.key));
   const toggle = (k: string) => { const n = new Set(checked); if (n.has(k)) n.delete(k); else n.add(k); setChecked(n); };
   return (
-    <div className="absolute" data-library-table style={{ left: u(427), top: u(483 - 101), width: u(1554), height: u(880), overflow: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
+    <div className="overflow-x-auto" data-library-table>
+      <table className="w-full border-collapse text-sm">
         <thead>
-          <tr>
-            <th style={th}><input type="checkbox" aria-label={dict.body.library.selectAllAria} checked={allOn} onChange={() => setChecked(allOn ? new Set() : new Set(rows.map((a) => a.key)))} /></th>
-            <th style={th} aria-label={dict.body.library.tableLockedAria}><span aria-hidden>🔒</span></th>
-            {[dict.body.library.tableHeadTitle, dict.body.library.tableHeadType, dict.body.library.tableHeadRights, dict.body.library.tableHeadEvidence, dict.body.library.tableHeadProfile, dict.body.library.tableHeadDevice, dict.body.library.tableHeadUpdated, dict.body.library.tableHeadStatus].map((h) => <th key={h} style={th}>{h}</th>)}
+          <tr className="border-b border-line text-left text-muted">
+            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold"><input type="checkbox" aria-label={dict.body.library.selectAllAria} checked={allOn} onChange={() => setChecked(allOn ? new Set() : new Set(rows.map((a) => a.key)))} /></th>
+            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold" aria-label={dict.body.library.tableLockedAria}><span aria-hidden>🔒</span></th>
+            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold">{dict.body.library.colThumbTitle}</th>
+            {[dict.body.library.tableHeadTitle, dict.body.library.tableHeadType, dict.body.library.tableHeadRights, dict.body.library.tableHeadEvidence, dict.body.library.tableHeadProfile, dict.body.library.tableHeadDevice, dict.body.library.tableHeadUpdated, dict.body.library.tableHeadStatus].map((h) => <th key={h} className="sticky top-0 whitespace-nowrap bg-panel px-2 py-2 font-semibold">{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((a) => {
             const r = rowFacts(a, facts, vm, dict), on = a.key === selected;
             return (
-              <tr key={a.key} data-table-row={a.key} aria-selected={on} onClick={() => onRow(a)} style={{ cursor: "pointer", background: on ? "#04264a" : undefined }}>
-                <td style={td} onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={dict.body.library.rowSelect.replace("{a}", a.title)} checked={checked.has(a.key)} onChange={() => toggle(a.key)} /></td>
-                <td style={td}>{r.locked ? <span role="img" aria-label={dict.body.library.tableLockedLabel.replace("{a}", r.locked)} title={r.locked}>🔒</span> : ""}</td>
-                <td style={{ ...td, maxWidth: u(380) }} title={a.title}><b>{a.title}</b><br /><span style={{ color: "#9fb3cc", fontSize: u(16) }}>{a.sub}</span></td>
-                <td style={td}>{kindLabel(a.kind, dict)}</td>
-                <td style={td} title={r.locked ?? r.rights}>{r.rights}</td>
-                <td style={td}>{r.evidence}</td>
-                <td style={td}>{r.profile}</td>
-                <td style={td}>{r.device}</td>
-                <td style={td}>{a.updated ? new Date(a.updated).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</td>
-                <td style={td}>{statusLabel(a.status, dict)}</td>
+              <tr key={a.key} data-table-row={a.key} aria-selected={on} onClick={() => onRow(a)} className={`cursor-pointer border-t border-line/60 ${on ? "bg-[#04264a]" : ""}`}>
+                <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={dict.body.library.rowSelect.replace("{a}", a.title)} checked={checked.has(a.key)} onChange={() => toggle(a.key)} /></td>
+                <td className="px-2 py-2">{r.locked ? <span role="img" aria-label={dict.body.library.tableLockedLabel.replace("{a}", r.locked)} title={r.locked}>🔒</span> : ""}</td>
+                <td className="px-2 py-2"><AssetThumb a={a} className="h-[40px] w-[72px]" /></td>
+                <td className="max-w-[380px] px-2 py-2" title={a.title}><b>{a.title}</b><br /><span className="text-xs text-muted">{a.sub}</span></td>
+                <td className="whitespace-nowrap px-2 py-2">{kindLabel(a.kind, dict)}</td>
+                <td className="max-w-[260px] truncate px-2 py-2" title={r.locked ?? r.rights}>{r.rights}</td>
+                <td className="max-w-[260px] truncate px-2 py-2">{r.evidence}</td>
+                <td className="max-w-[260px] truncate px-2 py-2">{r.profile}</td>
+                <td className="max-w-[260px] truncate px-2 py-2">{r.device}</td>
+                <td className="whitespace-nowrap px-2 py-2">{a.updated ? new Date(a.updated).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                <td className="whitespace-nowrap px-2 py-2">{statusLabel(a.status, dict)}</td>
               </tr>
             );
           })}

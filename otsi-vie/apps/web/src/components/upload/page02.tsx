@@ -1,9 +1,9 @@
 "use client";
 /**
- * Page 02 Upload & Ingest: the page controller and the reference's own drawing pieces (02_UPLOAD_INGEST: SEL, TG, CREST, TH).
+ * Page 02 Upload & Ingest: the page controller, on the Desktop UI flow layout.
  *
  * On top of the Upload data layer (useUpload: projects, resumable uploads, link import, videos with measured facts) this adds what the
- * approved composition needs, all real:
+ * page needs, all real:
  *   - the viewer's defaults for the next upload (kept in this browser): Stabilize Video (= the High accuracy analysis profile, which
  *     stabilises) and Send to Analysis. Each upload or link import SENDS them; the server saves them with the video and starts the analysis
  *     itself once the video is verified (jobs.auto_analysis), so nothing here needs the page to stay open
@@ -14,8 +14,7 @@
  */
 import type { AnalysisRun, Match, UploadLimits } from "@otsi-vie/contracts";
 import { useSearchParams } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Locale } from "@/lib/i18n";
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type UploadPrefs } from "@/lib/uploadPrefs";
@@ -38,7 +37,7 @@ interface Page02 {
   runs: AnalysisRun[] | null; reloadRuns(): Promise<void>;
   limits: UploadLimits | null;
   projectDialog: boolean; setProjectDialog(o: boolean): void;
-  /** the left panel's tab (Filters, Overlays, AI Tools); A.10: the drop zone's "Analysis profile · Change" opens AI Tools */
+  /** the left panel's tab (Filters, Overlays, AI Tools); the drop zone's "Analysis profile · Change" opens AI Tools */
   optionsTab: number; setOptionsTab(i: number): void;
 }
 const Ctx = createContext<Page02 | null>(null);
@@ -157,63 +156,6 @@ export function Page02Controller({ children }: { children: ReactNode }) {
   );
 }
 
-/* ------------------------------------------------------------------ the reference's drawing pieces */
-export const IN: CSSProperties = { background: "#041022", borderRadius: u(8), ["--bc" as string]: "#17406f" };
-
-/** the reference's select (SEL): a .in box with the value, a chevron and a real native select (options with a reason are greyed) */
-export function Sel({ x, y, w, h, label, value, placeholder, options, onChange }: {
-  x: number; y: number; w: number; h: number; label: string; value: string; placeholder: string;
-  options: ([string, string] | [string, string, string])[]; onChange: (v: string) => void;
-}) {
-  const shown = options.find((o) => o[0] === value)?.[1];
-  return (
-    <div className={`${s.a} ${s.framed}`} style={{ left: u(x), top: u(y - 101), width: u(w), height: u(h), ...IN }}>
-      <T o={[x, y]} x={x + 16} y={y + h / 2} size={20} color={shown ? "#e3eefb" : "#8ea3bf"} as="span"
-        style={{ maxWidth: u(w - 56), overflow: "hidden", textOverflow: "ellipsis" }}>{shown ?? placeholder}</T>
-      <Ic o={[x, y]} x={x + w - 22} y={y + h / 2} k="chev" size={18} />
-      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}
-        style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
-        <option value="">{placeholder}</option>
-        {options.map(([v, l, why]) => <option key={v} value={v} disabled={!!why}>{why ? `${l} — ${why}` : l}</option>)}
-      </select>
-    </div>
-  );
-}
-
-/**
- * the reference's toggle row (icon, label, TG switch). `kind`: live (the engine carries it out), always (every analysis does it: locked on,
- * a click says so), or not-built (a REQUEST the engine cannot perform yet: it switches freely, is saved with the upload, and shows
- * "saved · not performed yet" while on, so it never claims a step that did not happen)
- */
-export function ToggleRow({ x = 22, y, icon, label, on, kind, why, onToggle, say }: {
-  x?: number; y: number; icon: string; label: string; on: boolean; kind: "live" | "always" | "not-built"; why: string;
-  onToggle?: () => void; say: (t: string) => void;
-}) {
-  const { t: dict } = useLocale();
-  const d = dict.body.upload;
-  const shownOn = kind === "always" ? true : on;
-  const click = () => {
-    if (kind === "always" || !onToggle) return say(`${label}: ${why}`);
-    onToggle();
-    say(`${label} ${on ? d.toggleOff : d.toggleOn}: ${why}`);
-  };
-  return (
-    <button type="button" role="switch" aria-checked={shownOn} aria-disabled={kind === "always" || undefined} title={why} aria-label={`${label}: ${why}`}
-      onClick={click} className="absolute"
-      style={{ left: u(x), top: u(y - 20 - 101), width: u(383), height: u(40), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
-      <Ic o={[x, y - 20]} x={61} y={y} k={icon} size={28} color="#cfe0f5" />
-      <T o={[x, y - 20]} x={97} y={kind === "not-built" && on ? y - 5 : y} size={20} color="#d6e4f7" as="span">{label}</T>
-      {kind === "not-built" && on && <T o={[x, y - 20]} x={97} y={y + 14} size={13} color="#ffc66d" as="span">{d.savedNotPerformed}</T>}
-      <B o={[x, y - 20]} x={337} y={y - 14} w={48} h={28} style={{ background: shownOn ? "#0481f9" : "#26364d", borderRadius: u(14), opacity: kind === "always" ? 0.7 : 1 }} />
-      <B o={[x, y - 20]} x={337 + (shownOn ? 23 : 3)} y={y - 11} w={22} h={22} style={{ background: "#fff", borderRadius: "50%" }} />
-      {kind === "always" && <Ic o={[x, y - 20]} x={326} y={y} k="chk" size={14} color="#3ee6a8" />}
-    </button>
-  );
-}
-
-export const crest = { background: "radial-gradient(circle,#f2c56b 0,#6cc4ff 50%,#fff 56%)", borderRadius: "50%" };
-/** the reference's drawn thumbnail (TH), used when a video has no thumbnail yet */
-export const pitchThumb = (a: number) => `radial-gradient(ellipse at 40% 70%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a ${a}%,#1d5a28)`;
 export function mmss(us: number | null | undefined): string {
   if (!us) return "—";
   const t = Math.round(us / 1e6);
@@ -233,18 +175,15 @@ export function StatusLine() {
       async () => { await up.reloadVideos(); up.select(v.id); say(d.restored.replace("{title}", v.title)); },
       (x) => say(x instanceof ApiProblem ? x.message : d.couldNotRestore, true));
   };
+  if (!note && !undo) return null;
   return (
-    <>
-      {note ? (
-        <T x={513} y={224} size={16} color={note.bad ? "#ff9aa8" : "#ffc66d"} style={{ maxWidth: u(1000), overflow: "hidden", textOverflow: "ellipsis" }}>
-          <span role="status">{note.text}</span>
-        </T>
-      ) : null}
-      {undo ? (
-        <button type="button" onClick={restore} aria-label={d.undoRestoreAria.replace("{title}", undo.title)} className="absolute"
-          style={{ left: u(1530), top: u(224 - 101 - 14), height: u(28), padding: `0 ${u(14)}`, borderRadius: u(14), border: `${u(1.5)} solid #1e90ff`, background: "#04264a", color: "#cfe8ff",
-            fontSize: u(16), fontFamily: "inherit", cursor: "pointer", zIndex: 6 }}>{d.undoRemove}</button>
-      ) : null}
-    </>
+    <div className="flex flex-wrap items-center gap-3" role="status">
+      {note && <p className={`text-sm ${note.bad ? "text-danger" : "text-amber"}`}>{note.text}</p>}
+      {undo && (
+        <button type="button" onClick={restore} aria-label={d.undoRestoreAria.replace("{title}", undo.title)} className="vie-btn vie-btn-sm">
+          {d.undoRemove}
+        </button>
+      )}
+    </div>
   );
 }

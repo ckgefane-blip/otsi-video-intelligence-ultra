@@ -1,22 +1,16 @@
 "use client";
 /**
- * Page 05 Section 07 — Pressing Map & Pressing Metrics (v3 Phase E.7, ADR-121).
+ * Page 05 Section 07 — Pressing Map & Pressing Metrics (v3 Phase E.7, ADR-121), in flow (Desktop UI Drop 2).
  * Displays High Press Success, Final Third Regains, and Avg Press Height from detected pressures.
  * When pitch calibration exists, places pressing events on the calibrated pitch.
  * Excludes events marked REJECT in event_decisions (E.1).
  */
 import { useEffect, useMemo, useState } from "react";
 import type { Match, PressingAnalysis } from "@otsi-vie/contracts";
-import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
-import { Box, Head, NotMeasured, Pitch, Sel, type Opt } from "./kit";
+import { FlowPitch, type Opt } from "./Panels";
 import { PHASES } from "./TacticsHeader";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-
-
-const highlight = (on: boolean) => (on ? { outline: `${u(3)} solid #33a8ff`, outlineOffset: u(2), borderRadius: u(10) } : {});
-const Frame = ({ x, y, w, h, on }: { x: number; y: number; w: number; h: number; on: boolean }) =>
-  on ? <B x={x} y={y} w={w} h={h} style={{ ...highlight(true), pointerEvents: "none" }} /> : null;
 
 const teamOpts = (m: Match | null, d: Dictionary): Opt<string>[] => [
   ["none", d.body.tactics.bothTeams],
@@ -112,14 +106,8 @@ export function PressingPanel({
     return data.pressures.filter((p) => p.kit_group === selectedKit);
   }, [data, selectedKit]);
 
-  // Pitch canvas dimensions: w=441, h=256, at x=1846, y=879
   const pitchLength = data?.pitch_length_m ?? 105;
   const pitchWidth = data?.pitch_width_m ?? 68;
-  const toPitchPixel = (px: number, py: number): [number, number] => {
-    const cx = 1846 + 441 / 2 + (px / pitchLength) * 441;
-    const cy = 879 + 256 / 2 + (py / pitchWidth) * 256;
-    return [cx, cy];
-  };
 
   const highPressText = activeStats?.high_press_success_pct !== null && activeStats?.high_press_success_pct !== undefined
     ? `${activeStats.high_press_success_pct}% (${activeStats.high_press_regains}/${activeStats.high_pressures})`
@@ -143,95 +131,73 @@ export function PressingPanel({
       : dict.body.tactics.notMeasuredPpdaCoords);
 
   return (
-    <section id="p05-s07" aria-label={dict.body.tactics.pressingMapLower} data-section="p05-s07">
-      <Box x={1830} y={810} w={702} h={340} />
-      <Frame x={1830} y={810} w={702} h={340} on={focus} />
-      <Head x={1830} y={844} title={dict.body.tactics.pressingMap} info={`Where and how teams press. ${NEEDS}`} />
-      <Sel
-        x={2107}
-        y={824}
-        w={190}
-        h={38}
-        label={dict.body.tactics.pressingTeam}
-        value={teamVal}
-        options={teamOpts(match, dict)}
-        onChange={(v) => setTeamVal(v)}
-      />
-      <Sel x={2322} y={824} w={192} h={38} label={dict.body.tactics.pressingPhase} value="all" options={PHASES(dict)} />
-      <Pitch x={1846} y={879} w={441} h={256} />
-
-      {/* When pitch not calibrated, show overlay notice */}
-      {(!data || !data.is_calibrated) && <NotMeasured x={2066} y={915} />}
-
-      {/* Render calibrated pressing points on pitch */}
-      {data?.is_calibrated && (
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "auto" }}>
-          {filteredPressures.map((pt) => {
+    <section id="p05-s07" aria-label={dict.body.tactics.pressingMapLower} data-section="p05-s07"
+      className={`vie-panel ${focus ? "outline outline-2 outline-offset-2 outline-primary" : ""}`}>
+      <div className="vie-ph">
+        <h2 className="t-panel"><span aria-hidden className="mr-2 inline-block h-5 w-1.5 rounded bg-primary align-middle" />{dict.body.tactics.pressingMap}
+          <span tabIndex={0} role="note" aria-label={`Where and how teams press. ${NEEDS}`} title={`Where and how teams press. ${NEEDS}`} className="ml-2 cursor-help rounded-full border border-line2 px-1.5 text-xs font-normal text-muted">i</span>
+        </h2>
+        <div className="flex gap-2">
+          <select aria-label={dict.body.tactics.pressingTeam} value={teamVal} onChange={(e) => setTeamVal(e.target.value)}
+            className="h-8 rounded-md border border-line bg-raised px-2 text-sm text-ink">
+            {teamOpts(match, dict).map(([v, l, why]) => <option key={v} value={v} disabled={!!why}>{why ? `${l.trim()} — ${why}` : l.trim()}</option>)}
+          </select>
+          <select aria-label={dict.body.tactics.pressingPhase} value="all" onChange={() => undefined}
+            className="h-8 rounded-md border border-line bg-raised px-2 text-sm text-ink">
+            {PHASES(dict).map(([v, l, why]) => <option key={v} value={v} disabled={!!why}>{why ? `${l.trim()} — ${why}` : l.trim()}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 p-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <FlowPitch>
+          {(!data || !data.is_calibrated) && (
+            <div className="absolute inset-0 grid place-items-center">
+              <span className="rounded-md bg-[#07142acc] px-3 py-1 text-sm text-[#e6f3ea]">{dict.body.reports.notMeasured}</span>
+            </div>
+          )}
+          {data?.is_calibrated && filteredPressures.map((pt) => {
             if (pt.pitch_x === null || pt.pitch_y === null) return null;
-            const [cx, cy] = toPitchPixel(pt.pitch_x, pt.pitch_y);
             const isRegain = pt.regain;
             const color = isRegain ? "#19e6a0" : "#2b7bff";
             const shape = isRegain ? "◆" : "●";
             const who = pt.presser_name ?? dict.body.workspace.trackButton.replace("{a}", pt.presser_track_id?.slice(-4) ?? "");
             const target = pt.pressed_name ?? dict.body.workspace.trackButton.replace("{a}", pt.pressed_track_id?.slice(-4) ?? "");
             const tip = dict.body.tactics.pressedTip.replace("{a}", who).replace("{b}", target).replace("{c}", isRegain ? dict.body.tactics.regainedSuffix : "").replace("{d}", pt.press_height_m ? dict.body.tactics.heightSuffix.replace("{a}", String(pt.press_height_m)) : "");
-
             return (
-              <button
-                key={pt.id}
-                type="button"
-                onClick={() => onSeek?.(pt.start_us)}
-                title={tip}
-                style={{
-                  position: "absolute",
-                  left: u(cx - 7),
-                  top: u(cy - 10),
-                  background: "transparent",
-                  border: 0,
-                  cursor: "pointer",
-                  padding: 0,
-                  fontSize: u(14),
-                  color,
-                  lineHeight: 1,
-                }}
-              >
+              <button key={pt.id} type="button" onClick={() => onSeek?.(pt.start_us)} title={tip}
+                className="absolute -translate-x-1/2 -translate-y-1/2 border-0 bg-transparent p-0 text-sm leading-none"
+                style={{ left: `${(0.5 + pt.pitch_x / pitchLength) * 100}%`, top: `${(0.5 + pt.pitch_y / pitchWidth) * 100}%`, color, cursor: "pointer" }}>
                 {shape}
               </button>
             );
           })}
+        </FlowPitch>
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex flex-col gap-1 text-[#cfdcf0]">
+            {([
+              [dict.body.tactics.pressingEvent, "#2b7bff", "●"],
+              [dict.body.tactics.recoveryLabel, "#19e6a0", "◆"],
+              [dict.body.tactics.forcedTurnoverLabel, "#ff3a3a", "▲"],
+            ] as const).map(([l, c, g]) => (
+              <span key={l}><span style={{ color: c }}>{g}</span> {l}</span>
+            ))}
+            <span>- - → {dict.body.tactics.pressingDirection}</span>
+          </div>
+          <dl className="m-0 flex flex-col gap-2" data-testid="pressing-metrics">
+            <div title={ppdaReason} data-metric="PPDA" className="flex items-center justify-between gap-2">
+              <dt className="text-[#cfdcf0]">PPDA</dt><dd className="font-semibold">{ppdaText}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.highPressSuccess}</dt><dd className="font-semibold">{highPressText}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.finalThirdRegains}</dt><dd className="font-semibold">{finalThirdText}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.avgPressHeight}</dt><dd className="font-semibold">{avgHeightText}</dd>
+            </div>
+          </dl>
         </div>
-      )}
-
-      {/* Legend */}
-      {([
-        [dict.body.tactics.pressingEvent, 888, "#2b7bff", "●"],
-        [dict.body.tactics.recoveryLabel, 916, "#19e6a0", "◆"],
-        [dict.body.tactics.forcedTurnoverLabel, 945, "#ff3a3a", "▲"],
-      ] as const).map(([l, y, c, g]) => (
-        <div key={l}>
-          <T x={2325} y={y} size={18} color={c}>{g}</T>
-          <T x={2359} y={y} size={19} color="#cfdcf0">{l}</T>
-        </div>
-      ))}
-
-      <T x={2315} y={980} size={18}>- - →</T>
-      <T x={2359} y={980} size={19} color="#cfdcf0">{dict.body.tactics.pressingDirection}</T>
-
-      {/* Live Pressing Metrics */}
-      <div data-testid="pressing-metrics">
-        <div title={ppdaReason} data-metric="PPDA">
-          <T x={2315} y={1025} size={18} color="#cfdcf0">PPDA</T>
-          <T x={2504} y={1025} size={18} weight={700}>{ppdaText}</T>
-        </div>
-
-        <T x={2315} y={1056} size={18} color="#cfdcf0">{dict.body.tactics.highPressSuccess}</T>
-        <T x={2504} y={1056} size={18} weight={700}>{highPressText}</T>
-
-        <T x={2315} y={1088} size={18} color="#cfdcf0">{dict.body.tactics.finalThirdRegains}</T>
-        <T x={2504} y={1088} size={18} weight={700}>{finalThirdText}</T>
-
-        <T x={2315} y={1119} size={18} color="#cfdcf0">{dict.body.tactics.avgPressHeight}</T>
-        <T x={2504} y={1119} size={18} weight={700}>{avgHeightText}</T>
       </div>
     </section>
   );

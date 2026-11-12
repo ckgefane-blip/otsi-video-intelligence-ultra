@@ -1,11 +1,12 @@
 "use client";
 /**
- * Page 02 Section 05 — primary drag-drop file panel (approved reference 02_UPLOAD_INGEST, "dropzone").
+ * Page 02 Section 05 — primary drag-drop file panel, on the Desktop UI flow layout.
  *
  * Each source tab has its own surface (owner direction 2026-10-29): Upload File = drop zone + Browse Files, one video; Batch Upload = the same
  * with several files and a queue showing each file's own status; YouTube / URL = the link field and Add URL (section 06), no file picker.
  * Drop video files here or use Browse Files: each one is uploaded resumably into the chosen project (useUpload.addFiles: checksummed
- * parts, then verified, probed and test-decoded by the ingest worker). The size limit shown is the server's own (GET /v1/upload-limits).
+ * parts, then verified, probed and test-decoded by the ingest worker). The size limit shown is the tier limit
+ * (Free 2 / Pro 24 / Enterprise 64 GB) capped by the server's own (GET /v1/upload-limits).
  * Uploads go into a project: the line at the bottom names it and opens the project chooser (choose one or create one), a contextual
  * dialog (ADR-035). Without a project, Browse Files opens that chooser first.
  * A.11 (ADR-077): the line in the middle names this page's rights answers and opens the rights questions. With Send to Analysis on, they
@@ -13,8 +14,8 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import { ACCEPTED_EXTENSIONS } from "@otsi-vie/contracts";
+import { UploadCloud } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { B, Ic, T, u } from "@/components/stage/DesignStage";
 import { ApiProblem } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
@@ -26,7 +27,6 @@ import { useUpload } from "./UploadWorkspace";
 import { useTierLimit } from "@/lib/uploadTier";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",");
-const STARS = Array.from({ length: 10 }, (_, i) => ({ x: 600 + i * 100, y: 380 + Math.abs(i - 4.5) * 18 }));
 const gb = (b: number) => `${Math.round(b / 1024 ** 3)} GB`;
 /** shown limit: the tier limit (Free 2 / Pro 24 / Enterprise 64 GB) capped by the server's own */
 const shown = (tier: number | null | undefined, server: number | undefined) => (tier ? gb(tier) : server ? gb(server) : "—");
@@ -86,17 +86,19 @@ function BatchQueue() {
   const pct = (t: (typeof transfers)[number]) => (t.progress ? Math.floor((100 * t.progress.sentBytes) / t.progress.totalBytes) : 0);
   const text = (t: (typeof transfers)[number]) => t.state === "done" ? d.uploadedVerifying : t.state === "paused" ? d.pausedAt.replace("{n}", String(pct(t))) : t.state === "error" ? (t.error ?? d.stopped) : d.uploadingPct.replace("{n}", String(pct(t)));
   return (
-    <ul aria-label={d.batchQueue} style={{ margin: 0, padding: 0, listStyle: "none" }}>
-      <li><T x={631} y={736} size={17} color="#9fb3cc">{transfers.length ? d.uploadedCount.replace("{done}", String(done)).replace("{total}", String(transfers.length)) : d.noFilesQueued}</T></li>
-      {rows.map((t, i) => (
-        <li key={t.id} data-transfer-state={t.state}>
-          <T x={631} y={766 + i * 27} size={18} color="#e3eefb" style={{ maxWidth: u(640), overflow: "hidden", textOverflow: "ellipsis" }}>{t.file.name}</T>
-          <T x={1290} y={766 + i * 27} size={17} color="#9fb3cc">{formatBytes(t.file.size)}</T>
-          <T x={1400} y={766 + i * 27} size={17} color={t.state === "error" ? "#ff9aa8" : t.state === "done" ? "#3ee6a8" : "#7fd0ff"} style={{ maxWidth: u(300), overflow: "hidden", textOverflow: "ellipsis" }}>{text(t)}</T>
-        </li>
-      ))}
-      {transfers.length > 4 && <li><T x={631} y={766 + 4 * 27} size={16} color="#9fb3cc">{d.andMore.replace("{n}", String(transfers.length - 4))}</T></li>}
-    </ul>
+    <div className="mt-3">
+      <p className="t-small">{transfers.length ? d.uploadedCount.replace("{done}", String(done)).replace("{total}", String(transfers.length)) : d.noFilesQueued}</p>
+      <ul aria-label={d.batchQueue} className="mt-1 space-y-1">
+        {rows.map((t) => (
+          <li key={t.id} data-transfer-state={t.state} className="flex items-center gap-2 text-sm">
+            <span className="min-w-0 flex-1 truncate">{t.file.name}</span>
+            <span className="shrink-0 text-xs text-muted">{formatBytes(t.file.size)}</span>
+            <span className={`shrink-0 text-xs ${t.state === "error" ? "text-danger" : t.state === "done" ? "text-ok" : "text-cyan"}`}>{text(t)}</span>
+          </li>
+        ))}
+        {transfers.length > 4 && <li className="t-small">{d.andMore.replace("{n}", String(transfers.length - 4))}</li>}
+      </ul>
+    </div>
   );
 }
 
@@ -139,49 +141,40 @@ export function DropZoneSection() {
 
   return (
     <section aria-label={link ? d.pasteLinkHere : batch ? d.dragDropMany : d.dragDropOne} data-section="p02-s05" data-project={projectId ?? ""}
+      className="vie-panel"
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files.length) drop(e.dataTransfer.files); }}>
-      <B x={438} y={329} w={1453} h={538} style={{ borderRadius: u(6), border: `${u(2.5)} dashed ${over ? "#7fd0ff" : "#1e90ff"}`,
-        background: "radial-gradient(ellipse at 50% 0,#2a6fb8 0,#0d2a55 30%,transparent 55%),linear-gradient(180deg,#0a1a38 0,#06122a 55%,#103a1c 82%,#06122a)",
-        boxShadow: over ? `inset 0 0 ${u(40)} #1e90ff` : undefined }} />
-      {STARS.map((p) => <B key={p.x} x={p.x} y={p.y} w={10} h={10} style={{ background: "#cfe8ff", borderRadius: "50%", boxShadow: `0 0 ${u(12)} #fff` }} />)}
-      <B x={1090} y={388} w={172} h={132} style={{ border: `${u(12)} solid #1e90ff`, borderRadius: u(60), boxShadow: `0 0 ${u(30)} #1e90ff` }} />
-      <Ic x={1176} y={484} k={link ? "link" : "ups"} size={90} color="#fff" />
-      <T x={1181} y={561} size={38} weight={700} align="center">{link ? d.pasteLinkHere : batch ? d.dragDropMany : d.dragDropOne}</T>
-      <T x={1181} y={610} size={24} color="#e3eefb" align="center">
-        {link ? d.dropSubtitleLink
-          : batch ? d.dropSubtitleBatch.replace("{size}", shown(tierMax, limits?.max_upload_bytes))
-          : d.dropSubtitleFile.replace("{size}", shown(tierMax, limits?.max_upload_bytes))}
-      </T>
-      {!link && (
-        <button type="button" onClick={browse} aria-label={d.browseFiles} className="absolute"
-          style={{ left: u(1017), top: u(649 - 101), width: u(330), height: u(68), padding: 0, border: 0, borderRadius: u(8), background: "#0a84ff", color: "#fff", font: "inherit",
-            cursor: "pointer", opacity: projectId && canWrite ? 1 : 0.75 }}>
-          <Ic o={[1017, 649]} x={1100} y={683} k="fold" size={40} color="#fff" fill="#fff" />
-          <T o={[1017, 649]} x={1141} y={683} size={26} weight={600} as="span">{batch ? d.browseFiles : d.browseFile}</T>
+      <div className={`flex flex-col items-center gap-2 rounded-t-md border-2 border-dashed px-4 py-8 text-center ${over ? "border-primary bg-primary/10" : "border-primary/50 bg-canvas/40"}`}>
+        <UploadCloud className="h-10 w-10 text-primary" aria-hidden />
+        <p className="t-section">{link ? d.pasteLinkHere : batch ? d.dragDropMany : d.dragDropOne}</p>
+        <p className="t-small">
+          {link ? d.dropSubtitleLink
+            : batch ? d.dropSubtitleBatch.replace("{size}", shown(tierMax, limits?.max_upload_bytes))
+            : d.dropSubtitleFile.replace("{size}", shown(tierMax, limits?.max_upload_bytes))}
+        </p>
+        {!link && (
+          <button type="button" onClick={browse} aria-label={d.browseFiles}
+            className="vie-btn vie-btn-pri mt-1">{batch ? d.browseFiles : d.browseFile}</button>
+        )}
+        {!projectId && <p className="text-xs text-amber">{d.chooseProjectFirst}</p>}
+        <input ref={input} type="file" accept={ACCEPT} multiple={batch} hidden aria-label={d.videoFilesLabel}
+          onChange={(e) => { if (e.target.files?.length) drop(e.target.files); e.target.value = ""; }} />
+      </div>
+      {batch && <div className="border-t border-line/60 px-3 py-2"><BatchQueue /></div>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/60 px-3 py-2 text-xs text-muted">
+        <button type="button" onClick={() => setProjectDialog(true)} data-action="project" className="text-left hover:text-ink">
+          {project ? <>{d.projectLabel} <span className="text-ink">{project.name}</span> ({project.video_count} {project.video_count === 1 ? d.video : d.videos}) · <span className="text-primary">{d.change}</span></>
+            : <span className="text-amber">{d.noProjectYet}</span>}
         </button>
-      )}
-      <input ref={input} type="file" accept={ACCEPT} multiple={batch} hidden aria-label={d.videoFilesLabel}
-        onChange={(e) => { if (e.target.files?.length) drop(e.target.files); e.target.value = ""; }} />
-      {batch && <BatchQueue />}
-      <button type="button" onClick={() => setProjectDialog(true)} className="absolute" data-action="project"
-        style={{ left: u(631), top: u(853 - 101 - 12), height: u(24), padding: 0, border: 0, background: "transparent", color: "#9fb3cc", fontSize: u(16), fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" }}>
-        {project ? <>{d.projectLabel} <span style={{ color: "#e3eefb" }}>{project.name}</span> ({project.video_count} {project.video_count === 1 ? d.video : d.videos}) · <span style={{ color: "#33a8ff" }}>{d.change}</span></>
-          : <span style={{ color: "#ffc66d" }}>{d.noProjectYet}</span>}
-      </button>
-      <button type="button" onClick={() => setOptionsTab(2)} className="absolute" data-action="profile" title={d.analysisProfileTitle}
-        style={{ left: u(1280), top: u(853 - 101 - 12), width: u(596), height: u(24), padding: 0, border: 0, background: "transparent", color: "#9fb3cc", fontSize: u(16), fontFamily: "inherit",
-          cursor: "pointer", whiteSpace: "nowrap", textAlign: "right" }}>
-        {prefs.sendToAnalysis ? <>{d.analysisLabel} <span style={{ color: "#e3eefb" }}>{profileLabel(prefs.profile, d)}</span> · <span style={{ color: "#33a8ff" }}>{d.change}</span></>
-          : <>{d.analysisLabel} <span style={{ color: "#ffc66d" }}>{d.notStartedByItself}</span> · <span style={{ color: "#33a8ff" }}>{d.change}</span></>}
-      </button>
-      <button type="button" onClick={() => setRightsDialog(true)} className="absolute" data-action="rights" data-rights={rights ? "answered" : "unanswered"}
-        title={d.rightsTitle}
-        style={{ left: u(1010), top: u(853 - 101 - 12), width: u(330), height: u(24), padding: 0, border: 0, background: "transparent", color: "#9fb3cc", fontSize: u(16), fontFamily: "inherit",
-          cursor: "pointer", whiteSpace: "nowrap", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis" }}>
-        {rights ? <>{d.rightsLabel} <span style={{ color: "#e3eefb" }}>{rightsSummary(rights, d)}</span> · <span style={{ color: "#33a8ff" }}>{d.change}</span></>
-          : <>{d.rightsLabel} <span style={{ color: prefs.sendToAnalysis ? "#ffc66d" : "#e3eefb" }}>{prefs.sendToAnalysis ? d.rightsNeededBeforeAnalysis : d.rightsNotAnswered}</span> · <span style={{ color: "#33a8ff" }}>{d.set}</span></>}
-      </button>
+        <button type="button" onClick={() => setRightsDialog(true)} data-action="rights" data-rights={rights ? "answered" : "unanswered"} title={d.rightsTitle} className="text-left hover:text-ink">
+          {rights ? <>{d.rightsLabel} <span className="text-ink">{rightsSummary(rights, d)}</span> · <span className="text-primary">{d.change}</span></>
+            : <>{d.rightsLabel} <span className={prefs.sendToAnalysis ? "text-amber" : "text-ink"}>{prefs.sendToAnalysis ? d.rightsNeededBeforeAnalysis : d.rightsNotAnswered}</span> · <span className="text-primary">{d.set}</span></>}
+        </button>
+        <button type="button" onClick={() => setOptionsTab(2)} data-action="profile" title={d.analysisProfileTitle} className="ml-auto text-left hover:text-ink">
+          {prefs.sendToAnalysis ? <>{d.analysisLabel} <span className="text-ink">{profileLabel(prefs.profile, d)}</span> · <span className="text-primary">{d.change}</span></>
+            : <>{d.analysisLabel} <span className="text-amber">{d.notStartedByItself}</span> · <span className="text-primary">{d.change}</span></>}
+        </button>
+      </div>
       <ProjectDialog />
       <UploadRightsDialog />
     </section>

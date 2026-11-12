@@ -8,6 +8,7 @@
  * are always not measured (the engine has no model for either); the UI renders that with the reason, never a number.
  */
 import type { PlayerProfileIntro } from "@otsi-vie/contracts";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
@@ -17,12 +18,12 @@ import { HeatPitch } from "@/components/workspace/HeatPitch";
 /** the small provenance mark every user-entered field carries */
 export function UserEntered() {
   const { t: dict } = useLocale();
-  return <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 align-middle text-[10px] font-semibold text-amber-300">{dict.body.reels.enteredByUser}</span>;
+  return <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 align-middle text-xs font-semibold text-amber-300">{dict.body.reels.enteredByUser}</span>;
 }
 
-const field = "text-sm";
-const label = "text-xs text-muted";
-const notMeasured = "text-sm text-muted";
+const field = "t-body";
+const label = "t-small text-muted";
+const notMeasured = "t-body text-muted";
 
 function heightText(cm: number | null): string | null {
   if (cm === null) return null;
@@ -53,9 +54,9 @@ function Stat({ name, value, note }: { name: string; value: string | null; note?
   const { t: dict } = useLocale();
   return (
     <div className="rounded-ctl border border-line/70 bg-raised/40 p-3">
-      <div className="text-2xl font-bold tabular-nums">{value ?? <span className={notMeasured}>{dict.body.reports.notMeasured}</span>}</div>
-      <div className="text-xs text-muted">{name}</div>
-      {note && <div className="mt-0.5 text-[11px] leading-snug text-muted">{note}</div>}
+      <div className="t-metric">{value ?? <span className={notMeasured}>{dict.body.reports.notMeasured}</span>}</div>
+      <div className="t-small text-muted">{name}</div>
+      {note && <div className="mt-0.5 t-small leading-snug text-muted">{note}</div>}
     </div>
   );
 }
@@ -81,7 +82,7 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
     <div data-profile-intro="" className="overflow-hidden rounded-card border border-line bg-panel text-ink">
       <div className="aspect-video w-full overflow-y-auto">
         <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line/70 px-4 py-2">
-          <span className="text-xs font-semibold tracking-wide text-muted">{dict.body.reels.introBreadcrumb}</span>
+          <span className="t-small font-semibold tracking-wide text-muted">{dict.body.reels.introBreadcrumb}</span>
           {intro.verified ? (
             <span role="status" className="rounded-full border border-ok/60 bg-ok/15 px-3 py-1 text-xs font-semibold text-ok" title={intro.verified_rule}>
               {dict.body.reels.verifiedBadge}
@@ -93,7 +94,7 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
           )}
         </div>
         {!intro.verified && (
-          <p className="border-b border-line/70 bg-amber-500/5 px-4 py-1.5 text-xs text-muted">{intro.verified_rule}</p>
+          <p className="border-b border-line/70 bg-amber-500/5 px-4 py-1.5 t-small text-muted">{intro.verified_rule}</p>
         )}
         <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.5fr)]">
           <div>
@@ -102,20 +103,20 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={d.photo_url} alt={dict.body.reels.photoAlt.replace("{a}", intro.player.display_name)} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-muted">{dict.body.reels.noPhoto}</div>
+                <div className="flex h-full w-full items-center justify-center t-body text-muted">{dict.body.reels.noPhoto}</div>
               )}
-              <span className="absolute left-2 top-2 rounded-full bg-ok/90 px-2 py-0.5 text-[11px] font-bold text-white">{dict.body.reels.targetPlayerBadge}</span>
+              <span className="absolute left-2 top-2 rounded-full bg-ok/90 px-2 py-0.5 text-xs font-semibold text-white">{dict.body.reels.targetPlayerBadge}</span>
               {d?.photo_url && <span className="absolute bottom-2 left-2"><UserEntered /></span>}
             </div>
-            <p className="mt-1.5 text-xs text-muted">{p.nationality?.name ?? dict.body.reels.nationalityNotEntered}</p>
+            <p className="mt-1.5 t-small text-muted">{p.nationality?.name ?? dict.body.reels.nationalityNotEntered}</p>
           </div>
           <div className="min-w-0">
-            <h2 className="text-2xl font-bold leading-tight">
+            <h2 className="t-page leading-tight">
               {intro.player.display_name}{" "}
-              {team?.jersey_number != null && <span className="ml-1 rounded bg-primary px-2 py-0.5 align-middle text-lg font-bold text-white">#{team.jersey_number}</span>}
+              {team?.jersey_number != null && <span className="ml-1 rounded bg-primary px-2 py-0.5 align-middle t-panel text-white">#{team.jersey_number}</span>}
             </h2>
-            <p className="text-sm text-muted">{position ?? dict.body.reels.positionNotEntered}</p>
-            <dl className="mt-3 space-y-2 text-sm">
+            <p className="t-body text-muted">{position ?? dict.body.reels.positionNotEntered}</p>
+            <dl className="mt-3 space-y-2 t-body">
               <div><dt className={label}>OTSI PIN</dt>
                 <dd className="font-semibold text-ok">{intro.player.canonical_otsi_id ?? <span className="font-normal text-muted">{dict.body.reels.pinUnconfirmed}</span>}</dd></div>
               <div><dt className={label}>{dict.body.reels.currentClub}</dt>
@@ -134,54 +135,54 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
             </dl>
           </div>
           <div className="min-w-0">
-            <h3 className="mb-2 text-sm font-semibold">{dict.body.reels.keyStats}</h3>
+            <h3 className="mb-2 t-panel">{dict.body.reels.keyStats}</h3>
             <div className="grid grid-cols-2 gap-2">
               <Stat name={dict.body.reels.statGames} value={intro.stats.games_analysed != null ? String(intro.stats.games_analysed) : null} />
               <Stat name={dict.body.reels.statMinutes} value={minutes} note={dict.body.reels.minutesSeenNote} />
               <Stat name={dict.body.reels.statGoals} value={intro.stats.goals != null ? String(intro.stats.goals) : null} />
               <Stat name={dict.body.reels.statAssists} value={null} note={intro.stats.assists_reason} />
             </div>
-            <p className="mt-1.5 text-[11px] text-muted">{intro.stats.basis}</p>
-            <h3 className="mb-1.5 mt-4 text-sm font-semibold">{dict.body.reels.strengths} {d && d.strengths.length > 0 && <UserEntered />}</h3>
+            <p className="mt-1.5 t-small text-muted">{intro.stats.basis}</p>
+            <h3 className="mb-1.5 mt-4 t-panel">{dict.body.reels.strengths} {d && d.strengths.length > 0 && <UserEntered />}</h3>
             {d && d.strengths.length > 0 ? (
-              <ul className="space-y-1 text-sm">{d.strengths.map((s) => <li key={s}>✓ {s}</li>)}</ul>
+              <ul className="space-y-1 t-body">{d.strengths.map((s) => <li key={s}>✓ {s}</li>)}</ul>
             ) : (
               <p className={notMeasured}>{dict.body.reels.notEntered}</p>
             )}
-            <h3 className="mb-1.5 mt-4 text-sm font-semibold">{dict.body.reports.heatmap} <span className="font-normal text-muted">{dict.body.reels.heatmapMainPos.replace("{a}", position ?? dict.body.reels.notEntered)}</span></h3>
+            <h3 className="mb-1.5 mt-4 t-panel">{dict.body.reports.heatmap} <span className="font-normal text-muted">{dict.body.reels.heatmapMainPos.replace("{a}", position ?? dict.body.reels.notEntered)}</span></h3>
             <div className="aspect-[105/68] w-full overflow-hidden rounded-ctl border border-line">
               {intro.heat ? <HeatPitch zones={intro.heat} label={dict.body.reels.heatMapOf.replace("{a}", intro.player.display_name)} /> : <PitchOutline />}
             </div>
-            {!intro.heat && <p className="mt-1 text-[11px] text-muted">{dict.body.reports.notMeasured}</p>}
+            {!intro.heat && <p className="mt-1 t-small text-muted">{dict.body.reports.notMeasured}</p>}
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 border-t border-line/70 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <h3 className="mb-1 text-sm font-semibold">{dict.body.reels.summary} {d?.summary && <UserEntered />}</h3>
-            {d?.summary ? <p className="text-sm leading-snug">{d.summary}</p> : <p className={notMeasured}>{dict.body.reels.notEntered}</p>}
+            <h3 className="mb-1 t-panel">{dict.body.reels.summary} {d?.summary && <UserEntered />}</h3>
+            {d?.summary ? <p className="t-body leading-snug">{d.summary}</p> : <p className={notMeasured}>{dict.body.reels.notEntered}</p>}
           </div>
           <div>
-            <h3 className="mb-1 text-sm font-semibold">{dict.body.reels.recentForm}</h3>
+            <h3 className="mb-1 t-panel">{dict.body.reels.recentForm}</h3>
             {intro.recent_form.ratings ? (
               <div className="flex gap-1.5">{intro.recent_form.ratings.map((r, i) => (
-                <span key={i} className="flex h-10 w-10 items-center justify-center rounded-full border border-ok/60 text-sm font-bold tabular-nums">{r.toFixed(1)}</span>
+                <span key={i} className="flex h-10 w-10 items-center justify-center rounded-full border border-ok/60 t-body font-semibold tabular-nums">{r.toFixed(1)}</span>
               ))}</div>
             ) : (
               <p className={notMeasured}>{dict.body.reports.notMeasured}</p>
             )}
-            <p className="mt-1 text-[11px] text-muted">{intro.recent_form.reason}</p>
+            <p className="mt-1 t-small text-muted">{intro.recent_form.reason}</p>
           </div>
           <div>
-            <h3 className="mb-1 text-sm font-semibold">{dict.body.reels.clubLeague}</h3>
+            <h3 className="mb-1 t-panel">{dict.body.reels.clubLeague}</h3>
             <p className={field}>{club ?? <span className={notMeasured}>{dict.body.reels.notEntered}</span>}{club && !clubFromRoster && <UserEntered />}</p>
             <p className={field}>{d?.league ?? <span className={notMeasured}>{dict.body.reels.notEntered}</span>}{d?.league && <UserEntered />}</p>
           </div>
           <div>
-            <h3 className="mb-1 text-sm font-semibold">{dict.body.reels.intlCareer} {intl && <UserEntered />}</h3>
+            <h3 className="mb-1 t-panel">{dict.body.reels.intlCareer} {intl && <UserEntered />}</h3>
             {intl ? (
               <>
                 <p className={field}>{intl.country}</p>
-                <p className="text-sm text-muted">
+                <p className="t-body text-muted">
                   {intl.caps != null ? dict.body.reels.capsLine.replace("{a}", String(intl.caps)) : dict.body.reels.capsNotEntered} | {intl.goals != null ? dict.body.reels.goalsLine.replace("{a}", String(intl.goals)) : dict.body.reels.goalsNotEntered}
                 </p>
               </>
@@ -194,8 +195,11 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
       {onContinue && (
         <div className="flex items-center justify-between gap-3 border-t border-line/70 px-4 py-3">
           <p className="text-xs text-ok">{dict.body.reels.profileLoaded}</p>
-          <button type="button" onClick={onContinue}
-            className="rounded-ctl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90">{dict.body.reels.continueToReel}</button>
+          <div className="flex items-center gap-3">
+            <Link href={`/players?player=${intro.player.player_id}`} className="text-xs text-primary hover:underline">{dict.body.reelstage.openPlayerProfile}</Link>
+            <button type="button" onClick={onContinue}
+              className="rounded-ctl bg-primary px-4 py-2 t-panel text-white hover:bg-primary/90">{dict.body.reels.continueToReel}</button>
+          </div>
         </div>
       )}
     </div>
@@ -217,8 +221,8 @@ export function PlayerProfileIntroPanel({ playerId, reelId, onContinue }: { play
     );
     return () => { live = false; };
   }, [playerId, reelId]);
-  if (failed) return <p role="alert" className="text-sm text-danger">{dict.body.reels.loadProfileFailed}</p>;
-  if (!intro) return <p className="text-sm text-muted">{dict.body.reels.loadingProfile}</p>;
+  if (failed) return <p role="alert" className="t-body text-danger">{dict.body.reels.loadProfileFailed}</p>;
+  if (!intro) return <p className="t-body text-muted">{dict.body.reels.loadingProfile}</p>;
   return <PlayerProfileIntroView intro={intro} onContinue={onContinue} />;
 }
 

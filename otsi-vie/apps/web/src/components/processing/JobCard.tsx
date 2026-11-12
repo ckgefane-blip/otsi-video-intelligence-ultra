@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 03 Section 02 — title and processing job card (approved reference 03_AI_PROCESSING, "title + match card").
+ * Page 03 Section 02 — title and processing job card, on the Desktop UI flow layout.
  *
  * The card shows the selected video and its latest analysis run as recorded: the video's thumbnail, the run's profile and frame rate,
  * the run status and the worker's own progress. The blue line is the next real action: choose or upload a video, start the analysis,
@@ -10,12 +10,9 @@ import { PROFILES } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ProcessingState } from "@/components/analysis/ProcessingView";
-import { B, T, u } from "@/components/stage/DesignStage";
 import { apiBlob, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { isActive, PILL, runLabel, runProgress, pct } from "./model";
-
-const plain = { position: "absolute" as const, padding: 0, border: 0, background: "transparent", font: "inherit", cursor: "pointer", textAlign: "left" as const };
 
 function Thumb({ videoId, has }: { videoId: string | null; has: boolean }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -26,7 +23,8 @@ function Thumb({ videoId, has }: { videoId: string | null; has: boolean }) {
     void apiBlob(`/v1/videos/${videoId}/thumbnail`).then((b) => { url = URL.createObjectURL(b); if (live) setSrc(url); }, () => undefined);
     return () => { live = false; if (url) URL.revokeObjectURL(url); };
   }, [videoId, has]);
-  return <B x={1520} y={150} w={88} h={90} style={{ borderRadius: "50%", background: src ? `center / cover no-repeat url(${src})` : "#10243f" }} />;
+  if (src) return <img src={src} alt="" className="h-[88px] w-[88px] shrink-0 rounded-full border border-line object-cover" />;
+  return <div className="h-[88px] w-[88px] shrink-0 rounded-full border border-line bg-raised" />;
 }
 
 export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | null; hasVideos: boolean | null; onPick: () => void; onRun: () => void }) {
@@ -52,54 +50,56 @@ export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | 
 
   /** the blue action line */
   let action: React.ReactNode;
-  const link = { left: u(1635), top: u(231 - 101 - 14), height: u(28), fontSize: u(20), color: "#4db3ff", whiteSpace: "nowrap" as const };
   if (!p) {
     action = hasVideos
-      ? <button type="button" onClick={onPick} style={{ ...plain, ...link }} data-action="choose">{d.chooseVideoProcess}</button>
-      : <Link href="/upload" className="absolute" style={{ ...link, textDecoration: "none" }} data-action="upload">{d.uploadToBegin}</Link>;
+      ? <button type="button" onClick={onPick} className="text-sm font-semibold text-primary" data-action="choose">{d.chooseVideoProcess}</button>
+      : <Link href="/upload" className="text-sm font-semibold text-primary" data-action="upload">{d.uploadToBegin}</Link>;
   } else if (!video) {
     action = null;
   } else if (video.state !== "INGESTED") {
-    action = <T x={1635} y={231} size={20} color="#b9cbe3">{d.notVerifiedYet.replace("{state}", video.state.toLowerCase())}</T>;
+    action = <p className="text-sm text-muted">{d.notVerifiedYet.replace("{state}", video.state.toLowerCase())}</p>;
   } else if (isActive(run)) {
     action = p.canRun
-      ? <button type="button" disabled={busy} onClick={cancel} style={{ ...plain, ...link }} data-action="cancel">{up.cancelAnalysis}</button>
-      : <T x={1635} y={231} size={20} color="#b9cbe3">{d.analysisInProgress}</T>;
+      ? <button type="button" disabled={busy} onClick={cancel} className="text-sm font-semibold text-primary disabled:opacity-50" data-action="cancel">{up.cancelAnalysis}</button>
+      : <p className="text-sm text-muted">{d.analysisInProgress}</p>;
   } else if (run?.status === "SUCCEEDED") {
     action = (
-      <span className="absolute" style={{ ...link, display: "flex", gap: u(14) }}>
-        <Link href={`/videos/${video.id}/analyze`} style={{ color: "#4db3ff", textDecoration: "none" }} data-action="open">{d.openWorkspace}</Link>
-        {p.canRun && <button type="button" onClick={onRun} style={{ ...plain, position: "static", color: "#4db3ff", fontSize: "inherit" }} data-action="rerun">{d.rerun}</button>}
+      <span className="flex gap-3">
+        <Link href={`/videos/${video.id}/analyze`} className="text-sm font-semibold text-primary" data-action="open">{d.openWorkspace}</Link>
+        {p.canRun && <button type="button" onClick={onRun} className="text-sm font-semibold text-primary" data-action="rerun">{d.rerun}</button>}
       </span>
     );
   } else {
     action = p.canRun
-      ? <button type="button" onClick={onRun} style={{ ...plain, ...link }} data-action="start">{run ? d.analyseAgain : d.startAnalysis}</button>
-      : <T x={1635} y={231} size={20} color="#b9cbe3">{d.viewAnalysesOnly}</T>;
+      ? <button type="button" onClick={onRun} className="text-sm font-semibold text-primary" data-action="start">{run ? d.analyseAgain : d.startAnalysis}</button>
+      : <p className="text-sm text-muted">{d.viewAnalysesOnly}</p>;
   }
 
   return (
     <section aria-label={d.jobCardAria} data-section="p03-s01" data-run-status={run?.status ?? "NONE"}>
-      <T x={44} y={138} size={18} weight={600} ls={4.5} color="#2d9bff">{d.heroEyebrow}</T>
-      <T x={44} y={192} size={72} weight={700} ls={-0.5} as="h1">{d.heroTitle}</T>
-      <T x={44} y={249} size={25} color="#cdd9ec">{d.heroSubtitle}</T>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{d.heroEyebrow}</p>
+      <h1 className="t-page mt-0.5">{d.heroTitle}</h1>
+      <p className="mt-0.5 text-sm text-muted">{d.heroSubtitle}</p>
 
-      <B x={1500} y={123} w={1030} h={144} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
-      <Thumb videoId={video?.id ?? null} has={!!video?.has_thumbnail} />
-      <T x={1635} y={154} size={19} color={p?.error ? "#ff8a8a" : "#b9cbe3"} style={{ maxWidth: u(340), overflow: "hidden", textOverflow: "ellipsis" }}>{line1}</T>
-      <button type="button" onClick={onPick} aria-label={d.chooseAnotherVideo.replace("{title}", title)} data-action="pick"
-        style={{ ...plain, left: u(1635), top: u(190 - 101 - 16), height: u(32), maxWidth: u(340), color: "#fff", fontSize: u(25), fontWeight: 700,
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>{title}</button>
-      {action}
-      {msg && <T x={1635} y={258} size={16} color="#ff8a8a">{msg}</T>}
-
-      <B x={1990} y={133} w={1} h={124} style={{ background: "#17355f" }} />
-      <B x={2017} y={145} w={156} h={44} data-status={status}
-        style={{ ...pillTone, borderRadius: u(6), fontSize: u(20), fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>{status}</B>
-      <B x={2017} y={215} w={401} h={9} style={{ background: "#17304f", borderRadius: u(4) }}>
-        <i style={{ display: "block", height: "100%", width: `${progress ?? 0}%`, borderRadius: u(4), background: "#1a8cff" }} />
-      </B>
-      <T x={2446} y={217} size={26} weight={700}>{pct(progress)}</T>
+      <div className="vie-panel mt-3 flex flex-wrap items-center gap-4 p-3">
+        <Thumb videoId={video?.id ?? null} has={!!video?.has_thumbnail} />
+        <div className="min-w-0 flex-1">
+          <p className={`truncate text-sm ${p?.error ? "text-danger" : "text-muted"}`}>{line1}</p>
+          <button type="button" onClick={onPick} aria-label={d.chooseAnotherVideo.replace("{title}", title)} data-action="pick"
+            className="t-section mt-0.5 block max-w-full truncate text-left hover:text-primary">{title}</button>
+          <div className="mt-1">{action}</div>
+          {msg && <p className="mt-1 text-sm text-danger">{msg}</p>}
+        </div>
+        <div className="w-full sm:w-64">
+          <span className="inline-flex rounded-ctl px-2.5 py-1 text-sm font-semibold" data-status={status} style={pillTone}>{status}</span>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="h-2 flex-1 overflow-hidden rounded bg-line/60">
+              <i className="block h-full rounded bg-primary" style={{ width: `${progress ?? 0}%` }} />
+            </span>
+            <span className="text-sm font-semibold">{pct(progress)}</span>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

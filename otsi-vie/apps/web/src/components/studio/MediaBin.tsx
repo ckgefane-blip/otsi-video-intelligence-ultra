@@ -23,18 +23,16 @@ import { useLocale, type Dictionary } from "@/lib/i18n";
 import { BeatStatusRow } from "./BeatGridInfo";
 import { binCount, useSmartBins } from "@/components/library/SmartBins";
 import type { ReelState } from "@/components/reels/ReelBuilder";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
-import { Btn, IN } from "./kit";
+import { Btn } from "./kit";
 import type { Studio } from "./useStudio";
 
-const COLS = 3, TW = 184, TH = 104, GX = 9, GY = 52, X0 = 48, Y0 = 396;
 const dur = (m: ReelMoment) => `${((m.out_pts_us - m.in_pts_us) / 1e6).toFixed(1)} s`;
 export const MOMENT_MIME = "application/x-otsi-moment";
 
 export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Studio; onPick: () => void; say: (m: string) => void }) {
   const { t: dict } = useLocale();
   const tab = st.binTab, setTab = st.setBinTab;
-  const TABS: [string, number, number][] = [[dict.body.studio.mediaBinTab, 68, 41], [dict.body.studio.graphicsTab, 232, 205], [dict.body.studio.audioTab, 389, 362], [dict.body.studio.templatesTab, 523, 496]];
+  const TABS = [dict.body.studio.mediaBinTab, dict.body.studio.graphicsTab, dict.body.studio.audioTab, dict.body.studio.templatesTab];
   const [q, setQ] = useState("");
   const [hideUsed, setHideUsed] = useState(false);
   // B.11: a Smart Bin narrows the moments to those holding what it finds on this reel's video
@@ -60,81 +58,80 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
     : binId && all.length === 0 ? dict.body.studio.noneBinFinds : all.length === 0 ? dict.body.studio.noClipsFolder : shown.length === 0 ? dict.body.studio.noMomentMatches : null;
 
   return (
-    <section aria-label={dict.body.studio.mediaBinBrowserAria} data-section="p07-s02" data-moments={String(shown.length)}>
-      <P x={28} y={210} w={627} h={610} />
-      <div role="tablist" aria-label={dict.body.studio.assets}>
-        {TABS.map(([l, x], i) => (
-          <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className="absolute"
-            style={{ left: u(x - 20), top: u(220 - 101), width: u(l.length * 12 + 40), height: u(44), padding: 0, border: 0, background: "transparent", cursor: "pointer", font: "inherit" }}>
-            <T o={[x - 20, 220]} x={x} y={240} size={22} weight={tab === i ? 600 : 400} color={tab === i ? "#33a8ff" : "#cfe0f5"} as="span">{needle ? `${l} ${counts[i]}` : l}</T>
+    <section aria-label={dict.body.studio.mediaBinBrowserAria} data-section="p07-s02" data-moments={String(shown.length)}
+      className="vie-panel flex min-h-0 flex-col p-3">
+      <div role="tablist" aria-label={dict.body.studio.assets} className="flex gap-1 border-b border-line">
+        {TABS.map((l, i) => (
+          <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
+            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted"}`}>
+            {needle ? `${l} ${counts[i]}` : l}
           </button>
         ))}
       </div>
-      <B x={TABS[tab]![2]} y={264} w={145} h={3} style={{ background: "#1e90ff" }} />
-      <B x={30} y={267} w={624} h={1} style={{ background: "#12335f" }} />
 
-      <label className="absolute" style={{ left: u(48), top: u(284 - 101), width: u(512), height: u(52), boxSizing: "border-box", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), background: "#041022" }}>
-        <Ic o={[48, 284]} x={75} y={310} k="srch" size={26} color="#cfe0f5" />
+      <label className="mt-2 flex items-center gap-2 rounded-ctl border border-line2 bg-canvas px-2 py-1.5">
+        <span aria-hidden className="text-muted">⌕</span>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.studio.searchBin} aria-label={dict.body.studio.searchMediaBin}
-          style={{ position: "absolute", left: u(102 - 48), top: 0, width: u(400), height: "100%", background: "transparent", border: 0, outline: "none",
-            color: "#e3eefb", fontSize: u(20), fontFamily: "inherit" }} className="placeholder:text-[#9fb3cc]" />
+          className="t-body min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted" />
       </label>
       {tab === 0 ? (
         <>
-          <Btn x={583} y={284} w={52} h={52} label={hideUsed ? dict.body.studio.showAllMoments : dict.body.studio.hideUsedMoments} pressed={hideUsed}
-            style={{ ...IN, ...(hideUsed ? { background: "#0d3a78" } : {}) }} onClick={() => setHideUsed((h) => !h)}>
-            <Ic o={[583, 284]} x={609} y={310} k="flt" size={26} color="#cfe0f5" />
-          </Btn>
-          <Ic x={60} y={368} k="fold" size={26} color="#cfe0f5" />
-          <nav aria-label={dict.body.studio.folderAria}>
-            <Ic x={88} y={368} k="gt" size={14} color="#8ea3bf" />
-            <T x={102} y={368} size={20} color="#e3eefb">{dict.body.studio.foldersLabel}</T>
-            <Ic x={182} y={368} k="gt" size={14} color="#8ea3bf" />
-            {st.reel && bins && bins.length > 0 ? (
-              <select value={binId} onChange={(e) => setBinId(e.target.value)} aria-label={dict.body.studio.showBinHint} data-bin-select className="absolute"
-                style={{ left: u(190), top: u(352 - 101), width: u(440), height: u(34), background: "#041022", border: `${u(1)} solid #17406f`, borderRadius: u(6),
-                  color: "#e3eefb", fontSize: u(19), fontFamily: "inherit" }}>
-                <option value="">{st.reel.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.suggestedMoments}</option>
-                {bins.map((b) => <option key={b.id} value={b.id}>{dict.body.studio.smartBinOption.replace("{a}", b.name).replace("{b}", String(binCount(b)))}</option>)}
-              </select>
-            ) : <T x={196} y={368} size={20} color="#e3eefb">{st.reel?.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.allMedia}</T>}
-          </nav>
-          {!st.reel ? (
-            <button type="button" onClick={onPick} className="absolute" style={{ left: u(191), top: u(570 - 101), width: u(300), height: u(40), borderRadius: u(8),
-              border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", color: "#e3eefb", fontSize: u(20), cursor: "pointer", fontFamily: "inherit" }}>{dict.body.studio.chooseReelEdit}</button>
-          ) : empty ? <T x={341} y={590} size={20} color="#8ea3bf" align="center">{empty}</T> : (
-            <ul aria-label={dict.body.studio.suggestedMoments} className="absolute" style={{ left: u(X0), top: u(Y0 - 101), width: u(590), height: u(410), margin: 0, padding: 0, listStyle: "none", overflowY: "auto" }}>
-              {shown.map((m, i) => {
-                const x = (i % COLS) * (TW + GX), y = Math.floor(i / COLS) * (TH + GY);
-                const sel = st.preview?.in_pts_us === m.in_pts_us && st.preview.out_pts_us === m.out_pts_us;
-                return (
-                  <li key={`${m.in_pts_us}-${m.out_pts_us}`} draggable={edit} onDragStart={(e) => e.dataTransfer.setData(MOMENT_MIME, JSON.stringify(m))}
-                    style={{ position: "absolute", left: u(x), top: u(y), width: u(TW), height: u(TH + GY - 8) }} data-moment={m.in_pts_us}>
-                    <button type="button" aria-label={dict.body.studio.momentPreviewAria.replace("{a}", m.label).replace("{b}", dur(m)).replace("{c}", m.in_reel ? dict.body.studio.inReelSuffix : "")} aria-pressed={sel}
-                      onClick={() => { st.setPreview(m); r?.setSelectedClip(null); }} onDoubleClick={() => edit && st.add(m)}
-                      style={{ position: "absolute", inset: `0 0 ${u(GY - 8)} 0`, padding: 0, cursor: edit ? "grab" : "pointer", borderRadius: u(5),
-                        border: sel ? `${u(2)} solid #33a8ff` : 0,
-                        background: "radial-gradient(ellipse at 45% 85%,#6fb8ee 0,#2a6fb8 35%,transparent 70%),linear-gradient(180deg,#27487a,#2d7a3a 40%,#1d5a28)" }}>
-                      <span style={{ position: "absolute", right: u(8), bottom: u(6), padding: `${u(2)} ${u(8)}`, borderRadius: u(4), background: "rgba(0,10,25,.8)", fontSize: u(17), fontWeight: 600, color: "#fff" }}>{dur(m)}</span>
-                      {m.in_reel && <span title={dict.body.studio.inReelBadge} style={{ position: "absolute", left: u(8), top: u(6), color: "#3ee6a8", fontSize: u(18) }}>✓</span>}
-                    </button>
-                    <span style={{ position: "absolute", left: 0, top: u(TH + 6), width: u(TW - 34), fontSize: u(16), color: "#cfe0f5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</span>
-                    {edit && !m.in_reel && (
-                      <button type="button" aria-label={dict.body.studio.addMomentToReel.replace("{a}", m.label)} onClick={() => st.add(m)}
-                        style={{ position: "absolute", right: 0, top: u(TH + 2), width: u(28), height: u(28), padding: 0, borderRadius: u(6), border: `${u(1.5)} solid #1d4f8a`,
-                          background: "#0a2447", color: "#fff", cursor: "pointer", fontSize: u(18), lineHeight: 1 }}>+</button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <B x={643} y={400} w={5} h={120} style={{ background: "#17406f", borderRadius: u(3) }} />
+          <div className="mt-2 flex items-center gap-2">
+            <Btn label={hideUsed ? dict.body.studio.showAllMoments : dict.body.studio.hideUsedMoments} pressed={hideUsed}
+              onClick={() => setHideUsed((h) => !h)} className="vie-btn-sm shrink-0">
+              ⧩
+            </Btn>
+            <nav aria-label={dict.body.studio.folderAria} className="flex min-w-0 flex-1 items-center gap-1 t-body">
+              <span aria-hidden className="text-muted">▸</span>
+              <span className="shrink-0">{dict.body.studio.foldersLabel}</span>
+              <span aria-hidden className="shrink-0 text-muted">▸</span>
+              {st.reel && bins && bins.length > 0 ? (
+                <select value={binId} onChange={(e) => setBinId(e.target.value)} aria-label={dict.body.studio.showBinHint} data-bin-select
+                  className="t-body min-w-0 flex-1 truncate rounded-ctl border border-line2 bg-canvas px-2 py-1">
+                  <option value="">{st.reel.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.suggestedMoments}</option>
+                  {bins.map((b) => <option key={b.id} value={b.id}>{dict.body.studio.smartBinOption.replace("{a}", b.name).replace("{b}", String(binCount(b)))}</option>)}
+                </select>
+              ) : <span className="min-w-0 truncate">{st.reel?.player ? dict.body.studio.playerSuggestedMoments.replace("{a}", st.reel.player.display_name) : dict.body.studio.allMedia}</span>}
+            </nav>
+          </div>
+          <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
+            {!st.reel ? (
+              <button type="button" onClick={onPick} className="vie-btn mx-auto mt-24 block">{dict.body.studio.chooseReelEdit}</button>
+            ) : empty ? <p className="t-body mt-24 text-center text-muted">{empty}</p> : (
+              <ul aria-label={dict.body.studio.suggestedMoments} className="grid grid-cols-2 gap-2">
+                {shown.map((m) => {
+                  const sel = st.preview?.in_pts_us === m.in_pts_us && st.preview.out_pts_us === m.out_pts_us;
+                  return (
+                    <li key={`${m.in_pts_us}-${m.out_pts_us}`} draggable={edit} onDragStart={(e) => e.dataTransfer.setData(MOMENT_MIME, JSON.stringify(m))}
+                      data-moment={m.in_pts_us}>
+                      <button type="button" aria-label={dict.body.studio.momentPreviewAria.replace("{a}", m.label).replace("{b}", dur(m)).replace("{c}", m.in_reel ? dict.body.studio.inReelSuffix : "")} aria-pressed={sel}
+                        onClick={() => { st.setPreview(m); r?.setSelectedClip(null); }} onDoubleClick={() => edit && st.add(m)}
+                        className={`relative block aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-md border ${sel ? "border-primary" : "border-transparent"} bg-[#0b2a52]`}>
+                        <span className="t-tc absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-white">{dur(m)}</span>
+                        {m.in_reel && <span title={dict.body.studio.inReelBadge} className="t-panel absolute left-1 top-1 text-ok">✓</span>}
+                      </button>
+                      <span className="mt-1 flex items-start gap-1">
+                        <span className="t-small min-w-0 flex-1 truncate">{m.label}</span>
+                        {edit && !m.in_reel && (
+                          <button type="button" aria-label={dict.body.studio.addMomentToReel.replace("{a}", m.label)} onClick={() => st.add(m)}
+                            className="t-panel flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line2 bg-raised leading-none">+</button>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </>
       ) : tab === 3 ? <Templates st={st} canEdit={edit} onPick={onPick} say={say} hit={tplHit} /> : <BrandList st={st} canEdit={edit} audio={tab === 2} onPick={onPick} hit={brandHit} />}
     </section>
   );
 }
+
+/** a flow chip button: `on` = active, `dis` = cannot act, `warn` = destructive */
+const chip = (on: boolean, dis: boolean, warn = false) =>
+  `t-button rounded-md border px-2.5 py-1 ${warn ? "border-danger bg-[#3a1010]" : on ? "border-primary bg-[#0d3a78] text-white" : "border-line2 bg-raised"} ${dis ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`;
 
 /** ADR-109 (v3 Phase C.10): Organization templates for Spotlight, Style and Branding; save this reel's settings, apply modularly, or delete */
 function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boolean; onPick: () => void; say: (m: string) => void; hit: (t: any) => boolean }) {
@@ -149,105 +146,98 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
     return hit(t);
   });
 
-  const cell = { fontSize: u(17), color: "#cfe0f5", margin: 0 } as const;
-  const chip = (dis: boolean, warn = false, active = false) => ({
-    padding: `${u(4)} ${u(10)}`, borderRadius: u(6), fontSize: u(14), fontFamily: "inherit", cursor: dis ? "not-allowed" : "pointer",
-    border: `${u(1.5)} solid ${warn ? "#c04a4a" : active ? "#33a8ff" : "#1d4f8a"}`,
-    background: warn ? "#3a1010" : active ? "#0d3a78" : "#0a2447", color: active ? "#fff" : "#cfe0f5", opacity: dis ? 0.5 : 1
-  });
-
   const taken = !!orgList.some((t) => t.name.toLowerCase() === name.trim().toLowerCase());
 
   const kindLabel = (k: OrgTemplateKind) => k === "SPOTLIGHT" ? dict.body.studio.spotlightLabel : k === "STYLE" ? dict.body.studio.styleLabel : k === "BRANDING" ? dict.body.studio.brandingLabel : dict.body.studio.fullLook;
   const kindBadge = (k: OrgTemplateKind) => {
     const bg = k === "SPOTLIGHT" ? "#0e4b75" : k === "STYLE" ? "#4a1d75" : k === "BRANDING" ? "#135c3b" : "#705312";
     const text = k === "SPOTLIGHT" ? "#33a8ff" : k === "STYLE" ? "#d292ff" : k === "BRANDING" ? "#3ee6a8" : "#f5d02e";
-    return <span style={{ fontSize: u(12), fontWeight: 700, padding: `${u(2)} ${u(6)}`, borderRadius: u(4), background: bg, color: text }}>{kindLabel(k)}</span>;
+    return <span className="px-1.5 py-0.5 text-xs font-semibold" style={{ borderRadius: 4, background: bg, color: text }}>{kindLabel(k)}</span>;
   };
 
   return (
-    <div className="absolute" data-templates={String(orgList.length)} style={{ left: u(48), top: u(350 - 101), width: u(590), height: u(455), display: "flex", flexDirection: "column", gap: u(8) }}>
+    <div data-templates={String(orgList.length)} className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
       {!st.reel ? (
-        <button type="button" onClick={onPick} style={{ ...chip(false), alignSelf: "center", marginTop: u(260) }}>{dict.body.studio.chooseReelEdit}</button>
+        <button type="button" onClick={onPick} className={`${chip(false, false)} self-center`}>{dict.body.studio.chooseReelEdit}</button>
       ) : (
         <>
           {/* Quick kind filter pills */}
-          <div style={{ display: "flex", gap: u(6), alignItems: "center" }}>
-            <span style={{ fontSize: u(14), color: "#8ea3bf", fontWeight: 600 }}>{dict.body.studio.filterLabel}</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="t-label font-semibold">{dict.body.studio.filterLabel}</span>
             {(["ALL", "SPOTLIGHT", "STYLE", "BRANDING", "FULL"] as const).map((k) => (
-              <button key={k} type="button" data-filter-kind={k} onClick={() => setKindFilter(k)} style={chip(false, false, kindFilter === k)}>
+              <button key={k} type="button" data-filter-kind={k} onClick={() => setKindFilter(k)} className={chip(kindFilter === k, false)}>
                 {k === "ALL" ? dict.body.processing.filterAll : kindLabel(k)}
               </button>
             ))}
           </div>
 
           {/* Save new template row */}
-          <form style={{ display: "flex", gap: u(6) }} onSubmit={(e) => {
+          <form className="flex gap-1.5" onSubmit={(e) => {
             e.preventDefault();
             if (canEdit && name.trim() && !taken) {
               st.saveOrgTemplate(name.trim(), saveKind); setName("");
             }
           }}>
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={dict.body.studio.nameNewTemplate} aria-label={dict.body.studio.templateName} disabled={!canEdit}
-              style={{ flex: 1, height: u(38), padding: `0 ${u(10)}`, borderRadius: u(6), border: `${u(1.5)} solid #17406f`, background: "#041022", color: "#e3eefb", fontSize: u(15), fontFamily: "inherit", outline: "none" }} />
+              className="t-body h-9 min-w-0 flex-1 rounded-md border border-line2 bg-canvas px-2.5 outline-none" />
             <select value={saveKind} onChange={(e) => setSaveKind(e.target.value as OrgTemplateKind)} disabled={!canEdit}
               aria-label={dict.body.studio.templateSection}
-              style={{ height: u(38), padding: `0 ${u(8)}`, borderRadius: u(6), border: `${u(1.5)} solid #17406f`, background: "#0a2447", color: "#e3eefb", fontSize: u(14), fontFamily: "inherit" }}>
+              className="t-button h-9 rounded-md border border-line2 bg-raised px-2">
               <option value="FULL">{dict.body.studio.fullLook}</option>
               <option value="SPOTLIGHT">{dict.body.studio.spotlightLabel}</option>
               <option value="STYLE">{dict.body.studio.styleLabel}</option>
               <option value="BRANDING">{dict.body.studio.brandingLabel}</option>
             </select>
             <button type="submit" data-save-template disabled={!canEdit || !name.trim() || taken} title={taken ? dict.body.studio.templateNameTakenDot : dict.body.studio.saveTemplateHint}
-              style={chip(!canEdit || !name.trim() || taken)}>{dict.common.save}</button>
+              className={chip(false, !canEdit || !name.trim() || taken)}>{dict.common.save}</button>
           </form>
 
-          {taken && <p style={{ ...cell, fontSize: u(14), color: "#ffb86b" }}>{dict.body.studio.templateNameTaken}</p>}
+          {taken && <p className="t-small" style={{ color: "#ffb86b" }}>{dict.body.studio.templateNameTaken}</p>}
 
-          {st.orgTemplates === null ? <p style={cell}>{dict.common.loading}</p> : orgList.length === 0 ? (
-            <p style={cell}>{dict.body.studio.noTemplatesFilter}</p>
+          {st.orgTemplates === null ? <p className="t-body">{dict.common.loading}</p> : orgList.length === 0 ? (
+            <p className="t-body">{dict.body.studio.noTemplatesFilter}</p>
           ) : (
-            <ul aria-label={dict.body.studio.templates} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(6) }}>
+            <ul aria-label={dict.body.studio.templates} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
               {orgList.map((t) => (
-                <li key={t.id} data-template={t.id} style={{ display: "flex", alignItems: "center", gap: u(8), padding: `${u(6)} ${u(10)}`, borderRadius: u(8), border: `${u(1.5)} solid #17406f`, background: "#041022" }}>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: u(8) }}>
-                      <span style={{ fontSize: u(16), fontWeight: 600, color: "#e3eefb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</span>
+                <li key={t.id} data-template={t.id} className="flex items-center gap-2 rounded-lg border border-line2 bg-canvas px-2.5 py-1.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="t-panel min-w-0 truncate">{t.name}</span>
                       {kindBadge(t.kind)}
-                      {t.is_builtin && <span style={{ fontSize: u(12), color: "#8ea3bf" }}>{dict.body.studio.builtIn}</span>}
+                      {t.is_builtin && <span className="t-small shrink-0">{dict.body.studio.builtIn}</span>}
                     </span>
-                    <span style={{ display: "block", fontSize: u(13), color: "#8ea3bf", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.description}>
+                    <span className="t-small block truncate" title={t.description}>
                       {t.description || (t.is_builtin ? dict.body.studio.builtInPreset : dict.body.studio.organizationTemplate)}
                     </span>
                   </span>
 
                   {sure === t.id ? (
                     <>
-                      <button type="button" data-confirm-delete={t.id} onClick={() => { st.deleteOrgTemplate(t, say); setSure(null); }} style={chip(false, true)}>{dict.body.studio.deleteBtn}</button>
-                      <button type="button" onClick={() => setSure(null)} style={chip(false)}>{dict.body.studio.keepLabel}</button>
+                      <button type="button" data-confirm-delete={t.id} onClick={() => { st.deleteOrgTemplate(t, say); setSure(null); }} className={chip(false, false, true)}>{dict.body.studio.deleteBtn}</button>
+                      <button type="button" onClick={() => setSure(null)} className={chip(false, false)}>{dict.body.studio.keepLabel}</button>
                     </>
                   ) : (
-                    <div style={{ display: "flex", gap: u(4), alignItems: "center" }}>
+                    <span className="flex items-center gap-1">
                       {t.kind === "FULL" ? (
                         <>
-                          <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyAllSettings} style={chip(!canEdit)}>{dict.body.processing.filterAll}</button>
-                          <button type="button" data-apply-spotlight={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["SPOTLIGHT"], say)} title={dict.body.studio.applySpotlightOnly} style={chip(!canEdit)}>{dict.body.studio.spotlightLabel}</button>
-                          <button type="button" data-apply-style={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["STYLE"], say)} title={dict.body.studio.applyStyleOnly} style={chip(!canEdit)}>{dict.body.studio.styleLabel}</button>
+                          <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyAllSettings} className={chip(false, !canEdit)}>{dict.body.processing.filterAll}</button>
+                          <button type="button" data-apply-spotlight={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["SPOTLIGHT"], say)} title={dict.body.studio.applySpotlightOnly} className={chip(false, !canEdit)}>{dict.body.studio.spotlightLabel}</button>
+                          <button type="button" data-apply-style={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, ["STYLE"], say)} title={dict.body.studio.applyStyleOnly} className={chip(false, !canEdit)}>{dict.body.studio.styleLabel}</button>
                         </>
                       ) : (
-                        <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyKindSettings.replace("{a}", kindLabel(t.kind))} style={chip(!canEdit)}>{dict.body.studio.applyLabel}</button>
+                        <button type="button" data-apply-template={t.id} disabled={!canEdit} onClick={() => st.applyOrgTemplate(t, undefined, say)} title={dict.body.studio.applyKindSettings.replace("{a}", kindLabel(t.kind))} className={chip(false, !canEdit)}>{dict.body.studio.applyLabel}</button>
                       )}
 
                       {!t.is_builtin && (
-                        <button type="button" aria-label={dict.body.studio.deleteTemplateAria.replace("{a}", t.name)} disabled={!canEdit} onClick={() => setSure(t.id)} style={chip(!canEdit)}>✕</button>
+                        <button type="button" aria-label={dict.body.studio.deleteTemplateAria.replace("{a}", t.name)} disabled={!canEdit} onClick={() => setSure(t.id)} className={chip(false, !canEdit)}>✕</button>
                       )}
-                    </div>
+                    </span>
                   )}
                 </li>
               ))}
             </ul>
           )}
-          <p style={{ ...cell, fontSize: u(13), color: "#8ea3bf" }}>{dict.body.studio.templatesSaveNote}
+          <p className="t-small">{dict.body.studio.templatesSaveNote}
           </p>
         </>
       )}
@@ -267,43 +257,42 @@ function BrandList({ st, canEdit, audio, onPick, hit }: { st: Studio; canEdit: b
   const { t: dict } = useLocale();
   const s = st.reel?.settings;
   const list = (st.brand ?? []).filter((a) => (a.kind === "MUSIC") === audio && hit(a));
-  const cell = { fontSize: u(17), color: "#cfe0f5", margin: 0 } as const;
-  const chip = (on: boolean, dis: boolean) => ({ padding: `${u(4)} ${u(12)}`, borderRadius: u(6), fontSize: u(16), fontFamily: "inherit", cursor: dis ? "not-allowed" : "pointer",
-    border: `${u(1.5)} solid ${on ? "#3ee6a8" : "#1d4f8a"}`, background: on ? "rgba(62,230,168,.15)" : "#0a2447", color: "#fff", opacity: dis ? 0.5 : 1 });
+  const chipOn = (on: boolean, dis: boolean) =>
+    `t-button rounded-md border px-3 py-1 ${on ? "border-ok bg-ok/15 text-white" : "border-line2 bg-raised"} ${dis ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`;
   const where = st.reel ? `/reels/${st.reel.id}` : "/reels";
   return (
-    <div className="absolute" data-brand-list={audio ? "audio" : "graphics"} style={{ left: u(48), top: u(350 - 101), width: u(590), height: u(455), display: "flex", flexDirection: "column", gap: u(10) }}>
+    <div data-brand-list={audio ? "audio" : "graphics"} className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
       {!st.reel ? (
-        <button type="button" onClick={onPick} style={{ ...chip(false, false), alignSelf: "center", marginTop: u(260) }}>{dict.body.studio.chooseReelEdit}</button>
-      ) : st.brand === null ? <p style={cell}>{dict.common.loading}</p> : (
+        <button type="button" onClick={onPick} className={`${chipOn(false, false)} self-center`}>{dict.body.studio.chooseReelEdit}</button>
+      ) : st.brand === null ? <p className="t-body">{dict.common.loading}</p> : (
         <>
           {audio && (
             <button type="button" data-use-asset="none" disabled={!canEdit || !s?.music_id} onClick={() => st.setSettings({ music_id: null }, dict.body.studio.musicRemoved)}
-              style={{ ...chip(!s?.music_id, !canEdit), textAlign: "left" }}>{s?.music_id ? dict.body.studio.noMusicUseMatch : dict.body.studio.noMusicCheck}</button>
+              className={`${chipOn(!s?.music_id, !canEdit)} text-left`}>{s?.music_id ? dict.body.studio.noMusicUseMatch : dict.body.studio.noMusicCheck}</button>
           )}
-          {list.length === 0 && <p style={cell}>{audio ? dict.body.studio.noMusicYet : dict.body.studio.noLogosYet}</p>}
-          <ul aria-label={audio ? dict.body.reels.music : dict.body.studio.graphicsTab} style={{ margin: 0, padding: 0, listStyle: "none", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: u(8) }}>
+          {list.length === 0 && <p className="t-body">{audio ? dict.body.studio.noMusicYet : dict.body.studio.noLogosYet}</p>}
+          <ul aria-label={audio ? dict.body.reels.music : dict.body.studio.graphicsTab} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {list.map((a) => (
-              <li key={a.id} data-asset={a.id} style={{ display: "flex", alignItems: "center", gap: u(10), padding: `${u(8)} ${u(12)}`, borderRadius: u(8), border: `${u(1.5)} solid #17406f`, background: "#041022" }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: u(18), fontWeight: 600, color: "#e3eefb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</span>
-                    <span style={{ display: "block", fontSize: u(15), color: a.rights_ok ? "#8ea3bf" : "#ff8a8a" }}>{brandKind(dict)[a.kind]} · {a.rights_ok ? dict.body.studio.rightsHolder.replace("{a}", a.rights_holder) : dict.body.studio.rightsNotInForceLower}</span>
-                  {audio && a.rights_ok && <div style={{ marginTop: u(4) }}><BeatStatusRow musicId={a.id} canEdit={canEdit} /></div>}
+              <li key={a.id} data-asset={a.id} className="flex items-center gap-2.5 rounded-lg border border-line2 bg-canvas px-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="t-panel block truncate">{a.name}</span>
+                  <span className="t-body block truncate" style={{ color: a.rights_ok ? undefined : "#ff8a8a" }}>{brandKind(dict)[a.kind]} · {a.rights_ok ? dict.body.studio.rightsHolder.replace("{a}", a.rights_holder) : dict.body.studio.rightsNotInForceLower}</span>
+                  {audio && a.rights_ok && <span className="mt-1 block"><BeatStatusRow musicId={a.id} canEdit={canEdit} /></span>}
                 </span>
                 {brandSlots(dict)[a.kind].map(([slot, label]) => {
                   const on = s?.[slot] === a.id, dis = !canEdit || !a.rights_ok;
                   return (
                     <button key={slot} type="button" data-use-asset={`${slot}:${a.id}`} aria-pressed={on} disabled={dis}
                       title={!a.rights_ok ? dict.body.studio.rightsNotInForce : !canEdit ? dict.body.studio.roleCannotEditReel : on ? dict.body.studio.takeOutReel : dict.body.studio.putInReel}
-                      onClick={() => st.setSettings({ [slot]: on ? null : a.id }, on ? dict.body.studio.assetRemoved.replace("{a}", a.name) : dict.body.studio.assetAddedToReel.replace("{a}", a.name))} style={chip(on, dis)}>
+                      onClick={() => st.setSettings({ [slot]: on ? null : a.id }, on ? dict.body.studio.assetRemoved.replace("{a}", a.name) : dict.body.studio.assetAddedToReel.replace("{a}", a.name))} className={chipOn(on, dis)}>
                       {on ? `✓ ${label === dict.body.workspace.useLabel ? dict.body.studio.inReelBadge : label}` : label}</button>
                   );
                 })}
               </li>
             ))}
           </ul>
-          <p style={{ ...cell, fontSize: u(15), color: "#8ea3bf" }}>
-            {dict.body.studio.uploadWithRights.replace("{a}", audio ? dict.body.studio.musicWord : dict.body.studio.logosVideosLower)} <a href={where} style={{ color: "#33a8ff", textDecoration: "underline" }}>{dict.body.studio.reelBuilderBranding}</a>{dict.body.studio.renderDrawsChosen}
+          <p className="t-small">
+            {dict.body.studio.uploadWithRights.replace("{a}", audio ? dict.body.studio.musicWord : dict.body.studio.logosVideosLower)} <a href={where} className="text-primary underline">{dict.body.studio.reelBuilderBranding}</a>{dict.body.studio.renderDrawsChosen}
           </p>
         </>
       )}

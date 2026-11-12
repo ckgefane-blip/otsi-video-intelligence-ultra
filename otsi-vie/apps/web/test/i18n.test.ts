@@ -537,7 +537,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("tactics").length).toBe(164);
     expect(bodyKeys("workspace").length).toBe(729);
     // Group C (2026-11-11): Reel Builder + Export pages.
-    expect(bodyKeys("reelstage").length).toBe(435);
+    expect(bodyKeys("reelstage").length).toBe(443);
     expect(bodyKeys("exportstage").length).toBe(515);
     // Group E (2026-11-11): Admin + Settings + Wallet + Shell + Auth, and
     // the Home extension (KPI cards, capability tiles, hero metrics, hero

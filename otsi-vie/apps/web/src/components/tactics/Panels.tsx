@@ -1,7 +1,7 @@
 "use client";
 /**
  * Page 05 Sections 02, 03, 05, 06, 07, 08 — team shape and formation, team shape metrics, pass network, possession and heat zones,
- * pressing map, off-ball runs (approved reference 05_TACTICAL_INTELLIGENCE, corrected clean state).
+ * pressing map, off-ball runs, in flow (Desktop UI Drop 2).
  *
  * Heat zones are measured (promise 2): each side shows where its players were, from calibrated pitch positions only, with how much of the
  * time was measured. Team shape is measured (promise 3) at moments where at least 8 of a team stand on a measured pitch: width, length,
@@ -9,24 +9,70 @@
  * and the in/out-of-possession shapes stay "—" with their reason. The rest is not measured yet (team shape, passes, pressing, off-ball runs, possession): every value is "—" and every
  * pitch says "Not measured"; the circled "i" says what each panel needs. Nothing is drawn that was not measured.
  */
-import { B, T, u } from "@/components/stage/DesignStage";
-import { type FormationsAnalysis, type FormationName, type HeatZones, type Match, type RunTeams, SHAPE_COLS, SHAPE_ROWS, SHAPE_SPAN_M, type TeamFormation, type TeamShape } from "@otsi-vie/contracts";
-import { useEffect, useState } from "react";
+import { type FormationsAnalysis, type FormationName, type HeatZones, type Match, type RunTeams, SHAPE_COLS, SHAPE_ROWS, SHAPE_SPAN_M, type TeamShape } from "@otsi-vie/contracts";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { HeatPitch, measuredText } from "@/components/workspace/HeatPitch";
-import { Box, Head, NotMeasured, Pitch, Sel, type Opt } from "./kit";
 import { PressingPanel } from "./PressingPanel";
 import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
+
+/** one option of a selector: value, label, and — when it cannot be chosen yet — the reason (shown greyed in the list) */
+export type Opt<V extends string> = [V, string] | [V, string, string];
+
+/** a panel in flow: blue bar, bold title, and (when `info` is given) the circled "i" that explains what the panel shows */
+function Panel({ id, title, info, focus, children }: { id?: string; title: string; info?: string; focus?: boolean; children: ReactNode }) {
+  return (
+    <section id={id} aria-label={title} data-section={id} className={`vie-panel ${focus ? "outline outline-2 outline-offset-2 outline-primary" : ""}`}>
+      <div className="vie-ph">
+        <h2 className="t-panel"><span aria-hidden className="mr-2 inline-block h-5 w-1.5 rounded bg-primary align-middle" />{title}
+          {info && <span tabIndex={0} role="note" aria-label={info} title={info} className="ml-2 cursor-help rounded-full border border-line2 px-1.5 text-xs font-normal text-muted">i</span>}
+        </h2>
+      </div>
+      <div className="flex flex-col gap-3 p-3">{children}</div>
+    </section>
+  );
+}
+
+/** a pitch in flow: green, with the lines drawn in percent so it scales; children overlay it (measured data only) */
+export function FlowPitch({ children, className = "" }: { children?: ReactNode; className?: string }) {
+  return (
+    <div aria-hidden={children === undefined} className={`relative aspect-[105/68] w-full overflow-hidden rounded-md border-2 border-[#cfe3d8] bg-gradient-to-r from-[#1c6a30] via-[#26793a] to-[#1c6a30] ${className}`}>
+      <div className="absolute inset-y-0 left-1/2 w-[2px] bg-[#cfe8d6aa]" />
+      <div className="absolute left-1/2 top-1/2 h-[80px] w-[80px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#cfe8d6aa]" />
+      <div className="absolute left-0 top-1/2 h-[100px] w-[10%] -translate-y-1/2 border-2 border-l-0 border-[#cfe8d6aa]" />
+      <div className="absolute right-0 top-1/2 h-[100px] w-[10%] -translate-y-1/2 border-2 border-r-0 border-[#cfe8d6aa]" />
+      {children}
+    </div>
+  );
+}
+
+/** "Not measured" on a pitch */
+function NotMeasuredFlow({ children }: { children?: ReactNode }) {
+  const { t: dict } = useLocale();
+  return (
+    <div className="absolute inset-0 grid place-items-center">
+      <span className="rounded-md bg-[#07142acc] px-3 py-1 text-sm text-[#e6f3ea]">{children ?? dict.body.reports.notMeasured}</span>
+    </div>
+  );
+}
+
+/** a native select in flow: choosable options work, options without data are listed greyed with their reason */
+function FlowSel<V extends string>({ label, value, options, onChange, className = "" }: {
+  label: string; value: V; options: Opt<V>[]; onChange?: (v: V) => void; className?: string;
+}) {
+  return (
+    <select aria-label={label} value={value} onChange={(e) => onChange?.(e.target.value as V)}
+      className={`h-9 rounded-md border border-line bg-raised px-2 text-sm text-ink ${className}`}>
+      {options.map(([v, l, why]) => <option key={v} value={v} disabled={!!why}>{why ? `${l.trim()} — ${why}` : l.trim()}</option>)}
+    </select>
+  );
+}
 
 /** the linked match's two teams (choosable: the panel shows the choice; its numbers stay "not measured"), or why there are none */
 const teamOpts = (m: Match | null, d: Dictionary): Opt<string>[] => [["none", d.body.tactics.selectTeam],
   ...(m ? [m.home, m.away].filter((c): c is NonNullable<Match["home"]> => !!c).map((c): Opt<string> => [c.id, c.name])
     : [["link", d.body.tactics.homeAwayTeam, d.body.tactics.linkVideoFirstLower] as Opt<string>])];
 const range = (d: Dictionary): Opt<string>[] => [["none", d.body.tactics.timeRangeLower], ["full", d.body.tactics.fullMatchLower], ["h1", d.body.workspace.firstHalfLower, d.body.tactics.matchPeriodsNotRecorded], ["h2", d.body.workspace.secondHalfLower, d.body.tactics.matchPeriodsNotRecorded]];
-
-const highlight = (on: boolean) => (on ? { outline: `${u(3)} solid #33a8ff`, outlineOffset: u(2), borderRadius: u(10) } : {});
-const Frame = ({ x, y, w, h, on }: { x: number; y: number; w: number; h: number; on: boolean }) =>
-  on ? <B x={x} y={y} w={w} h={h} style={{ ...highlight(true), pointerEvents: "none" }} /> : null;
 
 function useTeamShape(runId: string | null, groups: number[], key: unknown): TeamShape | null | "loading" {
   const [v, setV] = useState<TeamShape | null | "loading">(null);
@@ -43,12 +89,12 @@ function useTeamShape(runId: string | null, groups: number[], key: unknown): Tea
 }
 
 /** where players stand around the team's centre, drawn over the pitch picture centred on the centre spot (the window is SHAPE_SPAN_M) */
-function ShapePicture({ shape, x, y, w, h }: { shape: TeamShape; x: number; y: number; w: number; h: number }) {
+function ShapePicture({ shape }: { shape: TeamShape }) {
   const max = Math.max(0, ...shape.density);
   const [sx, sy] = SHAPE_SPAN_M;
   return (
     <svg aria-label={`Team shape: where players stand around the team's centre, over ${shape.moments} moments`} role="img" data-team-shape
-      viewBox={`${-105 / 2} ${-68 / 2} 105 68`} preserveAspectRatio="none" style={{ position: "absolute", left: u(x), top: u(y - 101), width: u(w), height: u(h) }}>
+      viewBox={`${-105 / 2} ${-68 / 2} 105 68`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
       {shape.density.map((v, i) => {
         if (!(v > 0) || !(max > 0)) return null;
         const t = Math.sqrt(v / max);
@@ -117,89 +163,81 @@ export function ShapePanels({ focus, runId = null, videoId = null, kits = null, 
     ? dict.body.tactics.defLineHeightWhy.replace("{a}", String(currentFormation.defensive_line_height_m)).replace("{b}", String(currentFormation.defensive_line_height_pct))
     : NM.defensive_line_height ?? dict.body.tactics.needsPitchObs;
 
-  const metric: [string, number, string, number | null, string | undefined][] = [
-    [dict.body.tactics.averageWidth, 411, ofStat(sh?.width_m ?? null, "m"), sh?.width_m ? sh.width_m.mean / 68 : null, sh?.width_m ? dict.body.tactics.statP10P90.replace("{a}", String(sh.width_m.p10)).replace("{b}", String(sh.width_m.p90)) : undefined],
-    [dict.body.tactics.averageLength, 451, ofStat(sh?.length_m ?? null, "m"), sh?.length_m ? sh.length_m.mean / 105 : null, sh?.length_m ? dict.body.tactics.statP10P90.replace("{a}", String(sh.length_m.p10)).replace("{b}", String(sh.length_m.p90)) : undefined],
-    [dict.body.tactics.defLineHeight, 492, defLineHeightStr, defLineHeightFrac, defLineHeightWhy],
-    [dict.body.tactics.compactnessDef, 532, sh?.compactness_m2 ? `${Math.round(sh.compactness_m2.mean)} m²` : "—", sh?.compactness_m2 ? sh.compactness_m2.mean / 2500 : null,
+  const metric: [string, string, number | null, string | undefined][] = [
+    [dict.body.tactics.averageWidth, ofStat(sh?.width_m ?? null, "m"), sh?.width_m ? sh.width_m.mean / 68 : null, sh?.width_m ? dict.body.tactics.statP10P90.replace("{a}", String(sh.width_m.p10)).replace("{b}", String(sh.width_m.p90)) : undefined],
+    [dict.body.tactics.averageLength, ofStat(sh?.length_m ?? null, "m"), sh?.length_m ? sh.length_m.mean / 105 : null, sh?.length_m ? dict.body.tactics.statP10P90.replace("{a}", String(sh.length_m.p10)).replace("{b}", String(sh.length_m.p90)) : undefined],
+    [dict.body.tactics.defLineHeight, defLineHeightStr, defLineHeightFrac, defLineHeightWhy],
+    [dict.body.tactics.compactnessDef, sh?.compactness_m2 ? `${Math.round(sh.compactness_m2.mean)} m²` : "—", sh?.compactness_m2 ? sh.compactness_m2.mean / 2500 : null,
       sh ? dict.body.tactics.compactnessWhy : undefined],
-    [dict.body.tactics.shapeVariability, 574, sh?.variability != null ? `${Math.round(sh.variability * 100)} %` : "—", sh?.variability ?? null, sh ? dict.body.tactics.shapeVariabilityWhy : undefined],
+    [dict.body.tactics.shapeVariability, sh?.variability != null ? `${Math.round(sh.variability * 100)} %` : "—", sh?.variability ?? null, sh ? dict.body.tactics.shapeVariabilityWhy : undefined],
   ];
   return (
-    <>
-      <section id="p05-s02" aria-label="Team shape and formation pitch" data-section="p05-s02">
-        <Box x={432} y={300} w={1228} h={497} />
-        <Frame x={432} y={300} w={1228} h={497} on={focus} />
-        <Head x={432} y={323} title="Team Shape & Formation" info={`${dict.body.tactics.formationShapePerTeam} ${dict.body.tactics.needsPitchTeamEvents}`} />
-        <Box x={447} y={350} w={735} h={433} border="#142f55" />
-        <B x={455} y={360} w={37} h={37} style={{ borderRadius: "50%", background: side?.colour ? `#${side.colour.replace(/^#/, "")}` : "#7ab6ff" }} />
-        {sides.length ? (
-          <Sel x={500} y={360} w={260} h={37} label={dict.body.tactics.teamForShape} value={String(sides.indexOf(side!))} onChange={setPick}
-            options={sides.map((x, i) => [String(i), x.label] as Opt<string>)} />
-        ) : <T x={505} y={378} size={23} weight={700}>{dict.body.tactics.noTeamSelected}</T>}
-        {currentFormation && currentFormation.is_calibrated ? (
-          <div style={{ position: "absolute", left: u(780), top: u(358), display: "flex", alignItems: "center", gap: u(8) }}>
-            <T x={0} y={18} size={22} weight={700} style={{ position: "static" }}>{currentFormation.formation_display}</T>
-            {currentFormation.state === "CONFIRMED" ? (
-              <span style={{ fontSize: u(11), color: "#10b981", background: "rgba(16,185,129,0.18)", padding: `${u(2)} ${u(6)}`, borderRadius: u(4), fontWeight: 600 }}
-                title={currentFormation.decided_by_name ? dict.body.tactics.confirmedByName.replace("{a}", currentFormation.decided_by_name) : dict.body.tactics.confirmedByAnalyst}>{dict.body.tactics.confirmedCheck}</span>
-            ) : (
-              <button type="button" onClick={() => void confirmFormation(currentFormation.formation)}
-                style={{ fontSize: u(11), color: "#a855f7", background: "rgba(168,85,247,0.18)", padding: `${u(2)} ${u(6)}`, borderRadius: u(4), fontWeight: 600, border: 0, cursor: "pointer" }}
-                title={dict.body.tactics.clickConfirmFormation}>Inferred (Confirm?)</button>
-            )}
-          </div>
-        ) : (
-          <span title={currentFormation?.not_measured_reason ?? NM.formation ?? dict.body.tactics.formationNotMeasured}><T x={849} y={378} size={21} weight={700} align="center">—</T></span>
-        )}
-        <Sel x={1049} y={360} w={118} h={37} label={dict.body.tactics.formationPeriod} value={formPeriod.toLowerCase()}
-          onChange={(v) => setFormPeriod(v === "h1" ? "H1" : v === "h2" ? "H2" : "FULL")}
-          options={[["full", dict.body.tactics.fullMatchOption], ["h1", dict.body.workspace.firstHalfLower], ["h2", dict.body.workspace.secondHalfLower]]} />
-        <Pitch x={447} y={404} w={735} h={379} />
-        {sh ? (
-          <>
-            <ShapePicture shape={sh} x={447} y={404} w={735} h={379} />
-            <T x={814} y={772} size={15} color="#e8f5ec" align="center" style={{ textShadow: "0 0 3px #000" }}>
-              {dict.body.tactics.wherePlayersStand.replace("{a}", String(sh.moments)).replace("{b}", String(sh.min_players)).replace("{c}", String(sh.players_per_moment))}</T>
-          </>
-        ) : (
-          <NotMeasured x={814} y={470}>{!runId ? dict.body.tactics.notMeasuredNoAnalysis : !side ? dict.body.tactics.notMeasuredNoColours : shape === "loading" ? dict.body.tactics.measuring
-            : shape ? dict.body.tactics.notMeasuredNoMoment.replace("{a}", String(shape.min_players)) : dict.body.tactics.notMeasuredTracking}</NotMeasured>
-        )}
-      </section>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <Panel id="p05-s02" title="Team Shape & Formation" info={`${dict.body.tactics.formationShapePerTeam} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span aria-hidden className="h-6 w-6 rounded-full" style={{ background: side?.colour ? `#${side.colour.replace(/^#/, "")}` : "#7ab6ff" }} />
+          {sides.length ? (
+            <FlowSel label={dict.body.tactics.teamForShape} value={String(sides.indexOf(side!))} onChange={setPick}
+              options={sides.map((x, i) => [String(i), x.label] as Opt<string>)} />
+          ) : <span className="text-sm font-semibold">{dict.body.tactics.noTeamSelected}</span>}
+          {currentFormation && currentFormation.is_calibrated ? (
+            <span className="flex items-center gap-2">
+              <span className="t-section">{currentFormation.formation_display}</span>
+              {currentFormation.state === "CONFIRMED" ? (
+                <span className="rounded bg-[rgba(16,185,129,0.18)] px-1.5 py-0.5 text-xs font-semibold text-[#10b981]"
+                  title={currentFormation.decided_by_name ? dict.body.tactics.confirmedByName.replace("{a}", currentFormation.decided_by_name) : dict.body.tactics.confirmedByAnalyst}>{dict.body.tactics.confirmedCheck}</span>
+              ) : (
+                <button type="button" onClick={() => void confirmFormation(currentFormation.formation)}
+                  className="rounded bg-[rgba(168,85,247,0.18)] px-1.5 py-0.5 text-xs font-semibold text-[#a855f7]"
+                  title={dict.body.tactics.clickConfirmFormation}>Inferred (Confirm?)</button>
+              )}
+            </span>
+          ) : (
+            <span title={currentFormation?.not_measured_reason ?? NM.formation ?? dict.body.tactics.formationNotMeasured} className="t-section">—</span>
+          )}
+          <FlowSel label={dict.body.tactics.formationPeriod} value={formPeriod.toLowerCase()}
+            onChange={(v) => setFormPeriod(v === "h1" ? "H1" : v === "h2" ? "H2" : "FULL")}
+            options={[["full", dict.body.tactics.fullMatchOption], ["h1", dict.body.workspace.firstHalfLower], ["h2", dict.body.workspace.secondHalfLower]]} />
+        </div>
+        <FlowPitch>
+          {sh ? <ShapePicture shape={sh} /> : (
+            <NotMeasuredFlow>{!runId ? dict.body.tactics.notMeasuredNoAnalysis : !side ? dict.body.tactics.notMeasuredNoColours : shape === "loading" ? dict.body.tactics.measuring
+              : shape ? dict.body.tactics.notMeasuredNoMoment.replace("{a}", String(shape.min_players)) : dict.body.tactics.notMeasuredTracking}</NotMeasuredFlow>
+          )}
+        </FlowPitch>
+        {sh && <p className="text-center text-sm text-[#e8f5ec]">{dict.body.tactics.wherePlayersStand.replace("{a}", String(sh.moments)).replace("{b}", String(sh.min_players)).replace("{c}", String(sh.players_per_moment))}</p>}
+      </Panel>
 
-      <section aria-label={dict.body.tactics.teamShapeMetrics} data-section="p05-s03">
-        <Box x={1206} y={350} w={444} h={260} border="#142f55" />
-        <T x={1226} y={374} size={20} weight={700} as="h3">{dict.body.tactics.teamMetrics}<span style={{ color: "#8ea3bf", fontWeight: 400 }}>{dict.body.tactics.currentPhase}</span></T>
-        <dl style={{ margin: 0 }}>
-          {metric.map(([l, y, v, frac, why]) => (
-            <div key={l} title={why} data-metric={l}>
-              <T x={1226} y={y} size={21} color="#cfdcf0" as="span">{l}</T>
-              <B x={1410} y={y - 4} w={150} h={9} style={{ background: "#17304f", borderRadius: u(4) }} />
-              {frac != null && <B x={1410} y={y - 4} w={150 * Math.max(0.02, Math.min(1, frac))} h={9} style={{ background: "#33a8ff", borderRadius: u(4) }} />}
-              <T x={1583} y={y} size={19} weight={700} as="span">{v}</T>
+      <Panel title={`${dict.body.tactics.teamMetrics} ${dict.body.tactics.currentPhase}`}>
+        <dl className="m-0 flex flex-col gap-2">
+          {metric.map(([l, v, frac, why]) => (
+            <div key={l} title={why} data-metric={l} className="flex items-center gap-2 text-sm">
+              <span className="w-[150px] shrink-0 text-[#cfdcf0]">{l}</span>
+              <span className="h-2 flex-1 rounded bg-[#17304f]"><span className="block h-2 rounded bg-[#33a8ff]" style={{ width: frac != null ? `${Math.max(2, Math.min(100, frac * 100))}%` : 0 }} /></span>
+              <span className="w-16 shrink-0 text-right font-semibold">{v}</span>
             </div>
           ))}
         </dl>
-        <Box x={1206} y={620} w={444} h={160} border="#142f55" />
-        <T x={1226} y={645} size={22} color="#dbe8f8" as="h3">{dict.body.tactics.formationStability}</T>
-        <span title={currentFormation?.not_measured_reason ?? NM.formation ?? dict.body.tactics.needsFormation}>
-          <T x={1584} y={645} size={24} weight={700} color="#33a8ff">{currentFormation?.stability_pct != null ? `${currentFormation.stability_pct} %` : "—"}</T>
-        </span>
-        {Array.from({ length: 20 }, (_, k) => {
-          const filled = currentFormation?.stability_pct != null && (k / 20) < (currentFormation.stability_pct / 100);
-          return <B key={k} x={1226 + k * 20.1} y={666} w={18} h={9} style={{ background: filled ? "#33a8ff" : "#17304f" }} />;
-        })}
-        {([[dict.body.tactics.buildUpShape, 710, currentFormation?.buildup_shape ?? "—", dict.body.tactics.inPossessionTitle], [dict.body.tactics.defensiveShape, 756, currentFormation?.defensive_shape ?? "—", dict.body.tactics.outOfPossessionTitle]] as const).map(([l, y, shapeVal, phase]) => (
-          <div key={l}>
-            <T x={1226} y={y} size={20} color="#cfdcf0">{l}</T>
-            <span title={currentFormation?.not_measured_reason ?? NM.phases ?? dict.body.tactics.needsCalibratedPositions}><T x={1385} y={y} size={21} weight={700}>{shapeVal}</T></span>
-            <B x={1450} y={y - 7} w={14} h={14} style={{ background: "#19e6a0", transform: "rotate(45deg)" }} />
-            <T x={1480} y={y} size={19} color="#cfdcf0">{phase}</T>
+        <h3 className="t-panel mt-1">{dict.body.tactics.formationStability}</h3>
+        <div className="flex items-center gap-2" title={currentFormation?.not_measured_reason ?? NM.formation ?? dict.body.tactics.needsFormation}>
+          <div className="flex flex-1 gap-[2px]" aria-hidden>
+            {Array.from({ length: 20 }, (_, k) => {
+              const filled = currentFormation?.stability_pct != null && (k / 20) < (currentFormation.stability_pct / 100);
+              return <span key={k} className="h-2 flex-1" style={{ background: filled ? "#33a8ff" : "#17304f" }} />;
+            })}
+          </div>
+          <span className="t-metric text-primary">{currentFormation?.stability_pct != null ? `${currentFormation.stability_pct} %` : "—"}</span>
+        </div>
+        {([[dict.body.tactics.buildUpShape, currentFormation?.buildup_shape ?? "—", dict.body.tactics.inPossessionTitle], [dict.body.tactics.defensiveShape, currentFormation?.defensive_shape ?? "—", dict.body.tactics.outOfPossessionTitle]] as const).map(([l, shapeVal, phase]) => (
+          <div key={l} className="flex items-center gap-2 text-sm">
+            <span className="w-[150px] shrink-0 text-[#cfdcf0]">{l}</span>
+            <span title={currentFormation?.not_measured_reason ?? NM.phases ?? dict.body.tactics.needsCalibratedPositions} className="font-semibold">{shapeVal}</span>
+            <span aria-hidden className="inline-block h-3.5 w-3.5 rotate-45 bg-[#19e6a0]" />
+            <span className="text-[#cfdcf0]">{phase}</span>
           </div>
         ))}
-      </section>
-    </>
+      </Panel>
+    </div>
   );
 }
 
@@ -217,7 +255,7 @@ export function heatSides(kits: RunTeams | null, match: Match | null, d?: Dictio
 }
 
 /** heat zones of several kit groups added together */
-function useTeamHeat(runId: string | null, groups: number[], key: unknown): HeatZones | null | "loading" {
+export function useTeamHeat(runId: string | null, groups: number[], key: unknown): HeatZones | null | "loading" {
   const [z, setZ] = useState<HeatZones | null | "loading">(null);
   const g = groups.join(",");
   useEffect(() => {
@@ -236,19 +274,19 @@ function useTeamHeat(runId: string | null, groups: number[], key: unknown): Heat
   return z;
 }
 
-export function TeamHeat({ runId, side, x, y, w, h, calKey }: { runId: string | null; side: { label: string; groups: number[] } | undefined; x: number; y: number; w: number; h: number; calKey: unknown }) {
+export function TeamHeat({ runId, side, calKey }: { runId: string | null; side: { label: string; groups: number[] } | undefined; calKey: unknown; x?: number; y?: number; w?: number; h?: number }) {
   const { t: dict } = useLocale();
   const z = useTeamHeat(runId, side?.groups ?? [], calKey);
   if (z && z !== "loading" && z.measured_s > 0) {
     return (
-      <div data-team-heat={side?.label} style={{ position: "absolute", left: u(x), top: u(y - 101), width: u(w), height: u(h) }}>
-        <HeatPitch zones={z} label={dict.body.workspace.heatZonesOf.replace("{a}", side?.label ?? "")} />
-        <div title={dict.body.workspace.halfNote} style={{ position: "absolute", left: 0, right: 0, bottom: u(2), fontSize: u(13), color: "#e8f5ec", textAlign: "center", textShadow: "0 0 3px #000" }}>{measuredText(z, dict)}</div>
+      <div data-team-heat={side?.label}>
+        <div className="aspect-[105/68] w-full"><HeatPitch zones={z} label={dict.body.workspace.heatZonesOf.replace("{a}", side?.label ?? "")} /></div>
+        <div title={dict.body.workspace.halfNote} className="text-center text-xs text-[#e8f5ec]">{measuredText(z, dict)}</div>
       </div>
     );
   }
   const why = !runId ? dict.body.tactics.noFinishedAnalysis : !side ? dict.body.tactics.noTeamColours : z === "loading" ? dict.common.loading : z ? dict.body.tactics.noPitchPositionYet : dict.body.tactics.noData;
-  return <T x={x + w / 2} y={y + h / 2} size={20} color="#cfe3d8" align="center">{why}</T>;
+  return <p className="grid aspect-[105/68] w-full place-items-center rounded-md border border-line bg-[#1d5a2e] text-center text-sm text-[#cfe3d8]">{why}</p>;
 }
 
 export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey = 0, videoId = null, onSeek }: { focus: string | null; match: Match | null; runId?: string | null; kits?: RunTeams | null; calKey?: unknown; videoId?: string | null; onSeek?: (us: number) => void }) {
@@ -256,86 +294,73 @@ export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey
   const sides = heatSides(kits, match, dict);
   return (
     <>
-      <section id="p05-s05" aria-label={dict.body.tactics.passNetwork} data-section="p05-s05">
-        <Box x={432} y={810} w={650} h={340} />
-        <Frame x={432} y={810} w={650} h={340} on={focus === "p05-s05"} />
-        <Head x={432} y={842} title={dict.body.workspace.passNetworkMode} info={`${dict.body.tactics.whoPassesToWhom} ${dict.body.tactics.needsPitchTeamEvents}`} />
-        <Sel x={667} y={824} w={191} h={38} label={dict.body.tactics.passNetworkTeam} value="none" options={teamOpts(match, dict)} />
-        <Sel x={881} y={824} w={185} h={38} label={dict.body.tactics.passNetworkTimeRange} value="none" options={range(dict)} />
-        <Pitch x={445} y={879} w={447} h={256} />
-        <NotMeasured x={668} y={915} />
-        {/* legend of the approved design (line width = number of passes), not a measurement */}
-        <div data-spec-summary aria-label={dict.body.tactics.legendPassWidth}>
-          <T x={919} y={917} size={19} color="#cfdcf0">{dict.body.processing.eventPasses}</T>
-          {([["1-3", 950, 2], ["4-6", 979, 4], ["7-10", 1008, 6], ["10+", 1037, 9]] as const).map(([l, y, w]) => (
-            <div key={l}>
-              <B x={919} y={y - w / 2} w={40} h={w} style={{ background: l === "10+" ? "#dbe8ff" : "#1a8cff", borderRadius: u(3) }} />
-              <T x={974} y={y} size={18} color="#cfdcf0">{l}</T>
-            </div>
-          ))}
-        </div>
-        <B x={919} y={1075} w={40} h={3} style={{ background: "#1a8cff" }} />
-        <T x={974} y={1076} size={18} color="#cfdcf0">{dict.body.tactics.successful}</T>
-        <B x={919} y={1103} w={40} h={0} style={{ borderTop: `${u(3)} dashed #ff3a3a` }} />
-        <T x={974} y={1104} size={18} color="#cfdcf0">{dict.body.tactics.unsuccessful}</T>
-      </section>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel id="p05-s05" title={dict.body.workspace.passNetworkMode} info={`${dict.body.tactics.whoPassesToWhom} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s05"}>
+          <div className="flex flex-wrap gap-2">
+            <FlowSel label={dict.body.tactics.passNetworkTeam} value="none" options={teamOpts(match, dict)} />
+            <FlowSel label={dict.body.tactics.passNetworkTimeRange} value="none" options={range(dict)} />
+          </div>
+          <FlowPitch><NotMeasuredFlow /></FlowPitch>
+          <div data-spec-summary aria-label={dict.body.tactics.legendPassWidth} className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
+            <span className="font-semibold">{dict.body.processing.eventPasses}</span>
+            {([["1-3", 2], ["4-6", 4], ["7-10", 6], ["10+", 9]] as const).map(([l, w]) => (
+              <span key={l} className="flex items-center gap-2"><i className="inline-block w-10 rounded" style={{ height: w, background: l === "10+" ? "#dbe8ff" : "#1a8cff" }} />{l}</span>
+            ))}
+            <span className="flex items-center gap-2"><i className="inline-block h-[3px] w-10 bg-[#1a8cff]" />{dict.body.tactics.successful}</span>
+            <span className="flex items-center gap-2"><i className="inline-block h-0 w-10 border-t-[3px] border-dashed border-[#ff3a3a]" />{dict.body.tactics.unsuccessful}</span>
+          </div>
+        </Panel>
 
-      <section id="p05-s06" aria-label={dict.body.tactics.possessionHeatZonesLower} data-section="p05-s06">
-        <Box x={1103} y={810} w={705} h={340} />
-        <Frame x={1103} y={810} w={705} h={340} on={focus === "p05-s06"} />
-        <Head x={1103} y={842} title={dict.body.tactics.possessionHeatZones} />
-        <div role="tablist" aria-label={dict.body.tactics.zoneView}>
-          <B x={1440} y={822} w={122} h={43} style={{ background: "#0d5ac0", borderRadius: u(6), fontSize: u(19), fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>{dict.body.workspace.heatmapMode}</B>
-          <B x={1562} y={822} w={240} h={43} style={{ border: `${u(1.5)} solid #17355f`, borderRadius: `0 ${u(6)} ${u(6)} 0`, background: "#0a1d38" }} />
-          <T x={1592} y={844} size={18} color="#8ea3bf">{dict.body.tactics.territory}</T>
-          <T x={1709} y={844} size={18} color="#8ea3bf">{dict.body.tactics.finalThirds}</T>
-        </div>
-        {([[1126, 1166, "#7ab6ff", dict.body.workspace.homeTeam, 1125, 310, 1280, 1122, 1213, "#1a8cff"], [1480, 1521, "#e8d9a0", dict.body.workspace.awayTeam, 1480, 307, 1633, 1477, 1568, "#fff"]] as const).map(
-          ([cx, tx, c, team, px, pw, , lx, bx], i) => (
-            <div key={team} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? team)}>
-              <B x={cx} y={878} w={28} h={28} style={{ borderRadius: "50%", background: sides[i]?.colour ? `#${sides[i]!.colour!.replace(/^#/, "")}` : c }} />
-              <T x={tx} y={891} size={19} weight={700} style={{ maxWidth: u(260), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sides[i]?.label ?? team}</T>
-              <B x={px} y={912} w={pw} h={160} style={{ background: "#1d5a2e", border: `${u(2)} solid #cfe3d8` }} />
-              <TeamHeat runId={runId} side={sides[i]} x={px + 2} y={914} w={pw - 4} h={156} calKey={calKey} />
-              <T x={lx} y={1096} size={19} color="#cfdcf0">{dict.body.tactics.possessionLabel}</T>
-              <T x={lx} y={1121} size={25} weight={700} color={team === dict.body.workspace.homeTeam ? "#33a8ff" : undefined}>—</T>
-              <B x={bx} y={1115} w={220} h={9} style={{ background: "#17304f", borderRadius: u(4) }} />
-            </div>
-          ))}
-      </section>
+        <Panel id="p05-s06" title={dict.body.tactics.possessionHeatZones} focus={focus === "p05-s06"}>
+          <div className="grid grid-cols-2 gap-4">
+            {([0, 1] as const).map((i) => (
+              <div key={i} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam))}>
+                <div className="mb-1 flex items-center gap-2">
+                  <span aria-hidden className="h-5 w-5 rounded-full" style={{ background: sides[i]?.colour ? `#${sides[i]!.colour!.replace(/^#/, "")}` : i ? "#e8d9a0" : "#7ab6ff" }} />
+                  <span className="truncate text-sm font-semibold">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</span>
+                </div>
+                <TeamHeat runId={runId} side={sides[i]} calKey={calKey} />
+                <p className="mt-1 text-sm text-[#cfdcf0]">{dict.body.tactics.possessionLabel} <span className="t-metric text-primary">—</span></p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </div>
 
       <PressingPanel videoId={videoId} focus={focus === "p05-s07"} match={match} onSeek={onSeek} />
 
-      <section id="p05-s08" aria-label="Off-ball run analysis" data-section="p05-s08">
-        <Box x={432} y={1162} w={1008} h={258} />
-        <Frame x={432} y={1162} w={1008} h={258} on={focus === "p05-s08"} />
-        <Head x={432} y={1193} title={dict.body.tactics.offBallRuns} info={`${dict.body.tactics.runsWithoutBall} ${dict.body.tactics.needsPitchTeamEvents}`} />
-        <Sel x={658} y={1176} w={234} h={36} label={dict.body.tactics.offBallPlayer} value="none"
-          options={[["none", dict.body.tactics.selectPlayerOption], ...(match?.roster.length ? match.roster.map((r): Opt<string> => [r.player_id, `${r.jersey_number !== null ? `${r.jersey_number} · ` : ""}${r.display_name}`])
-            : [["roster", dict.body.tactics.matchPlayersOption, match ? dict.body.tactics.addRosterAnalysis : dict.body.tactics.linkVideoFirstLower] as Opt<string>])]} />
-        <Sel x={917} y={1176} w={187} h={36} label={dict.body.tactics.offBallTimeRange} value="none" options={range(dict)} />
-        <Pitch x={447} y={1230} w={460} h={177} />
-        <NotMeasured x={677} y={1262} size={20} />
-        {([[dict.body.tactics.offBallRun, 1265, "#19d3ff", "- - -"], [dict.body.tactics.leadingRun, 1294, "#ffb21a", "- - →"], [dict.body.tactics.supportingRun, 1324, "#dbe8ff", "- - -"]] as const).map(([l, y, c, g]) => (
-          <div key={l}><T x={946} y={y} size={18} color={c}>{g}</T><T x={994} y={y} size={19} color="#cfdcf0">{l}</T></div>
-        ))}
-        <B x={956} y={1350} w={16} h={16} style={{ border: `${u(3)} solid #fff`, borderRadius: "50%" }} />
-        <T x={994} y={1357} size={19} color="#cfdcf0">{dict.body.tactics.runStart}</T>
-        <B x={956} y={1380} w={16} h={16} style={{ background: "#fff", borderRadius: "50%" }} />
-        <T x={994} y={1388} size={19} color="#cfdcf0">{dict.body.tactics.runEnd}</T>
-        <Box x={1145} y={1230} w={278} h={177} border="#142f55" />
-        {([
-          [dict.body.tactics.totalOffBallRuns, 1256, dict.body.tactics.notMeasuredOffBallRuns],
-          [dict.body.tactics.progressiveRuns, 1296, dict.body.tactics.notMeasuredProgressiveRuns],
-          [dict.body.tactics.runsIntoBox, 1337, dict.body.tactics.notMeasuredRunsIntoBox],
-          [dict.body.tactics.avgRunDistance, 1377, dict.body.tactics.notMeasuredAvgRunDistance],
-        ] as const).map(([l, y, why]) => (
-          <div key={l} title={why} data-offball-metric={l}>
-            <T x={1163} y={y} size={19} color="#cfdcf0">{l}</T>
-            <T x={1398} y={y} size={19} weight={700}>—</T>
+      <Panel id="p05-s08" title={dict.body.tactics.offBallRuns} info={`${dict.body.tactics.runsWithoutBall} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s08"}>
+        <div className="flex flex-wrap gap-2">
+          <FlowSel label={dict.body.tactics.offBallPlayer} value="none"
+            options={[["none", dict.body.tactics.selectPlayerOption], ...(match?.roster.length ? match.roster.map((r): Opt<string> => [r.player_id, `${r.jersey_number !== null ? `${r.jersey_number} · ` : ""}${r.display_name}`])
+              : [["roster", dict.body.tactics.matchPlayersOption, match ? dict.body.tactics.addRosterAnalysis : dict.body.tactics.linkVideoFirstLower] as Opt<string>])]} />
+          <FlowSel label={dict.body.tactics.offBallTimeRange} value="none" options={range(dict)} />
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className="flex flex-col gap-2">
+            <FlowPitch><NotMeasuredFlow /></FlowPitch>
+            <div className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
+              {([[dict.body.tactics.offBallRun, "#19d3ff", "- - -"], [dict.body.tactics.leadingRun, "#ffb21a", "- - →"], [dict.body.tactics.supportingRun, "#dbe8ff", "- - -"]] as const).map(([l, c, g]) => (
+                <span key={l}><span style={{ color: c }}>{g}</span> {l}</span>
+              ))}
+              <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full border-2 border-white" />{dict.body.tactics.runStart}</span>
+              <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full bg-white" />{dict.body.tactics.runEnd}</span>
+            </div>
           </div>
-        ))}
-      </section>
+          <dl className="m-0 flex flex-col gap-2 text-sm">
+            {([
+              [dict.body.tactics.totalOffBallRuns, dict.body.tactics.notMeasuredOffBallRuns],
+              [dict.body.tactics.progressiveRuns, dict.body.tactics.notMeasuredProgressiveRuns],
+              [dict.body.tactics.runsIntoBox, dict.body.tactics.notMeasuredRunsIntoBox],
+              [dict.body.tactics.avgRunDistance, dict.body.tactics.notMeasuredAvgRunDistance],
+            ] as const).map(([l, why]) => (
+              <div key={l} title={why} data-offball-metric={l} className="flex items-center justify-between gap-2">
+                <dt className="text-[#cfdcf0]">{l}</dt><dd className="font-semibold">—</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </Panel>
     </>
   );
 }

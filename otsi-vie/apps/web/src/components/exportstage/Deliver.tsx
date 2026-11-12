@@ -13,8 +13,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { BUNDLE_ITEM_NAMES, type BundleItemKind, type CreatedDelivery, type Delivery, type ExportBundle } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { B, T, u } from "@/components/stage/DesignStage";
-import { Hit } from "@/components/workspace/shared";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import type { ExportState } from "./state";
@@ -115,13 +113,21 @@ export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
   const off = !e.reel ? "Open a reel first" : !renderId ? "Render the reel first: the files belong to a finished render" : !e.canEdit ? "Your role can look, not make files" : "Making the files…";
   // B.23 (ADR-098): a report not made yet can be previewed (rule-built now, nothing saved); a made one opens its file
   const [preview, setPreview] = useState<"PERFORMANCE_PDF" | "CLIP_SHEET_PDF" | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const canPreview = !!e.reel?.player;
   return (
-    <>
-      <T x={1597} y={1009} size={18} color={can && o.picks.length ? "#33a8ff" : "#8ea3bf"} align="right">{o.making ? "Making…" : "Make files"}</T>
-      <Hit x={1490} y={994} w={115} h={30} label={`Make the ticked files (${o.picks.length})`} {...(can && o.picks.length ? { onClick: () => void o.make() } : { reason: can ? "Tick at least one file" : off })} />
-      {KINDS.map((k, i) => {
-        const y = [1058, 1124, 1192, 1251][i]!, h = i < 2 ? 64 : 58;
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex items-center justify-end gap-2">
+        {o.making && <span className="text-xs text-muted">Making…</span>}
+        <button type="button" aria-label={`Make the ticked files (${o.picks.length})`}
+          onClick={() => {
+            if (can && o.picks.length) void o.make();
+            else setNote(can ? "Tick at least one file" : off);
+          }}
+          className={`text-sm ${can && o.picks.length ? "text-primary hover:underline" : "text-muted"}`}>Make files</button>
+      </div>
+      {note && <p role="status" className="text-xs text-muted">{note}</p>}
+      {KINDS.map((k) => {
         const [t, sub] = BUNDLE_ITEM_NAMES[k];
         const on = o.picks.includes(k);
         const item = o.bundle?.items.find((x) => x.kind === k) ?? null;
@@ -131,29 +137,34 @@ export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
         const pdf = k === "PERFORMANCE_PDF" || k === "CLIP_SHEET_PDF";
         const look = !open && pdf && canPreview;
         return (
-          <div key={k} data-report={k} data-picked={String(on)} data-state={item?.state ?? "NONE"}>
-            <B x={1210} y={y - 30} w={399} h={h} style={{ background: "#06142a", border: `${u(1.5)} solid ${on ? "#1d4f8a" : "#12335f"}`, borderRadius: u(8) }} />
-            <B x={1221} y={y - 13} w={26} h={26} style={{ border: `${u(2)} solid ${on ? "#1e90ff" : "#8ea3bf"}`, background: on ? "#1e90ff" : "transparent", borderRadius: u(4), color: "#fff", fontSize: u(16), display: "flex", alignItems: "center", justifyContent: "center" }}>{on ? "✓" : ""}</B>
-            <B x={1260} y={y - 20} w={34} h={40} style={{ background: COLOR[k], borderRadius: u(4) }} />
-            <T x={1314} y={y - 1} size={17} weight={600} color="#e3eefb">{t}</T>
-            <T x={1314} y={y + 20} size={14} color={tone} style={{ maxWidth: u(open || look ? 215 : 285), overflow: "hidden", textOverflow: "ellipsis" }}>{line}</T>
-            <Hit x={1210} y={y - 30} w={open || look ? 320 : 399} h={h} label={`${on ? "Leave out" : "Include"} ${t}`} pressed={on} {...(e.canEdit ? { onClick: () => o.toggle(k) } : { reason: "Your role can look, not make files" })} />
+          <div key={k} data-report={k} data-picked={String(on)} data-state={item?.state ?? "NONE"}
+            className={`flex items-center gap-2.5 rounded-md border px-2.5 py-2 ${on ? "border-primary/60 bg-raised" : "border-line bg-raised/40"}`}>
+            <button type="button" role="checkbox" aria-checked={on} aria-label={`${on ? "Leave out" : "Include"} ${t}`}
+              onClick={() => (e.canEdit ? o.toggle(k) : setNote("Your role can look, not make files"))}
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${on ? "border-primary bg-primary text-white" : "border-muted text-transparent"}`} aria-hidden={false}>
+              {on ? "✓" : ""}
+            </button>
+            <span className="h-9 w-8 shrink-0 rounded" style={{ background: COLOR[k] }} aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{t}</span>
+              <span className="block truncate text-xs" style={{ color: tone }}>{line}</span>
+            </span>
             {open && (
-              <a href={open} target={k === "EVENTS_CSV" ? undefined : "_blank"} rel="noreferrer" aria-label={`${k === "EVENTS_CSV" ? "Save" : "Preview"} ${t}`} className="absolute"
-                style={{ left: u(1539), top: u(y - 14 - 101), width: u(58), height: u(32), boxSizing: "border-box", background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6), color: "#33a8ff", fontSize: u(14), display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+              <a href={open} target={k === "EVENTS_CSV" ? undefined : "_blank"} rel="noreferrer" aria-label={`${k === "EVENTS_CSV" ? "Save" : "Preview"} ${t}`}
+                className="shrink-0 rounded-md border border-line bg-raised px-2.5 py-1 text-xs text-primary hover:underline">
                 {k === "EVENTS_CSV" ? "Save" : "Preview"}</a>
             )}
             {look && (
-              <button type="button" data-report-preview={k} onClick={() => setPreview(k)} aria-label={`Preview ${t} before making it`} className="absolute"
-                style={{ left: u(1539), top: u(y - 14 - 101), width: u(58), height: u(32), boxSizing: "border-box", background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6), color: "#33a8ff", fontSize: u(14), cursor: "pointer", fontFamily: "inherit" }}>
+              <button type="button" data-report-preview={k} onClick={() => setPreview(k)} aria-label={`Preview ${t} before making it`}
+                className="shrink-0 rounded-md border border-line bg-raised px-2.5 py-1 text-xs text-primary hover:underline">
                 Preview</button>
             )}
           </div>
         );
       })}
       {e.reel && <ReportPreviewDialog reelId={e.reel.id} kind={preview} onClose={() => setPreview(null)} />}
-      {o.err && <T x={1231} y={1290} size={14} color="#ff8a8a" style={{ maxWidth: u(375), overflow: "hidden", textOverflow: "ellipsis" }}>{o.err}</T>}
-    </>
+      {o.err && <p role="alert" className="truncate text-xs text-danger">{o.err}</p>}
+    </div>
   );
 }
 

@@ -1,13 +1,12 @@
 "use client";
 /**
- * Page 06 Reel Builder / Spotlight Composer on the approved composition (corrected reference 06_REEL_BUILDER). With a reel id it works on
+ * Page 06 Reel Builder / Spotlight Composer. With a reel id it works on
  * that reel through the Reel Builder context (clips, moments, spotlight look, render); without one it shows the reference's empty state
  * and the organization's reels to open. The page keeps a draft of the name and spotlight look that Save Project / Generate Reel send.
  */
 import type { Reel, SpotlightSettings } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
-import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { typing } from "@/lib/keymap";
@@ -16,10 +15,11 @@ import { ProfileIntroDialog } from "@/components/reels/PlayerProfileIntro";
 import { LeftColumn } from "./LeftColumn";
 import { Moments, Timeline } from "./MomentsTimeline";
 import { PreviewPanel } from "./PreviewPanel";
-import { StageProvider, useDirty, type Stage } from "./shared";
-import { T, u } from "@/components/stage/DesignStage";
+import { StageProvider, useDirty, type ReelLengthS, type Stage } from "./shared";
 
 const TAB_OF: Record<string, number> = { "p06-spotlight": 0, "p06-overlays": 1, "p06-branding": 2 };
+/** Best Moment Rule v2.1: a single-match reel's target length is remembered per reel in this browser (like the worked step) */
+const LENGTH_KEY = (id: string) => `otsi.reel-length.${id}`;
 
 function Sections({ r }: { r: ReelState | null }) {
   const { t: dict } = useLocale();
@@ -52,6 +52,20 @@ function Sections({ r }: { r: ReelState | null }) {
   useEffect(() => { if (reel) { setDraft(reel.settings); setName(reel.name); } else { setDraft(null); setName(""); } }, [reelId, version]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setMode("clip"); }, [reelId]);
   const dirty = useDirty(reel, draft, name);
+  // Best Moment Rule v2.1 target length: a cross-match reel's was fixed when it was made; a single-match reel's is chosen here
+  const lengthFixed = reel?.source === "ALL_MATCHES" && !!reel.cross_match_length_s;
+  const [lengthSState, setLengthSState] = useState<ReelLengthS>(180);
+  useEffect(() => {
+    if (!reel || lengthFixed) return;
+    let n: ReelLengthS = 180;
+    try { const v = Number(localStorage.getItem(LENGTH_KEY(reel.id))); if (v === 90 || v === 180 || v === 300) n = v; } catch { /* default */ }
+    setLengthSState(n);
+  }, [reel?.id, lengthFixed]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const lengthS: ReelLengthS = lengthFixed ? (reel!.cross_match_length_s as ReelLengthS) : lengthSState;
+  const setLengthS = useCallback((n: ReelLengthS) => {
+    setLengthSState(n);
+    if (reel) { try { localStorage.setItem(LENGTH_KEY(reel.id), String(n)); } catch { /* not remembered */ } }
+  }, [reel]);
   const jump = useCallback((id: string) => {
     if (id in TAB_OF) setTab(TAB_OF[id]!);
     setFocus(id);
@@ -74,8 +88,8 @@ function Sections({ r }: { r: ReelState | null }) {
       return null;
     }
   }, [reel, draft, name, r]);
-  const value: Stage = useMemo(() => ({ r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro }),
-    [r, draft, name, dirty, save, focus, jump, tab, mode, openProfileIntro]);   // setDraft / setName / setMode are the stable setters
+  const value: Stage = useMemo(() => ({ r, draft, setDraft, name, setName, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro, lengthS, setLengthS, lengthFixed }),
+    [r, draft, name, dirty, save, focus, jump, tab, mode, openProfileIntro, lengthS, setLengthS, lengthFixed]);   // setDraft / setName / setMode are the stable setters
   useEffect(() => { if (r?.msg) setNote(null); }, [r?.msg]);   // a newer message replaces "Project saved."
   // the same undo / redo keys as Clip Studio (lib/keymap.ts, Reels scope): they only live on this page, never while typing,
   // and only when there is something to undo or redo, so no request is made for a no-op
@@ -93,19 +107,27 @@ function Sections({ r }: { r: ReelState | null }) {
   }, [r]);
   const msg = note ?? r?.msg ?? (r?.error ? { ok: false, text: r.error } : null);
   return (
-    <DesignStage page="reels" background="#000913">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       <StageProvider value={value}>
-        <LeftColumn />
-        <PreviewPanel />
-        <Moments />
-        <Timeline />
-        <Inspector />
-        {reel?.player && <ProfileIntroDialog playerId={reel.player.player_id} reelId={reel.id} open={introOpen} onContinue={closeIntro} onClose={closeIntro} />}
         {/* owner 2026-11-02: messages sit in the strip above the preview, never on the picture */}
-        {msg && <T x={470} y={113} size={17} color={msg.ok ? "#3ee6a8" : "#ff8a8a"} style={{ maxWidth: u(1500) }} as="p">{msg.text}</T>}
-        {reel && dirty && <T x={2030} y={113} size={16} color="#f5b82e" align="right">{dict.body.reels.unsavedChanges}</T>}
+        {(msg || (reel && dirty)) && (
+          <div className="flex flex-wrap items-center gap-3" role="status">
+            {msg && <p className={`t-body ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
+            {reel && dirty && <p className="text-xs ml-auto text-amber-400">{dict.body.reels.unsavedChanges}</p>}
+          </div>
+        )}
+        <div className="grid flex-1 grid-cols-1 gap-3 xl:grid-cols-[300px_minmax(0,1fr)_340px]">
+          <LeftColumn />
+          <div className="flex min-w-0 flex-col gap-3">
+            <PreviewPanel />
+            <Moments />
+            <Timeline />
+          </div>
+          <Inspector />
+        </div>
+        {reel?.player && <ProfileIntroDialog playerId={reel.player.player_id} reelId={reel.id} open={introOpen} onContinue={closeIntro} onClose={closeIntro} />}
       </StageProvider>
-    </DesignStage>
+    </div>
   );
 }
 

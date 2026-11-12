@@ -66,24 +66,24 @@ export function MusicPicker({ settings, onChange, onClose }: { settings: Spotlig
       setFile(null); setName(""); setHolder(""); setBasis(""); setOk(false);
     } catch (e) { setErr(e instanceof Error ? e.message : dict.body.reelstage.logoUploadFail); } finally { setBusy(false); }
   };
-  const field = "w-full rounded-ctl border border-[#17406f] bg-[#041022] px-2 py-1.5 text-sm";
+  const field = "w-full rounded-ctl border border-[#17406f] bg-[#041022] px-2 py-1.5 t-body";
   const chosen = list?.find((m) => m.id === settings.music_id) ?? null;
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   return (
     <div role="dialog" aria-modal="true" aria-label={dict.body.reelstage.chooseMusic} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="flex max-h-[90vh] w-[min(560px,94vw)] flex-col gap-3 overflow-y-auto rounded-xl border border-[#1e90ff] bg-[#071a33] p-4 text-[#e3eefb]" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between"><h2 className="text-base font-semibold">{dict.body.reelstage.musicForReel}</h2>
-          <button type="button" aria-label={dict.common.close} onClick={onClose} className="px-2 text-lg">✕</button></div>
+        <div className="flex items-center justify-between"><h2 className="t-section">{dict.body.reelstage.musicForReel}</h2>
+          <button type="button" aria-label={dict.common.close} onClick={onClose} className="px-2 t-panel">✕</button></div>
         <button type="button" data-pick-music="" onClick={() => onChange({ ...settings, music_id: null })}
-          className={`rounded-ctl border px-3 py-2 text-left text-sm ${settings.music_id ? "border-[#1e90ff]/40" : "border-ok bg-ok/10"}`}>{dict.body.reelstage.noMusic}</button>
-        {list === null ? <p className="text-sm text-[#8ea3bf]">{dict.common.loading}</p> : list.length > 0 && (
+          className={`rounded-ctl border px-3 py-2 text-left t-body ${settings.music_id ? "border-[#1e90ff]/40" : "border-ok bg-ok/10"}`}>{dict.body.reelstage.noMusic}</button>
+        {list === null ? <p className="t-body text-[#8ea3bf]">{dict.common.loading}</p> : list.length > 0 && (
           <ul className="flex flex-col gap-2">{list.map((m) => (
             <li key={m.id} className={`flex flex-col gap-1 rounded-ctl border px-3 py-2 ${m.id === settings.music_id ? "border-ok bg-ok/10" : "border-[#1e90ff]/60 bg-[#0b2a52]"}`}>
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{m.name}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate t-panel">{m.name}</span>
                   <span className="block truncate text-xs text-[#8ea3bf]">{m.rights_ok ? dict.body.reelstage.logoRights.replace("{a}", m.rights_holder) : dict.body.reelstage.logoRightsNotOk}</span></span>
                 <button type="button" data-pick-music={m.id} disabled={!m.rights_ok || m.id === settings.music_id} onClick={() => onChange({ ...settings, music_id: m.id })}
-                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 text-sm font-semibold disabled:opacity-50">{m.id === settings.music_id ? dict.body.reelstage.chosenBtn : dict.body.reelstage.useBtn}</button>
+                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 t-panel disabled:opacity-50">{m.id === settings.music_id ? dict.body.reelstage.chosenBtn : dict.body.reelstage.useBtn}</button>
               </div>
               {m.rights_ok && <p className="text-xs text-[#f5d38a]" data-licence-note={m.rights_basis}>{licenceWords[m.rights_basis].replace("{a}", m.rights_holder)}</p>}
               <Listen id={m.id} />
@@ -92,7 +92,7 @@ export function MusicPicker({ settings, onChange, onClose }: { settings: Spotlig
           </ul>)}
         <p className="text-xs text-[#8ea3bf]">{dict.body.reelstage.beatLibraryNote}</p>
         {chosen && (
-          <div className="flex flex-col gap-2 rounded-ctl border border-[#12335f] p-3 text-sm">
+          <div className="flex flex-col gap-2 rounded-ctl border border-[#12335f] p-3 t-body">
             <label className="flex items-center gap-2">{dict.body.reelstage.musicVolume} <input type="range" min={0} max={1} step={0.05} value={settings.music_volume} aria-label={dict.body.reelstage.musicVolume}
               onChange={(e) => onChange({ ...settings, music_volume: Number(e.target.value) })} className="flex-1" /><span className="w-10 text-right">{pct(settings.music_volume)}</span></label>
             <label className="flex items-center gap-2">{dict.body.reelstage.matchSoundUnder} <input type="range" min={0} max={1} step={0.05} value={settings.match_volume} aria-label={dict.body.reelstage.matchSoundUnder}
@@ -101,22 +101,22 @@ export function MusicPicker({ settings, onChange, onClose }: { settings: Spotlig
           </div>
         )}
         <div className="flex flex-col gap-2 rounded-ctl border border-[#12335f] p-3">
-          <p className="text-sm font-semibold">{dict.body.reelstage.uploadMusic}</p>
-          <input type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" aria-label={dict.body.reelstage.musicFileAria} onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+          <p className="t-panel">{dict.body.reelstage.uploadMusic}</p>
+          <input type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" aria-label={dict.body.reelstage.musicFileAria} onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="t-body" />
           {fileErr && <p className="text-xs text-[#ff8a8a]">{fileErr}</p>}
           <input className={field} placeholder={dict.body.reelstage.musicNamePlaceholder} aria-label={dict.body.reelstage.musicNameAria} value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
           <input className={field} placeholder={dict.body.reelstage.musicHolderPlaceholder} aria-label={dict.body.reelstage.musicHolderAria} value={holder} onChange={(e) => setHolder(e.target.value)} autoComplete="off" />
           <select className={field} aria-label={dict.body.reelstage.musicBasisAria} value={basis} onChange={(e) => setBasis(e.target.value as BrandRightsBasis)}>
             <option value="">{dict.body.reelstage.logoBasisEmpty}</option>{BASIS.map((v) => <option key={v} value={v}>{basisWords[v]}</option>)}
           </select>
-          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} className="mt-1" />
+          <label className="flex items-start gap-2 t-body"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} className="mt-1" />
             <span>{dict.body.reelstage.musicConfirm}</span></label>
           {err && <p className="text-xs text-[#ff8a8a]">{err}</p>}
           <button type="button" data-upload-music="" disabled={!ready} onClick={() => void upload()}
-            className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 text-sm font-semibold hover:bg-ok/25 disabled:opacity-50">{busy ? dict.body.reelstage.logoUploading : dict.body.reelstage.logoUploadUse}</button>
+            className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 t-panel hover:bg-ok/25 disabled:opacity-50">{busy ? dict.body.reelstage.logoUploading : dict.body.reelstage.logoUploadUse}</button>
           <p className="text-xs text-[#8ea3bf]">{dict.body.reelstage.musicFormatNote}</p>
         </div>
-        <button type="button" onClick={onClose} className="self-end rounded-ctl border border-[#1e90ff] px-4 py-1.5 text-sm font-semibold">{dict.body.upload.done}</button>
+        <button type="button" onClick={onClose} className="self-end rounded-ctl border border-[#1e90ff] px-4 py-1.5 t-panel">{dict.body.upload.done}</button>
         <p className="text-xs text-[#8ea3bf]">{dict.body.reelstage.saveReminder}</p>
       </div>
     </div>

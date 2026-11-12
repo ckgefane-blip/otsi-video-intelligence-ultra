@@ -16,7 +16,6 @@ import {
   type ScopeMode,
 } from "@otsi-vie/contracts";
 import React, { useEffect, useRef, useState } from "react";
-import { u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
 
 interface ScopesProps {
@@ -151,7 +150,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
 
         // 75% saturation targets
         ctx.fillStyle = "rgba(245, 184, 46, 0.6)";
-        ctx.font = "10px sans-serif";
+        ctx.font = "12px sans-serif";
         ctx.fillText("R", cx + radius * 0.75 * 0.86, cy - radius * 0.75 * 0.5);
         ctx.fillText("B", cx - radius * 0.75 * 0.86, cy + radius * 0.75 * 0.5);
         ctx.fillText("G", cx - radius * 0.75 * 0.5, cy - radius * 0.75 * 0.86);
@@ -173,7 +172,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
 
         // dB axis labels
         ctx.fillStyle = "#8ea3bf";
-        ctx.font = "11px sans-serif";
+        ctx.font = "12px sans-serif";
         for (const db of [0, -6, -12, -18, -24, -36, -48, -60]) {
           const y = dbToY(db);
           ctx.fillText(`${db}`, 10, y + 4);
@@ -244,13 +243,13 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
   }, [videoRef, mode]);
 
   const chipStyle = (active: boolean) => ({
-    padding: `${u(3)} ${u(10)}`,
-    borderRadius: u(5),
-    fontSize: u(14),
+    padding: "3px 10px",
+    borderRadius: 5,
+    fontSize: 13,
     fontFamily: "inherit",
     fontWeight: 600,
     cursor: "pointer",
-    border: `${u(1.5)} solid ${active ? "#33a8ff" : "#1d4f8a"}`,
+    border: `1.5px solid ${active ? "#33a8ff" : "#1d4f8a"}`,
     background: active ? "#0d3a78" : "#06152d",
     color: active ? "#ffffff" : "#cfe0f5",
   });
@@ -258,13 +257,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
   return (
     <div
       data-scopes-panel=""
-      className="absolute flex flex-col gap-2 rounded-ctl border border-[#1e90ff]/60 bg-[#06122a] p-3 shadow-xl z-20"
-      style={{
-        left: u(680),
-        top: u(215 - 101),
-        width: u(420),
-        height: u(310),
-      }}
+      className="absolute left-4 top-4 z-20 flex h-[310px] w-[420px] flex-col gap-2 rounded-ctl border border-[#1e90ff]/60 bg-[#06122a] p-3 shadow-xl"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -292,7 +285,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
             type="button"
             aria-label={dict.body.studio.closeScopes}
             onClick={onClose}
-            className="px-2 text-base font-semibold text-[#8ea3bf] hover:text-white"
+            className="t-panel px-2 text-[#8ea3bf] hover:text-white"
           >
             ✕
           </button>

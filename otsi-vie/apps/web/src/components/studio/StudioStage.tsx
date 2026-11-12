@@ -10,7 +10,6 @@ import type { Reel } from "@otsi-vie/contracts";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
-import { DesignStage } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { isUuid } from "@/lib/identity";
@@ -31,9 +30,9 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.studio.chooseReel}</Dialog.Title>
-          <Dialog.Description className="mb-3 text-xs text-muted">Reels are made in the Reel Builder for a confirmed player; edit their clips here.</Dialog.Description>
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-2xl">
+          <Dialog.Title className="t-panel">{dict.body.studio.chooseReel}</Dialog.Title>
+          <Dialog.Description className="mb-3 t-small">Reels are made in the Reel Builder for a confirmed player; edit their clips here.</Dialog.Description>
           {reels === undefined && <p className="text-muted">{dict.common.loading}</p>}
           {reels === null && <p role="alert" className="text-danger">{dict.body.studio.reelsLoadFailed}</p>}
           {reels?.length === 0 && <p className="text-muted">{dict.body.studio.noReelsYet} <a className="text-primary underline" href="/reels">{dict.body.studio.makeInReelBuilder}</a>.</p>}
@@ -43,7 +42,7 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
                 <button type="button" onClick={() => { onOpenChange(false); router.replace(`/studio?reel=${r.id}`); }}
                   className="flex w-full justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
                   <span className="min-w-0 truncate font-medium">{r.name}</span>
-                  <span className="shrink-0 text-xs text-muted">{r.player?.display_name ?? "—"} · {r.clips.length} clips</span>
+                  <span className="shrink-0 t-small">{r.player?.display_name ?? "—"} · {r.clips.length} clips</span>
                 </button>
               </li>
             ))}
@@ -64,14 +63,16 @@ function Sections({ r }: { r: ReelState | null }) {
     pick: () => setPicking(true),
   };
   return (
-    <DesignStage page="studio" background="#000c19">
+    <div className="flex h-[calc(100dvh-180px)] min-h-[640px] flex-col gap-3">
       <StudioHeader r={r} st={st} ui={ui} note={note} />
-      <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} />
-      <Preview st={st} ui={ui} />
-      <Inspector r={r} st={st} ui={ui} />
+      <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_320px] gap-3">
+        <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} />
+        <Preview st={st} ui={ui} />
+        <Inspector r={r} st={st} ui={ui} />
+      </div>
       <Timeline r={r} st={st} ui={ui} />
       <ReelPicker open={picking} onOpenChange={setPicking} />
-    </DesignStage>
+    </div>
   );
 }
 

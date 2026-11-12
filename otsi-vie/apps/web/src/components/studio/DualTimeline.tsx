@@ -20,7 +20,6 @@ import {
   type CutComparison,
 } from "@otsi-vie/contracts";
 import React, { useEffect, useMemo, useState } from "react";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { typing } from "@/lib/keymap";
 import { tc, type Ui } from "./kit";
 import type { Studio } from "./useStudio";
@@ -122,25 +121,19 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
     <section
       data-dual-timeline=""
       aria-label={dict.body.studio.dualTimelineCompare}
-      className="relative flex flex-col gap-2 rounded border border-[#1e90ff]/60 bg-[#06142e] p-3 text-white shadow-xl z-20"
-      style={{
-        left: u(28),
-        top: u(830 - 101),
-        width: u(2506),
-        height: u(155),
-      }}
+      className="relative z-20 flex flex-col gap-2 rounded border border-[#1e90ff]/60 bg-[#06142e] p-3 text-white shadow-xl"
     >
       {/* Header bar: summary, stats, controls */}
-      <div className="flex items-center justify-between border-b border-[#12335f] pb-2 text-sm">
+      <div className="t-body flex items-center justify-between border-b border-[#12335f] pb-2">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-[#33a8ff]">{dict.body.studio.dualTimelinePro}</span>
+          <span className="t-panel text-[#33a8ff]">{dict.body.studio.dualTimelinePro}</span>
           <span
             data-cut-diff-summary=""
-            className="rounded bg-[#0b2447] px-2.5 py-1 text-xs font-semibold text-[#cfe0f5]"
+            className="text-xs rounded bg-[#0b2447] px-2.5 py-1 font-semibold text-[#cfe0f5]"
           >
             {cutDiffSummary(diff, dict)}
           </span>
-          <span className="text-xs text-[#8ea3bf]">
+          <span className="t-small">
             {dict.body.studio.cutA}: {tc(totalA)} · {dict.body.studio.cutB} ({cutBLabel}): {tc(totalB)}
           </span>
         </div>
@@ -151,7 +144,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             data-dual-sync-mode={syncMode}
             onClick={() => setSyncMode(syncMode === "SOURCE_MATCH" ? "RELATIVE" : "SOURCE_MATCH")}
-            className="rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 text-xs font-medium text-[#cfe8ff] hover:bg-[#123566]"
+            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-medium text-[#cfe8ff] hover:bg-[#123566]"
             title={dict.body.studio.toggleSyncHint}
           >
             Sync: {syncMode === "SOURCE_MATCH" ? dict.body.studio.syncSource : dict.body.studio.syncRelative}
@@ -162,7 +155,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             onClick={handleCaptureReference}
             title={dict.body.studio.snapshotCutBHint}
-            className="rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 text-xs font-medium text-[#cfe8ff] hover:bg-[#123566]"
+            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-medium text-[#cfe8ff] hover:bg-[#123566]"
           >{dict.body.studio.snapshotCut}
           </button>
 
@@ -171,7 +164,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             data-dual-swap=""
             onClick={handleApplyCutB}
-            className="rounded bg-[#1e90ff] px-3 py-1 text-xs font-semibold text-white hover:bg-[#33a8ff]"
+            className="t-button rounded bg-[#1e90ff] px-3 py-1 text-white hover:bg-[#33a8ff]"
             title={dict.body.studio.restoreCutBHint}
           >{dict.body.studio.applyCutB}
           </button>
@@ -181,7 +174,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             aria-label={dict.body.studio.closeDualTimeline}
             onClick={onClose}
-            className="ml-2 text-base font-semibold text-[#8ea3bf] hover:text-white"
+            className="t-panel ml-2 text-[#8ea3bf] hover:text-white"
           >
             ✕
           </button>
@@ -192,7 +185,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
       <div className="flex flex-col gap-1.5 flex-1 justify-center">
         {/* Cut A (Active Edit) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-bold text-[#33a8ff]">{dict.body.studio.cutA}</span>
+          <span className="w-16 text-right text-xs font-semibold text-[#33a8ff]">{dict.body.studio.cutA}</span>
           <div className="relative flex-1 h-7 rounded border border-[#1d4f8a] bg-[#040e20] overflow-hidden flex">
             {cutAClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);
@@ -219,7 +212,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
                   }`}
                 >
                   <span className="truncate">{c.label ?? dict.body.studio.clipIndex.replace("{a}", String(i + 1))}</span>
-                  {isTrimmed && <span className="ml-1 text-[10px] opacity-75">Δ</span>}
+                  {isTrimmed && <span className="ml-1 text-xs opacity-75">Δ</span>}
                 </div>
               );
             })}
@@ -236,7 +229,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
 
         {/* Cut B (Comparison Cut) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-bold text-[#f5b82e]">{dict.body.studio.cutB}</span>
+          <span className="w-16 text-right text-xs font-semibold text-[#f5b82e]">{dict.body.studio.cutB}</span>
           <div className="relative flex-1 h-7 rounded border border-[#6b5014] bg-[#040e20] overflow-hidden flex">
             {cutBClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);
@@ -263,7 +256,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
                   }`}
                 >
                   <span className="truncate">{c.label ?? dict.body.studio.refClipN.replace("{a}", String(i + 1))}</span>
-                  {isRemoved && <span className="ml-1 text-[10px] text-red-300">✕</span>}
+                  {isRemoved && <span className="ml-1 text-xs text-red-300">✕</span>}
                 </div>
               );
             })}

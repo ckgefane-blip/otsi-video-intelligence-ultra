@@ -5,6 +5,9 @@
  * shirt number are read from the latest match team sheet, where they are recorded per match (a team sheet's position, for that match, is
  * shown first where there is one). Reels and reports show what is saved here;
  * nothing is guessed. Only the organization that created a player can change the profile (the registry is shared).
+ *
+ * Drop 1 layout: the same rows, fields and API calls, laid out in the page's flow on the Desktop UI shell (AppRail / AppTopBar /
+ * StatusBar from the (app) layout) with the shared `vie-panel` / `vie-btn` classes. No control was removed or rewired.
  */
 import type { BrandRightsBasis, Country, PlayerListEntry, PlayerProfile, PlayerProfileDetails, UpdatePlayerProfileDetailsRequest } from "@otsi-vie/contracts";
 import { BRAND_MAX_BYTES } from "@otsi-vie/contracts";
@@ -147,28 +150,28 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
   const field = "w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 disabled:opacity-60";
   return (
     <li id={`player-${e.player_id}`} data-player={e.player_id}
-      className={`rounded-card border bg-panel p-4 ${focus ? "border-primary" : "border-line"}`}>
+      className={`vie-panel p-4 ${focus ? "border-primary" : ""}`}>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_repeat(4,minmax(0,1fr))_auto] md:items-end">
       <div className="min-w-0">
-        <div className="truncate text-base font-semibold">{e.display_name}</div>
-        <div className="truncate text-xs text-muted">{e.canonical_otsi_id ?? dict.body.players.noOtsiId}</div>
+        <div className="truncate t-panel">{e.display_name}</div>
+        <div className="truncate t-small">{e.canonical_otsi_id ?? dict.body.players.noOtsiId}</div>
         <Link href={`/reports/players/${e.canonical_otsi_id ?? e.player_id}`} className="text-xs text-primary hover:underline">{dict.body.players.openReport}</Link>
       </div>
-      <div className="min-w-0 text-sm">
-        <div className="text-xs text-muted">{dict.body.players.teamNumber}</div>
+      <div className="min-w-0 t-body">
+        <div className="t-small">{dict.body.players.teamNumber}</div>
         {t ? <div className="truncate">{t.team} · {t.jersey_number ?? "—"}</div>
           : <div className="text-muted">{dict.body.players.notOnTeamSheet}</div>}
       </div>
-      <label className="text-sm">
+      <label className="t-body">
         <div className="mb-1 flex items-center justify-between">
-          <span className="block text-xs text-muted">{dict.body.players.position}</span>
+          <span className="block t-small">{dict.body.players.position}</span>
           {e.profile.position && (
             e.profile.role_confirmed ? (
-              <span className="rounded bg-ok/20 px-1 py-0.5 text-[10px] font-semibold text-ok" title={e.profile.role_confirmed_by_name ? dict.body.players.confirmedBy.replace("{a}", e.profile.role_confirmed_by_name) : dict.body.players.confirmedByAnalyst}>{dict.body.players.confirmed}</span>
+              <span className="rounded bg-ok/20 px-1 py-0.5 text-xs font-semibold text-ok" title={e.profile.role_confirmed_by_name ? dict.body.players.confirmedBy.replace("{a}", e.profile.role_confirmed_by_name) : dict.body.players.confirmedByAnalyst}>{dict.body.players.confirmed}</span>
             ) : (
               <div className="flex items-center gap-1">
-                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-400">{dict.body.players.provisional}</span>
-                {can && <button type="button" onClick={() => void confirmRole()} className="text-[10px] text-primary hover:underline">{dict.body.players.confirm}</button>}
+                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-xs font-semibold text-amber-400">{dict.body.players.provisional}</span>
+                {can && <button type="button" onClick={() => void confirmRole()} className="text-xs text-primary hover:underline">{dict.body.players.confirm}</button>}
               </div>
             )
           )}
@@ -178,72 +181,72 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
           {Object.entries(POSITION_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.nationality}</span>
+      <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.nationality}</span>
         <select aria-label={dict.body.players.natAria.replace("{a}", e.display_name)} value={d.nationality} disabled={!can} onChange={(x) => setD({ ...d, nationality: x.target.value })} className={field}>
           <option value="">{dict.body.players.notRecorded}</option>
           {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.preferredFoot}</span>
+      <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.preferredFoot}</span>
         <select aria-label={dict.body.players.footAria.replace("{a}", e.display_name)} value={d.foot} disabled={!can} onChange={(x) => setD({ ...d, foot: x.target.value })} className={field}>
           <option value="">{dict.body.players.notRecorded}</option>
           {Object.entries(FOOT_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </label>
-      <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.birthDate}{e.profile.age !== null ? dict.body.players.ageSuffix.replace("{a}", String(e.profile.age)) : ""}</span>
+      <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.birthDate}{e.profile.age !== null ? dict.body.players.ageSuffix.replace("{a}", String(e.profile.age)) : ""}</span>
         <input type="date" aria-label={dict.body.players.birthAria.replace("{a}", e.display_name)} value={d.birth} disabled={!can} max={new Date().toISOString().slice(0, 10)} min="1900-01-01"
           onChange={(x) => setD({ ...d, birth: x.target.value })} className={field} />
       </label>
       <div className="flex flex-col items-start gap-1 md:items-end">
         <button type="button" disabled={!can || !changed || state.busy} onClick={() => void save()}
-          className="rounded-ctl border border-primary/70 bg-primary/20 px-4 py-1.5 text-sm font-semibold hover:bg-primary/30 disabled:opacity-40">{state.busy ? dict.body.players.saving : dict.common.save}</button>
-        {!can && <span className="text-xs text-muted">{dict.body.players.readOnly}</span>}
+          className="vie-btn vie-btn-pri">{state.busy ? dict.body.players.saving : dict.common.save}</button>
+        {!can && <span className="t-small">{dict.body.players.readOnly}</span>}
         {state.ok && !changed && <span role="status" className="text-xs text-ok">{state.ok}</span>}
         {state.err && <span role="alert" className="text-xs text-danger">{state.err}</span>}
       </div>
       </div>
       <div className="mt-3 border-t border-line/70 pt-3">
-        <button type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} className="text-sm font-semibold text-primary hover:underline">
+        <button type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} className="t-panel text-primary hover:underline">
           {detailsOpen ? dict.body.players.hideProfileDetails : dict.body.players.profileDetails}
         </button>{" "}
-        <span className="text-xs text-muted">
+        <span className="t-small">
           {savedDetails && (savedDetails.height_cm != null || savedDetails.weight_kg != null || savedDetails.strengths.length || savedDetails.summary || savedDetails.club_name || savedDetails.league || savedDetails.international_country_code || savedDetails.photo_url)
             ? dict.body.players.someEntered
             : dict.body.players.nothingEntered}
         </span>
         {detailsOpen && (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.height}</span>
+            <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.height}</span>
               <input inputMode="numeric" aria-label={dict.body.players.heightAria.replace("{a}", e.display_name)} value={dd.height} disabled={!can} placeholder={dict.body.players.heightExample}
                 onChange={(x) => setDd({ ...dd, height: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.weight}</span>
+            <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.weight}</span>
               <input inputMode="decimal" aria-label={dict.body.players.weightAria.replace("{a}", e.display_name)} value={dd.weight} disabled={!can} placeholder={dict.body.players.weightExample}
                 onChange={(x) => setDd({ ...dd, weight: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.club}</span>
+            <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.club}</span>
               <input aria-label={dict.body.players.clubAria.replace("{a}", e.display_name)} value={dd.club} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, club: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.league}</span>
+            <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.league}</span>
               <input aria-label={dict.body.players.leagueAria.replace("{a}", e.display_name)} value={dd.league} disabled={!can} maxLength={255}
                 onChange={(x) => setDd({ ...dd, league: x.target.value })} className={field} /></label>
-            <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCountry}</span>
+            <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.intlCountry}</span>
               <select aria-label={dict.body.players.intlCountryAria.replace("{a}", e.display_name)} value={dd.country} disabled={!can}
                 onChange={(x) => setDd({ ...dd, country: x.target.value })} className={field}>
                 <option value="">{dict.body.players.notRecorded}</option>
                 {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select></label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlCaps}</span>
+              <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.intlCaps}</span>
                 <input inputMode="numeric" aria-label={dict.body.players.capsAria.replace("{a}", e.display_name)} value={dd.caps} disabled={!can} placeholder={dict.body.players.notEnteredPlaceholder}
                   onChange={(x) => setDd({ ...dd, caps: x.target.value })} className={field} /></label>
-              <label className="text-sm"><span className="mb-1 block text-xs text-muted">{dict.body.players.intlGoals}</span>
+              <label className="t-body"><span className="mb-1 block t-small">{dict.body.players.intlGoals}</span>
                 <input inputMode="numeric" aria-label={dict.body.players.goalsAria.replace("{a}", e.display_name)} value={dd.goals} disabled={!can} placeholder={dict.body.players.notEnteredPlaceholder}
                   onChange={(x) => setDd({ ...dd, goals: x.target.value })} className={field} /></label>
             </div>
-            <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted">{dict.body.players.summary}</span>
+            <label className="t-body sm:col-span-2"><span className="mb-1 block t-small">{dict.body.players.summary}</span>
               <textarea aria-label={dict.body.players.summaryAria.replace("{a}", e.display_name)} value={dd.summary} disabled={!can} maxLength={600} rows={3}
                 onChange={(x) => setDd({ ...dd, summary: x.target.value })} className={field} /></label>
-            <fieldset className="text-sm sm:col-span-2 lg:col-span-1">
-              <legend className="mb-1 text-xs text-muted">{dict.body.players.strengths}</legend>
+            <fieldset className="t-body sm:col-span-2 lg:col-span-1">
+              <legend className="mb-1 t-small">{dict.body.players.strengths}</legend>
               <div className="space-y-1.5">
                 {dd.strengths.map((s, i) => (
                   <div key={i} className="flex gap-1.5">
@@ -258,12 +261,12 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
               <button type="button" disabled={!can || dd.strengths.length >= 6} onClick={() => setDd({ ...dd, strengths: [...dd.strengths, ""] })}
                 className="mt-1.5 rounded-ctl border border-line px-2 py-1 text-xs disabled:opacity-40">{dict.body.players.addStrength}</button>
             </fieldset>
-            <div className="text-sm sm:col-span-2 lg:col-span-1">
-              <span className="mb-1 block text-xs text-muted">{dict.body.players.photo}</span>
+            <div className="t-body sm:col-span-2 lg:col-span-1">
+              <span className="mb-1 block t-small">{dict.body.players.photo}</span>
               {savedDetails?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={savedDetails.photo_url} alt={dict.body.players.photoAlt.replace("{a}", e.display_name)} className="mb-1.5 h-16 w-16 rounded-ctl border border-line object-cover" />
-              ) : <p className="mb-1.5 text-xs text-muted">{dict.body.players.noPhotoYet}</p>}
+              ) : <p className="mb-1.5 t-small">{dict.body.players.noPhotoYet}</p>}
               <input type="file" accept="image/png,image/jpeg" aria-label={dict.body.players.photoAria.replace("{a}", e.display_name)} disabled={!can}
                 onChange={(x) => setPhoto(x.target.files?.[0] ?? null)} className="w-full text-xs" />
               {photoErr && <p className="mt-1 text-xs text-danger">{photoErr}</p>}
@@ -280,16 +283,16 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
               {photoState.err && <p role="alert" className="mt-1 text-xs text-danger">{photoState.err}</p>}
               {photoState.ok && <p role="status" className="mt-1 text-xs text-ok">{photoState.ok}</p>}
               <button type="button" disabled={!can || !photoReady} onClick={() => void uploadPhoto()}
-                className="mt-1.5 rounded-ctl border border-primary/70 bg-primary/20 px-3 py-1.5 text-xs font-semibold hover:bg-primary/30 disabled:opacity-40">
+                className="vie-btn mt-1.5">
                 {photoState.busy ? dict.body.players.uploading : dict.body.players.uploadPhoto}</button>
-              <p className="mt-1 text-[11px] text-muted">{dict.body.players.photoNote}</p>
+              <p className="mt-1 t-small">{dict.body.players.photoNote}</p>
             </div>
             <div className="flex flex-col items-start gap-1 sm:col-span-2 lg:col-span-3">
               {detailsError && <p role="alert" className="text-xs text-danger">{detailsError}</p>}
               <button type="button" disabled={!can || !detailsChanged || detailsState.busy || !!detailsError} onClick={() => void saveDetails()}
-                className="rounded-ctl border border-primary/70 bg-primary/20 px-4 py-1.5 text-sm font-semibold hover:bg-primary/30 disabled:opacity-40">
+                className="vie-btn vie-btn-pri">
                 {detailsState.busy ? dict.body.players.saving : dict.body.players.saveDetails}</button>
-              {!can && <span className="text-xs text-muted">{dict.body.players.readOnly}</span>}
+              {!can && <span className="t-small">{dict.body.players.readOnly}</span>}
               {detailsState.ok && !detailsChanged && <span role="status" className="text-xs text-ok">{detailsState.ok}</span>}
               {detailsState.err && <span role="alert" className="text-xs text-danger">{detailsState.err}</span>}
             </div>
@@ -330,24 +333,24 @@ export function PlayersList() {
     return true;
   }), [list, q, roleFilter, confirmedOnly]);
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-4 py-6" data-page="players">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4" data-page="players">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{dict.body.analysis.players}</h1>
-          <p className="text-sm text-muted">{dict.body.players.subtitle}</p>
+          <h1 className="t-page">{dict.body.analysis.players}</h1>
+          <p className="t-body text-muted">{dict.body.players.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label={dict.body.players.filterPositionAria}
-            className="rounded-ctl border border-line bg-canvas px-3 py-2 text-sm">
+            className="rounded-ctl border border-line bg-canvas px-3 py-2 t-body">
             <option value="">{dict.body.players.allPositions}</option>
             {Object.entries(POSITION_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
           </select>
-          <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
+          <label className="flex items-center gap-1.5 t-small cursor-pointer">
             <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} className="rounded border-line" />
             <span>{dict.body.players.confirmedRolesOnly}</span>
           </label>
           <input value={q} onChange={(e) => setQ(e.target.value)} aria-label={dict.body.players.searchPlayersAria} placeholder={dict.body.players.searchPlaceholder}
-            className="w-full max-w-xs rounded-ctl border border-line bg-canvas px-3 py-2 text-sm" />
+            className="w-full max-w-xs rounded-ctl border border-line bg-canvas px-3 py-2 t-body" />
         </div>
       </div>
       {list === undefined && <p className="text-muted">{dict.common.loading}</p>}

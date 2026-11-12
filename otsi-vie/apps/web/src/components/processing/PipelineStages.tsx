@@ -1,66 +1,50 @@
 /**
- * Page 03 Section 03 — the pipeline ribbon (approved reference 03_AI_PROCESSING, "pipeline stages"; v3 Phase A.4, ADR-061).
+ * Page 03 Section 03 — the pipeline ribbon, on the Desktop UI flow layout (v3 Phase A.4, ADR-061).
  *
  * The ribbon is the engine's real steps for this video, in order: the run's Shot cuts, Detection, Tracking and Identity evidence (no
  * identity is assigned; a player is named only after a person confirms it), then Ball, Pitch, Team sheets and Football facts. Each shows
  * waiting, running, done, not run, failed, cancelled or out of date (done on an older analysis). A click on a step filters the log to it.
  */
 "use client";
-import { B, T, u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
 import { pct, RIBBON_PILL, type RibbonStep } from "./model";
 
-const X0 = 43, W = 1938, N = 8, CELL = W / N;
-
-function Ring({ cx, s }: { cx: number; s: RibbonStep }) {
-  const base = { borderRadius: "50%" };
-  if (s.state === "DONE" || s.state === "STALE") {
-    const c = s.state === "DONE" ? "#19e6c0" : "#ffc94d";
-    return (
-      <B x={cx - 28} y={312} w={56} h={56} style={{ ...base, border: `${u(4)} solid ${c}`, background: s.state === "DONE" ? "#0a3a3f" : "#3a2f10", boxShadow: `0 0 ${u(10)} ${c}`,
-        color: c, fontSize: u(s.state === "DONE" ? 26 : 24), display: "flex", alignItems: "center", justifyContent: "center" }}>{s.state === "DONE" ? "✓" : "!"}</B>
-    );
-  }
-  if (s.state === "ACTIVE") {
-    return (
-      <>
-        <B x={cx - 28} y={312} w={56} h={56} style={{ ...base, background: `conic-gradient(#1a8cff ${s.progress ?? 0}%,#1a2a44 0)` }} />
-        <B x={cx - 20} y={320} w={40} h={40} style={{ ...base, background: "#071a33" }} />
-      </>
-    );
-  }
-  const ring = s.state === "FAILED" ? "#7a2a35" : s.state === "SKIPPED" ? "#141f33" : "#1c2a40";
-  return <B x={cx - 28} y={312} w={56} h={56} style={{ ...base, border: `${u(4)} ${s.state === "SKIPPED" ? "dashed" : "solid"} ${ring}`, background: "#0a1630" }} />;
+function Ring({ s }: { s: RibbonStep }) {
+  const mark = s.state === "DONE" ? "✓" : s.state === "STALE" ? "!" : s.state === "ACTIVE" ? `${Math.round(s.progress ?? 0)}%` : "";
+  const colour = s.state === "DONE" ? "#19e6c0" : s.state === "STALE" ? "#ffc94d" : s.state === "ACTIVE" ? "#1a8cff" : s.state === "FAILED" ? "#ff8a8a" : "#5d7699";
+  return (
+    <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 text-sm font-semibold"
+      style={{ borderColor: colour, color: colour, borderStyle: s.state === "SKIPPED" ? "dashed" : "solid", background: s.state === "DONE" ? "#0a3a3f" : s.state === "STALE" ? "#3a2f10" : "transparent" }}>
+      {mark}
+    </span>
+  );
 }
 
 export function PipelineStages({ steps, selected, onSelect }: { steps: RibbonStep[]; selected: string | null; onSelect: (key: string | null) => void }) {
   const { t: dict } = useLocale();
   const d = dict.body.processing;
   return (
-    <section aria-label={d.engineStepsForVideo} data-section="p03-s02">
-      <B x={X0} y={293} w={W} h={230} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
-      <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
+    <section aria-label={d.engineStepsForVideo} data-section="p03-s02" className="vie-panel">
+      <ol className="grid grid-cols-2 gap-2 p-3 md:grid-cols-4 2xl:grid-cols-8">
         {steps.map((s, i) => {
-          const x = X0 + i * CELL, cx = x + CELL / 2, on = selected === s.key;
+          const on = selected === s.key;
           return (
             <li key={s.key} data-stage-step={s.key} data-stage-state={s.state}>
               <button type="button" aria-pressed={on} onClick={() => onSelect(on ? null : s.key)}
                 aria-label={`${i + 1}. ${s.title}: ${s.label}${s.progress !== null ? `, ${Math.round(s.progress)}%` : ""}. ${on ? d.showEveryStep : d.showOnlyStep}`}
                 title={on ? d.showingOnlyStep : d.showOnlyStep}
-                className="absolute" style={{ left: u(x + 6), top: u(299 - 101), width: u(CELL - 12), height: u(218), padding: 0, cursor: "pointer", fontFamily: "inherit",
-                  background: on ? "rgba(30,144,255,.10)" : "transparent", border: on ? `${u(1.5)} solid #1e6fb0` : `${u(1.5)} solid transparent`, borderRadius: u(8) }} />
-              <div style={{ pointerEvents: "none" }}>
-                <Ring cx={cx} s={s} />
-                <T x={cx} y={392} size={20} weight={700} align="center" style={{ maxWidth: u(CELL - 16), whiteSpace: "nowrap" }}>{`${i + 1}. ${s.title}`}</T>
-                <T x={cx} y={420} size={16} color="#b3c4dc" align="center" style={{ maxWidth: u(CELL - 16), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.line}</T>
-                <B x={x + 18} y={442} w={CELL - 36} h={7} style={{ background: "#17304f", borderRadius: u(4) }}>
-                  <i style={{ display: "block", height: "100%", width: `${s.progress ?? 0}%`, borderRadius: u(4), background: s.state === "STALE" ? "#ffc94d" : "#1a8cff" }} />
-                </B>
-                <T x={x + 18} y={482} size={19}>{pct(s.progress)}</T>
-                <B x={x + CELL - 18 - 120} y={466} w={120} h={32} style={{ ...RIBBON_PILL[s.state], borderRadius: u(16), fontSize: u(16), fontWeight: 600,
-                  display: "flex", alignItems: "center", justifyContent: "center" }}>{s.label}</B>
-              </div>
-              {i < N - 1 && <B x={x + CELL - 9} y={326} w={18} h={28} aria-hidden style={{ color: "#1e90ff", fontSize: u(24), lineHeight: u(28), pointerEvents: "none" }}>›</B>}
+                className={`flex h-full w-full flex-col items-start gap-1.5 rounded-ctl border p-2.5 text-left ${on ? "border-primary bg-primary/10" : "border-line/70 hover:border-line2"}`}>
+                <span className="flex w-full items-center justify-between gap-2">
+                  <Ring s={s} />
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={RIBBON_PILL[s.state]}>{s.label}</span>
+                </span>
+                <span className="text-sm font-semibold">{`${i + 1}. ${s.title}`}</span>
+                <span className="block truncate text-xs text-muted" title={s.line}>{s.line}</span>
+                <span className="h-1.5 w-full overflow-hidden rounded bg-line/60">
+                  <i className="block h-full rounded" style={{ width: `${s.progress ?? 0}%`, background: s.state === "STALE" ? "#ffc94d" : "#1a8cff" }} />
+                </span>
+                <span className="text-xs font-semibold">{pct(s.progress)}</span>
+              </button>
             </li>
           );
         })}

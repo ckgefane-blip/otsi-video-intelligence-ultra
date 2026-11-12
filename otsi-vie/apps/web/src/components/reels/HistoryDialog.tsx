@@ -36,8 +36,8 @@ export function HistoryDialog({ r, open, onOpenChange }: { r: ReelState | null; 
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Content data-dialog="history" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(720px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{d.historyTitle}</Dialog.Title>
+        <Dialog.Content data-dialog="history" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(720px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-xl">
+          <Dialog.Title className="t-section">{d.historyTitle}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {d.historyDesc}
           </Dialog.Description>
@@ -59,7 +59,7 @@ export function HistoryDialog({ r, open, onOpenChange }: { r: ReelState | null; 
                       <span className={`block truncate ${e.state === "UNDONE" || e.state === "DROPPED" ? "text-muted line-through" : ""}`}>{e.label}</span>
                       <span className="block text-xs text-muted">{e.actor?.name ?? dict.body.workspace.someoneLabel} · {when(e.created_at, d)}</span>
                     </span>
-                    {b && <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] ${b.cls}`}>{b.text}</span>}
+                    {b && <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${b.cls}`}>{b.text}</span>}
                     {e.kind === "EDIT" && e.state === "ACTIVE" && (
                       <button type="button" data-back-to={e.id} disabled={!can} onClick={() => r?.undo(e.id)} title={d.historyBackToTitle}
                         className="shrink-0 rounded-ctl border border-line px-2 py-1 text-xs disabled:opacity-40">{d.historyBackTo}</button>

@@ -1,7 +1,7 @@
 "use client";
 /**
- * Page 02 Sections 03 and 04 — visual processing configuration, and detection and ingest options (approved reference 02_UPLOAD_INGEST,
- * "left", second panel). Every switch is one of three kinds, from what the engine really does (analyze.py, the analysis PROFILES). All ten that are choices switch and are saved with the upload:
+ * Page 02 Sections 03 and 04 — visual processing configuration, and detection and ingest options, on the Desktop UI flow layout.
+ * Every switch is one of three kinds, from what the engine really does (analyze.py, the analysis PROFILES). All ten that are choices switch and are saved with the upload:
  *   live    Stabilize Video (on = the High accuracy profile, which stabilises; off = Standard) and Send to Analysis (start an analysis
  *           once the upload or import is verified: the SERVER does it) — the viewer's defaults, sent with each upload or import
  *   always  done by every ingest or analysis, shown on and locked: players and kit colours, ball tracking, shirt numbers, file metadata
@@ -11,47 +11,71 @@
  * agree: switching Stabilize on lifts Standard to High accuracy, off brings a stabilising profile back to Standard.
  */
 import { Fragment } from "react";
-import { B, P, T, u } from "@/components/stage/DesignStage";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { RIGHT_EXTRA } from "./layout";
-import { ToggleRow, usePage02, type UploadPrefs } from "./page02";
+import { usePage02, type UploadPrefs } from "./page02";
 import { ProfileCard } from "./ProfileCard";
 
 type Kind = "live" | "always" | "not-built";
 type Switch = Exclude<keyof UploadPrefs, "profile">;
-type Row = [icon: string, label: string, y: number, kind: Kind, why: string, pref?: Switch];
+type Row = [label: string, kind: Kind, why: string, pref?: Switch];
 
 /** The dictionary subsection these rows come from (ADR-139 Group A). */
 type UploadDict = Dictionary["body"]["upload"];
 
-/** the rows in this language: positions and kinds stay, only the words are translated. */
+/** the rows in this language: kinds stay, only the words are translated. */
 const rowsFor = (d: UploadDict): { visual: Row[]; overlays: Row[]; ingest: Row[] } => ({
   visual: [
-    ["stab", d.stabilize, 637, "live", d.whyStabilize, "stabilize"],
-    ["crop", d.autoCrop, 683, "not-built", d.whyAutoCrop, "autoCrop"],
-    ["enh", d.enhance, 728, "not-built", d.whyEnhance, "enhance"],
-    ["vol", d.crowdNoise, 775, "not-built", d.whyCrowdNoise, "crowdNoise"],
-    ["asp", d.aspect, 821, "not-built", d.whyAspect, "aspect"],
+    [d.stabilize, "live", d.whyStabilize, "stabilize"],
+    [d.autoCrop, "not-built", d.whyAutoCrop, "autoCrop"],
+    [d.enhance, "not-built", d.whyEnhance, "enhance"],
+    [d.crowdNoise, "not-built", d.whyCrowdNoise, "crowdNoise"],
+    [d.aspect, "not-built", d.whyAspect, "aspect"],
   ],
   overlays: [
-    ["ppl", d.playersTeams, 937, "always", d.whyPlayersTeams],
-    ["u_ball", d.ballTracking, 982, "always", d.whyBallTracking],
-    ["jer", d.jerseyNumbers, 1027, "always", d.whyJerseyNumbers],
-    ["pit", d.pitchLines, 1072, "not-built", d.whyPitchLines, "pitchLines"],
-    ["mk", d.eventMarkers, 1118, "not-built", d.whyEventMarkers, "eventMarkers"],
+    [d.playersTeams, "always", d.whyPlayersTeams],
+    [d.ballTracking, "always", d.whyBallTracking],
+    [d.jerseyNumbers, "always", d.whyJerseyNumbers],
+    [d.pitchLines, "not-built", d.whyPitchLines, "pitchLines"],
+    [d.eventMarkers, "not-built", d.whyEventMarkers, "eventMarkers"],
   ],
   ingest: [
-    ["cal", d.autoMatch, 1236, "not-built", d.whyAutoMatch, "autoMatch"],
-    ["meta", d.extractMetadata, 1282, "always", d.whyExtractMetadata],
-    ["hl", d.generateHighlights, 1328, "not-built", d.whyGenerateHighlights, "highlights"],
-    ["snd", d.sendToAnalysis, 1373, "live", d.whySendToAnalysis, "sendToAnalysis"],
+    [d.autoMatch, "not-built", d.whyAutoMatch, "autoMatch"],
+    [d.extractMetadata, "always", d.whyExtractMetadata],
+    [d.generateHighlights, "not-built", d.whyGenerateHighlights, "highlights"],
+    [d.sendToAnalysis, "live", d.whySendToAnalysis, "sendToAnalysis"],
   ],
 });
-/** the Filters tab is as tall as the other two columns: its switches are spread evenly over the added height (from the first group title to the last switch) */
-const FIRST = 593, LAST = 1373;
-const spread = (y: number) => y + (RIGHT_EXTRA * (y - FIRST)) / (LAST - FIRST);
-/** the tab names in this language (positions stay). */
-const tabsFor = (d: UploadDict): [string, number, number, number][] => [[d.tabFilters, 41, 24, 97], [d.tabOverlays, 151, 134, 110], [d.tabAiTools, 289, 272, 104]];
+/** the tab names in this language. */
+const tabsFor = (d: UploadDict): string[] => [d.tabFilters, d.tabOverlays, d.tabAiTools];
+
+/**
+ * One toggle row. `kind`: live (the engine carries it out), always (every analysis does it: locked on, a click says so), or
+ * not-built (a REQUEST the engine cannot perform yet: it switches freely, is saved with the upload, and shows
+ * "saved · not performed yet" while on, so it never claims a step that did not happen)
+ */
+function ToggleRow({ label, on, kind, why, onToggle, say }: {
+  label: string; on: boolean; kind: Kind; why: string; onToggle?: () => void; say: (t: string) => void;
+}) {
+  const { t: dict } = useLocale();
+  const d = dict.body.upload;
+  const shownOn = kind === "always" ? true : on;
+  const click = () => {
+    if (kind === "always" || !onToggle) return say(`${label}: ${why}`);
+    onToggle();
+    say(`${label} ${on ? d.toggleOff : d.toggleOn}: ${why}`);
+  };
+  return (
+    <div className="flex items-start justify-between gap-3 py-1.5">
+      <div className="min-w-0">
+        <span className="t-body block">{label}</span>
+        {kind === "not-built" && on && <span className="t-small block text-amber">{d.savedNotPerformed}</span>}
+        {kind === "always" && <span className="t-small block">{why}</span>}
+      </div>
+      <button type="button" role="switch" aria-checked={shownOn} aria-disabled={kind === "always" || undefined} title={why} aria-label={`${label}: ${why}`}
+        onClick={click} className="vie-sw" />
+    </div>
+  );
+}
 
 export function IngestConfigPanel() {
   const { t: dict } = useLocale();
@@ -64,49 +88,34 @@ export function IngestConfigPanel() {
     if (pref === "stabilize" && prefs.profile !== "RECOMMENDED") next.profile = next.stabilize ? (prefs.profile === "STANDARD" ? "HIGH_ACCURACY" : prefs.profile) : "STANDARD";
     setPrefs(next);
   };
-  const place = (y: number) => (tab === 0 ? spread(y) : y);       // only the Filters tab shows all three groups: the others sit at the top
-  const rows = (list: Row[], dy = 0) => list.map(([icon, label, y, kind, why, pref]) => (
-    <ToggleRow key={label} y={place(y + dy)} icon={icon} label={label} kind={kind} why={why} say={say} on={pref ? prefs[pref] : kind === "always"}
+  const rows = (list: Row[]) => list.map(([label, kind, why, pref]) => (
+    <ToggleRow key={label} label={label} kind={kind} why={why} say={say} on={pref ? prefs[pref] : kind === "always"}
       {...(pref ? { onToggle: () => toggle(pref) } : {})} />
   ));
-  // on the Overlays and AI Tools tabs their group moves up to the top of the panel
-  const groups: [string, string | null, number, Row[]][] = [[d.visualProcessing, null, 593, VISUAL], [d.aiOverlays, d.autoDetect, 891, OVERLAYS], [d.ingestOptions, null, 1188, INGEST]];
+  const groups: [string, string | null, Row[]][] = [[d.visualProcessing, null, VISUAL], [d.aiOverlays, d.autoDetect, OVERLAYS], [d.ingestOptions, null, INGEST]];
   const visible = tab === 0 ? groups : [groups[tab]!];
 
   return (
-    <>
-      <section aria-label={d.visualProcessing} data-section="p02-s03">
-        <P x={22} y={496} w={383} h={922 + RIGHT_EXTRA} />
-        <div role="tablist" aria-label={d.ingestOptions}>
-          {TABS.map(([l, x, ux, uw], i) => (
-            <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className="absolute"
-              style={{ left: u(ux), top: u(506 - 101), width: u(uw), height: u(49), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
-              <T o={[ux, 506]} x={x} y={528} size={22} weight={tab === i ? 600 : 400} color={tab === i ? "#33a8ff" : "#cfe0f5"} as="span">{l}</T>
-            </button>
+    <section aria-label={d.visualProcessing} data-section="p02-s03" className="vie-panel">
+      <div className="vie-ph">
+        <div role="tablist" aria-label={d.ingestOptions} className="flex gap-1">
+          {TABS.map((l, i) => (
+            <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
+              className={`rounded-ctl px-2.5 py-1 text-sm font-semibold ${tab === i ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>{l}</button>
           ))}
         </div>
-        <B x={TABS[tab]![2]} y={555} w={TABS[tab]![3]} h={3} style={{ background: "#1e90ff" }} />
-        <B x={24} y={560} w={380} h={1} style={{ background: "#12335f" }} />
-        {tab === 0 && (
-          <>
-            <T x={42} y={593} size={22} weight={600} as="h3">{d.visualProcessing}</T>
-            {rows(VISUAL)}
-          </>
-        )}
-      </section>
-      <section aria-label={d.ingestOptions} data-section="p02-s04">
-        {visible.filter(([t]) => t !== d.visualProcessing).map(([title, sub, y, list]) => {
-          const dy = tab === 0 ? 0 : 593 - y;
-          return (
-            <Fragment key={title}>
-              <T x={42} y={place(y + dy)} size={22} weight={600} as="h3">{title}</T>
-              {sub && <T x={163} y={place(y + dy)} size={22} color="#b9cbe2">{sub}</T>}
-              {rows(list, dy)}
-            </Fragment>
-          );
-        })}
-        {tab === 2 && <ProfileCard y={800} />}
-      </section>
-    </>
+      </div>
+      <div className="space-y-4 p-3" data-section="p02-s04">
+        {visible.map(([title, sub, list]) => (
+          <Fragment key={title}>
+            <div>
+              <h3 className="t-panel">{title}{sub && <span className="ml-2 font-normal text-muted">{sub}</span>}</h3>
+              <div className="mt-1">{rows(list)}</div>
+            </div>
+          </Fragment>
+        ))}
+        {tab === 2 && <ProfileCard />}
+      </div>
+    </section>
   );
 }

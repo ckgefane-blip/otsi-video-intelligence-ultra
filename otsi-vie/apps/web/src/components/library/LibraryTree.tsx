@@ -11,7 +11,6 @@
 import type { LibraryFolder, TrashEntry } from "@otsi-vie/contracts";
 import { memo, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import { u } from "@/components/stage/DesignStage";
 import { TABS, type Asset } from "./useLibrary";
 import { useLocale } from "@/lib/i18n";
 import { SmartBinsTree } from "./SmartBins";
@@ -29,18 +28,18 @@ export function treeCounts(all: Asset[]): { all: number; shared: number; folders
 }
 
 const row = (on: boolean): CSSProperties => ({
-  display: "flex", alignItems: "center", gap: u(10), width: "100%", minHeight: u(44), padding: `0 ${u(12)}`, borderRadius: u(8), border: 0, textAlign: "left",
-  background: on ? "#0a2b55" : "transparent", outline: on ? `${u(1.5)} solid #1e90ff` : "none", color: on ? "#fff" : "#d6e4f7", font: "inherit", fontSize: u(21), cursor: "pointer",
+  display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 40, padding: "0 12px", borderRadius: 8, border: 0, textAlign: "left",
+  background: on ? "#0a2b55" : "transparent", outline: on ? "1.5px solid #1e90ff" : "none", color: on ? "#fff" : "#d6e4f7", font: "inherit", fontSize: 13, cursor: "pointer",
 });
-const count = { marginLeft: "auto", color: "#8ea3bf", fontSize: u(18) };
-const head: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: `${u(14)} ${u(4)} ${u(4)}`, fontSize: u(16), fontWeight: 600,
+const count: CSSProperties = { marginLeft: "auto", color: "#8ea3bf", fontSize: 13 };
+const head: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: "14px 4px 4px", fontSize: 12, fontWeight: 600,
   letterSpacing: "0.06em", textTransform: "uppercase", color: "#8ea3bf" };
 
 function Item({ on, label, n, onClick, icon, data }: { on: boolean; label: string; n: number | null; onClick: () => void; icon: ReactNode; data: string }) {
   return (
     <li>
       <button type="button" aria-current={on ? "true" : undefined} onClick={onClick} style={row(on)} data-tree={data} title={label}>
-        <span aria-hidden style={{ width: u(22), textAlign: "center", flex: "none" }}>{icon}</span>
+        <span aria-hidden style={{ width: 22, textAlign: "center", flex: "none" }}>{icon}</span>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
         {n !== null && <span style={count}>{n}</span>}
       </button>
@@ -57,12 +56,12 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
   const { t: dict } = useLocale();
   const [trash, setTrash] = useState<number | null>(null);
   useEffect(() => { void api<TrashEntry[]>("/v1/library/trash").then((r) => setTrash(r.length), () => setTrash(null)); }, [version]);
-  if (all === undefined) return <p style={{ fontSize: u(20), color: "#8ea3bf", padding: u(8) }}>{dict.body.library.loadingLibrary}</p>;
-  if (all === null) return <p style={{ fontSize: u(20), color: "#ff9aa8", padding: u(8) }}>{dict.body.library.libraryLoadFailed}</p>;
+  if (all === undefined) return <p className="px-2 py-1 text-sm text-muted">{dict.body.library.loadingLibrary}</p>;
+  if (all === null) return <p className="px-2 py-1 text-sm text-danger">{dict.body.library.libraryLoadFailed}</p>;
   const c = treeCounts(all);
   const go = (t: number, f: string | null) => { setFolder(f); setTab(t); };
   return (
-    <nav aria-label={dict.body.library.treeNavAria} data-library-tree style={{ display: "flex", flexDirection: "column" }}>
+    <nav aria-label={dict.body.library.treeNavAria} data-library-tree className="flex flex-col">
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         <Item data="all" on={folder === null && tab === 0} label={dict.body.library.treeAll} n={c.all} icon="▦" onClick={() => go(0, null)} />
       </ul>
@@ -70,10 +69,10 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
         <span>{dict.body.library.treeFolders}</span>
         <button type="button" data-tree="new-folder" onClick={() => (canWrite ? newFolder() : say(dict.body.library.newFolderRoleSay))}
           aria-label={dict.body.library.newFolder} title={canWrite ? dict.body.library.treeMakeFolder : dict.body.library.treeRoleNoFolders}
-          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: u(18), cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>{dict.body.library.treeNew}</button>
+          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: 13, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>{dict.body.library.treeNew}</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {c.folders.length === 0 && <li style={{ fontSize: u(18), color: "#8ea3bf", padding: `${u(4)} ${u(12)}` }}>{dict.body.library.treeNoFolders}{canWrite ? dict.body.library.treeNoFoldersHint : ""}</li>}
+        {c.folders.length === 0 && <li className="px-3 py-1 text-sm text-muted">{dict.body.library.treeNoFolders}{canWrite ? dict.body.library.treeNoFoldersHint : ""}</li>}
         {c.folders.map((fo) => <Item key={fo.id} data={`folder-${fo.id}`} on={folder === fo.id} label={fo.name} n={fo.item_count} icon={<span style={{ color: "#f5b82e" }}>▰</span>} onClick={() => go(0, fo.id)} />)}
       </ul>
       <div style={head}><span>{dict.body.library.treePeople}</span></div>

@@ -10,9 +10,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
 import { api, ApiProblem } from "@/lib/api";
 
-const ctl = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 text-sm outline-none focus:border-primary";
-const base = "mt-4 flex items-center justify-center gap-2 rounded-ctl px-4 py-2.5 font-semibold text-white disabled:opacity-60";
-const btn = `${base} bg-primary`;
+const ctl = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 outline-none focus:border-primary";
+const base = "mt-4 vie-btn w-full";
+const btn = `${base} vie-btn-pri`;
 const msgOf = (t: { body: { settings: { unreachable: string } } }, x: unknown) => (x instanceof ApiProblem ? x.message : t.body.settings.unreachable);
 const acct = { organization: false } as const;
 
@@ -50,48 +50,47 @@ export function TwoStepSettings() {
   }); };
 
   const codesText = codes ? t.body.settings.twoStepCodesFile.replace("{a}", me?.user.email ?? t.body.settings.twoStepYourAccount).replace("{b}", codes.join("\n")) : "";
-  const panel = "rounded-card border border-line bg-panel p-5";
+  const panel = "rounded-ctl border border-line bg-raised p-4";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5" data-two-step-settings>
-      <header>
-        <h1 className="text-2xl font-bold">{t.body.settings.twoStepTitle}</h1>
-        <p className="mt-1 text-sm text-muted">{t.body.settings.twoStepSubtitle}</p>
-      </header>
-      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+    <section className="vie-panel min-w-0" data-two-step-settings>
+      <div className="vie-ph"><h1 className="t-section">{t.body.settings.twoStepTitle}</h1></div>
+      <div className="space-y-4 p-4">
+      <p className="t-body text-muted">{t.body.settings.twoStepSubtitle}</p>
+      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
 
       {codes && (
-        <section className={`${panel} border-primary/60`} data-recovery-codes>
-          <h2 className="flex items-center gap-2 text-lg font-semibold"><ShieldCheck className="h-5 w-5 text-ok" /> {t.body.settings.twoStepOnTitle}</h2>
-          <p className="mt-1 text-sm">{t.body.settings.twoStepCodesKeep}</p>
-          <ol className="mt-3 grid grid-cols-2 gap-2 font-mono text-sm">{codes.map((c) => <li key={c} className="rounded-ctl border border-line bg-canvas px-3 py-1.5">{c}</li>)}</ol>
+        <section className="rounded-ctl border border-primary/60 bg-primary/10 p-4" data-recovery-codes>
+          <h2 className="flex items-center gap-2 t-section"><ShieldCheck className="h-5 w-5 text-ok" /> {t.body.settings.twoStepOnTitle}</h2>
+          <p className="mt-1 t-body">{t.body.settings.twoStepCodesKeep}</p>
+          <ol className="mt-3 grid grid-cols-2 gap-2 t-tc">{codes.map((c) => <li key={c} className="rounded-ctl border border-line bg-canvas px-3 py-1.5">{c}</li>)}</ol>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => void navigator.clipboard.writeText(codesText).then(() => setCopied(true))} className="flex items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
+            <button type="button" onClick={() => void navigator.clipboard.writeText(codesText).then(() => setCopied(true))} className="vie-btn vie-btn-sm">
               {copied ? <Check className="h-4 w-4 text-ok" /> : <Copy className="h-4 w-4" />} {copied ? t.body.settings.twoStepCopied : t.body.settings.twoStepCopy}</button>
             <a download="otsi-vie-recovery-codes.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(codesText)}`}
-              className="flex items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60"><Download className="h-4 w-4" /> {t.body.settings.twoStepSaveFile}</a>
-            <button type="button" onClick={() => setCodes(null)} className="rounded-ctl bg-primary px-3 py-2 text-sm font-semibold text-white">{t.body.settings.twoStepSaved}</button>
+              className="vie-btn vie-btn-sm"><Download className="h-4 w-4" /> {t.body.settings.twoStepSaveFile}</a>
+            <button type="button" onClick={() => setCodes(null)} className="vie-btn vie-btn-sm vie-btn-pri">{t.body.settings.twoStepSaved}</button>
           </div>
         </section>
       )}
 
-      {!status ? <p className="text-sm text-muted" role="status">{t.body.settings.loading}</p> : !codes && (status.enabled ? (
+      {!status ? <p className="t-body text-muted" role="status">{t.body.settings.loading}</p> : !codes && (status.enabled ? (
         <section className={panel} data-two-step-on>
-          <h2 className="flex items-center gap-2 text-lg font-semibold"><ShieldCheck className="h-5 w-5 text-ok" /> {t.body.settings.twoStepOnState}</h2>
-          <p className="mt-1 text-sm text-muted">{t.body.settings.twoStepCodesLeft.replace("{a}", String(status.recovery_codes_left))}{status.recovery_codes_left <= 3 && " " + t.body.settings.twoStepCodesLow}</p>
+          <h2 className="flex items-center gap-2 t-section"><ShieldCheck className="h-5 w-5 text-ok" /> {t.body.settings.twoStepOnState}</h2>
+          <p className="mt-1 t-small">{t.body.settings.twoStepCodesLeft.replace("{a}", String(status.recovery_codes_left))}{status.recovery_codes_left <= 3 && " " + t.body.settings.twoStepCodesLow}</p>
           <form onSubmit={disable} className="mt-4 border-t border-line pt-4">
-            <h3 className="font-semibold">{t.body.settings.twoStepSwitchOff}</h3>
-            <label className="mt-2 block text-sm" htmlFor="pw-off">{t.body.settings.twoStepYourPassword}</label>
+            <h3 className="t-panel">{t.body.settings.twoStepSwitchOff}</h3>
+            <label className="mt-2 block t-label" htmlFor="pw-off">{t.body.settings.twoStepYourPassword}</label>
             <input id="pw-off" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={ctl} />
-            <label className="mt-3 block text-sm" htmlFor="code-off">{t.body.settings.twoStepCodeOrRecovery}</label>
+            <label className="mt-3 block t-label" htmlFor="code-off">{t.body.settings.twoStepCodeOrRecovery}</label>
             <input id="code-off" required inputMode="numeric" autoComplete="one-time-code" maxLength={9} value={code} onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))} className={`${ctl} font-mono`} />
-            <button type="submit" disabled={busy} className={`${base} bg-danger`}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />} {t.body.settings.twoStepSwitchOff}</button>
+            <button type="submit" disabled={busy} className="mt-4 t-button flex w-full items-center justify-center gap-2 rounded-ctl bg-danger px-4 py-2.5 text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />} {t.body.settings.twoStepSwitchOff}</button>
           </form>
         </section>
       ) : setup ? (
         <form onSubmit={confirm} className={panel} data-two-step-scan>
-          <h2 className="text-lg font-semibold">{t.body.settings.twoStepScan}</h2>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+          <h2 className="t-section">{t.body.settings.twoStepScan}</h2>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 t-body">
             <li>{t.body.settings.twoStepStep1}</li>
             <li>{t.body.settings.twoStepStep2}</li>
             <li>{t.body.settings.twoStepStep3}</li>
@@ -99,23 +98,24 @@ export function TwoStepSettings() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={setup.qr_data_url} alt={t.body.settings.twoStepQrAlt} width={240} height={240} className="mx-auto mt-4 rounded-ctl bg-white p-2" />
           <p className="mt-2 text-center text-xs text-muted">{t.body.settings.twoStepKeyLabel} <span className="select-all font-mono text-ink" data-two-step-key>{setup.secret}</span></p>
-          <label className="mt-4 block text-sm" htmlFor="code-on">{t.body.settings.twoStepCodeFromApp}</label>
+          <label className="mt-4 block t-label" htmlFor="code-on">{t.body.settings.twoStepCodeFromApp}</label>
           <input id="code-on" required inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className={`${ctl} text-center font-mono text-lg tracking-[0.3em]`} />
+            className={`${ctl} text-center t-tc tracking-[0.3em]`} />
           <div className="flex gap-3">
             <button type="submit" disabled={busy || code.length !== 6} className={btn}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} {t.body.settings.twoStepSwitchOn}</button>
-            <button type="button" onClick={() => { setSetup(null); setCode(""); }} className="mt-4 text-sm text-muted underline">{t.body.settings.twoStepCancel}</button>
+            <button type="button" onClick={() => { setSetup(null); setCode(""); }} className="mt-4 t-small underline">{t.body.settings.twoStepCancel}</button>
           </div>
         </form>
       ) : (
         <form onSubmit={start} className={panel} data-two-step-off>
-          <h2 className="text-lg font-semibold">{t.body.settings.twoStepOffTitle}</h2>
-          <p className="mt-1 text-sm text-muted">{t.body.settings.twoStepOffDesc}</p>
-          <label className="mt-3 block text-sm" htmlFor="pw-on">{t.body.settings.twoStepYourPassword}</label>
+          <h2 className="t-section">{t.body.settings.twoStepOffTitle}</h2>
+          <p className="mt-1 t-small">{t.body.settings.twoStepOffDesc}</p>
+          <label className="mt-3 block t-label" htmlFor="pw-on">{t.body.settings.twoStepYourPassword}</label>
           <input id="pw-on" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={ctl} />
           <button type="submit" disabled={busy} className={btn}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} {t.body.settings.twoStepSetup}</button>
         </form>
       ))}
-    </div>
+      </div>
+    </section>
   );
 }

@@ -35,7 +35,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
   if (!report) {
     return (
-      <div className="rounded-card border border-line bg-panel p-6 text-center text-muted">
+      <div className="vie-panel p-4 text-center text-muted">
         {t.body.admin.gatesLoading}
       </div>
     );
@@ -52,7 +52,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
   return (
     <div className="space-y-6">
       {/* Top Banner / Hero */}
-      <div className="rounded-card border border-line bg-panel p-6 shadow-sm">
+      <div className="vie-panel p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -63,22 +63,22 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
                 {t.body.admin.gatesLastEvaluated.replace("{a}", new Date(report.timestamp).toLocaleTimeString())}
               </span>
             </div>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
+            <h2 className="mt-2 t-page">
               {t.body.admin.gatesTitle}
             </h2>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 t-small">
               {t.body.admin.gatesSubtitle}
             </p>
           </div>
 
           <div className="flex flex-col items-end gap-1.5 min-w-[200px]">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-white">{passedCount}</span>
-              <span className="text-sm font-medium text-muted">{t.body.admin.gatesPassedCount.replace("{a}", String(totalCount))}</span>
+              <span className="t-metric">{passedCount}</span>
+              <span className="t-small">{t.body.admin.gatesPassedCount.replace("{a}", String(totalCount))}</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-line">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                className="h-full rounded-full bg-ok transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -88,10 +88,10 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
         {/* Accuracy Gate Alert Callout */}
         {!report.accuracy_measured && (
-          <div className="mt-5 flex items-start gap-3 rounded-ctl border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-300">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="mt-5 flex items-start gap-3 rounded-ctl border border-amber/20 bg-amber/10 p-4 text-xs text-amber">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber mt-0.5" />
             <div>
-              <span className="font-semibold text-amber-200">{t.body.admin.gatesInProgress}</span> {t.body.admin.gatesInProgressBody}
+              <span className="font-semibold text-amber">{t.body.admin.gatesInProgress}</span> {t.body.admin.gatesInProgressBody}
             </div>
           </div>
         )}
@@ -104,8 +104,8 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
           onClick={() => setSelectedCategory("ALL")}
           className={`rounded-ctl px-3 py-1.5 text-xs font-semibold transition ${
             selectedCategory === "ALL"
-              ? "bg-primary text-white"
-              : "border border-line bg-panel text-muted hover:text-white"
+              ? "bg-primary"
+              : "border border-line bg-panel text-muted hover:text-ink"
           }`}
         >
           {t.body.admin.gatesAll.replace("{a}", String(report.gates.length))}
@@ -120,8 +120,8 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
               onClick={() => setSelectedCategory(cat)}
               className={`flex items-center gap-1.5 rounded-ctl px-3 py-1.5 text-xs font-semibold transition ${
                 selectedCategory === cat
-                  ? "bg-primary text-white"
-                  : "border border-line bg-panel text-muted hover:text-white"
+                  ? "bg-primary"
+                  : "border border-line bg-panel text-muted hover:text-ink"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -142,30 +142,30 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
           return (
             <div
               key={gate.id}
-              className={`flex flex-col justify-between rounded-card border bg-panel p-5 transition-shadow hover:shadow-md ${
+              className={`flex flex-col justify-between vie-panel p-4 ${
                 isPassed
-                  ? "border-emerald-500/20 bg-emerald-500/[0.02]"
+                  ? "border-ok/20 bg-ok/[0.02]"
                   : isMeasuring
-                  ? "border-amber-500/20 bg-amber-500/[0.02]"
+                  ? "border-amber/20 bg-amber/[0.02]"
                   : "border-line"
               }`}
             >
               <div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-bold text-white bg-line/50 px-2 py-0.5 rounded">
+                    <span className="t-tc text-ink bg-line/50 px-2 py-0.5 rounded">
                       {gate.id}
                     </span>
-                    <h3 className="text-base font-semibold text-white">{gate.name}</h3>
+                    <h3 className="t-panel text-ink">{gate.name}</h3>
                   </div>
 
                   {isPassed ? (
-                    <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+                    <span className="flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2.5 py-0.5 text-xs font-semibold text-ok">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       {t.body.admin.gatePassed}
                     </span>
                   ) : isMeasuring ? (
-                    <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
+                    <span className="flex items-center gap-1 rounded-full border border-amber/30 bg-amber/10 px-2.5 py-0.5 text-xs font-semibold text-amber">
                       <Clock className="h-3.5 w-3.5" />
                       {t.body.admin.gateMeasuring}
                     </span>
@@ -176,31 +176,31 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
                   )}
                 </div>
 
-                <div className="mt-3 text-xs text-slate-300">
+                <div className="mt-3 text-xs text-ink2">
                   <p>{gate.what}</p>
                 </div>
 
                 <div className="mt-4 space-y-2 border-t border-line/60 pt-3 text-xs">
                   <div>
                     <span className="font-medium text-muted">{t.body.admin.gateEvidence}</span>
-                    <span className="text-slate-200">{gate.evidence_required}</span>
+                    <span className="text-ink2">{gate.evidence_required}</span>
                   </div>
                   <div>
                     <span className="font-medium text-muted">{t.body.admin.gateRule}</span>
-                    <span className="text-slate-200">{gate.release_rule}</span>
+                    <span className="text-ink2">{gate.release_rule}</span>
                   </div>
                   {gate.evidence_reference && (
                     <div>
                       <span className="font-medium text-muted">{t.body.admin.gateRef}</span>
-                      <span className="font-mono text-cyan-400">{gate.evidence_reference}</span>
+                      <span className="font-mono text-cyan">{gate.evidence_reference}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               {gate.notes && (
-                <div className="mt-4 rounded border border-line/40 bg-surface/50 p-2 text-2xs text-muted">
-                  <span className="font-semibold text-slate-400">{t.body.admin.gateNote}</span>
+                <div className="mt-4 rounded border border-line/40 bg-raised p-2 text-xs text-muted">
+                  <span className="font-semibold text-muted">{t.body.admin.gateNote}</span>
                   {gate.notes}
                 </div>
               )}

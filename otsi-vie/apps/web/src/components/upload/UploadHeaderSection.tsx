@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 02 Section 01 — upload page header and source-mode tabs (approved reference 02_UPLOAD_INGEST, "centre": title, help, tabs).
+ * Page 02 Section 01 — upload page header and source-mode tabs, on the Desktop UI flow layout.
  *
  * The three tabs are the real source modes, kept in the address (?mode=file|url|batch) so Home's buttons open the right one: Upload File
  * (one file, resumable), YouTube / URL (import a link: the link field below is focused) and Batch Upload (several files at once).
@@ -11,14 +11,7 @@ import { IMPORT_PROVIDERS } from "@otsi-vie/contracts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { SOURCE_MODES, sourceMode, type SourceMode } from "@/components/page/SourceModeTabs";
-import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
-import { IN } from "./page02";
-
-/** tab x origin, width, icon x, icon key, label x */
-const TAB: Record<SourceMode, [number, number, number, string, number]> = {
-  file: [438, 485, 619, "cloud", 658], url: [923, 484, 1078, "yt", 1119], batch: [1407, 484, 1573, "layers", 1610],
-};
 
 export function useSourceMode(): [SourceMode, (m: SourceMode) => void] {
   const params = useSearchParams();
@@ -42,30 +35,21 @@ export function UploadHeaderSection() {
   const [mode, setMode] = useSourceMode();
   const [help, setHelp] = useState(false);
   return (
-    <section aria-label={d.uploadHeaderAria} data-section="p02-s01" data-mode={mode}>
-      <B x={442} y={128} w={50} h={50} style={{ border: `${u(2)} solid #33a8ff`, borderRadius: u(10) }} />
-      <Ic x={468} y={153} k="hl" size={30} color="#33a8ff" />
-      <T x={513} y={150} size={46} weight={700} as="h1">{d.uploadIngest}</T>
-      <T x={513} y={198} size={24} color="#cfe0f5">{d.uploadSubtitle}</T>
-      <button type="button" onClick={() => setHelp(true)} className={`${s.a} ${s.framed}`}
-        style={{ left: u(1691), top: u(135 - 101), width: u(200), height: u(65), padding: 0, border: 0, color: "inherit", font: "inherit", cursor: "pointer", ...IN }}>
-        <Ic o={[1691, 135]} x={1730} y={168} k="help" size={34} color="#cfe0f5" />
-        <T o={[1691, 135]} x={1760} y={168} size={22} color="#e3eefb" as="span">{d.needHelp}</T>
-      </button>
-
-      <B x={438} y={238} w={1453} h={73} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
-      <B x={TAB[mode][0]} y={238} w={TAB[mode][1]} h={73} style={{ background: "linear-gradient(#0a2b55,#083a70)", borderBottom: `${u(4)} solid #1e90ff`,
-        borderRadius: mode === "file" ? `${u(10)} 0 0 0` : mode === "batch" ? `0 ${u(10)} 0 0` : 0 }} />
-      <B x={1409} y={255} w={1.5} h={40} style={{ background: "#12335f" }} />
-      <div role="tablist" aria-label={d.source}>
+    <section aria-label={d.uploadHeaderAria} data-section="p02-s01" data-mode={mode} className="vie-panel">
+      <div className="vie-ph flex-wrap gap-2 py-2">
+        <div className="min-w-0">
+          <h1 className="t-page">{d.uploadIngest}</h1>
+          <p className="t-small">{d.uploadSubtitle}</p>
+        </div>
+        <button type="button" onClick={() => setHelp(true)} className="vie-btn vie-btn-sm">{d.needHelp}</button>
+      </div>
+      <div role="tablist" aria-label={d.source} className="flex gap-1 px-3 py-2">
         {SOURCE_MODES.map(({ mode: m }) => {
-          const [x, w, ix, icon, tx] = TAB[m], on = mode === m;
+          const on = mode === m;
           return (
-            <button key={m} type="button" role="tab" aria-selected={on} onClick={() => setMode(m)} className="absolute"
-              style={{ left: u(x), top: u(238 - 101), width: u(w), height: u(73), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
-              <Ic o={[x, 238]} x={ix} y={m === "file" ? 274 : 275} k={icon} size={m === "file" ? 44 : 40} color={on ? "#33a8ff" : m === "batch" ? "#cfe0f5" : "#33a8ff"}
-                {...(m === "file" && on ? { fill: "#33a8ff" } : {})} />
-              <T o={[x, 238]} x={tx} y={275} size={on ? 27 : 26} weight={on ? 600 : 400} color={on ? "#33a8ff" : "#e3eefb"} as="span">{LABEL[m]}</T>
+            <button key={m} type="button" role="tab" aria-selected={on} onClick={() => setMode(m)}
+              className={`rounded-ctl px-3 py-1.5 text-sm font-semibold ${on ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>
+              {LABEL[m]}
             </button>
           );
         })}

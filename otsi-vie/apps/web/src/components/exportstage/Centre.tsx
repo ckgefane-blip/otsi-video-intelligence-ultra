@@ -1,30 +1,27 @@
 "use client";
 /**
  * Page 10 Sections 02-05 — workflow, Project Summary, reel preview with transport, Highlight Chapters
- * (approved reference 10_EXPORT_DELIVERY, left and centre).
+ * (approved reference 10_EXPORT_DELIVERY, left and centre), laid out in the page's flow on the Desktop UI components.
  *
- * The preview plays the chosen reel's finished render; without one it keeps the reference's empty scene with the truthful state.
- * Chapters are the reel's clips (a clip is a chapter): choosing one seeks the render to where that clip begins. Of the three metric
- * overlays, Key Passes is the reel player's count from the engine's events (GET /v1/players/:id/measures, owner 2026-11-02); progressive
- * passes and chance creation are not measured ("—"). Workflow step 3 starts the render with the settings on the right. The gear opens the
- * player's settings: loop and picture in picture (a viewing choice, nothing is saved).
+ * The preview plays the chosen reel's finished render through the shared VideoPlayer; without one it shows the honest empty
+ * state with the truthful state (reel name, render state, what to do next). Chapters are the reel's clips (a clip is a chapter):
+ * choosing one seeks the render to where that clip begins (the player restarts at that second). Of the three metric overlays,
+ * Key Passes is the reel player's count from the engine's events (GET /v1/players/:id/measures, owner 2026-11-02); progressive
+ * passes and chance creation are not measured ("—"). Workflow step 3 starts the render with the settings on the right.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import { actionClips, clipOutputUs, gapUs, slotUs, type PlayerEvents, type PlayerMeasures } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
-import { Sel } from "@/components/tactics/kit";
-import { Switch } from "@/components/reelstage/shared";
-import { Hit } from "@/components/workspace/shared";
-import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
+import { Captions, Check, ChevronLeft, ChevronRight, Film } from "lucide-react";
 import { api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { sec, useExport } from "./state";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { notBuilt } from "@/lib/devMode";
 
-const WF: [string, string, number][] = [["Edit & Finalize", "Review highlights and settings", 318], ["Export Settings", "Choose format, branding and output", 400],
-  ["Render & Process", "Generate high-quality video", 484], ["Deliver & Share", "Send to clients and collaborators", 569]];
+const WF: [string, string][] = [["Edit & Finalize", "Review highlights and settings"], ["Export Settings", "Choose format, branding and output"],
+  ["Render & Process", "Generate high-quality video"], ["Deliver & Share", "Send to clients and collaborators"]];
 
 /** the render state as a word in the current language (API states are codes, never shown raw) */
 const renderWord = (state: string | null | undefined, d: Dictionary["body"]["reels"]) =>
@@ -40,6 +37,7 @@ export function Workflow() {
   const done = [!!e.reel && e.reel.clips.length > 0, !!r, r?.state === "SUCCEEDED", delivered];
   const cur = !e.reel ? 0 : r?.state === "SUCCEEDED" ? 3 : r && ["QUEUED", "RUNNING"].includes(r.state) ? 2 : e.reel.clips.length ? 1 : 0;
   const canRender = !!e.reel && e.canEdit && !e.busy && e.reel.clips.length > 0 && !e.reel.stale && !(r && ["QUEUED", "RUNNING"].includes(r.state));
+  const [note, setNote] = useState<string | null>(null);
   const act = [() => e.reel && (window.location.href = `/reels/${e.reel.id}`), () => e.jump(0), canRender ? () => e.render() : undefined,
     ready && e.canEdit ? () => e.outbox.setDialog(true) : undefined] as const;
   const why = [dict.body.exportstage.wfWhyOpenReel, "", !e.reel ? dict.body.exportstage.wfWhyOpenReel : e.reel.clips.length === 0 ? dict.body.exportstage.wfWhyNoClips : e.reel.stale ? dict.body.exportstage.wfWhyStale : r && ["QUEUED", "RUNNING"].includes(r.state) ? dict.body.exportstage.wfWhyRunning : dict.body.exportstage.wfWhyNoEdit,
@@ -51,27 +49,33 @@ export function Workflow() {
     [dict.body.exportstage.wfDeliver, dict.body.exportstage.wfDeliverSub],
   ];
   return (
-    <section aria-label={dict.body.exportstage.workflowAria} data-section="p10-s02">
-      <P x={30} y={120} w={396} h={507} />
-      <T x={52} y={158} size={34} weight={700} as="h1">{dict.body.exportstage.workflowTitle}</T>
-      <T x={52} y={202} size={21} color="#cfe0f5">{dict.body.exportstage.workflowSub1}</T>
-      <T x={52} y={230} size={21} color="#cfe0f5">{dict.body.exportstage.workflowSub2}</T>
-      <B x={52} y={273} w={348} h={1} style={{ background: "#12335f" }} />
-      <B x={39} y={282 + cur * 85} w={379} h={75} style={{ background: "linear-gradient(90deg,#0b2b57,#08213f)", border: `${u(1.5)} solid #1e5fa8`, borderRadius: u(8) }} />
-      <ol aria-label={dict.body.exportstage.exportStepsAria} style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        {WF.map(([t, s, y], i) => {
+    <section aria-label={dict.body.exportstage.workflowAria} data-section="p10-s02" className="vie-panel p-3">
+      <h1 className="text-base font-semibold">{dict.body.exportstage.workflowTitle}</h1>
+      <p className="mt-1 text-sm text-muted">{dict.body.exportstage.workflowSub1}</p>
+      <p className="text-sm text-muted">{dict.body.exportstage.workflowSub2}</p>
+      <ol aria-label={dict.body.exportstage.exportStepsAria} className="mt-3 flex flex-col gap-1">
+        {WF.map(([t, s], i) => {
           const [wt, ws] = wfWords[i] ?? [t, s];
+          const on = act[i];
           return (
-          <li key={t} data-step={t} data-done={done[i] ? "1" : "0"} aria-current={cur === i ? "step" : undefined}>
-            <B x={51} y={y - 28} w={56} h={56} style={{ borderRadius: "50%", background: cur === i ? "#0a84ff" : "#122339", border: cur === i ? "none" : `${u(1.5)} solid #1b3350`, fontSize: u(26), fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>{done[i] ? "" : i + 1}</B>
-            {done[i] && <Ic x={79} y={y} k="chk" size={30} color="#3ee6a8" />}
-            <T x={128} y={y - 13} size={22} weight={600}>{wt}</T>
-            <T x={128} y={y + 14} size={18} color="#9fb3cc">{ws}</T>
-            <Hit x={39} y={y - 38} w={379} h={76} label={`${wt}: ${ws}`} {...(act[i] ? { onClick: act[i]! } : { reason: why[i]! })} />
-          </li>
+            <li key={t} data-step={t} data-done={done[i] ? "1" : "0"} aria-current={cur === i ? "step" : undefined}>
+              <button type="button" aria-label={`${wt}: ${ws}`} aria-pressed={cur === i}
+                onClick={on ?? (() => setNote(why[i]!))}
+                title={on ? undefined : why[i]}
+                className={`flex w-full items-center gap-3 rounded-md border px-2.5 py-2 text-left ${cur === i ? "border-primary bg-raised" : "border-line bg-transparent hover:bg-raised"}`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${done[i] ? "bg-ok text-white" : cur === i ? "bg-primary text-white" : "border border-line bg-raised text-ink"}`} aria-hidden>
+                  {done[i] ? <Check className="h-4 w-4" /> : i + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{wt}</span>
+                  <span className="block truncate text-xs text-muted">{ws}</span>
+                </span>
+              </button>
+            </li>
           );
         })}
       </ol>
+      {note && <p role="status" className="mt-2 text-xs text-muted">{note}</p>}
     </section>
   );
 }
@@ -110,25 +114,33 @@ export function Summary() {
   const { t: dict } = useLocale();
   const e = useExport();
   const [open, setOpen] = useState(false);
-  const rows: [string, string, number, string][] = [["ball", dict.body.exportstage.summaryRowSource, 865, e.match?.title ?? "—"], ["ball", dict.body.exportstage.summaryRowCompetition, 900, e.match?.competition ?? "—"],
-    ["calendar", dict.body.exportstage.summaryRowDate, 936, e.match?.date ?? "—"], ["clock", dict.body.exportstage.summaryRowDuration, 974, e.reel ? sec(e.reel.duration_us) : "—"]];
+  const rows: [string, string][] = [[dict.body.exportstage.summaryRowSource, e.match?.title ?? "—"], [dict.body.exportstage.summaryRowCompetition, e.match?.competition ?? "—"],
+    [dict.body.exportstage.summaryRowDate, e.match?.date ?? "—"], [dict.body.exportstage.summaryRowDuration, e.reel ? sec(e.reel.duration_us) : "—"]];
   return (
-    <section aria-label={dict.body.exportstage.summaryAria} data-section="p10-s03" data-reel={e.reel?.id ?? ""}>
-      <P x={30} y={644} w={396} h={651} />
-      <T x={49} y={673} size={23} weight={600} as="h2">{dict.body.exports.projectSummary}</T>
-      <B x={48} y={706} w={365} h={127} style={{ background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(8) }} />
-      <B x={49} y={707} w={138} h={121} style={{ background: "radial-gradient(circle at 50% 38%,#e8b898 0,#c98c6a 13%,transparent 14%),linear-gradient(135deg,#1b4d8f,#0b2a52)", borderRadius: u(6) }} />
-      <T x={204} y={735} size={24} weight={600} style={{ maxWidth: u(200), overflow: "hidden", textOverflow: "ellipsis" }}>{e.reel?.name ?? dict.body.exportstage.summaryNoProject}</T>
-      <T x={204} y={764} size={22} color="#e3eefb">{e.reel ? (e.reel.player?.display_name ?? dict.body.exportstage.summaryNoPlayer) : dict.body.exports.openReelToExport}</T>
-      <Hit x={48} y={706} w={365} h={127} label={dict.body.exports.openReelToExport} onClick={() => setOpen(true)} />
-      {rows.map(([icon, l, y, v]) => (
-        <div key={l}>
-          <Ic x={60} y={y} k={icon} size={24} color="#8ea3bf" />
-          <T x={88} y={y} size={18} color="#9fb3cc">{l}</T>
-          <T x={232} y={y} size={19} color="#e3eefb" style={{ maxWidth: u(180), overflow: "hidden", textOverflow: "ellipsis" }}>{v}</T>
+    <section aria-label={dict.body.exportstage.summaryAria} data-section="p10-s03" data-reel={e.reel?.id ?? ""} className="vie-panel p-3">
+      <h2 className="t-panel">{dict.body.exports.projectSummary}</h2>
+      <button type="button" aria-label={dict.body.exports.openReelToExport} onClick={() => setOpen(true)}
+        className="mt-2 flex w-full items-center gap-3 rounded-md border border-line bg-raised p-2.5 text-left hover:border-primary/60">
+        <span className="grid h-16 w-[104px] shrink-0 place-items-center rounded border border-line bg-p0 text-muted" aria-hidden>
+          <Film className="h-6 w-6" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold">{e.reel?.name ?? dict.body.exportstage.summaryNoProject}</span>
+          <span className="block truncate text-sm">{e.reel ? (e.reel.player?.display_name ?? dict.body.exportstage.summaryNoPlayer) : dict.body.exports.openReelToExport}</span>
+        </span>
+      </button>
+      <dl className="mt-2 flex flex-col">
+        {rows.map(([l, v]) => (
+          <div key={l} className="flex items-baseline gap-2 border-b border-line/40 py-1 text-sm last:border-0">
+            <dt className="w-28 shrink-0 text-muted">{l}</dt>
+            <dd className="m-0 min-w-0 flex-1 truncate">{v}</dd>
+          </div>
+        ))}
+        <div className="flex items-baseline gap-2 py-1 text-sm">
+          <dt className="w-28 shrink-0 text-muted">{dict.body.exportstage.tagsLabel}</dt>
+          <dd className="m-0">—</dd>
         </div>
-      ))}
-      <Ic x={60} y={1017} k="tag" size={24} color="#8ea3bf" /><T x={88} y={1017} size={18} color="#9fb3cc">{dict.body.exportstage.tagsLabel}</T><T x={147} y={1017} size={16} color="#e3eefb">—</T>
+      </dl>
       <Picker open={open} onOpenChange={setOpen} />
     </section>
   );
@@ -142,84 +154,39 @@ export function Preview() {
   useEffect(() => { setMeasures(null); if (playerId) void api<PlayerMeasures>(`/v1/players/${playerId}/measures`).then(setMeasures, () => setMeasures(null)); }, [playerId]);
   const keyPasses = measures?.events ? String(measures.events.key_passes) : null;
   const metricWords = [dict.body.exportstage.metricKeyPasses, dict.body.exportstage.metricProgPasses, dict.body.exportstage.metricChance];
-  const ref = useRef<HTMLVideoElement | null>(null);
-  const fs = usePlayerFullscreen();                                    // ADR-079: the shared full screen
-  const [t, setT] = useState(0), [dur, setDur] = useState(0), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [speed, setSpeed] = useState("1");
-  const [loop, setLoop] = useState(false), [menu, setMenu] = useState(false);
   const r = e.reel?.latest_render ?? null;
   const url = e.links?.url ?? null;
-  useEffect(() => { const v = ref.current; if (v) { v.playbackRate = Number(speed); v.muted = muted; v.loop = loop; } }, [speed, muted, loop, url]);
-  const pip = () => { const v = ref.current; setMenu(false); if (!v) return; void (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture?.())?.catch?.(() => undefined); };
-  const p = dur ? Math.min(1, t / dur) : 0;
   const res = (r?.result ?? null) as { width?: number; height?: number } | null;
   const line1 = e.reel ? e.reel.name : dict.body.exportstage.previewEmptyLine1;
   const line2 = !e.reel ? dict.body.exportstage.previewLineNotRendered : !r ? dict.body.exportstage.previewLineNotRendered : r.state === "SUCCEEDED" ? dict.body.exportstage.previewLineRendered : r.state === "FAILED" ? dict.body.exportstage.previewLineFailed : r.state === "QUEUED" ? dict.body.exportstage.previewLineWaiting : r.progress != null ? dict.body.exportstage.previewLineRendering.replace("{a}", String(Math.round(r.progress))) : dict.body.exportstage.previewLineRenderingNoPct;
   const line3 = !e.reel ? dict.body.exportstage.previewLineOpenReel : r?.state === "SUCCEEDED" ? "" : dict.body.exportstage.previewLineUseRender;
-  const toggle = () => { const v = ref.current; if (v) { if (v.paused) void v.play(); else v.pause(); } };
-  // the chapter seek is stable so the memoised chapters box does not re-render on every video timeupdate
-  const seek = useCallback((us: number) => { const v = ref.current; if (v) v.currentTime = us / 1e6; }, []);
+  // a chapter seek restarts the shared player at that second (the player exposes no seek handle)
+  const [seekAt, setSeekAt] = useState<number | null>(null);
+  const [seekNonce, setSeekNonce] = useState(0);
+  const seek = useCallback((us: number) => { setSeekAt(us / 1e6); setSeekNonce((n) => n + 1); }, []);
   return (
-    <section aria-label={dict.body.exportstage.previewAria2} data-section="p10-s04" data-preview={url ? "render" : "none"}>
-      <P x={444} y={120} w={1365} h={845} />
-      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={dict.body.exportstage.playerAria2} className="absolute" style={frameStyle(fs.on, { left: u(464), top: u(141 - 101), width: u(1327), height: u(575), overflow: "hidden", borderRadius: u(10),
-        background: url ? "#000" : "radial-gradient(ellipse at 60% 25%,#5fb8ff 0,#1d4a8a 32%,transparent 64%),linear-gradient(180deg,#0a1a38,#04101f 60%,#0a2a30)" })}>
-        {url ? (
-          <video ref={ref} key={url} src={url} preload="metadata" playsInline aria-label={dict.body.reels.previewRenderedAria} onTimeUpdate={() => setT((ref.current?.currentTime ?? 0) * 1e6)}
-            onLoadedMetadata={() => setDur((ref.current?.duration ?? 0) * 1e6)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
-        ) : (
-          <>
-            <B o={[464, 141]} x={1000} y={250} w={480} h={470} style={{ background: "radial-gradient(ellipse at 50% 25%,#4a9ee0,#2a6fb8 40%,transparent 70%)" }} />
-            <B o={[464, 141]} x={1290} y={640} w={90} h={70} style={{ borderRadius: "50%", background: "radial-gradient(circle at 35% 30%,#dde7f5,#335)" }} />
-            <T o={[464, 141]} x={534} y={441} size={62} weight={700} ls={-1} style={{ maxWidth: u(900), overflow: "hidden", textOverflow: "ellipsis" }}>{line1}</T>
-            <T o={[464, 141]} x={534} y={496} size={44} weight={700} color="#1e9bff">{line2}</T>
-            <T o={[464, 141]} x={536} y={540} size={24} weight={600} ls={3}>{line3}</T>
-            <T o={[464, 141]} x={536} y={570} size={24} weight={600} ls={3}>—</T>
-          </>
-        )}
-        {!fs.on && <><B o={[464, 141]} x={1676} y={170} w={84} h={62} style={{ background: "#0a0a05", border: `${u(3)} solid #f5b82e`, borderRadius: u(6) }} />
-        <T o={[464, 141]} x={1718} y={191} size={res?.height ? 24 : 30} weight={700} color="#f5b82e" align="center">{res?.height ? `${res.height}p` : "—"}</T>
-        <T o={[464, 141]} x={1718} y={217} size={12} weight={700} color="#f5b82e" align="center">{res?.width ? `${res.width}×${res.height}` : dict.body.exportstage.previewLineNotRendered}</T></>}
-        {!fs.on && [["Key Passes", "run", 397], ["Progressive Passes", "srch", 472], ["Chance Creation", "trf", 547]].map(([l, icon, y], i) => (
-          <div key={l as string} title={l === "Key Passes" && keyPasses !== null ? dict.body.exportstage.metricKeyPassesTitle : dict.body.exportstage.metricNotMeasuredTitle}>
-            <B o={[464, 141]} x={1498} y={y as number} w={278} h={62} style={{ background: "rgba(5,16,36,.75)", border: `${u(1.5)} solid #17406f`, borderRadius: u(6) }} />
-            <Ic o={[464, 141]} x={1526} y={(y as number) + 31} k={icon as string} size={34} color="#33a8ff" />
-            <T o={[464, 141]} x={1566} y={(y as number) + 31} size={34} weight={700}>{l === "Key Passes" ? keyPasses ?? "—" : "—"}</T>
-            <T o={[464, 141]} x={1611} y={(y as number) + 31} size={19} color="#e3eefb">{metricWords[i] ?? (l as string)}</T>
-          </div>
+    <section aria-label={dict.body.exportstage.previewAria2} data-section="p10-s04" data-preview={url ? "render" : "none"} className="vie-panel flex min-w-0 flex-col gap-3 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="t-panel">{line1}</h2>
+        {res?.height ? <span className="rounded border border-amber/60 px-1.5 py-0.5 text-xs font-semibold text-amber">{res.height}p{res.width ? ` · ${res.width}×${res.height}` : ""}</span> : null}
+      </div>
+      <p className="text-sm text-muted">{[line2, line3].filter(Boolean).join(" ")}</p>
+      <VideoPlayer key={`${seekAt ?? "main"}-${seekNonce}`} src={url} label={dict.body.reels.previewRenderedAria}
+        autoPlay={seekAt !== null} startAt={seekAt ?? undefined}
+        empty={{ title: line1, body: [line2, line3].filter(Boolean).join(" ") }} />
+      <div className="flex flex-wrap items-center gap-2" aria-label={dict.body.exportstage.playerAria2}>
+        {[keyPasses ?? "—", "—", "—"].map((v, i) => (
+          <span key={metricWords[i]} title={i === 0 && keyPasses !== null ? dict.body.exportstage.metricKeyPassesTitle : dict.body.exportstage.metricNotMeasuredTitle}
+            className="rounded-md border border-line bg-raised px-2.5 py-1.5 text-sm">
+            <span className="mr-2 t-metric">{v}</span>
+            <span className="text-muted">{metricWords[i]}</span>
+          </span>
         ))}
-        {!playing && !fs.on && <B o={[464, 141]} x={1054} y={380} w={112} h={112} style={{ borderRadius: "50%", background: "rgba(5,16,36,.6)", border: `${u(2)} solid rgba(255,255,255,.5)` }} />}
-        {!playing && !fs.on && <B o={[464, 141]} x={1098} y={412} w={40} h={50} style={{ background: "#fff", clipPath: "polygon(0 0,100% 50%,0 100%)", opacity: url ? 1 : 0.6 }} />}
-        {fs.on && <FullscreenBar playing={playing} onPlay={toggle} now={t} total={dur} onSeek={(f) => { const v = ref.current; if (v && dur) v.currentTime = f * dur / 1e6; }}
-          muted={muted} onMute={() => setMuted((m) => !m)} onExit={fs.exit} />}
-      </dialog>
-      <Hit x={1054} y={380} w={112} h={112} label={dict.body.exportstage.playReel} {...(url ? { onClick: toggle } : { reason: dict.body.exportstage.noRenderedYet })} style={{ zIndex: 2 }} />
-      <B x={481} y={652} w={1292} h={3} style={{ background: "#3a4a62" }} />
-      <Hit x={487} y={665} w={44} h={40} label={playing ? dict.body.reelstage.pauseBtn : dict.body.reelstage.playBtn} {...(url ? { onClick: toggle } : { reason: dict.body.exportstage.noRenderedYet })} />
-      {playing ? (<><B x={500} y={672} w={7} h={26} style={{ background: "#fff" }} /><B x={513} y={672} w={7} h={26} style={{ background: "#fff" }} /></>) : <Ic x={509} y={685} k="play" size={30} fill="#fff" />}
-      <Hit x={546} y={665} w={44} h={40} label={muted ? dict.body.reelstage.unmuteBtn : dict.body.reelstage.muteBtn} {...(url ? { onClick: () => setMuted((m) => !m) } : { reason: dict.body.exportstage.noRenderedYet })} />
-      <Ic x={568} y={685} k={muted ? "mute" : "vol"} size={30} />
-      <B x={595} y={672} w={1} h={26} style={{ background: "#4a5a78" }} />
-      <T x={622} y={686} size={20}>{`${sec(t)} / ${sec(dur)}`}</T>
-      <div role="slider" aria-label={dict.body.processing.position} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={url ? 0 : -1}
-        onClick={(ev) => { const v = ref.current; if (!v || !dur) return; const b = ev.currentTarget.getBoundingClientRect(); v.currentTime = Math.max(0, Math.min(1, (ev.clientX - b.left) / b.width)) * (dur / 1e6); }}
-        className="absolute" style={{ left: u(750), top: u(672 - 101), width: u(740), height: u(26), cursor: url ? "pointer" : "default" }} />
-      <B x={750} y={683} w={740} h={5} style={{ background: "#3a4a62", borderRadius: u(3), pointerEvents: "none" }}><i style={{ display: "block", height: "100%", width: `${p * 100}%`, background: "#1e90ff", borderRadius: u(3) }} /></B>
-      {url && <B x={750 + p * 740 - 8} y={678} w={16} h={16} style={{ borderRadius: "50%", background: "#cfe8ff", pointerEvents: "none" }} />}
-      <Sel x={1527} y={668} w={69} h={35} label={dict.body.processing.playbackSpeed} value={speed} options={[["0.5", "0.5x"], ["1", "1x"], ["1.5", "1.5x"], ["2", "2x"]]} onChange={setSpeed} pad={10}
-        style={{ background: "rgba(5,16,36,.75)", fontSize: u(18) }} />
-      <Hit x={1613} y={665} w={44} h={40} label={dict.body.exportstage.captions} reason={notBuilt("the reel has no captions")} /><Ic x={1635} y={685} k="cap" size={26} color="#8ea3bf" />
-      <Hit x={1669} y={665} w={44} h={40} label={dict.body.exportstage.playerSettings} pressed={menu} {...(url ? { onClick: () => setMenu((m) => !m) } : { reason: dict.body.exportstage.noRenderedYet })} /><Ic x={1691} y={685} k="gear" size={28} color={url ? "#fff" : "#8ea3bf"} />
-      {menu && url && (
-        <div role="menu" aria-label={dict.body.exportstage.playerSettings} data-player-settings className="absolute" style={{ left: u(1560), top: u(560 - 101), width: u(230), zIndex: 5, padding: u(6), borderRadius: u(8),
-          background: "#071a33", border: `${u(1.5)} solid #1e90ff`, display: "flex", flexDirection: "column", gap: u(4), fontSize: u(18) }}>
-          <button type="button" role="menuitemcheckbox" aria-checked={loop} onClick={() => { setLoop((l) => !l); setMenu(false); }}
-            style={{ textAlign: "left", padding: `${u(6)} ${u(10)}`, border: 0, borderRadius: u(6), background: "transparent", color: "#e3eefb", cursor: "pointer", font: "inherit" }}>{loop ? "✓ " : ""}{dict.body.exportstage.loopReel}</button>
-          <button type="button" role="menuitem" onClick={pip}
-            style={{ textAlign: "left", padding: `${u(6)} ${u(10)}`, border: 0, borderRadius: u(6), background: "transparent", color: "#e3eefb", cursor: "pointer", font: "inherit" }}>{dict.body.exportstage.pip}</button>
-        </div>
-      )}
-      <Hit x={1726} y={665} w={44} h={40} label={dict.body.processing.fullScreen} {...(url ? { onClick: fs.toggle } : { reason: dict.body.exportstage.noRenderedYet })} /><Ic x={1748} y={685} k="full" size={26} />
+        <span className="flex-1" />
+        <button type="button" disabled title={notBuilt("the reel has no captions")} className="vie-btn vie-btn-sm disabled:opacity-60">
+          <Captions className="h-4 w-4" aria-hidden />{dict.body.exportstage.captions}
+        </button>
+      </div>
       <ChaptersBox seek={seek} canSeek={!!url} />
     </section>
   );
@@ -237,6 +204,7 @@ const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: numb
   const pid = e.reel?.player?.player_id ?? null;
   const [events, setEvents] = useState<PlayerEvents | null>(null);
   const [hide, setHide] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     setEvents(null);
     if (!pid) return;
@@ -250,37 +218,51 @@ const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: numb
   const shown = useMemo(() => all.map((c, i) => ({ c, i, at: allOffs[i]! })).filter((x) => !(hide && acts) || acts.has(x.c.id)), [all, allOffs, acts, hide]);
   const clips = useMemo(() => shown.map((x) => x.c), [shown]), offs = useMemo(() => shown.map((x) => x.at), [shown]);
   const hidden = all.length - clips.length;
+  const hideWhy = !pid ? dict.body.exportstage.hideNoActionNoPlayer : !events ? dict.body.exportstage.hideNoActionReading : dict.body.exportstage.hideNoActionNoEvents;
   return (
-    <>
-      <B x={463} y={733} w={1329} h={212} style={{ background: "rgba(5,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
-      <B x={470} y={747} w={3} h={30} style={{ background: "#1e90ff" }} />
-      <T x={487} y={758} size={23} weight={600} as="h2">{hidden ? dict.body.exportstage.chaptersTitleOf.replace("{a}", String(clips.length)).replace("{b}", String(all.length)) : dict.body.exportstage.chaptersTitle.replace("{a}", String(clips.length))}</T>
-      <T x={726} y={761} size={16} color="#cfe0f5">{dict.body.exportstage.autoChapters}</T>
-      <Switch x={837} y={761} on={e.autoChapters} />
-      <Hit x={832} y={745} w={62} h={32} label={dict.body.exportstage.autoChapters} pressed={e.autoChapters} onClick={() => e.setAutoChapters(!e.autoChapters)} />
-      <T x={925} y={761} size={16} color={acts ? "#cfe0f5" : "#6f86a3"}>{dict.body.exportstage.hideNoAction}</T>
-      <Switch x={1043} y={761} on={hide && !!acts} />
-      <Hit x={920} y={745} w={180} h={32} label={dict.body.exportstage.hideNoActionHit} pressed={hide && !!acts}
-        {...(acts ? { onClick: () => setHide(!hide) } : { reason: !pid ? dict.body.exportstage.hideNoActionNoPlayer : !events ? dict.body.exportstage.hideNoActionReading : dict.body.exportstage.hideNoActionNoEvents })} />
-      <B x={1613} y={741} w={161} h={38} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), opacity: e.reel ? 1 : 0.7 }} />
-      <Ic x={1640} y={760} k="edit" size={22} /><T x={1665} y={760} size={17}>{dict.body.exportstage.editChapters}</T>
-      <Hit x={1613} y={741} w={161} h={38} label={dict.body.exportstage.editChaptersHit} {...(e.reel ? { onClick: () => { window.location.href = `/reels/${e.reel!.id}`; } } : { reason: dict.body.reelstage.openReelFirst })} />
-      <B x={453} y={828} w={36} h={56} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8) }} /><Ic x={471} y={856} k="back" size={20} />
-      <B x={1767} y={828} w={36} h={56} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8) }} /><Ic x={1785} y={856} k="fwd" size={20} />
-      <Hit x={453} y={828} w={36} h={56} label={dict.body.exportstage.prevChapters} {...(clips.length > 4 ? { onClick: () => row.current?.scrollBy({ left: -600, behavior: "smooth" }) } : { reason: dict.body.exportstage.noMoreChapters })} />
-      <Hit x={1767} y={828} w={36} h={56} label={dict.body.exportstage.nextChapters} {...(clips.length > 4 ? { onClick: () => row.current?.scrollBy({ left: 600, behavior: "smooth" }) } : { reason: dict.body.exportstage.noMoreChapters })} />
-      {clips.length === 0 && <T x={1128} y={860} size={19} color="#8ea3bf" align="center">{hidden ? dict.body.exportstage.chaptersEmptyHidden : e.reel && !e.autoChapters ? dict.body.exportstage.chaptersEmptyOff : e.reel ? dict.body.exportstage.chaptersEmptyNoClips : dict.body.exportstage.chaptersEmptyNoReel}</T>}
-      <div ref={row} role="list" aria-label={dict.body.exportstage.chaptersAria} className="absolute" style={{ left: u(500), top: u(792 - 101), width: u(1255), height: u(140), overflowX: "auto", overflowY: "hidden", display: "flex", gap: u(14) }}>
-        {clips.map((c, i) => (
-          <button key={c.id} role="listitem" type="button" data-chapter={shown[i]!.i + 1} data-action={acts ? (acts.has(c.id) ? "1" : "0") : "unknown"} disabled={!canSeek} title={canSeek ? dict.body.exportstage.chapterSeek : dict.body.exportstage.chapterSeekNoRender} onClick={() => seek(offs[i]!)}
-            style={{ flex: "0 0 auto", width: u(236), height: u(135), position: "relative", border: `${u(1.5)} solid #12335f`, borderRadius: u(8), background: "#06182f", color: "#fff", textAlign: "left", cursor: canSeek ? "pointer" : "default" }}>
-            <span style={{ position: "absolute", inset: `${u(3)} ${u(3)} auto ${u(3)}`, height: u(86), borderRadius: u(6), background: "radial-gradient(ellipse at 50% 30%,#2a6fb8,#0b2a52 70%)" }} />
-            <span style={{ position: "absolute", left: u(10), top: u(10), width: u(32), height: u(32), borderRadius: u(6), background: "#1e90ff", fontWeight: 700, fontSize: u(18), display: "flex", alignItems: "center", justifyContent: "center" }}>{shown[i]!.i + 1}</span>
-            <span style={{ position: "absolute", right: u(10), top: u(64), padding: `0 ${u(8)}`, background: "rgba(0,10,25,.8)", borderRadius: u(5), fontSize: u(16) }}>{dict.body.reelstage.durS.replace("{a}", String(Math.round(clipOutputUs(c) / 1e6)))}</span>
-            <span style={{ position: "absolute", left: u(10), top: u(98), right: u(10), fontSize: u(17), fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label ?? `${dict.body.reelstage.clipListFallback} ${shown[i]!.i + 1}`}</span>
-          </button>
-        ))}
+    <div className="rounded-md border border-line bg-raised/40 p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-sm font-semibold">{hidden ? dict.body.exportstage.chaptersTitleOf.replace("{a}", String(clips.length)).replace("{b}", String(all.length)) : dict.body.exportstage.chaptersTitle.replace("{a}", String(clips.length))}</h2>
+        <label className="flex items-center gap-2 text-xs text-muted">
+          {dict.body.exportstage.autoChapters}
+          <button type="button" role="switch" aria-checked={e.autoChapters} aria-label={dict.body.exportstage.autoChapters} className="vie-sw"
+            onClick={() => e.setAutoChapters(!e.autoChapters)} />
+        </label>
+        <label className="flex items-center gap-2 text-xs text-muted">
+          {dict.body.exportstage.hideNoAction}
+          <button type="button" role="switch" aria-checked={hide && !!acts} aria-label={dict.body.exportstage.hideNoActionHit} title={acts ? undefined : hideWhy} className="vie-sw"
+            onClick={() => (acts ? setHide(!hide) : setNote(hideWhy))} />
+        </label>
+        <span className="flex-1" />
+        <button type="button" aria-label={dict.body.exportstage.editChaptersHit}
+          title={e.reel ? undefined : dict.body.reelstage.openReelFirst}
+          onClick={() => (e.reel ? (window.location.href = `/reels/${e.reel!.id}`) : setNote(dict.body.reelstage.openReelFirst))}
+          className="vie-btn vie-btn-sm">{dict.body.exportstage.editChapters}</button>
       </div>
-    </>
+      {note && <p role="status" className="mt-1.5 text-xs text-muted">{note}</p>}
+      <div className="mt-2 flex items-center gap-2">
+        <button type="button" aria-label={dict.body.exportstage.prevChapters} disabled={clips.length <= 4} title={clips.length > 4 ? undefined : dict.body.exportstage.noMoreChapters}
+          onClick={() => row.current?.scrollBy({ left: -600, behavior: "smooth" })} className="vie-ib shrink-0 disabled:opacity-40">
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+        </button>
+        <div ref={row} role="list" aria-label={dict.body.exportstage.chaptersAria} className="flex min-w-0 flex-1 gap-3 overflow-x-auto py-0.5">
+          {clips.length === 0 && <p className="py-4 text-sm text-muted">{hidden ? dict.body.exportstage.chaptersEmptyHidden : e.reel && !e.autoChapters ? dict.body.exportstage.chaptersEmptyOff : e.reel ? dict.body.exportstage.chaptersEmptyNoClips : dict.body.exportstage.chaptersEmptyNoReel}</p>}
+          {clips.map((c, i) => (
+            <button key={c.id} role="listitem" type="button" data-chapter={shown[i]!.i + 1} data-action={acts ? (acts.has(c.id) ? "1" : "0") : "unknown"} disabled={!canSeek} title={canSeek ? dict.body.exportstage.chapterSeek : dict.body.exportstage.chapterSeekNoRender} onClick={() => seek(offs[i]!)}
+              className="w-[200px] shrink-0 rounded-md border border-line bg-panel p-2 text-left hover:border-primary/60 disabled:opacity-60">
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-white">{shown[i]!.i + 1}</span>
+                <span className="ml-auto rounded-sm bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">{dict.body.reelstage.durS.replace("{a}", String(Math.round(clipOutputUs(c) / 1e6)))}</span>
+              </span>
+              <span className="mt-2 block truncate text-sm font-semibold">{c.label ?? `${dict.body.reelstage.clipListFallback} ${shown[i]!.i + 1}`}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" aria-label={dict.body.exportstage.nextChapters} disabled={clips.length <= 4} title={clips.length > 4 ? undefined : dict.body.exportstage.noMoreChapters}
+          onClick={() => row.current?.scrollBy({ left: 600, behavior: "smooth" })} className="vie-ib shrink-0 disabled:opacity-40">
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
+    </div>
   );
 });

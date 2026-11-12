@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 03 Sections 06 and 07 — Processing Log and System Resources (approved reference 03_AI_PROCESSING).
+ * Page 03 Sections 06 and 07 — Processing Log and System Resources, on the Desktop UI flow layout.
  *
  * The log is the run history as recorded: when each run was queued, started and finished, each engine step's state, the worker's own
  * stage message while it works and the failure it reported. "Live" only while a run is active; Auto-scroll keeps the newest line in
@@ -12,7 +12,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { PROFILES, type AnalysisRun, type Job, type SystemResources } from "@otsi-vie/contracts";
 import { useEffect, useRef, useState } from "react";
-import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { DATE_TAG, isActive, type ProcessingDict } from "./model";
@@ -100,7 +99,7 @@ export function visibleLines(all: Line[], runs: AnalysisRun[], step: string | nu
   return all.filter((l) => l.ts >= from && (!want || l.step === want) && (!errorsOnly || l.tone === "bad"));
 }
 
-const COLOR = { ok: "#3ee6a8", bad: "#ff8a8a", live: "#4db3ff" } as const;
+const COLOR = { ok: "text-ok", bad: "text-danger", live: "text-cyan" } as const;
 
 export function LogPanel({ runs, jobs, step, onStep }: { runs: AnalysisRun[] | null; jobs: Job[] | null; step: string | null; onStep: (s: string | null) => void }) {
   const { t: dict, locale } = useLocale();
@@ -119,44 +118,43 @@ export function LogPanel({ runs, jobs, step, onStep }: { runs: AnalysisRun[] | n
     RUN: d.logStepAnalysisRun, OTHER: d.logStepOtherJobs } as Record<string, string>)[k] ?? k;
   const items = runs ? visibleLines(every, runs, step, errorsOnly, allRuns) : [];
   const hiddenOld = runs ? visibleLines(every, runs, step, errorsOnly, true).length - items.length : 0;
-  const chip = (on: boolean) => ({ height: u(28), padding: `0 ${u(10)}`, border: `${u(1.5)} solid ${on ? "#1580ff" : "#1e3f66"}`, borderRadius: u(14),
-    background: on ? "#1580ff" : "#0a1f3a", color: on ? "#fff" : "#cfe3ff", fontSize: u(15), cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const });
+  const chip = (on: boolean) => `rounded-full border px-2.5 py-1 text-xs ${on ? "border-primary bg-primary text-white" : "border-line bg-raised text-ink2 hover:border-line2"}`;
   useEffect(() => { if (auto && list.current) list.current.scrollTop = list.current.scrollHeight; }, [auto, items.length, runs]);
 
   return (
-    <>
-      <section aria-label={d.processingLog} data-section="p03-s08" data-live={live ? "yes" : "no"}>
-        <B x={2006} y={293} w={524} h={628} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
-        <T x={2027} y={331} size={25} weight={700} as="h2">{d.processingLog}</T>
-        <B x={2214} y={326} w={10} h={10} style={{ borderRadius: "50%", background: live ? "#3ee6a8" : "#8ea3bf", boxShadow: live ? `0 0 ${u(8)} #3ee6a8` : undefined }} />
-        <T x={2232} y={331} size={19} color={live ? "#3ee6a8" : "#8ea3bf"}>{live ? d.live : d.runIdle}</T>
-        <T x={2345} y={331} size={19} color="#cfdcf0" as="span">{d.autoScroll}</T>
-        <button type="button" role="switch" aria-checked={auto} aria-label={d.autoScroll} onClick={() => setAuto((a) => !a)} className="absolute"
-          style={{ left: u(2454), top: u(315 - 101), width: u(55), height: u(30), borderRadius: u(15), background: auto ? "#1580ff" : "#1a2a44", border: 0, padding: 0, cursor: "pointer" }}>
-          <i style={{ position: "absolute", top: u(4), left: auto ? undefined : u(4), right: auto ? u(4) : undefined, width: u(22), height: u(22), borderRadius: "50%", background: "#fff" }} />
-        </button>
-        <div className="absolute" style={{ left: u(2020), top: u(358 - 101), width: u(496), display: "flex", gap: u(6), alignItems: "center" }} data-log-filters>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <section aria-label={d.processingLog} data-section="p03-s08" data-live={live ? "yes" : "no"} className="vie-panel">
+        <div className="vie-ph flex-wrap gap-2 py-2">
+          <h2 className="t-panel">{d.processingLog}</h2>
+          <span className="flex items-center gap-1.5 text-xs">
+            <span className={`h-2.5 w-2.5 rounded-full ${live ? "bg-ok" : "bg-muted"}`} aria-hidden />
+            <span className={live ? "text-ok" : "text-muted"}>{live ? d.live : d.runIdle}</span>
+          </span>
+          <span className="ml-auto flex items-center gap-2 text-xs text-muted">{d.autoScroll}
+            <button type="button" role="switch" aria-checked={auto} aria-label={d.autoScroll} onClick={() => setAuto((a) => !a)} className="vie-sw" />
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3" data-log-filters>
           <select aria-label={d.stepHeader} value={step ?? ""} onChange={(e) => onStep(e.target.value || null)} data-log-step
-            style={{ ...chip(!!step), width: u(150), padding: `0 ${u(6)}` }}>
+            className="h-8 rounded-full border border-line bg-canvas px-2 text-xs">
             <option value="">{d.everyStep}</option>
             {LOG_STEPS.map((k) => <option key={k} value={k}>{stepLabel(k)}</option>)}
           </select>
-          <button type="button" aria-pressed={errorsOnly} onClick={() => setErrorsOnly((x) => !x)} style={chip(errorsOnly)} data-log-errors>{d.errors}</button>
-          <button type="button" aria-pressed={allRuns} onClick={() => setAllRuns((x) => !x)} style={chip(allRuns)} data-log-all-runs
+          <button type="button" aria-pressed={errorsOnly} onClick={() => setErrorsOnly((x) => !x)} className={chip(errorsOnly)} data-log-errors>{d.errors}</button>
+          <button type="button" aria-pressed={allRuns} onClick={() => setAllRuns((x) => !x)} className={chip(allRuns)} data-log-all-runs
             title={allRuns ? d.showingEveryRun : d.olderFolded}>{allRuns ? d.allRuns : hiddenOld ? fill(d.newestRunMore, { n: hiddenOld }) : d.newestRun}</button>
-          <button type="button" disabled={!items.length} style={chip(copied)} data-log-copy onClick={() => {
+          <button type="button" disabled={!items.length} className={chip(copied)} data-log-copy onClick={() => {
             const text = items.map((l) => `${l.at || "        "}  ${l.text}`).join("\n");
             void navigator.clipboard?.writeText(text).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); }, () => undefined);
           }}>{copied ? d.copied : d.copy}</button>
         </div>
         {items.length === 0 ? (
-          <T x={2030} y={408} size={19.5} color="#cfdcf0">{every.length ? d.noLineMatch : d.noActivity}</T>
+          <p className="p-3 text-sm text-muted">{every.length ? d.noLineMatch : d.noActivity}</p>
         ) : (
-          <ol ref={list} aria-label={d.processingLog} className="absolute" style={{ left: u(2020), top: u(390 - 101), width: u(496), height: u(516), margin: 0, padding: 0,
-            listStyle: "none", overflowY: "auto", fontSize: u(17), lineHeight: 1.45, color: "#cfdcf0" }}>
+          <ol ref={list} aria-label={d.processingLog} className="m-3 mt-2 max-h-[420px] overflow-y-auto text-sm leading-relaxed">
             {items.map((l, i) => (
-              <li key={i} style={{ display: "flex", gap: u(10), padding: `${u(2)} ${u(10)}`, color: l.tone ? COLOR[l.tone] : undefined }}>
-                <span style={{ color: "#6b7a92", fontVariantNumeric: "tabular-nums", minWidth: u(70) }}>{l.at}</span><span>{l.text}</span>
+              <li key={i} className={`flex gap-2.5 px-1 py-0.5 ${l.tone ? COLOR[l.tone] : "text-ink2"}`}>
+                <span className="shrink-0 tabular-nums text-muted">{l.at}</span><span>{l.text}</span>
               </li>
             ))}
           </ol>
@@ -164,7 +162,7 @@ export function LogPanel({ runs, jobs, step, onStep }: { runs: AnalysisRun[] | n
       </section>
 
       <Resources />
-    </>
+    </div>
   );
 }
 
@@ -186,30 +184,35 @@ function Resources() {
   }, []);
   const on = !!r?.connected;
   const memP = on && r!.memory_used_bytes !== null && r!.memory_total_bytes ? (r!.memory_used_bytes / r!.memory_total_bytes) * 100 : null;
-  const rings: [number, string, string, number | null, string, string][] = [
-    [2100, "#1a8cff", "GPU", on ? r!.gpu_percent : null, on && r!.gpu_percent !== null ? `${Math.round(r!.gpu_percent)}%` : "—",
+  const meters: [string, number | null, string, string][] = [
+    ["GPU", on ? r!.gpu_percent : null, on && r!.gpu_percent !== null ? `${Math.round(r!.gpu_percent)}%` : "—",
       on ? (r!.gpu_name ? r!.gpu_name.replace(/\(R\)|\(TM\)/g, "").replace(/\s+/g, " ").trim() : d.notReported) : d.notConnected],
-    [2268, "#1a8cff", "CPU", on ? r!.cpu_percent : null, on && r!.cpu_percent !== null ? `${Math.round(r!.cpu_percent)}%` : "—",
+    ["CPU", on ? r!.cpu_percent : null, on && r!.cpu_percent !== null ? `${Math.round(r!.cpu_percent)}%` : "—",
       on ? (r!.cpu_count ? fill(d.threads, { n: r!.cpu_count }) : d.measured) : d.notConnected],
-    [2438, "#19e6c0", d.resourceMemory, memP, memP !== null ? `${Math.round(memP)}%` : "—",
+    [d.resourceMemory, memP, memP !== null ? `${Math.round(memP)}%` : "—",
       on && r!.memory_used_bytes !== null && r!.memory_total_bytes ? fill(d.memoryOf, { used: gb(r!.memory_used_bytes), total: gb(r!.memory_total_bytes) }) : d.notConnected],
   ];
   return (
-    <section aria-label={d.systemResources} data-section="p03-s09" data-connected={on ? "yes" : "no"}>
-      <B x={2006} y={943} w={524} h={314} style={{ border: `${u(1.5)} solid #12335f`, borderRadius: u(10), background: "linear-gradient(180deg,#081a35,#06122a)" }} />
-      <T x={2027} y={979} size={25} weight={700} as="h2">{d.systemResources}</T>
-      <button type="button" disabled={!on} onClick={() => setOpen(true)} title={on ? d.detailsOfMeasurement : d.noWorkerReporting} className="absolute"
-        style={{ left: u(2383), top: u(980 - 101 - 10.5), padding: 0, border: 0, background: "transparent", fontSize: u(19), lineHeight: 1.1, color: "#2d9bff", fontWeight: 600,
-          whiteSpace: "nowrap", cursor: on ? "pointer" : "not-allowed", fontFamily: "inherit" }}>{d.viewDetails}</button>
-      {rings.map(([cx, c, label, p, big, foot]) => (
-        <div key={label} role="group" aria-label={`${label}: ${big === "—" ? (on ? d.notMeasuredLower : d.notConnected) : big}, ${foot}`}>
-          <B x={cx - 62} y={1015} w={124} h={124} style={{ borderRadius: "50%", background: `conic-gradient(${c} ${p ?? 0}%,#14233c 0)` }} />
-          <B x={cx - 52} y={1025} w={104} h={104} style={{ borderRadius: "50%", background: "#071a33" }} />
-          <T x={cx} y={1071} size={26} weight={700} align="center">{big}</T>
-          <T x={cx} y={1103} size={19} color="#8ea3bf" align="center">{label}</T>
-          <T x={cx} y={1163} size={foot.length > 16 ? 15 : 19} color="#cfdcf0" align="center" style={{ maxWidth: u(160), overflow: "hidden", textOverflow: "ellipsis" }}>{foot}</T>
-        </div>
-      ))}
+    <section aria-label={d.systemResources} data-section="p03-s09" data-connected={on ? "yes" : "no"} className="vie-panel">
+      <div className="vie-ph">
+        <h2 className="t-panel">{d.systemResources}</h2>
+        <button type="button" disabled={!on} onClick={() => setOpen(true)} title={on ? d.detailsOfMeasurement : d.noWorkerReporting}
+          className="text-sm font-semibold text-primary disabled:opacity-50">{d.viewDetails}</button>
+      </div>
+      <ul className="space-y-3 p-3">
+        {meters.map(([label, p, big, foot]) => (
+          <li key={label} role="group" aria-label={`${label}: ${big === "—" ? (on ? d.notMeasuredLower : d.notConnected) : big}, ${foot}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-semibold">{label}</span>
+              <span className="t-metric">{big}</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded bg-line/60">
+              <i className="block h-full rounded bg-primary" style={{ width: `${p ?? 0}%` }} />
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted" title={foot}>{foot}</p>
+          </li>
+        ))}
+      </ul>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />

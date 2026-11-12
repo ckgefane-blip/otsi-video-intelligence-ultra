@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiProblem, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
-const ctl = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 text-sm outline-none focus:border-primary";
+const ctl = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 outline-none focus:border-primary";
 const msgOf = (x: unknown) => (x instanceof ApiProblem ? x.message : "Could not reach OTSI VIE. Try again.");
 
 function fmtDate(iso: string | null): string | null {
@@ -74,26 +74,25 @@ export function PasskeySettings() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5" data-passkey-settings>
-      <header>
-        <h1 className="text-2xl font-bold">{w.passkeysTitle}</h1>
-        <p className="mt-1 text-sm text-muted">{w.passkeysIntro}</p>
-      </header>
-      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 text-sm text-ok">{notice}</p>}
-      {supported === false && <p className="text-sm text-muted">{w.passkeyUnavailable}</p>}
+    <section className="vie-panel min-w-0" data-passkey-settings>
+      <div className="vie-ph"><h1 className="t-section">{w.passkeysTitle}</h1></div>
+      <div className="space-y-4 p-4">
+      <p className="t-body text-muted">{w.passkeysIntro}</p>
+      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
+      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
+      {supported === false && <p className="t-body text-muted">{w.passkeyUnavailable}</p>}
 
-      {!list ? <p className="text-sm text-muted" role="status">Loading...</p> : (
-        <section className="rounded-card border border-line bg-panel p-5">
+      {!list ? <p className="t-body text-muted" role="status">Loading...</p> : (
+        <section className="rounded-ctl border border-line bg-raised p-4">
           {list.length === 0 ? (
-            <p className="text-sm text-muted">{w.passkeyNone}</p>
+            <p className="t-body text-muted">{w.passkeyNone}</p>
           ) : (
             <ul className="divide-y divide-line">
               {list.map((c) => (
                 <li key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <Fingerprint className="h-5 w-5 shrink-0 text-muted" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{c.device_name ?? w.passkeyUnnamed}</p>
+                    <p className="truncate t-panel">{c.device_name ?? w.passkeyUnnamed}</p>
                     <p className="text-xs text-muted">
                       {w.passkeyAddedOn.replace("{a}", fmtDate(c.created_at) ?? c.created_at)}
                       {" · "}
@@ -101,7 +100,7 @@ export function PasskeySettings() {
                     </p>
                   </div>
                   <button type="button" onClick={() => void remove(c.id)} disabled={removing === c.id}
-                    className="flex shrink-0 items-center gap-1 rounded-ctl border border-line px-3 py-1.5 text-sm hover:border-danger/60 disabled:opacity-60">
+                    className="vie-btn vie-btn-sm shrink-0 hover:border-danger/60">
                     {removing === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} {w.passkeyRemove}
                   </button>
                 </li>
@@ -112,16 +111,17 @@ export function PasskeySettings() {
       )}
 
       {supported !== false && (
-        <form onSubmit={add} className="rounded-card border border-line bg-panel p-5">
-          <h2 className="text-lg font-semibold">{w.addPasskey}</h2>
-          <label className="mt-3 block text-sm" htmlFor="passkey-name">{w.deviceName}</label>
+        <form onSubmit={add} className="rounded-ctl border border-line bg-raised p-4">
+          <h2 className="t-section">{w.addPasskey}</h2>
+          <label className="mt-3 block t-label" htmlFor="passkey-name">{w.deviceName}</label>
           <input id="passkey-name" value={deviceName} onChange={(e) => setDeviceName(e.target.value)} maxLength={80}
             placeholder={w.deviceNamePlaceholder} className={ctl} />
-          <button type="submit" disabled={busy} className="mt-4 flex items-center justify-center gap-2 rounded-ctl bg-primary px-4 py-2.5 font-semibold text-white disabled:opacity-60">
+          <button type="submit" disabled={busy} className="mt-4 vie-btn vie-btn-pri">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {busy ? w.passkeyWaiting : w.addPasskey}
           </button>
         </form>
       )}
-    </div>
+      </div>
+    </section>
   );
 }

@@ -14,21 +14,25 @@
  * E5 (ADR-068): the reel's colour look is drawn on the video with an SVG filter (the same formula the render bakes into its LUT); a clip's
  * keyframed zoom moves the picture in on the player and its drawings draw on over it; with a draw tool chosen, dragging on the picture
  * draws an arrow, line or circle that starts at the playhead. Keys: Space, ← / →, Shift + ← / →, Home / End, A / L / R, Escape.
+ *
+ * The compositor keeps its own <video> element (not the shared VideoPlayer): the tick loop drives play/pause/seek and playbackRate,
+ * volume carries the clip gain, requestVideoFrameCallback times the live spotlight, drawImage feeds the snapshot and the reference-frame
+ * grab, a zoom wrapper div moves the picture, the SVG look filter applies to the element, ScopesPanel reads its frames, and the draw
+ * surface sits over it. Forcing the shared player in would silently drop those controls.
  */
 import { DRAW_RGB, drawingAt, effectActive, gainFactor, isNeutral, lookChannels, outAt, srcAt, zoomAt, zoomWindow, type DrawKind, type Drawing, type Playback, type ReelPath, type Video } from "@otsi-vie/contracts";
+import { BarChart3, Camera, Expand, Maximize, Minimize, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { B, Ic, P, T, stageStyles, u } from "@/components/stage/DesignStage";
 import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
 import { ScopesPanel } from "./Scopes";
 import { api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { IN, tc, type Ui } from "./kit";
+import { tc, type Ui } from "./kit";
 import { jkl } from "@/lib/keymap";
 import { typing } from "./shortcuts";
 import { locate, markedRange, type Studio } from "./useStudio";
 import { CROP_LOOKAHEAD_US, SpotlightPreview, boxAt, fitRect, renderedState, smoothPath, strengthAt, visibleRuns } from "./spotlight";
 
-const F = { x: 680, y: 207, w: 1268, h: 533 };
 const quality = (h: number | null | undefined) => (!h ? "—" : h >= 2160 ? "4K" : h >= 1440 ? "QHD" : h >= 1080 ? "HD" : "SD");
 /** one drawing at progress p (0..1 drawn) and opacity alpha, in display pixels: a line or arrow grows from its start, a circle goes round */
 export function drawInk(g: CanvasRenderingContext2D, d: Pick<Drawing, "kind" | "x1" | "y1" | "x2" | "y2" | "color">, p: number, alpha: number,
@@ -53,8 +57,6 @@ export function drawInk(g: CanvasRenderingContext2D, d: Pick<Drawing, "kind" | "
 }
 const TOOL_KEYS: Record<string, DrawKind> = { a: "ARROW", d: "LINE", r: "CIRCLE" };     // A.9 (ADR-071): line moved from L to D; L is play
 const toolName = (k: DrawKind, d: Dictionary) => (k === "ARROW" ? d.body.studio.arrowTool : k === "LINE" ? d.body.studio.lineTool : d.body.studio.circleTool);
-
-const icon = (x: number) => ({ position: "absolute" as const, left: u(x - 22), top: u(783 - 101 - 22), width: u(44), height: u(44), padding: 0, border: 0, background: "transparent", cursor: "pointer" });
 
 export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
   const { t: dict } = useLocale();
@@ -396,18 +398,15 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
     : path.points.length === 0 ? (reel.targets.length ? dict.body.studio.noSpotlightFound : dict.body.studio.noSpotlightPlayer)
     : dict.body.studio.liveSpotlight;
   const markNote = m ? (mk ? dict.body.studio.markedSeconds.replace("{a}", ((mk.out_pts_us - mk.in_pts_us) / 1e6).toFixed(1)) : dict.body.studio.ioMark) : null;
+  const chipCls = "rounded-full border px-3 py-1 text-xs font-semibold";
 
   return (
-    <section aria-label={dict.body.studio.videoPreviewCompositor} data-section="p07-s03" data-playing={playing ? "yes" : "no"}>
-      <P x={678} y={205} w={1272} h={620} />
-      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={dict.body.studio.reelPreviewPlayer} className="absolute" style={frameStyle(fs.on, { left: u(F.x), top: u(F.y - 101), width: u(F.w), height: u(F.h), overflow: "hidden",
-        background: url && !message ? "#000" : "radial-gradient(ellipse at 60% 0,#5fb8ff 0,#1d4a8a 20%,transparent 50%),linear-gradient(180deg,#0a1a38,#04101f 60%,#0a2a30)" })}>
-        {(!url || message) && (
-          <>
-            <B o={[F.x, F.y]} x={1100} y={260} w={500} h={480} style={{ background: "radial-gradient(ellipse at 50% 45%,#4a9ee0 0,#2a6fb8 35%,transparent 70%)" }} />
-            <B o={[F.x, F.y]} x={1290} y={640} w={90} h={90} style={{ background: "radial-gradient(circle,#dde7f5 0,#335 70%)", borderRadius: "50%" }} />
-          </>
-        )}
+    <section aria-label={dict.body.studio.videoPreviewCompositor} data-section="p07-s03" data-playing={playing ? "yes" : "no"}
+      className="vie-panel flex min-h-0 flex-col gap-2 p-3">
+      <div className="relative">
+      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={dict.body.studio.reelPreviewPlayer}
+        className="relative aspect-video w-full overflow-hidden rounded-md"
+        style={frameStyle(fs.on, { background: url && !message ? "#000" : "#0a1a38" })}>
         {ch && (
           <svg aria-hidden width="0" height="0" style={{ position: "absolute" }}>
             <filter id="otsi-look" colorInterpolationFilters="sRGB">
@@ -426,8 +425,8 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: cover ? "cover" : "contain", visibility: message ? "hidden" : "visible",
               filter: lookOn ? "url(#otsi-look)" : undefined }} />}
           {url && !message && under?.gap && (
-            <div data-gap-black="" aria-label={dict.body.studio.gapBeforeClip} style={{ position: "absolute", inset: 0, zIndex: 4, background: "#000", pointerEvents: "none", display: "flex",
-              alignItems: "flex-end", justifyContent: "center", paddingBottom: u(16), color: "#5f7491", fontSize: u(16) }}>{dict.body.studio.gapSeconds.replace("{a}", (under.p.gap / 1e6).toFixed(1))}</div>
+            <div data-gap-black="" aria-label={dict.body.studio.gapBeforeClip} className="t-body absolute inset-0 z-[4] flex items-end justify-center bg-black pb-4 text-muted"
+              style={{ pointerEvents: "none" }}>{dict.body.studio.gapSeconds.replace("{a}", (under.p.gap / 1e6).toFixed(1))}</div>
           )}
           {url && <canvas ref={glow} aria-hidden data-spotlight-light
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", mixBlendMode: "plus-lighter", visibility: message ? "hidden" : "visible" }} />}
@@ -438,70 +437,65 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
         </div>
         {drawing && <div data-draw-surface={st.drawTool} aria-label={dict.body.studio.drawOnPicture.replace("{a}", toolName(st.drawTool!, dict))} onPointerDown={drawDown} onPointerMove={drawMove}
           onPointerUp={drawUp} onPointerCancel={() => { pending.current = null; }} style={{ position: "absolute", inset: 0, cursor: "crosshair", touchAction: "none", zIndex: 2 }} />}
-        {message && <T o={[F.x, F.y]} x={1314} y={470} size={26} color="#dbe8f8" align="center">{message}</T>}
+        {message && <p className="t-panel absolute inset-0 z-10 grid place-items-center px-4 text-center text-[#dbe8f8]">{message}</p>}
         {(note || markNote || (rendered && !message)) && (
-          <div data-preview-note style={{ position: "absolute", left: u(14), top: u(12), display: "flex", gap: u(8), pointerEvents: "none" }}>
-            {note && <span title={dict.body.studio.previewFollowsNote} style={{ padding: `${u(4)} ${u(12)}`, borderRadius: u(14),
-              background: "rgba(6,22,48,.78)", border: `${u(1.5)} solid #f5d27a`, color: "#ffe6a8", fontSize: u(17) }}>{note}</span>}
-            {markNote && !message && <span data-mark-note style={{ padding: `${u(4)} ${u(12)}`, borderRadius: u(14), background: "rgba(6,22,48,.78)",
-              border: `${u(1.5)} solid #f5b82e`, color: "#ffe6a8", fontSize: u(17) }}>{markNote}</span>}
-            {rendered && !message && <span data-rendered={rendered.state} title={rendered.why} style={{ padding: `${u(4)} ${u(12)}`, borderRadius: u(14),
-              background: "rgba(6,22,48,.78)", border: `${u(1.5)} solid ${rendered.state === "RENDERED" ? "#3ecf7a" : "#ffb86b"}`,
-              color: rendered.state === "RENDERED" ? "#bff5d4" : "#ffd9b0", fontSize: u(17) }}>
+          <div data-preview-note className="pointer-events-none absolute left-3.5 top-3 z-10 flex gap-2">
+            {note && <span title={dict.body.studio.previewFollowsNote} className={chipCls}
+              style={{ background: "rgba(6,22,48,.78)", borderColor: "#f5d27a", color: "#ffe6a8" }}>{note}</span>}
+            {markNote && !message && <span data-mark-note className={chipCls} style={{ background: "rgba(6,22,48,.78)", borderColor: "#f5b82e", color: "#ffe6a8" }}>{markNote}</span>}
+            {rendered && !message && <span data-rendered={rendered.state} title={rendered.why} className={chipCls}
+              style={{ background: "rgba(6,22,48,.78)", borderColor: rendered.state === "RENDERED" ? "#3ecf7a" : "#ffb86b",
+                color: rendered.state === "RENDERED" ? "#bff5d4" : "#ffd9b0" }}>
               {rendered.state === "RENDERED" ? dict.body.studio.renderedMatches : rendered.state === "NEVER" ? dict.body.studio.notRenderedYet : dict.body.studio.changedSinceRender}</span>}
           </div>
         )}
+        <span className="t-tc absolute right-2 top-2 z-10 rounded border bg-black/80 px-2 py-0.5" style={{ borderColor: "#f5b82e", color: "#f5b82e" }}>{quality(video?.height)}</span>
         {fs.on && <FullscreenBar playing={playing} onPlay={ready(play)} now={now} total={total} onSeek={(f) => (m ? setMomentT(f * total) : st.setPlayhead(f * total))}
           muted={muted} onMute={() => setMuted((x) => !x)} onExit={fs.exit} />}
       </dialog>
-      <B x={1881} y={226} w={48} h={39} style={{ background: "#0a0a05", border: `${u(2)} solid #f5b82e`, borderRadius: u(5) }} />
-      <T x={1905} y={246} size={22} weight={700} color="#f5b82e" align="center">{quality(video?.height)}</T>
-
-      <button type="button" aria-label={dict.body.studio.prevClip} onClick={onTimeline(() => jump(-1))} style={icon(729)}><Ic o={[707, 761]} x={729} y={783} k="prev" size={34} /></button>
-      <button type="button" aria-label={playing ? dict.body.upload.pause : dict.body.processing.playBtn} onClick={ready(play)} className="absolute"
-        style={{ left: u(796 - 8), top: u(764 - 101 - 6), width: u(44), height: u(50), padding: 0, border: 0, background: "transparent", cursor: "pointer" }}>
-        {playing
-          ? <span style={{ position: "absolute", left: u(10), top: u(8), width: u(24), height: u(34), borderLeft: `${u(8)} solid #fff`, borderRight: `${u(8)} solid #fff`, boxSizing: "border-box" }} />
-          : <span style={{ position: "absolute", left: u(8), top: u(6), width: u(28), height: u(38), background: "#fff", clipPath: "polygon(0 0,100% 50%,0 100%)", transform: "scale(1.3)" }} />}
-      </button>
-      <button type="button" aria-label={dict.body.studio.nextClip} onClick={onTimeline(() => jump(1))} style={icon(888)}><Ic o={[866, 761]} x={888} y={783} k="next" size={34} /></button>
-      <T x={954} y={783} size={24}>{tc(now)}</T>
-      <T x={1048} y={783} size={24} color="#8ea3bf">/</T>
-      <T x={1063} y={783} size={24} color="#8ea3bf">{tc(total)}</T>
-      <div role="slider" aria-label={dict.body.studio.previewPosition} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={0}
-        onClick={(e) => { if (can) seek(e); else ready(() => undefined)(); }} className="absolute" style={{ left: u(1169), top: u(768 - 101), width: u(331), height: u(30), cursor: "pointer" }}>
-        <B o={[1169, 768]} x={1180} y={780} w={320} h={6} style={{ background: "#0b2a4d", borderRadius: u(3) }}>
-          <i style={{ display: "block", height: "100%", width: `${p * 100}%`, background: "#1e90ff", borderRadius: u(3) }} />
-          {(markIn !== null || markOut !== null) && <i data-marks style={{ position: "absolute", top: u(-4), bottom: u(-4), left: `${(markIn ?? 0) * 100}%`,
-            width: `${((markOut ?? 1) - (markIn ?? 0)) * 100}%`, background: "rgba(245,184,46,.45)", borderLeft: markIn !== null ? `${u(2)} solid #f5b82e` : 0,
-            borderRight: markOut !== null ? `${u(2)} solid #f5b82e` : 0, boxSizing: "border-box" }} />}
-        </B>
-        <B o={[1169, 768]} x={1169 + p * 320} y={771} w={22} h={22} style={{ background: "#cfe8ff", border: `${u(3)} solid #33a8ff`, borderRadius: "50%" }} />
+      {scopesOpen && <ScopesPanel videoRef={el} onClose={() => setScopesOpen(false)} />}
       </div>
-      <div className={`${stageStyles.a} ${stageStyles.framed}`} style={{ left: u(1529), top: u(760 - 101), width: u(105), height: u(46), ...IN }}>
-        <T o={[1529, 760]} x={1551} y={783} size={20} as="span">{speed}x</T>
-        <Ic o={[1529, 760]} x={1607} y={783} k="chev" size={18} />
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button type="button" aria-label={dict.body.studio.prevClip} onClick={onTimeline(() => jump(-1))} className="vie-btn vie-btn-sm px-2" title={dict.body.studio.prevClip}>
+          <SkipBack className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label={playing ? dict.body.upload.pause : dict.body.processing.playBtn} onClick={ready(play)} className="vie-btn vie-btn-sm px-2">
+          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </button>
+        <button type="button" aria-label={dict.body.studio.nextClip} onClick={onTimeline(() => jump(1))} className="vie-btn vie-btn-sm px-2" title={dict.body.studio.nextClip}>
+          <SkipForward className="h-4 w-4" />
+        </button>
+        <span className="t-tc shrink-0">{tc(now)} <span className="text-muted">/ {tc(total)}</span></span>
+        <div role="slider" aria-label={dict.body.studio.previewPosition} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={0}
+          onClick={(e) => { if (can) seek(e); else ready(() => undefined)(); }}
+          className="relative h-6 min-w-24 flex-1 cursor-pointer">
+          <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded bg-[#0b2a4d]">
+            <div className="h-full bg-primary" style={{ width: `${p * 100}%` }} />
+            {(markIn !== null || markOut !== null) && <div data-marks className="absolute -top-1 -bottom-1 border-x-2 border-[#f5b82e] bg-[#f5b82e]/45"
+              style={{ left: `${(markIn ?? 0) * 100}%`, width: `${((markOut ?? 1) - (markIn ?? 0)) * 100}%` }} />}
+          </div>
+          <div className="absolute top-1/2 h-[22px] w-[22px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#33a8ff] bg-[#cfe8ff]" style={{ left: `${p * 100}%` }} />
+        </div>
         <select aria-label={dict.body.studio.previewSpeed} value={speed} onChange={(e) => setSpeed(e.target.value)}
-          style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
+          className="t-body h-9 rounded-ctl border border-line2 bg-canvas px-2">
           {["0.5", "1", "1.5", "2"].map((v) => <option key={v} value={v}>{v}x</option>)}
         </select>
+        <button type="button" aria-label={scopesOpen ? dict.body.studio.hideScopes : dict.body.studio.showScopes} aria-pressed={scopesOpen} data-player-scopes="" onClick={() => setScopesOpen((s) => !s)}
+          className={`vie-btn vie-btn-sm px-2 ${scopesOpen ? "border-ok text-ok" : ""}`}><BarChart3 className="h-4 w-4" /></button>
+        <button type="button" aria-label={muted ? dict.body.workspace.unmuteLabel : dict.body.studio.muteLabel} aria-pressed={muted} onClick={() => setMuted((x) => !x)} className="vie-btn vie-btn-sm px-2">
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
+        <button type="button" aria-label={cover ? dict.body.studio.fitPicture : dict.body.studio.fillFrame} aria-pressed={cover} onClick={() => setCover((x) => !x)} className="vie-btn vie-btn-sm px-2">
+          {cover ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+        <button type="button" aria-label={dict.body.studio.saveSnapshotFrame} onClick={ready(() => (message ? ui.say(dict.body.studio.nothingToCapture) : snapshot()))} className="vie-btn vie-btn-sm px-2">
+          <Camera className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label={fs.on ? dict.body.studio.exitFullScreen : dict.body.processing.fullScreen} aria-pressed={fs.on} onClick={ready(fs.toggle)} className="vie-btn vie-btn-sm px-2">
+          <Expand className="h-4 w-4" />
+        </button>
       </div>
-      <button type="button" aria-label={scopesOpen ? dict.body.studio.hideScopes : dict.body.studio.showScopes} aria-pressed={scopesOpen} data-player-scopes="" onClick={() => setScopesOpen((s) => !s)} style={icon(1660)}>
-        <Ic o={[1638, 761]} x={1660} y={783} k="bars" size={32} color={scopesOpen ? "#3ecf7a" : "#fff"} />
-      </button>
-      <button type="button" aria-label={muted ? dict.body.workspace.unmuteLabel : dict.body.studio.muteLabel} aria-pressed={muted} onClick={() => setMuted((x) => !x)} style={icon(1720)}>
-        <Ic o={[1698, 761]} x={1720} y={783} k={muted ? "mute" : "speaker"} size={34} />
-      </button>
-      <button type="button" aria-label={cover ? dict.body.studio.fitPicture : dict.body.studio.fillFrame} aria-pressed={cover} onClick={() => setCover((x) => !x)} style={icon(1780)}>
-        <Ic o={[1758, 761]} x={1780} y={783} k="fs" size={32} />
-      </button>
-      <button type="button" aria-label={dict.body.studio.saveSnapshotFrame} onClick={ready(() => (message ? ui.say(dict.body.studio.nothingToCapture) : snapshot()))} style={icon(1840)}>
-        <Ic o={[1818, 761]} x={1840} y={783} k="cap" size={32} />
-      </button>
-      <button type="button" aria-label={fs.on ? dict.body.studio.exitFullScreen : dict.body.processing.fullScreen} aria-pressed={fs.on} onClick={ready(fs.toggle)} style={icon(1900)}>
-        <Ic o={[1878, 761]} x={1900} y={783} k="fs" size={32} />
-      </button>
-      {scopesOpen && <ScopesPanel videoRef={el} onClose={() => setScopesOpen(false)} />}
     </section>
   );
 }

@@ -11,10 +11,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { rightsAllowShare, type CreatedShareLink, type SharedComment, type ShareLink, type VideoRights } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useState } from "react";
+import { Calendar, Download, FileText, Lock, StickyNote } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Switch } from "@/components/reelstage/shared";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
-import { Hit } from "@/components/workspace/shared";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { useExport } from "./state";
@@ -71,57 +69,68 @@ export function SharePanel({ focus }: { focus: boolean }) {
     try { await navigator.clipboard.writeText(made); setCopied(true); } catch { setErr("Copy failed: select the link and copy it."); }
   };
   const fieldText = made ?? (!renderId ? "Link available after export" : !shareable(rights) ? (admin ? "Record the video's rights first" : "The video's rights do not allow sharing") : "Create a share link");
+  const [note, setNote] = useState<string | null>(null);
+  const fieldClick = () => {
+    if (made) return void copy();
+    if (ok && e.canEdit) return void create();
+    if (!renderId) return setNote("Render the reel first");
+    if (admin && !shareable(rights)) return setOpen(true);
+    setNote(!e.canEdit ? "Your role can look, not share" : "The video's rights do not allow sharing: an Owner or Admin records them");
+  };
 
   return (
-    <section id="p10-delivery" aria-label="Shareable link" data-section="p10-s11" data-share-state={badge[0]}>
-      <P x={1630} y={980} w={475} h={317} style={focus ? { borderColor: "#33a8ff" } : undefined} />
-      <B x={1645} y={995} w={3} h={25} style={{ background: "#1e90ff" }} />
-      <T x={1662} y={1009} size={22} weight={600} as="h2">{dict.body.exports.shareableLink}</T>
-      <B x={1957} y={993} w={144} h={34} style={{ background: "#1a2840", border: `${u(1.5)} solid #4a5a78`, borderRadius: u(8) }} />
-      <B x={1969} y={1003} w={16} h={16} style={{ borderRadius: "50%", background: badge[1] }} /><T x={1994} y={1011} size={17} color="#dfe8f5">{badge[0]}</T>
+    <section id="p10-delivery" aria-label="Shareable link" data-section="p10-s11" data-share-state={badge[0]}
+      className={`vie-panel p-3 ${focus ? "border-primary" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="t-panel">{dict.body.exports.shareableLink}</h2>
+        <span className="flex items-center gap-1.5 rounded-md border border-line bg-raised px-2 py-1 text-xs">
+          <span className="h-3 w-3 rounded-full" style={{ background: badge[1] }} aria-hidden />{badge[0]}
+        </span>
+      </div>
 
-      <B x={1649} y={1041} w={440} h={54} style={{ background: "#041022", border: `${u(1.5)} solid ${made ? "#1e90ff" : "#17406f"}`, borderRadius: u(8) }} />
-      <T x={1662} y={1069} size={made ? 15 : 19} color={made ? "#dfe8f5" : ok ? "#33a8ff" : "#8ea3bf"} style={{ maxWidth: u(380), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{busy ? "Making the link…" : fieldText}</T>
-      <Ic x={2060} y={1069} k="doc" size={26} color={made ? "#33a8ff" : "#8ea3bf"} />
-      {made ? <Hit x={1649} y={1041} w={440} h={54} label={copied ? "Link copied" : "Copy the share link"} onClick={() => void copy()} />
-        : ok && e.canEdit ? <Hit x={1649} y={1041} w={440} h={54} label="Create share link" onClick={() => void create()} />
-        : !renderId ? <Hit x={1649} y={1041} w={440} h={54} label="Share link" reason="Render the reel first" />
-        : admin && !shareable(rights) ? <Hit x={1649} y={1041} w={440} h={54} label="Record the video's rights" onClick={() => setOpen(true)} />
-        : <Hit x={1649} y={1041} w={440} h={54} label="Share link" reason={!e.canEdit ? "Your role can look, not share" : "The video's rights do not allow sharing: an Owner or Admin records them"} />}
+      <button type="button" aria-label={made ? (copied ? "Link copied" : "Copy the share link") : ok && e.canEdit ? "Create share link" : "Share link"}
+        onClick={fieldClick}
+        className="mt-2 flex w-full items-center gap-2 rounded-md border border-line bg-canvas px-2.5 py-2.5 text-left text-sm hover:border-primary/60">
+        <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        <span className={`min-w-0 flex-1 truncate ${made ? "text-ink" : ok ? "text-primary" : "text-muted"}`}>{busy ? "Making the link…" : fieldText}</span>
+      </button>
 
-      <div data-share="password">
-        <Ic x={1673} y={1128} k="lock" size={26} color="#cfdcf0" />
-        {password === null ? <T x={1701} y={1128} size={19} color="#cfdcf0">Password Protection</T> : (
+      <div data-share="password" className="mt-2 flex items-center gap-2 text-sm">
+        <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        {password === null ? <span className="flex-1">Password Protection</span> : (
           <input aria-label="Password for the link (8 or more characters)" type="password" autoComplete="new-password" value={password} maxLength={128} autoFocus
-            onChange={(x) => setPassword(x.target.value)} placeholder="Password (8+ characters)" className="absolute"
-            style={{ left: u(1700), top: u(1112 - 101), width: u(300), height: u(32), boxSizing: "border-box", background: "#041022", border: `${u(1.5)} solid #1e90ff`, borderRadius: u(6),
-              color: "#e3eefb", fontSize: u(17), padding: `0 ${u(8)}`, outline: "none", zIndex: 2 }} />
+            onChange={(x) => setPassword(x.target.value)} placeholder="Password (8+ characters)"
+            className="min-w-0 flex-1 rounded-ctl border border-primary bg-canvas px-2 py-1 text-sm text-ink outline-none" />
         )}
-        <Switch x={2029} y={1128} on={password !== null} off={!e.canEdit} />
-        <Hit x={password === null ? 1660 : 2010} y={1110} w={password === null ? 440 : 90} h={36} label="Password protection" pressed={password !== null}
-          {...(e.canEdit ? { onClick: () => setPassword((p) => (p === null ? "" : null)) } : { reason: "Your role can look, not share" })} />
+        <button type="button" role="switch" aria-checked={password !== null} aria-label="Password protection" className="vie-sw"
+          onClick={() => (e.canEdit ? setPassword((p) => (p === null ? "" : null)) : setNote("Your role can look, not share"))} />
       </div>
-      <div data-share="expiry">
-        <Ic x={1673} y={1167} k="calendar" size={26} color="#cfdcf0" /><T x={1701} y={1167} size={19} color="#cfdcf0">Link expires after</T>
-        <T x={2087} y={1167} size={19} weight={700} color="#33a8ff" align="right">{days} day{days === 1 ? "" : "s"}</T>
-        <Hit x={1660} y={1149} w={440} h={36} label={`Link expires after ${days} days (click to change)`} onClick={() => setDays(DAYS[(DAYS.indexOf(days) + 1) % DAYS.length]!)} />
+      <div data-share="expiry" className="mt-2 flex items-center gap-2 text-sm">
+        <Calendar className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        <span className="flex-1">Link expires after</span>
+        <button type="button" aria-label={`Link expires after ${days} days (click to change)`}
+          onClick={() => setDays(DAYS[(DAYS.indexOf(days) + 1) % DAYS.length]!)}
+          className="font-semibold text-primary hover:underline">{days} day{days === 1 ? "" : "s"}</button>
       </div>
-      <div data-share="download" title={canDownload ? undefined : "The video's rights do not allow downloads"}>
-        <Ic x={1673} y={1207} k="dl" size={26} color={canDownload ? "#cfdcf0" : "#8ea3bf"} /><T x={1701} y={1207} size={19} color={canDownload ? "#cfdcf0" : "#8ea3bf"}>Allow Download</T>
-        <Switch x={2029} y={1207} on={download && canDownload} off={!canDownload} />
-        <Hit x={1660} y={1189} w={440} h={36} label="Allow download" pressed={download && canDownload}
-          {...(canDownload ? { onClick: () => setDownload((d) => !d) } : { reason: "The video's rights do not allow downloads" })} />
+      <div data-share="download" title={canDownload ? undefined : "The video's rights do not allow downloads"} className="mt-2 flex items-center gap-2 text-sm">
+        <Download className={`h-4 w-4 shrink-0 ${canDownload ? "text-muted" : "text-muted/50"}`} aria-hidden />
+        <span className={`flex-1 ${canDownload ? "" : "text-muted"}`}>Allow Download</span>
+        <button type="button" role="switch" aria-checked={download && canDownload} aria-label="Allow download" className="vie-sw"
+          onClick={() => (canDownload ? setDownload((d) => !d) : setNote("The video's rights do not allow downloads"))} />
       </div>
-      <div data-share="comments">
-        <Ic x={1673} y={1247} k="note" size={26} color="#cfdcf0" /><T x={1701} y={1247} size={19} color="#cfdcf0">Allow Comments</T>
-        <Switch x={2029} y={1247} on={comments} off={!e.canEdit} />
-        <Hit x={1660} y={1229} w={440} h={36} label="Allow comments" pressed={comments}
-          {...(e.canEdit ? { onClick: () => setComments((c) => !c) } : { reason: "Your role can look, not share" })} />
+      <div data-share="comments" className="mt-2 flex items-center gap-2 text-sm">
+        <StickyNote className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        <span className="flex-1">Allow Comments</span>
+        <button type="button" role="switch" aria-checked={comments} aria-label="Allow comments" className="vie-sw"
+          onClick={() => (e.canEdit ? setComments((c) => !c) : setNote("Your role can look, not share"))} />
       </div>
-      <T x={1662} y={1282} size={15} color={err ? "#ff8a8a" : "#8ea3bf"} style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {err ?? (copied ? "Link copied. It is shown only once." : made ? "Click the link to copy it. It is shown only once." : rights?.grant ? `Rights: ${STATE_WORDS[rights.grant.rights_state]}` : "No rights recorded")}</T>
-      <T x={2087} y={1282} size={16} color="#33a8ff" align="right">Sharing &amp; rights</T>
-      <Hit x={1990} y={1268} w={110} h={28} label="Sharing and rights" onClick={() => setOpen(true)} />
+      <p className={`mt-2 truncate text-xs ${err ? "text-danger" : "text-muted"}`}>
+        {err ?? (copied ? "Link copied. It is shown only once." : made ? "Click the link to copy it. It is shown only once." : rights?.grant ? `Rights: ${STATE_WORDS[rights.grant.rights_state]}` : "No rights recorded")}
+      </p>
+      {note && <p role="status" className="mt-1 text-xs text-muted">{note}</p>}
+      <div className="mt-2 flex justify-end">
+        <button type="button" aria-label="Sharing and rights" onClick={() => setOpen(true)} className="text-sm text-primary hover:underline">Sharing &amp; rights</button>
+      </div>
       <ShareDialog open={open} onOpenChange={setOpen} rights={rights} links={links} admin={admin} canEdit={e.canEdit} videoId={videoId} onChanged={reload} />
     </section>
   );

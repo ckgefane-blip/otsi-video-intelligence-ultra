@@ -113,7 +113,7 @@ export function Onboarding() {
     return () => document.removeEventListener("keydown", key);
   }, [step, go]);
 
-  if (status !== "signed-in" || !me) return <div className="grid min-h-screen place-items-center bg-[#000b18] text-sm text-muted" role="status">{t.body.auth.loading}</div>;
+  if (status !== "signed-in" || !me) return <div className="grid min-h-screen place-items-center bg-[#000b18] t-body text-muted" role="status">{t.body.auth.loading}</div>;
 
 
   const finish = () => {
@@ -147,7 +147,7 @@ export function Onboarding() {
               style={{ position: "absolute", left: "35.25%", top: "88.6%", width: "29.5%", height: "1.6%", boxSizing: "border-box", border: `${q(2)} solid #1e90ff`, borderRadius: q(20), background: "#04182b", overflow: "hidden", pointerEvents: "none" }}>
               <div style={{ width: `${progress * 100}%`, height: "100%", borderRadius: q(20), background: "linear-gradient(90deg,#14c3ff,#1e90ff)", boxShadow: "0 0 12px #1e90ff", transition: "width .5s ease-out" }} />
             </div>
-            <p role="status" style={{ position: "absolute", left: 0, width: "100%", top: "91.6%", margin: 0, textAlign: "center", fontSize: "1.1cqw", color: "#cfdcf0", pointerEvents: "none" }}>
+            <p role="status" style={{ position: "absolute", left: 0, width: "100%", top: "91.6%", margin: 0, textAlign: "center", fontSize: q(12), color: "#cfdcf0", pointerEvents: "none" }}>
               {progress >= 1 ? t.body.auth.ready : t.body.auth.loadingWorkspace}
             </p>
             <button type="button" aria-label={t.body.auth.startTourAria} onClick={() => go(1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
@@ -158,13 +158,13 @@ export function Onboarding() {
           <>
             {s.skip && (
               <button type="button" onClick={() => go(NAME)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
-                style={{ ...ctl, background: "none", border: 0, color: "#d6e6f5", fontSize: "1.1cqw", gap: ".9cqw", ...s.skip }}>
+                style={{ ...ctl, background: "none", border: 0, color: "#d6e6f5", fontSize: q(13), gap: ".9cqw", ...s.skip }}>
                 {t.body.auth.skipTour} <span style={{ color: "#33a8ff", display: "inline-flex" }}><Arrow /></span>
               </button>
             )}
             {s.back && (
               <button type="button" onClick={() => go(step - 1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
-                style={{ ...ctl, border: "1px solid rgba(80,130,190,.45)", borderRadius: ".8cqw", background: "rgba(8,24,48,.75)", color: "#9bb0c6", fontSize: "1.2cqw", gap: "1cqw", ...{ ...s.back, arrow: undefined } }}>
+                style={{ ...ctl, border: "1px solid rgba(80,130,190,.45)", borderRadius: ".8cqw", background: "rgba(8,24,48,.75)", color: "#9bb0c6", fontSize: q(13), gap: "1cqw", ...{ ...s.back, arrow: undefined } }}>
                 {s.back.arrow && <Arrow back />}{t.body.auth.back}
               </button>
             )}
@@ -187,7 +187,7 @@ export function Onboarding() {
             {s.next && (
               <button type="button" onClick={() => go(step === 3 ? NAME : step + 1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#33a8ff]"
                 style={{ ...ctl, borderRadius: ".8cqw", border: 0, background: "linear-gradient(180deg,#14b3ff,#0a7fe8)", boxShadow: "0 0 1.8cqw rgba(30,160,255,.6),inset 0 0 0 1px rgba(150,220,255,.6)",
-                  gap: ".8cqw", fontSize: "1.3cqw", ...{ ...s.next, label: undefined } }}>
+                  gap: ".8cqw", fontSize: q(13), ...{ ...s.next, label: undefined } }}>
                 {s.next.label === "next" ? t.body.auth.next : t.body.auth.getStarted} <Arrow />
               </button>
             )}
@@ -196,20 +196,22 @@ export function Onboarding() {
           </>
         )}
         {step === NAME && (
+          // the name step is a real form, not part of the tour footage: Drop 1 tokens, and type tightened to the
+          // Filmora scale (page title 16, body 13, label 12, button 13; weights 600 max) via q() at the 1672 design width
           <form onSubmit={(e) => { e.preventDefault(); finish(); }} aria-labelledby="welcome-title" data-welcome-name
-            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: q(640), padding: q(40), boxSizing: "border-box", borderRadius: q(18),
-              background: "linear-gradient(180deg,#081a35,#06122a)", border: `${q(2)} solid #12335f`, boxShadow: "0 0 60px rgba(30,144,255,.25)", color: "#fff" }}>
-            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(44), fontWeight: 700 }}>{t.body.auth.welcome}</h1>
-            <p style={{ margin: `${q(10)} 0 ${q(26)}`, fontSize: q(22), color: "#cfe0f5" }}>{t.body.auth.welcomeNameQ}</p>
-            <label htmlFor="welcome-name" style={{ fontSize: q(19), color: "#8ea3bf" }}>{t.body.auth.yourName}</label>
+            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: q(640), padding: q(24), boxSizing: "border-box", borderRadius: q(12),
+              background: "rgb(var(--panel))", border: `${q(2)} solid rgb(var(--line2))`, boxShadow: "0 0 60px rgb(var(--primary) / 0.18)", color: "rgb(var(--ink))" }}>
+            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(16), fontWeight: 600 }}>{t.body.auth.welcome}</h1>
+            <p style={{ margin: `${q(4)} 0 ${q(16)}`, fontSize: q(13), color: "rgb(var(--ink2))" }}>{t.body.auth.welcomeNameQ}</p>
+            <label htmlFor="welcome-name" style={{ fontSize: q(12), color: "rgb(var(--muted))" }}>{t.body.auth.yourName}</label>
             <input id="welcome-name" name="display_name" autoComplete="name" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.body.auth.nameExample}
-              style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: q(8), height: q(62), padding: `0 ${q(18)}`, fontSize: q(26), color: "#fff", background: "#041022", border: `${q(1.5)} solid #17406f`, borderRadius: q(10), outline: "none" }} />
-            {err && <p role="alert" style={{ margin: `${q(10)} 0 0`, fontSize: q(19), color: "#ff8a8a" }}>{err}</p>}
-            <button type="submit" disabled={busy} style={{ marginTop: q(30), width: "100%", height: q(66), fontSize: q(26), fontWeight: 700, color: "#fff", background: "#0a84ff", border: 0, borderRadius: q(10), cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1 }}>
+              style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: q(4), height: q(40), padding: `0 ${q(12)}`, fontSize: q(13), color: "rgb(var(--ink))", background: "rgb(var(--canvas))", border: `${q(1.5)} solid rgb(var(--line2))`, borderRadius: q(8), outline: "none" }} />
+            {err && <p role="alert" style={{ margin: `${q(8)} 0 0`, fontSize: q(12), color: "rgb(var(--danger))" }}>{err}</p>}
+            <button type="submit" disabled={busy} style={{ marginTop: q(20), width: "100%", height: q(44), fontSize: q(13), fontWeight: 600, color: "rgb(var(--primary-ink))", background: "rgb(var(--primary))", border: 0, borderRadius: q(8), cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1 }}>
               {busy ? t.body.auth.saving : t.body.auth.startUsing}
             </button>
-            <button type="button" onClick={() => setStep(3)} style={{ marginTop: q(14), width: "100%", fontSize: q(19), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.backTour}</button>
-            {done && <button type="button" onClick={() => router.replace("/dashboard")} style={{ marginTop: q(6), width: "100%", fontSize: q(19), color: "#8ea3bf", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.cancel}</button>}
+            <button type="button" onClick={() => setStep(3)} style={{ marginTop: q(12), width: "100%", fontSize: q(12), color: "rgb(var(--primary))", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.backTour}</button>
+            {done && <button type="button" onClick={() => router.replace("/dashboard")} style={{ marginTop: q(8), width: "100%", fontSize: q(12), color: "rgb(var(--muted))", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.cancel}</button>}
           </form>
         )}
       </div>

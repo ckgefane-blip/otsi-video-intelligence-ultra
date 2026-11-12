@@ -1,22 +1,23 @@
 "use client";
 /**
- * Page 02 Section 09 — selected upload preview / metadata editor (approved reference 02_UPLOAD_INGEST, "selected preview").
+ * Page 02 Section 09 — selected upload preview / metadata editor, on the Desktop UI flow layout.
  *
- * The selected video as measured: the frame decoded from the file (play streams the playback copy, GET /v1/videos/:id/playback), name,
- * size, resolution, frame rate, duration, container and codecs; a quarantine or failure with its reason. Detected Content stays "Not
- * classified" (the engine does not classify footage); Teams are the linked match's clubs, named by a person, never guessed from video.
- * Edit Metadata renames the video (PATCH /v1/videos/:id) — every other fact is measured, not typed.
+ * The selected video as measured: the frame decoded from the file (play streams the playback copy, GET /v1/videos/:id/playback, through
+ * the shared VideoPlayer), name, size, resolution, frame rate, duration, container and codecs; a quarantine or failure with its reason.
+ * Detected Content stays "Not classified" (the engine does not classify footage); Teams are the linked match's clubs, named by a person,
+ * never guessed from video. Edit Metadata renames the video (PATCH /v1/videos/:id) — every other fact is measured, not typed.
  * A.12 (ADR-078): Media Info, beside the heading, opens everything recorded about the file (MediaInfoDialog).
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Match, Playback } from "@otsi-vie/contracts";
+import { Play } from "lucide-react";
 import { useEffect, useState } from "react";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { MediaInfoDialog } from "@/components/media/MediaInfoDialog";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { formatBytes, formatFps, formatResolution, NOT_MEASURED } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
-import { crest, DATE_TAG, mmss, usePage02 } from "./page02";
+import { DATE_TAG, mmss, usePage02 } from "./page02";
 import { useUpload } from "./UploadWorkspace";
 
 export function SelectedPreviewSection() {
@@ -56,77 +57,70 @@ export function SelectedPreviewSection() {
     setTitle(name ?? ""); setErr(null); setNaming(true);
   };
 
-  const rows: [string, string, string, number][] = [
-    ["clk", d.fileName, v ? (v.original_filename ?? NOT_MEASURED) : d.noFileUploaded, 1056],
-    ["u_fs", d.fileSize, v ? formatBytes(v.byte_size) : "—", 1097],
-    ["asp", d.resolution, v ? formatResolution(v.width, v.height) : "—", 1139],
-    ["asp", d.frameRate, v ? formatFps(v.frame_rate, v.is_variable_frame_rate) : "—", 1180],
-    ["clk", d.duration, v ? mmss(v.duration_us) : "—", 1222],
-    ["meta", d.detectedContent, d.notClassified, 1263],
+  const rows: [string, string][] = [
+    [d.fileName, v ? (v.original_filename ?? NOT_MEASURED) : d.noFileUploaded],
+    [d.fileSize, v ? formatBytes(v.byte_size) : "—"],
+    [d.resolution, v ? formatResolution(v.width, v.height) : "—"],
+    [d.frameRate, v ? formatFps(v.frame_rate, v.is_variable_frame_rate) : "—"],
+    [d.duration, v ? mmss(v.duration_us) : "—"],
+    [d.detectedContent, d.notClassified],
   ];
 
   return (
-    <section aria-label={d.selectedPreviewAria} data-section="p02-s09" data-selected-video={v?.id ?? ""}>
-      <P x={1923} y={777} w={612} h={641} />
-      <T x={1945} y={811} size={26} weight={600} as="h2">{d.selectedItemPreview}</T>
-      <button type="button" onClick={() => (v ? setInfo(true) : say(d.selectUploadFirst))} className="absolute" data-action="media-info"
-        title={d.mediaInfoTitle}
-        style={{ left: u(2390), top: u(811 - 101 - 13), width: u(130), height: u(26), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(18),
-          fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", textAlign: "right", opacity: v ? 1 : 0.6 }}>{d.mediaInfo}</button>
+    <section aria-label={d.selectedPreviewAria} data-section="p02-s09" data-selected-video={v?.id ?? ""} className="vie-panel">
+      <div className="vie-ph">
+        <h2 className="t-panel">{d.selectedItemPreview}</h2>
+        <button type="button" onClick={() => (v ? setInfo(true) : say(d.selectUploadFirst))} data-action="media-info" title={d.mediaInfoTitle}
+          className="text-sm text-primary">{d.mediaInfo}</button>
+      </div>
       <MediaInfoDialog videoId={v?.id ?? null} name={name ?? d.theVideo} open={info} onOpenChange={setInfo} />
-      <B x={1948} y={846} w={255} h={174} style={{ borderRadius: u(6), overflow: "hidden",
-        background: thumb ? `center / cover no-repeat url(${thumb}), #000`
-          : "radial-gradient(ellipse at 55% 40%,#e0b090 0,#c98c6a 6%,transparent 7%),radial-gradient(ellipse at 50% 100%,#6fb8ee 0,#2a6fb8 40%,transparent 75%),linear-gradient(135deg,#27487a,#0e2040)" }}>
-        {thumb && !play && <img src={thumb} alt={d.frameFrom.replace("{name}", name ?? d.theVideo)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-        {play && <video src={play} controls autoPlay playsInline aria-label={d.playingName.replace("{name}", name ?? d.theVideo)} style={{ width: "100%", height: "100%", background: "#000", display: "block" }} />}
-      </B>
-      {!play && (
-        <>
-          <button type="button" aria-label={v ? d.playName.replace("{name}", name ?? d.theVideo) : d.nothingToPlay} onClick={startPlay} className="absolute"
-            style={{ left: u(2040), top: u(918 - 101), width: u(56), height: u(56), padding: 0, border: 0, borderRadius: "50%", background: "rgba(10,20,40,.7)", cursor: "pointer" }}>
-            <span style={{ position: "absolute", left: u(18), top: u(15), width: u(22), height: u(26), background: "#fff", clipPath: "polygon(0 0,100% 50%,0 100%)" }} />
-          </button>
-          <B x={2130} y={983} w={66} h={30} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(5) }} />
-          <T x={2163} y={998} size={20} weight={600} align="center">{v ? mmss(v.duration_us) : "—"}</T>
-        </>
-      )}
-      <T x={2222} y={860} size={22} weight={600} style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{name ?? d.noVideoSelected}</T>
-      <T x={2222} y={890} size={20} color="#b9cbe2" style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>
-        {v ? d.uploadedOn.replace("{date}", new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })) : d.selectUploadPreview}
-      </T>
-      {failed ? (
-        <div role="alert" className="absolute" style={{ left: u(2222), top: u(906 - 101), width: u(295), fontSize: u(16), lineHeight: 1.25, color: "#ff9aa8", maxHeight: u(60), overflow: "hidden" }}>
-          <strong>{v!.failure_code}</strong>: {v!.failure_detail}
-        </div>
-      ) : <T x={2222} y={919} size={20} color="#b9cbe2" style={{ maxWidth: u(290), overflow: "hidden", textOverflow: "ellipsis" }}>{codecs ?? "—"}</T>}
-
-      <dl style={{ margin: 0 }}>
-        {rows.map(([k, l, val, y]) => (
-          <div key={l}>
-            <Ic x={1962} y={y} k={k} size={26} color="#cfe0f5" />
-            <T x={1997} y={y} size={20} color="#d6e4f7" as="span">{l}</T>
-            <T x={2180} y={y} size={20} color="#cfe0f5" as="span" style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{val}</T>
+      <div className="space-y-3 p-3 text-sm">
+        {play ? (
+          <VideoPlayer src={play} label={d.playingName.replace("{name}", name ?? d.theVideo)} autoPlay />
+        ) : (
+          <div className="relative overflow-hidden rounded-ctl border border-line bg-black">
+            {thumb ? <img src={thumb} alt={d.frameFrom.replace("{name}", name ?? d.theVideo)} className="aspect-video w-full object-cover" />
+              : <div className="grid aspect-video w-full place-items-center bg-raised text-xs text-muted">{v ? d.noVideoSelected : d.selectUploadPreview}</div>}
+            <button type="button" aria-label={v ? d.playName.replace("{name}", name ?? d.theVideo) : d.nothingToPlay} onClick={startPlay}
+              className="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/70 text-white hover:bg-black/90">
+              <Play className="h-6 w-6 fill-current" aria-hidden />
+            </button>
+            <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-semibold text-white">{v ? mmss(v.duration_us) : "—"}</span>
           </div>
-        ))}
+        )}
         <div>
-          <Ic x={1962} y={1306} k="ppl" size={26} color="#cfe0f5" />
-          <T x={1997} y={1306} size={20} color="#d6e4f7" as="span">{d.teamsDetected}</T>
-          {match?.home || match?.away ? (
-            <>
-              <B x={2180} y={1288} w={36} h={36} style={crest} />
-              <T x={2226} y={1306} size={20} as="span" style={{ maxWidth: u(100), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.home?.short_name ?? match?.home?.name ?? "—"}</T>
-              <B x={2346} y={1288} w={36} h={36} style={crest} />
-              <T x={2392} y={1306} size={20} as="span" style={{ maxWidth: u(110), overflow: "hidden", textOverflow: "ellipsis" }}>{match?.away?.short_name ?? match?.away?.name ?? "—"}</T>
-            </>
-          ) : <T x={2180} y={1306} size={20} color="#cfe0f5" as="span">—</T>}
+          <p className="truncate font-semibold">{name ?? d.noVideoSelected}</p>
+          <p className="text-xs text-muted">
+            {v ? d.uploadedOn.replace("{date}", new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })) : d.selectUploadPreview}
+          </p>
+          {failed ? (
+            <p role="alert" className="mt-1 text-danger"><span className="font-semibold">{v!.failure_code}</span>: {v!.failure_detail}</p>
+          ) : <p className="mt-1 text-xs text-muted">{codecs ?? "—"}</p>}
         </div>
-      </dl>
-      <button type="button" onClick={edit} aria-label={d.editMetadata} className="absolute"
-        style={{ left: u(1950), top: u(1342 - 101), width: u(561), height: u(54), padding: 0, border: 0, borderRadius: u(8), background: "#0a84ff", color: "#fff", font: "inherit",
-          cursor: "pointer", opacity: v && canWrite ? 1 : 0.75 }}>
-        <Ic o={[1950, 1342]} x={2162} y={1370} k="u_edit" size={26} />
-        <T o={[1950, 1342]} x={2190} y={1370} size={23} weight={600} as="span">{d.editMetadata}</T>
-      </button>
+        <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
+          {rows.map(([k, val]) => (
+            <div key={k} className="contents">
+              <dt className="text-muted">{k}</dt><dd className="min-w-0 truncate">{val}</dd>
+            </div>
+          ))}
+          <div className="contents">
+            <dt className="text-muted">{d.teamsDetected}</dt>
+            <dd className="min-w-0">
+              {match?.home || match?.away ? (
+                <span className="flex items-center gap-2">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-semibold" title={match?.home?.name ?? ""}>{(match?.home?.short_name ?? match?.home?.name ?? "?").slice(0, 2).toUpperCase()}</span>
+                  <span className="truncate">{match?.home?.short_name ?? match?.home?.name ?? "—"}</span>
+                  <span className="text-muted">·</span>
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-semibold" title={match?.away?.name ?? ""}>{(match?.away?.short_name ?? match?.away?.name ?? "?").slice(0, 2).toUpperCase()}</span>
+                  <span className="truncate">{match?.away?.short_name ?? match?.away?.name ?? "—"}</span>
+                </span>
+              ) : "—"}
+            </dd>
+          </div>
+        </dl>
+        <button type="button" onClick={edit} aria-label={d.editMetadata}
+          className={`vie-btn vie-btn-pri w-full ${v && canWrite ? "" : "opacity-75"}`}>{d.editMetadata}</button>
+      </div>
 
       <Dialog.Root open={naming} onOpenChange={setNaming}>
         <Dialog.Portal>

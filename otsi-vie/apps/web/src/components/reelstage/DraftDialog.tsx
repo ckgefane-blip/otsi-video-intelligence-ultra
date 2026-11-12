@@ -64,8 +64,8 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Content data-dialog="draft" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(820px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{d.draftTitle}</Dialog.Title>
+        <Dialog.Content data-dialog="draft" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(820px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-xl">
+          <Dialog.Title className="t-section">{d.draftTitle}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {reel?.player ? d.draftDescPlayer.replace("{a}", reel.player.display_name) : d.draftDescNoReel}
             {" "}{d.draftDescRest}
@@ -103,7 +103,7 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
                   {res.candidates.map((c) => (
                     <li key={c.key} data-draft={c.key} className="rounded-ctl border border-line p-3">
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="font-semibold">{c.title}{c.key === best ? <span className="ml-2 rounded bg-primary/25 px-1.5 py-0.5 text-[10px] font-semibold">{d.draftMostAction}</span> : null}</span>
+                        <span className="font-semibold">{c.title}{c.key === best ? <span className="ml-2 rounded bg-primary/25 px-1.5 py-0.5 text-xs font-semibold">{d.draftMostAction}</span> : null}</span>
                         <span className="text-xs text-muted">{secs(c.duration_us, d)}</span>
                       </div>
                       <p className="mb-2 text-xs text-muted">{c.why}</p>
@@ -125,7 +125,7 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
                   ))}
                 </ul>
               )}
-              <p className="mt-3 text-[11px] text-muted">{d.draftLegend}</p>
+              <p className="mt-3 t-small">{d.draftLegend}</p>
             </>
           )}
         </Dialog.Content>

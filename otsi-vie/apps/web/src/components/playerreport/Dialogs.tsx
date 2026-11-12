@@ -25,9 +25,9 @@ function Shell({ open, onClose, title, desc, name, children, wide }: { open: boo
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content data-dialog={name} className={`fixed left-1/2 top-1/2 z-50 max-h-[88vh] ${wide ? "w-[min(760px,96vw)]" : "w-[min(560px,94vw)]"} -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl`}>
-          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="mb-3 text-xs text-muted">{desc}</Dialog.Description>
+        <Dialog.Content data-dialog={name} className={`fixed left-1/2 top-1/2 z-50 max-h-[88vh] ${wide ? "w-[min(760px,96vw)]" : "w-[min(560px,94vw)]"} -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-2xl`}>
+          <Dialog.Title className="t-section">{title}</Dialog.Title>
+          <Dialog.Description className="mb-3 t-small">{desc}</Dialog.Description>
           {children}
           <div className="mt-4 flex justify-end"><Dialog.Close className={ghost}>{dict.common.close}</Dialog.Close></div>
         </Dialog.Content>
@@ -55,7 +55,7 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
           <section aria-label={dict.body.reports.notesTags} className="grid gap-2">
             <h3 className="font-semibold">{dict.body.reports.notesTags}</h3>
             <div className="flex flex-wrap gap-2" data-tags={String(d.tags.length)}>
-              {!d.tags.length && <span className="text-xs text-muted">{dict.body.reports.notesNoTags}</span>}
+              {!d.tags.length && <span className="t-small">{dict.body.reports.notesNoTags}</span>}
               {d.tags.map((t) => (
                 <span key={t} className="flex items-center gap-1 rounded-full border border-primary/50 px-2 py-0.5 text-xs">{t}
                   {d.can_write && <button type="button" aria-label={dict.body.reports.removeTagAria.replace("{a}", t)} disabled={busy} onClick={() => void tags(d.tags.filter((x) => x !== t))} className="text-muted hover:text-danger">✕</button>}
@@ -77,11 +77,11 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
                 <button type="submit" data-add-note disabled={busy || !text.trim()} className={`${btn} justify-self-start`}>{busy ? dict.body.players.saving : dict.body.reports.addNote}</button>
               </form>
             )}
-            {!d.notes.length ? <p className="text-xs text-muted">{dict.body.reports.notesNone}</p> : (
+            {!d.notes.length ? <p className="t-small">{dict.body.reports.notesNone}</p> : (
               <ul className="grid gap-2" data-notes={String(d.notes.length)}>
                 {d.notes.map((n) => (
                   <li key={n.id} className="rounded-ctl border border-line/70 p-2">
-                    <div className="flex items-center gap-2 text-xs text-muted"><span className="font-semibold text-ink">{n.author_name}</span><span>{when(n.created_at)}</span>
+                    <div className="flex items-center gap-2 t-small"><span className="font-semibold text-ink">{n.author_name}</span><span>{when(n.created_at)}</span>
                       {n.can_delete && <button type="button" disabled={busy} onClick={() => void run(() => api<PlayerNotes>(`${base}/notes/${n.id}`, { method: "DELETE" }), dict.body.reports.noteDeleteFailed)} className="ml-auto hover:text-danger">{dict.body.reports.deleteBtn}</button>}
                     </div>
                     <p className="mt-1 whitespace-pre-wrap">{n.body}</p>
@@ -90,7 +90,7 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
               </ul>
             )}
           </section>
-          {!d.can_write && <p className="text-xs text-muted">{dict.body.reports.notesReadOnly}</p>}
+          {!d.can_write && <p className="t-small">{dict.body.reports.notesReadOnly}</p>}
           {err && <p role="alert" className="text-danger">{err}</p>}
         </div>
       )}
@@ -119,7 +119,7 @@ export function DossierDialog({ player, open, onClose, canWrite }: { player: Pla
               <button type="submit" data-new-dossier disabled={busy || !name.trim()} className={btn}>{dict.body.reports.dossierCreateAdd}</button>
             </form>
           )}
-          {!list.length ? <p className="text-xs text-muted">{dict.body.reports.dossiersNone}</p> : (
+          {!list.length ? <p className="t-small">{dict.body.reports.dossiersNone}</p> : (
             <ul className="grid gap-2" data-dossiers={String(list.length)}>
               {list.map((d) => {
                 const inIt = d.players.some((x) => x.player_id === player.player_id);
@@ -129,21 +129,21 @@ export function DossierDialog({ player, open, onClose, canWrite }: { player: Pla
                       <label className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
                         <input type="checkbox" checked={inIt} disabled={!canWrite || busy} aria-label={dict.body.reports.playerInDossier.replace("{a}", player.display_name).replace("{b}", d.name)}
                           onChange={(e) => void run(() => api(`/v1/dossiers/${d.id}/players/${player.player_id}`, { method: e.target.checked ? "PUT" : "DELETE" }), dict.body.reports.dossierChangeFailed)} />
-                        <span className="truncate">{d.name}</span><span className="text-xs font-normal text-muted">{d.players.length === 1 ? dict.body.reports.dossierPlayersOne : dict.body.reports.dossierPlayersMany.replace("{a}", String(d.players.length))}</span>
+                        <span className="truncate">{d.name}</span><span className="t-small">{d.players.length === 1 ? dict.body.reports.dossierPlayersOne : dict.body.reports.dossierPlayersMany.replace("{a}", String(d.players.length))}</span>
                       </label>
                       {canWrite && (sure === d.id
                         ? <><button type="button" className="text-xs text-danger" onClick={() => void run(() => api(`/v1/dossiers/${d.id}`, { method: "DELETE" }), dict.body.reports.dossierDeleteFailed).then(() => setSure(null))}>{dict.body.reports.dossierDelete}</button><button type="button" className="text-xs" onClick={() => setSure(null)}>{dict.body.reports.keepBtn}</button></>
-                        : <button type="button" aria-label={dict.body.reports.deleteDossierAria.replace("{a}", d.name)} className="text-xs text-muted hover:text-danger" onClick={() => setSure(d.id)}>✕</button>)}
+                        : <button type="button" aria-label={dict.body.reports.deleteDossierAria.replace("{a}", d.name)} className="t-small hover:text-danger" onClick={() => setSure(d.id)}>✕</button>)}
                     </div>
                     {d.players.length > 0 && (
-                      <p className="mt-1 text-xs text-muted">{d.players.map((x, i) => <span key={x.player_id}>{i ? ", " : ""}<Link href={`/reports/players/${x.canonical_otsi_id ?? x.player_id}`} className="text-primary hover:underline" onClick={onClose}>{x.display_name}</Link></span>)}</p>
+                      <p className="mt-1 t-small">{d.players.map((x, i) => <span key={x.player_id}>{i ? ", " : ""}<Link href={`/reports/players/${x.canonical_otsi_id ?? x.player_id}`} className="text-primary hover:underline" onClick={onClose}>{x.display_name}</Link></span>)}</p>
                     )}
                   </li>
                 );
               })}
             </ul>
           )}
-          {!canWrite && <p className="text-xs text-muted">{dict.body.reports.dossiersReadOnly}</p>}
+          {!canWrite && <p className="t-small">{dict.body.reports.dossiersReadOnly}</p>}
           {err && <p role="alert" className="text-danger">{err}</p>}
         </div>
       )}
@@ -196,7 +196,7 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
               <h3 className="font-semibold">{dict.body.reports.pdfReports}</h3>
               {canMake && !share && <button type="button" data-make-pdf disabled={busy || blocked} title={blocked ? gate!.reasons.join(" ") : undefined} onClick={() => void make()} className={`${btn} ml-auto`}>{busy ? dict.body.reports.makingPdf : blocked ? dict.body.reports.identityNotConfirmed : latest ? dict.body.reports.makeNewPdf : dict.body.reports.makePdf}</button>}
             </div>
-            {!jobs.length ? <p className="text-xs text-muted">{dict.body.reports.pdfNone}</p> : (
+            {!jobs.length ? <p className="t-small">{dict.body.reports.pdfNone}</p> : (
               <ul className="grid gap-1" data-reports={String(jobs.length)}>
                 {jobs.slice(0, 6).map((j) => (
                   <li key={j.id} className="flex items-center gap-2 rounded-ctl border border-line/70 px-2 py-1.5 text-xs" data-report={j.state}>
@@ -209,12 +209,12 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
                 ))}
               </ul>
             )}
-            {!canMake && <p className="text-xs text-muted">{dict.body.reports.pdfReadOnly}</p>}
+            {!canMake && <p className="t-small">{dict.body.reports.pdfReadOnly}</p>}
           </section>
           <section aria-label={dict.body.reports.shareLinkHeading} className="grid gap-2 border-t border-line pt-3">
             <h3 className="font-semibold">{dict.body.reports.shareLinkHeading}</h3>
-            <p className="text-xs text-muted">{dict.body.reports.shareLinkDesc}</p>
-            {!latest ? <p className="text-xs text-muted">{dict.body.reports.shareNeedPdf}</p> : !canShare ? <p className="text-xs text-muted">{dict.body.reports.shareReadOnly}</p> : (
+            <p className="t-small">{dict.body.reports.shareLinkDesc}</p>
+            {!latest ? <p className="t-small">{dict.body.reports.shareNeedPdf}</p> : !canShare ? <p className="t-small">{dict.body.reports.shareReadOnly}</p> : (
               <div className="grid gap-2">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <label className="flex items-center gap-1">{dict.body.reports.validFor}
@@ -305,7 +305,7 @@ export function AssessmentDialog({ player, open, edit, onClose, onSaved, confirm
         ) : <p className="text-muted">{dict.body.reports.assessmentNonePublished}{a.can_write ? dict.body.reports.assessmentWriteHint : ""}</p>
       ) : (
         <div className="grid gap-3" data-assessment="edit">
-          <p className="text-xs text-muted">{a.published ? dict.body.reports.publishedByWhen.replace("{a}", a.published_by_name ?? "").replace("{b}", a.published_at ? when(a.published_at) : "") : dict.body.reports.notPublishedYet}{a.unpublished_changes ? dict.body.reports.draftUnpublished : ""}</p>
+          <p className="t-small">{a.published ? dict.body.reports.publishedByWhen.replace("{a}", a.published_by_name ?? "").replace("{b}", a.published_at ? when(a.published_at) : "") : dict.body.reports.notPublishedYet}{a.unpublished_changes ? dict.body.reports.draftUnpublished : ""}</p>
           <label className="grid gap-1">{dict.body.reports.assessRoleField}<input value={d.role} onChange={(e) => setD({ ...d, role: e.target.value })} maxLength={80} placeholder={dict.body.reports.roleExample} className={field} /></label>
           <label className="grid gap-1">{dict.body.reports.assessSummary}<textarea value={d.summary} onChange={(e) => setD({ ...d, summary: e.target.value })} maxLength={600} rows={3} className={field} /></label>
           <div className="grid gap-1">{dict.body.reports.assessTraits}

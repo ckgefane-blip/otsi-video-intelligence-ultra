@@ -1,6 +1,6 @@
 "use client";
 /**
- * v3 Phase A.10 (ADR-076): the analysis profile card, on the AI Tools tab of Upload's left panel.
+ * v3 Phase A.10 (ADR-076): the analysis profile card, on the AI Tools tab of Upload's left panel, on the Desktop UI flow layout.
  *   - The profile of the automatic analysis for the next upload or link import (kept in this browser with the other switches, sent with
  *     each upload): Recommended (the server checks the footage first and uses what the check recommends; with Stabilize Video on, never
  *     below High accuracy), or Standard, High accuracy, Ultra-sensitive grassroots.
@@ -10,8 +10,7 @@
  * Only what was recorded or measured; an estimate is labelled as one, and none is shown when the cost could not be measured.
  */
 import { PROFILES, type AnalysisProfile, type QualityAssessment, type UploadProfile, type VideoRights } from "@otsi-vie/contracts";
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { u } from "@/components/stage/DesignStage";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 
@@ -50,9 +49,8 @@ export function estimateText(a: QualityAssessment, p: AnalysisProfile, d?: Uploa
   return `${duration(e.seconds, d)} ${d?.estimateSuffix ?? "on this computer"}${mem} ${d?.estimateTag ?? "(estimate)"}`;
 }
 
-const small: CSSProperties = { fontSize: u(15), color: "#9fb3cc", lineHeight: 1.3, whiteSpace: "normal" };
-
-export function ProfileCard({ y }: { y: number }) {
+/** `y` is the old stage position, kept so existing callers still compile; the flow layout ignores it. */
+export function ProfileCard({ y: _y }: { y?: number } = {}) {
   const { t: dict } = useLocale();
   const d = dict.body.upload;
   const { prefs, setPrefs, say } = usePage02();
@@ -70,29 +68,27 @@ export function ProfileCard({ y }: { y: number }) {
     ["ULTRA_SENSITIVE", PROFILES.ULTRA_SENSITIVE.label, d.ultraWhy],
   ];
   return (
-    <div className="absolute" data-profile-card style={{ left: u(22), top: u(y - 101), width: u(383), padding: `0 ${u(20)}`, boxSizing: "border-box" }}>
-      <h3 style={{ margin: 0, fontSize: u(22), fontWeight: 600 }}>{d.analysisProfile}</h3>
-      <p style={{ ...small, margin: `${u(4)} 0 ${u(8)}` }}>{d.nextUploadDesc}</p>
-      <div role="radiogroup" aria-label={d.analysisProfileNext}>
+    <div data-profile-card>
+      <h3 className="t-panel">{d.analysisProfile}</h3>
+      <p className="t-small mt-0.5">{d.nextUploadDesc}</p>
+      <div role="radiogroup" aria-label={d.analysisProfileNext} className="mt-2 space-y-1.5">
         {choices.map(([k, label, why]) => {
           const on = prefs.profile === k;
           return (
             <button key={k} type="button" role="radio" aria-checked={on} onClick={() => choose(k)} data-profile={k} title={why}
-              style={{ display: "flex", gap: u(10), alignItems: "flex-start", width: "100%", padding: `${u(7)} ${u(8)}`, marginBottom: u(4), textAlign: "left", font: "inherit", color: "inherit",
-                background: on ? "#0a2b55" : "transparent", border: `${u(1.5)} solid ${on ? "#1e90ff" : "#17406f"}`, borderRadius: u(8), cursor: "pointer" }}>
-              <span aria-hidden style={{ flex: "none", marginTop: u(3), width: u(16), height: u(16), borderRadius: "50%", border: `${u(2)} solid ${on ? "#33a8ff" : "#5d7699"}`,
-                boxShadow: on ? `inset 0 0 0 ${u(3)} #071a33` : "none", background: on ? "#33a8ff" : "transparent" }} />
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: u(18), fontWeight: on ? 600 : 400 }}>{label}</span>
-                <span style={{ ...small, display: "block", fontSize: u(14) }}>{why}</span>
+              className={`flex w-full items-start gap-2.5 rounded-ctl border px-2.5 py-2 text-left ${on ? "border-primary bg-primary/5" : "border-line/70"}`}>
+              <span aria-hidden className={`mt-1 h-4 w-4 flex-none rounded-full border-2 ${on ? "border-primary bg-primary" : "border-muted"}`} />
+              <span className="min-w-0">
+                <span className={`block text-sm ${on ? "font-semibold" : ""}`}>{label}</span>
+                <span className="block text-xs text-muted">{why}</span>
               </span>
             </button>
           );
         })}
       </div>
-      {prefs.profile === "RECOMMENDED" && prefs.stabilize && <p style={{ ...small, margin: `${u(2)} 0 0` }}>{d.stabilizeOnNote}</p>}
-      {!prefs.sendToAnalysis && <p style={{ ...small, color: "#ffc66d", margin: `${u(4)} 0 0` }}>{d.sendOffNote}</p>}
-      <div style={{ height: u(1), background: "#12335f", margin: `${u(14)} 0 ${u(10)}` }} />
+      {prefs.profile === "RECOMMENDED" && prefs.stabilize && <p className="t-small mt-1.5">{d.stabilizeOnNote}</p>}
+      {!prefs.sendToAnalysis && <p className="t-small mt-1.5 text-amber">{d.sendOffNote}</p>}
+      <div className="my-3 border-t border-line/60" />
       <ThisVideo key={selected?.id ?? "none"} canWrite={canWrite} />
     </div>
   );
@@ -117,12 +113,11 @@ function RightsLine({ videoId, name, canWrite }: { videoId: string; name: string
   const g = r.grant;
   const uses = g ? useWords(d).filter(([k]) => (g.allowed_uses as string[]).includes(k)).map(([, w]) => w) : [];
   return (
-    <div style={{ ...small, margin: `${u(4)} 0 0` }} data-rights-line={g ? (r.analysis_blocked ? "blocked" : "ok") : "none"}>
-      {g ? <>{d.rightsLabel} <span style={{ color: "#e3eefb" }}>{uses.length ? uses.join(", ") : d.viewOnly}</span>
-          {r.analysis_blocked ? <span style={{ color: "#ffc66d" }}>. {r.analysis_blocked}</span> : null}</>
-        : <><span style={{ color: "#ffc66d" }}>{d.noRights}</span>{" "}
-          {canWrite ? <button type="button" onClick={() => setOpen(true)} data-action="record-rights"
-            style={{ border: 0, padding: 0, background: "transparent", color: "#33a8ff", font: "inherit", cursor: "pointer" }}>{d.recordRights}</button> : d.cannotRecordRights}</>}
+    <div className="t-small mt-1" data-rights-line={g ? (r.analysis_blocked ? "blocked" : "ok") : "none"}>
+      {g ? <>{d.rightsLabel} <span className="text-ink">{uses.length ? uses.join(", ") : d.viewOnly}</span>
+          {r.analysis_blocked ? <span className="text-amber">. {r.analysis_blocked}</span> : null}</>
+        : <><span className="text-amber">{d.noRights}</span>{" "}
+          {canWrite ? <button type="button" onClick={() => setOpen(true)} data-action="record-rights" className="text-primary">{d.recordRights}</button> : d.cannotRecordRights}</>}
       {canWrite && !g && <DeclareRightsDialog videoId={videoId} name={name} open={open} onOpenChange={setOpen}
         onDone={(x) => { setR(x); say(x.analysis_blocked ? d.rightsRecordedBlocked.replace("{blocked}", x.analysis_blocked) : d.rightsRecorded); }} />}
     </div>
@@ -154,7 +149,7 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
     return () => clearInterval(t);
   }, [moving, load]);
 
-  if (!selected) return <p style={small}>{d.chooseVideoCheck}</p>;
+  if (!selected) return <p className="t-small">{d.chooseVideoCheck}</p>;
   const name = selected.title ?? selected.original_filename ?? d.thisVideoTitle;
   const check = async () => {
     setBusy(true);
@@ -166,10 +161,10 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
   const shown: AnalysisProfile | null = used ?? (a?.status === "SUCCEEDED" ? a.recommended_profile : null);
   return (
     <div data-this-video aria-live="polite">
-      <p style={{ margin: 0, fontSize: u(18), fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={name}>{name}</p>
+      <p className="truncate text-sm font-semibold" title={name}>{name}</p>
       {opt && (
-        <p style={{ ...small, margin: `${u(4)} 0 0` }} data-auto-profile={used ?? ""}>
-          {opt.analysis?.outcome === "STARTED" ? <>{d.analysedWith} <b style={{ color: "#e3eefb" }}>{profileLabel(used, d)}</b>{opt.analysis.detail ? `. ${opt.analysis.detail}` : ""}</>
+        <p className="t-small mt-1" data-auto-profile={used ?? ""}>
+          {opt.analysis?.outcome === "STARTED" ? <>{d.analysedWith} <b className="text-ink">{profileLabel(used, d)}</b>{opt.analysis.detail ? `. ${opt.analysis.detail}` : ""}</>
             : opt.analysis?.outcome === "SKIPPED" ? d.notAnalysedAuto.replace("{detail}", opt.analysis.detail ?? d.skippedWord)
             : !opt.send_to_analysis ? d.profileAskedOff.replace("{profile}", profileLabel(opt.analysis_profile, d))
             : waiting ? d.profileAskedWaiting
@@ -177,29 +172,28 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
         </p>
       )}
       <RightsLine videoId={selected.id} name={name} canWrite={canWrite} />
-      <div style={{ marginTop: u(8) }} data-footage-check={a === undefined ? "reading" : a === null ? "none" : a.status}>
-        {failed && <p style={{ ...small, color: "#ff9aa8" }}>{d.checkCouldNotBeRead}</p>}
-        {!failed && a === undefined && <p style={small}>{d.readingCheck}</p>}
-        {!failed && a === null && (selected.state !== "INGESTED" ? <p style={small}>{d.checkOnceVerified}</p> : waiting ? <p style={small}>{d.checkQueued}</p> : (
-          <p style={small}>{d.footageNotChecked}{" "}
-            {canWrite ? <button type="button" disabled={busy} onClick={() => void check()} data-action="check-footage"
-              style={{ border: 0, padding: 0, background: "transparent", color: "#33a8ff", font: "inherit", cursor: "pointer" }}>{busy ? d.starting : d.checkFootage}</button>
+      <div className="mt-2" data-footage-check={a === undefined ? "reading" : a === null ? "none" : a.status}>
+        {failed && <p className="t-small text-danger">{d.checkCouldNotBeRead}</p>}
+        {!failed && a === undefined && <p className="t-small">{d.readingCheck}</p>}
+        {!failed && a === null && (selected.state !== "INGESTED" ? <p className="t-small">{d.checkOnceVerified}</p> : waiting ? <p className="t-small">{d.checkQueued}</p> : (
+          <p className="t-small">{d.footageNotChecked}{" "}
+            {canWrite ? <button type="button" disabled={busy} onClick={() => void check()} data-action="check-footage" className="text-primary disabled:opacity-50">{busy ? d.starting : d.checkFootage}</button>
               : d.cannotStartIt}
             {" "}{d.checkMeasures}</p>
         ))}
-        {a && (a.status === "QUEUED" || a.status === "RUNNING") && <p style={small}>{d.checkingFootage}</p>}
-        {a?.status === "FAILED" && <p style={{ ...small, color: "#ffc66d" }}>{d.checkFailed}{a.failure_code ? ` (${a.failure_code})` : ""}.</p>}
+        {a && (a.status === "QUEUED" || a.status === "RUNNING") && <p className="t-small">{d.checkingFootage}</p>}
+        {a?.status === "FAILED" && <p className="t-small text-amber">{d.checkFailed}{a.failure_code ? ` (${a.failure_code})` : ""}.</p>}
         {a?.status === "SUCCEEDED" && (
           <>
-            <p style={{ ...small, color: "#d6e4f7" }}>{d.checkRecommends} <b>{profileLabel(a.recommended_profile, d)}</b>
+            <p className="t-small text-ink2">{d.checkRecommends} <b>{profileLabel(a.recommended_profile, d)}</b>
               {a.issues.length === 0 ? d.recommendSuffixNone : d.recommendSuffixSome}</p>
             {a.issues.length > 0 && (
-              <ul style={{ ...small, margin: `${u(2)} 0 0`, paddingLeft: u(18) }} aria-label={d.whyLabel}>
+              <ul className="t-small mt-0.5 list-disc pl-4" aria-label={d.whyLabel}>
                 {a.issues.slice(0, 3).map((i) => <li key={i.code} data-issue={i.code}>{i.text}</li>)}
                 {a.issues.length > 3 && <li>{d.andMoreIssues.replace("{n}", String(a.issues.length - 3))}</li>}
               </ul>
             )}
-            {shown && <p style={{ ...small, margin: `${u(6)} 0 0` }} data-estimate>{profileLabel(shown, d)}: {estimateText(a, shown, d) ?? d.noEstimate}</p>}
+            {shown && <p className="t-small mt-1.5" data-estimate>{profileLabel(shown, d)}: {estimateText(a, shown, d) ?? d.noEstimate}</p>}
           </>
         )}
       </div>

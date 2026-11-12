@@ -14,13 +14,12 @@ import { ScoutingPackDialog } from "./ScoutingPackDialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { isUuid } from "@/lib/identity";
 import { Preview, Summary, Workflow } from "./Centre";
 import { useOutbox } from "./Deliver";
-import { Right } from "./Right";
+import { ExportBottom, ExportFooter, Right } from "./Right";
 import { active, ExportProvider, type Codec, type ExportState, type Links, type Preset } from "./state";
 import { typing } from "@/lib/keymap";
 
@@ -158,18 +157,24 @@ export function ExportStage() {
   const outbox = useOutbox(base);
   const state: ExportState = useMemo(() => ({ ...base, outbox }), [base, outbox]);
   return (
-    <DesignStage page="exports" background="#000a16">
+    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4" data-page="exports">
       <ExportProvider value={state}>
-        <Workflow />
-        <Summary />
-        <Preview />
-        <Right />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Workflow />
+            <Summary />
+          </div>
+          <Preview />
+          <Right />
+        </div>
+        <ExportBottom />
+        <ExportFooter />
       </ExportProvider>
       {reel && <ExportPreflight reel={reel} preset={chosen} codec={codec} bitrate={bitrate} upToDate={renderedState(reel).reel.state === "RENDERED"} canWrite={!!organization && WRITERS.includes(organization.role)} open={confirm} onOpenChange={setConfirm} onStart={start} />}
       <PresetLibrary presets={presets} canAdmin={!!organization && ["OWNER", "ADMIN"].includes(organization.role)} canSave={!!organization && WRITERS.includes(organization.role)}
         codec={codec} bitrate={bitrate} open={library} onOpenChange={setLibrary} reload={async () => { await loadPresets(); }} choose={setPreset} />
       <InterchangeDialog reel={reel} presetId={chosen.id} canWrite={!!organization && WRITERS.includes(organization.role)} open={interchange} onOpenChange={setInterchange} />
       <ScoutingPackDialog reel={reel} canWrite={!!organization && WRITERS.includes(organization.role)} open={pack} onOpenChange={setPack} />
-    </DesignStage>
+    </div>
   );
 }

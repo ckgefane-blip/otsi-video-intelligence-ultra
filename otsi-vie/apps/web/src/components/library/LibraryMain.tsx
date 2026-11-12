@@ -1,17 +1,21 @@
 "use client";
 /**
  * Page 09 Sections 01–06 — header and New Project, asset tabs, search and filters, saved searches, the asset table, and its status and
- * collaboration columns (approved reference 09_LIBRARY_PROJECT_CENTER).
+ * collaboration columns (approved reference 09_LIBRARY_PROJECT_CENTER), laid out in the page's flow on the Desktop UI components
+ * instead of the 2560-px DesignStage composition.
  *
  * New Project creates a real project (POST /v1/projects); its menu also offers Upload and Reel Builder. Tab counts, search, filters and
  * the Updated sort run on the real asset list. "Created by" is not recorded on these assets, so that filter has one option. Saved
  * searches are the person's own, kept by the server (GET/POST/DELETE /v1/saved-searches). Per-asset collaborators are not recorded: "—".
+ * Each row's thumbnail is the asset video's real frame (GET /v1/videos/:id/thumbnail) or the honest empty tile; folders and projects
+ * show their icon tile instead. The selection toolbar (Move to folder, Download CSV, Clear) appears when rows are checked.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { B, Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
-import { MoreMenu, copyLink, type MoreItem } from "@/components/stage/MoreMenu";
+import { ArrowUpDown, Check, ChevronDown, Download, FileText, Folder, LayoutGrid, LayoutTemplate, Lock, Plus, Search, Table2, Trash2, User } from "lucide-react";
+import { ActionsMenu } from "@/components/media/ActionsMenu";
+import { copyLink, type MoreItem } from "@/components/stage/MoreMenu";
 import { reelActions, renderActions, videoActions } from "@/lib/actions";
 import { typing } from "@/lib/keymap";
 import { api, ApiProblem } from "@/lib/api";
@@ -19,11 +23,9 @@ import { useLocale, type Dictionary } from "@/lib/i18n";
 import { ArchiveDialog } from "@/components/exportstage/ArchiveBundle";
 import type { ArchiveSubjectKind, LibraryFolder, Match, Member, Reel, RemovableKind, RemovalPreview, SavedSearch, TrashEntry } from "@otsi-vie/contracts";
 import { ITEM_KIND, NO_FILTERS, RANGES, TABS, kindLabel, statusLabel, type Asset, type Filters, type Kind } from "./useLibrary";
+import { AssetThumb } from "./AssetThumb";
 import { LibraryTable, rowsCsv, useLibraryFacts, useLibraryView } from "./LibraryTable";
 
-const Y = [587, 678, 767, 857, 946, 1036, 1125, 1211, 1298, 1385];
-const TAB_GEO: [number, number, number, number][] = [[454, 482, 590, 42], [687, 714, 770, 32], [852, 881, 960, 34], [1048, 1079, 1170, 36], [1247, 1278, 1364, 34],
-  [1441, 1467, 1548, 34], [1617, 1645, 0, 0], [1821, 1847, 1948, 24]];
 export const TY: Record<Kind, [string, string, string]> = {
   Reel: ["#0a2f5a", "#1d6fc0", "#cfe8ff"], Report: ["#2a0f70", "#6a3ff0", "#d6c8ff"], Folder: ["#4a3000", "#f5b82e", "#ffd36a"], Project: ["#3a1440", "#b04ac0", "#f2c8ff"],
   Match: ["#06402a", "#1fc27a", "#9ff0c8"], Export: ["#0a1d38", "#4a6a98", "#e3eefb"], Video: ["#0a2a3a", "#2a8ab0", "#bfefff"], Template: ["#2d1b4e", "#7b3fe4", "#e8d8ff"],
@@ -32,45 +34,41 @@ const ST: Record<Asset["status"], [string, string, string]> = {
   Published: ["#063a2a", "#1a8a5e", "#3ee6a8"], Ready: ["#063a2a", "#1a8a5e", "#3ee6a8"], Draft: ["#1a2840", "#4a5a78", "#dfe8f5"], Archived: ["#1a2840", "#4a5a78", "#dfe8f5"],
   Shared: ["#2a0f60", "#6a3ff0", "#e0d0ff"], Exported: ["#06305a", "#1e6fc0", "#cfe8ff"], Processing: ["#2a0f60", "#6a3ff0", "#e0d0ff"], Failed: ["#3a0f18", "#a83a4a", "#ff9aa8"],
 };
-const field = { border: `${u(1.5)} solid #17406f`, borderRadius: u(8), background: "#041022", boxSizing: "border-box" as const };
-const clock = (us: number | null) => (us ? `${Math.floor(us / 6e7)}:${String(Math.round(us / 1e6) % 60).padStart(2, "0")}` : "—");
 const initials = (n: string) => n.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+const TAB_ICONS = [LayoutGrid, FileText, FileText, LayoutGrid, Folder, Download, User, LayoutTemplate];
 
 /** who is on the item's project (ADR-057): up to three initials, a lock when only they (and Owners / Admins) can see it */
 const people = (a: Asset, d: Dictionary) => !a.project ? d.body.library.noProject : a.project.access === "RESTRICTED"
   ? d.body.library.peopleRestricted.replace("{a}", String(a.project.collaborators.length)).replace("{b}", a.project.collaborators.length === 1 ? d.body.library.personOne : d.body.library.personMany)
   : a.project.collaborators.length ? d.body.library.peopleTeam.replace("{a}", a.project.collaborators.map((c) => c.display_name).join(", ")) : d.body.library.peopleEveryone;
-function Collaborators({ a, y }: { a: Asset; y: number }) {
+function Collaborators({ a }: { a: Asset }) {
   const { t: dict } = useLocale();
-  if (!a.project) return <T x={1372} y={y} size={19} color="#8ea3bf">—</T>;
+  if (!a.project) return <span className="w-24 text-center text-sm text-muted">—</span>;
   const c = a.project.collaborators, locked = a.project.access === "RESTRICTED";
   return (
-    <div className="absolute" title={people(a, dict)} data-collaborators={String(c.length)} data-access={a.project.access}
-      style={{ left: u(1352), top: u(y - 101 - 17), height: u(34), display: "flex", alignItems: "center", gap: u(4), pointerEvents: "auto" }}>
-      {locked && <span aria-hidden style={{ fontSize: u(18), marginRight: u(2) }}>🔒</span>}
+    <span className="flex w-24 items-center justify-center gap-1" title={people(a, dict)} data-collaborators={String(c.length)} data-access={a.project.access}>
+      {locked && <Lock className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />}
       {c.slice(0, 3).map((m) => (
-        <span key={m.user_id} style={{ width: u(32), height: u(32), borderRadius: "50%", background: "#2b5ff0", display: "inline-flex", alignItems: "center", justifyContent: "center",
-          fontSize: u(13), fontWeight: 700, border: `${u(2)} solid #051022`, marginLeft: u(-6) }}>{initials(m.display_name)}</span>
+        <span key={m.user_id} title={m.display_name} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line bg-primary text-xs font-semibold text-white">{initials(m.display_name)}</span>
       ))}
-      {c.length > 3 && <span style={{ fontSize: u(15), color: "#cfe0f5", marginLeft: u(2) }}>+{c.length - 3}</span>}
-      {!c.length && <span style={{ fontSize: u(17), color: "#8ea3bf" }}>{locked ? dict.body.library.ownersAdmins : dict.body.library.everyone}</span>}
-    </div>
+      {c.length > 3 && <span className="text-xs text-ink">+{c.length - 3}</span>}
+      {!c.length && <span className="text-xs text-muted">{locked ? dict.body.library.ownersAdmins : dict.body.library.everyone}</span>}
+    </span>
   );
 }
 
-/** always opens; an option with a third entry (the reason) is listed greyed and cannot be chosen */
-function FilterBox<V extends string>({ x, w, label, value, options, onChange, size = 20 }:
-  { x: number; w: number; label: string; value: V; options: ([V, string] | [V, string, string])[]; onChange: (v: V) => void; size?: number }) {
+/** a filter: a labelled native select; an option with a reason is listed greyed and cannot be chosen */
+function FilterBox<V extends string>({ label, value, options, onChange }: {
+  label: string; value: V; options: ([V, string] | [V, string, string])[]; onChange: (v: V) => void;
+}) {
   return (
-    <div className="absolute" style={{ left: u(x), top: u(322 - 101), width: u(w), height: u(70), ...field }}>
-      <T o={[x + 1.5, 323.5]} x={x + 20} y={344} size={17} color="#8ea3bf" as="span">{label}</T>
-      <T o={[x + 1.5, 323.5]} x={x + 20} y={370} size={size} color="#e3eefb" as="span" style={{ maxWidth: u(w - 50), overflow: "hidden", textOverflow: "ellipsis" }}>{options.find((o) => o[0] === value)?.[1] ?? ""}</T>
-      <Ic o={[x + 1.5, 323.5]} x={x + w - 22} y={357} k="chev" size={18} />
+    <label className="flex min-w-[140px] flex-col gap-1 text-xs text-muted">
+      <span>{label}</span>
       <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value as V)}
-        style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
+        className="rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm text-ink">
         {options.map(([v, l, why]) => <option key={v} value={v} disabled={!!why}>{why ? `${l} — ${why}` : l}</option>)}
       </select>
-    </div>
+    </label>
   );
 }
 
@@ -262,7 +260,7 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
                       {dict.body.library.trashDeleted.replace("{a}", new Date(t.deleted_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })).replace("{b}", t.deleted_by ? dict.body.library.trashDeletedBy.replace("{a}", t.deleted_by) : "")}
                       {withText(t) ? dict.body.library.trashWith.replace("{a}", withText(t)) : ""}
                       {t.days_remaining !== undefined && t.days_remaining !== null ? (
-                        <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-mono ${t.days_remaining === 0 ? "bg-amber/20 text-amber font-semibold" : "bg-panel border border-line text-muted"}`}>
+                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium tabular-nums ${t.days_remaining === 0 ? "bg-amber/20 text-amber font-semibold" : "bg-panel border border-line text-muted"}`}>
                           · {t.days_remaining === 0 ? dict.body.library.trashEligiblePurge : dict.body.library.trashDaysLeft.replace("{a}", String(t.days_remaining))}
                         </span>
                       ) : null}
@@ -362,69 +360,52 @@ function assetActions(a: Asset, details: () => void, del: MoreItem, move: MoreIt
 }
 
 /** one card row (memoised: typing in search or opening a dialog re-renders LibraryMain, not every row) */
-const AssetRow = memo(function AssetRow({ a, y, i, sel, on, canWrite, folder, folders, select, setFolder, toggleChecked, setDeleting, setMoving, setArchiving }: {
-  a: Asset; y: number; i: number; sel: boolean; on: boolean; canWrite: boolean; folder: string | null; folders: LibraryFolder[];
+const AssetRow = memo(function AssetRow({ a, sel, on, canWrite, folder, folders, select, setFolder, toggleChecked, setDeleting, setMoving, setArchiving }: {
+  a: Asset; sel: boolean; on: boolean; canWrite: boolean; folder: string | null; folders: LibraryFolder[];
   select: (k: string | null) => void; setFolder: (id: string | null) => void; toggleChecked: (key: string, wasOn: boolean) => void;
   setDeleting: (t: (DeleteTarget & { key: string }) | null) => void; setMoving: (t: MoveTarget | null) => void;
   setArchiving: (t: { kind: ArchiveSubjectKind; id: string; title: string } | null) => void;
 }) {
   const { t: dict } = useLocale();
   const ty = TY[a.kind];
+  const st = ST[a.status];
   const items = useMemo(() => assetActions(a, () => select(a.key),
     deleteItem(a, canWrite, (t) => setDeleting({ ...t, key: a.key }), dict), moveItem(a, canWrite, setMoving, dict), archiveItem(a, setArchiving, dict),
     (id) => { select(null); setFolder(id); }, dict),
     [a, canWrite, select, setFolder, setDeleting, setMoving, setArchiving, dict]);
+  const open = () => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(sel ? null : a.key));
   return (
-    <div data-asset={a.kind} data-id={a.id}>
-      {sel && <B x={425} y={y - 44} w={1558} h={91} style={{ background: "#04264a", border: `${u(2.5)} solid #1e90ff`, borderRadius: u(8) }} />}
-      <button type="button" aria-label={a.kind === "Folder" ? dict.body.library.rowOpenFolder.replace("{a}", a.title) : dict.body.library.rowTitle.replace("{a}", a.title).replace("{b}", kindLabel(a.kind, dict)).replace("{c}", statusLabel(a.status, dict))} aria-pressed={sel}
-        onClick={() => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(sel ? null : a.key))} className="absolute"
-        style={{ left: u(490), top: u(y - 44 - 101), width: u(1250), height: u(88), padding: 0, border: 0, background: "transparent", cursor: "pointer" }} />
+    <div data-asset={a.kind} data-id={a.id}
+      className={`flex flex-wrap items-center gap-3 rounded-lg border px-2 py-2 ${sel ? "border-primary bg-[#04264a]" : "border-line/60 bg-panel"}`}>
       <button type="button" role="checkbox" aria-checked={on} aria-label={dict.body.library.rowSelect.replace("{a}", a.title)} onClick={() => toggleChecked(a.key, on)}
-        className="absolute" style={{ left: u(448), top: u(y - 12 - 101), width: u(26), height: u(26), padding: 0, borderRadius: u(5), border: on ? 0 : `${u(2)} solid #cfe0f5`, background: on ? "#1e90ff" : "transparent", cursor: "pointer" }}>
-        {on && <Ic o={[448, y - 12]} x={461} y={y + 1} k="chk" size={18} />}
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${on ? "border-primary bg-primary text-white" : "border-line bg-transparent text-ink"}`}>
+        {on && <Check className="h-4 w-4" aria-hidden />}
       </button>
-      {a.kind === "Folder" || a.kind === "Project" ? (
-        <>
-          <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none", background: ty[0], border: `${u(1.5)} solid ${ty[1]}` }} />
-          <Ic x={575} y={y} k={a.kind === "Folder" ? "fold" : "grid"} size={34} color={ty[2]} />
-        </>
-      ) : (
-        <>
-          <B x={504} y={y - 32} w={143} h={64} style={{ borderRadius: u(4), pointerEvents: "none",
-            background: `radial-gradient(ellipse at 40% 70%,#6fb8ee 0,#2a6fb8 12%,transparent 13%),linear-gradient(180deg,#27487a,#2d7a3a ${30 + i * 6}%,#1d5a28)` }} />
-          <B x={588} y={y + 10} w={56} h={22} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4), pointerEvents: "none" }} />
-          <T x={612} y={y + 21} size={19} weight={600} align="center">{clock(a.durationUs)}</T>
-        </>
-      )}
-      <T x={668} y={y - 14} size={22} weight={700} style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.title}</T>
-      <T x={668} y={y + 19} size={19} color="#9fb3cc" style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none" }}>{a.sub}{!folder && a.folderId ? dict.body.library.rowInFolder.replace("{a}", folders.find((x) => x.id === a.folderId)?.name ?? dict.body.library.aFolder) : ""}</T>
-      <B x={1016} y={y - 20} w={a.kind === "Reel" ? 75 : a.kind === "Project" ? 100 : 91} h={40} style={{ background: ty[0], border: `${u(1.5)} solid ${ty[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
-      <T x={1016 + (a.kind === "Reel" ? 37 : a.kind === "Project" ? 50 : 45)} y={y} size={20} color={ty[2]} align="center">{kindLabel(a.kind, dict)}</T>
+      <button type="button" aria-label={a.kind === "Folder" ? dict.body.library.rowOpenFolder.replace("{a}", a.title) : dict.body.library.rowTitle.replace("{a}", a.title).replace("{b}", kindLabel(a.kind, dict)).replace("{c}", statusLabel(a.status, dict))} aria-pressed={sel}
+        onClick={open} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        {a.kind === "Folder" || a.kind === "Project" ? (
+          <span className="grid h-[54px] w-[96px] shrink-0 place-items-center rounded border" style={{ background: ty[0], borderColor: ty[1] }}>
+            {a.kind === "Folder" ? <Folder className="h-6 w-6" style={{ color: ty[2] }} aria-hidden /> : <LayoutGrid className="h-6 w-6" style={{ color: ty[2] }} aria-hidden />}
+          </span>
+        ) : <AssetThumb a={a} />}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{a.title}</span>
+          <span className="block truncate text-xs text-muted">{a.sub}{!folder && a.folderId ? dict.body.library.rowInFolder.replace("{a}", folders.find((x) => x.id === a.folderId)?.name ?? dict.body.library.aFolder) : ""}</span>
+        </span>
+      </button>
+      <span className="rounded-md border px-2 py-1 text-xs font-semibold" style={{ background: ty[0], borderColor: ty[1], color: ty[2] }}>{kindLabel(a.kind, dict)}</span>
       {a.player ? (
-        <>
-          <B x={1150} y={y - 26} w={52} h={52} style={{ borderRadius: "50%", background: "#2b5ff0", border: `${u(2)} solid #6a7a98`, pointerEvents: "none" }} />
-          <T x={1176} y={y} size={18} weight={700} align="center">{initials(a.player)}</T>
-        </>
-      ) : <T x={1176} y={y} size={19} color="#8ea3bf" align="center">—</T>}
-      <T x={1575} y={y - 9} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</T>
-      <T x={1575} y={y + 19} size={19} color="#b9cbe2">{a.updated ? new Date(a.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}</T>
-      <MoreMenu x={1946} y={y} k="hdots" size={26} w={40} h={40} label={dict.body.library.moreFor.replace("{a}", a.title)} items={items} />
-    </div>
-  );
-});
-
-/** one row's status and collaboration (section p09-s06, memoised with its row) */
-const AssetStatus = memo(function AssetStatus({ a, y }: { a: Asset; y: number }) {
-  const { t: dict } = useLocale();
-  const st = ST[a.status];
-  return (
-    <div role="group" aria-label={`${a.title}: ${statusLabel(a.status, dict)}, ${people(a, dict)}`}>
-      <Collaborators a={a} y={y} />
-      <B x={1756} y={y - 20} w={136} h={40} style={{ background: st[0], border: `${u(1.5)} solid ${st[1]}`, borderRadius: u(6), pointerEvents: "none" }} />
-      <B x={1769} y={y - 9} w={20} h={20} style={{ background: st[2], borderRadius: "50%", pointerEvents: "none" }} />
-      <Ic x={1779} y={y + 1} k="chk" size={12} color={st[0]} />
-      <T x={1805} y={y} size={19} color={st[2]}>{statusLabel(a.status, dict)}</T>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white" title={a.player}>{initials(a.player)}</span>
+      ) : <span className="w-8 text-center text-sm text-muted">—</span>}
+      <Collaborators a={a} />
+      <span className="w-24 shrink-0 text-xs text-muted">
+        <span className="block">{a.updated ? new Date(a.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
+        <span className="block">{a.updated ? new Date(a.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+      </span>
+      <span className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold" style={{ background: st[0], borderColor: st[1], color: st[2] }}>
+        <Check className="h-3 w-3" aria-hidden />{statusLabel(a.status, dict)}
+      </span>
+      <ActionsMenu label={dict.body.library.moreFor.replace("{a}", a.title)} items={items} />
     </div>
   );
 });
@@ -496,175 +477,162 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
     catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.library.createProjectFailed); }
   };
   const onRow = useCallback((a: Asset) => (a.kind === "Folder" ? (select(null), setFolder(a.id)) : select(a.key === selected ? null : a.key)), [select, setFolder, selected]);
-  const ai = TAB_GEO[tab]!, nextIcon = TAB_GEO[tab + 1]?.[0] ?? 1984;
 
   return (
-    <>
-      <section aria-label={dict.body.library.headerAria} data-section="p09-s01">
-        <T x={448} y={149} size={46} weight={700} as="h1">{dict.body.library.headerTitle}</T>
-        {openFolder ? (
-          <div className="absolute" style={{ left: u(449), top: u(178 - 101), height: u(32), display: "flex", alignItems: "center", gap: u(10), fontSize: u(22) }}>
-            <button type="button" onClick={() => setFolder(null)} style={{ background: "transparent", border: 0, padding: 0, color: "#33a8ff", font: "inherit", cursor: "pointer" }}>{dict.body.library.allAssets}</button>
-            <span style={{ color: "#5d7699" }}>›</span>
-            <span data-open-folder={openFolder.id} style={{ color: "#ffd36a", fontWeight: 600 }}>{dict.body.library.openFolderCrumb.replace("{a}", openFolder.name)}</span>
-            <span style={{ color: "#9fb3cc" }}>· {openFolder.item_count === 1 ? dict.body.library.openFolderItemsOne : dict.body.library.openFolderItemsMany.replace("{a}", String(openFolder.item_count))}</span>
-          </div>
-        ) : (
-          <T x={449} y={193} size={22} color="#9fb3cc">{dict.body.library.headerSubtitle}</T>
-        )}
-        <button type="button" aria-disabled={!canWrite || undefined} title={canWrite ? dict.body.library.createProjectTitle : dict.body.library.createProjectRoleTitle}
-          onClick={() => (canWrite ? setCreating(true) : say(dict.body.library.createProjectRoleSay))} className="absolute"
-          style={{ left: u(1714), top: u(132 - 101), width: u(206), height: u(63), border: 0, padding: 0, borderRadius: `${u(8)} 0 0 ${u(8)}`, background: "#0a84ff", color: "#fff", font: "inherit", cursor: "pointer" }}>
-          <Ic o={[1714, 132]} x={1755} y={164} k="plus" size={26} />
-          <T o={[1714, 132]} x={1786} y={164} size={24} weight={600} as="span">{dict.body.library.newProject}</T>
-        </button>
-        <button type="button" aria-label={dict.body.library.moreWaysToAdd} aria-expanded={menu} onClick={() => setMenu((m) => !m)} className="absolute"
-          style={{ left: u(1920), top: u(132 - 101), width: u(50), height: u(63), border: 0, padding: 0, borderRadius: `0 ${u(8)} ${u(8)} 0`, background: "#0a84ff", cursor: "pointer" }}>
-          <Ic o={[1920, 132]} x={1941} y={164} k="chev" size={22} />
-        </button>
-        {menu && (
-          <nav aria-label={dict.body.library.addNavAria} className="absolute" style={{ left: u(1714), top: u(200 - 101), width: u(256), zIndex: 6, background: "#081a35", border: `${u(1.5)} solid #1d4f8a`,
-            borderRadius: u(8), padding: u(6), display: "flex", flexDirection: "column", fontSize: u(19) }}>
-            <button type="button" onClick={() => { setMenu(false); if (canWrite) setNewFolder(true); else say(dict.body.library.newFolderRoleSay); }}
-              style={{ padding: u(8), color: "#e3eefb", background: "transparent", border: 0, textAlign: "left", font: "inherit", cursor: "pointer" }}>{dict.body.library.newFolder}</button>
-            <Link href="/upload" style={{ padding: u(8), color: "#e3eefb" }}>{dict.body.library.uploadVideo}</Link>
-            <Link href="/reels" style={{ padding: u(8), color: "#e3eefb" }}>{dict.body.library.makeReel}</Link>
-          </nav>
-        )}
+    <div className="flex min-w-0 flex-col gap-4">
+      <section aria-label={dict.body.library.headerAria} data-section="p09-s01" className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-base font-semibold">{dict.body.library.headerTitle}</h1>
+          {openFolder ? (
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+              <button type="button" onClick={() => setFolder(null)} className="text-primary hover:underline">{dict.body.library.allAssets}</button>
+              <span className="text-muted">›</span>
+              <span data-open-folder={openFolder.id} className="font-semibold text-amber">{dict.body.library.openFolderCrumb.replace("{a}", openFolder.name)}</span>
+              <span className="text-muted">· {openFolder.item_count === 1 ? dict.body.library.openFolderItemsOne : dict.body.library.openFolderItemsMany.replace("{a}", String(openFolder.item_count))}</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">{dict.body.library.headerSubtitle}</p>
+          )}
+        </div>
+        <div className="relative flex shrink-0">
+          <button type="button" aria-disabled={!canWrite || undefined} title={canWrite ? dict.body.library.createProjectTitle : dict.body.library.createProjectRoleTitle}
+            onClick={() => (canWrite ? setCreating(true) : say(dict.body.library.createProjectRoleSay))}
+            className="vie-btn vie-btn-pri rounded-r-none">
+            <Plus className="h-4 w-4" aria-hidden />{dict.body.library.newProject}
+          </button>
+          <button type="button" aria-label={dict.body.library.moreWaysToAdd} aria-expanded={menu} onClick={() => setMenu((m) => !m)}
+            className="t-button inline-flex items-center justify-center gap-2 h-9 rounded-l-none border border-primary border-l-white/20 bg-primary px-2">
+            <ChevronDown className="h-4 w-4" aria-hidden />
+          </button>
+          {menu && (
+            <nav aria-label={dict.body.library.addNavAria} className="absolute right-0 top-full z-30 mt-1 w-64 rounded-md border border-line2 bg-panel p-1 shadow-xl">
+              <button type="button" onClick={() => { setMenu(false); if (canWrite) setNewFolder(true); else say(dict.body.library.newFolderRoleSay); }}
+                className="block w-full rounded px-2.5 py-1.5 text-left text-sm hover:bg-raised">{dict.body.library.newFolder}</button>
+              <Link href="/upload" onClick={() => setMenu(false)} className="block rounded px-2.5 py-1.5 text-sm hover:bg-raised">{dict.body.library.uploadVideo}</Link>
+              <Link href="/reels" onClick={() => setMenu(false)} className="block rounded px-2.5 py-1.5 text-sm hover:bg-raised">{dict.body.library.makeReel}</Link>
+            </nav>
+          )}
+        </div>
       </section>
 
       <section aria-label={dict.body.library.tabsAria} data-section="p09-s02">
-        <B x={ai[0] - 29} y={240} w={nextIcon - ai[0] - 12} h={60} style={{ background: "#0a2b55", borderBottom: `${u(3)} solid #1e90ff`, borderRadius: `${u(8)} ${u(8)} 0 0` }} />
-        <div role="tablist" aria-label={dict.body.library.assetTypesAria}>
-          {TABS.map(([icon], i) => {
+        <div role="tablist" aria-label={dict.body.library.assetTypesAria} className="flex flex-wrap gap-1 border-b border-line">
+          {TABS.map(([, ,], i) => {
             const label = TAB_LABELS[i]!;
-            const [ix, tx, cx, cw] = TAB_GEO[i]!, on = tab === i, n = counts[i]!, w = Math.max(cw, 14 + String(n).length * 11);
+            const Icon = TAB_ICONS[i]!;
+            const on = tab === i, n = counts[i]!;
             return (
-              <button key={label} type="button" role="tab" aria-selected={on} aria-label={dict.body.library.tabCountAria.replace("{a}", label).replace("{b}", String(n))} onClick={() => setTab(i)} className="absolute"
-                style={{ left: u(ix - 20), top: u(244 - 101), width: u((cx ? cx + w : tx + label.length * 11) - ix + 24), height: u(50), border: 0, padding: 0, background: "transparent", cursor: "pointer", color: "inherit", font: "inherit" }}>
-                <Ic o={[ix - 20, 244]} x={ix} y={268} k={icon} size={28} color={on ? "#33a8ff" : "#cfe0f5"} />
-                <T o={[ix - 20, 244]} x={tx} y={268} size={22} weight={on ? 600 : 400} color={on ? "#33a8ff" : "#cfe0f5"} as="span">{label}</T>
-                {cw > 0 && (
-                  <>
-                    <B o={[ix - 20, 244]} x={cx} y={253} w={w} h={30} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6) }} />
-                    <T o={[ix - 20, 244]} x={cx + w / 2} y={268} size={19} weight={on ? 700 : 400} align="center" as="span">{n}</T>
-                  </>
-                )}
+              <button key={label} type="button" role="tab" aria-selected={on} aria-label={dict.body.library.tabCountAria.replace("{a}", label).replace("{b}", String(n))} onClick={() => setTab(i)}
+                className={`flex items-center gap-1.5 rounded-t-md border-b-2 px-3 py-2 text-sm ${on ? "border-primary font-semibold text-primary" : "border-transparent text-ink hover:bg-raised"}`}>
+                <Icon className="h-4 w-4" aria-hidden />
+                <span>{label}</span>
+                {i !== 6 && <span className="rounded-md border border-line bg-raised px-1.5 text-xs text-muted">{n}</span>}
               </button>
             );
           })}
         </div>
-        <B x={425} y={303} w={1547} h={1} style={{ background: "#12335f" }} />
       </section>
 
-      <section aria-label={dict.body.library.searchFiltersAria} data-section="p09-s03">
-        <label className="absolute" style={{ left: u(425), top: u(326 - 101), width: u(443), height: u(62), ...field }}>
-          <Ic o={[426.5, 327.5]} x={458} y={356} k="srch" size={28} color="#cfe0f5" />
+      <section aria-label={dict.body.library.searchFiltersAria} data-section="p09-s03" className="flex flex-wrap items-end gap-2">
+        <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm">
+          <Search className="h-4 w-4 shrink-0 text-muted" aria-hidden />
           <input value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder={dict.body.library.searchLibrary} aria-label={dict.body.library.searchLibraryAria}
-            style={{ position: "absolute", left: u(487 - 426.5), top: 0, width: u(370), height: "100%", background: "transparent", border: 0, outline: "none", color: "#e3eefb", fontSize: u(20), fontFamily: "inherit" }} />
+            className="w-full bg-transparent text-ink outline-none placeholder:text-muted" />
         </label>
-        <FilterBox x={883} w={142} label={dict.body.library.filterType} value={f.type} onChange={(v) => setF({ ...f, type: v })}
+        <FilterBox label={dict.body.library.filterType} value={f.type} onChange={(v) => setF({ ...f, type: v })}
           options={[["all", dict.body.library.filterAllTypes], ...(["Reel", "Match", "Folder", "Project", "Export", "Video"] as Kind[]).map((k) => [k, KIND_PLURAL[k]] as [Kind, string])]} />
-        <FilterBox x={1036} w={201} label={dict.body.library.competition} size={19} value={f.competition} onChange={(v) => setF({ ...f, competition: v })}
+        <FilterBox label={dict.body.library.competition} value={f.competition} onChange={(v) => setF({ ...f, competition: v })}
           options={[["all", dict.body.library.filterAllCompetitions], ...(competitions.length ? competitions.map((c) => [c, c] as [string, string]) : [["none", dict.body.library.filterCompetitionsNone, dict.body.library.filterCompetitionsNoneWhy] as [string, string, string]])]} />
-        <FilterBox x={1249} w={202} label={dict.body.library.filterTeam} value={f.team} onChange={(v) => setF({ ...f, team: v })} options={[["all", dict.body.library.filterAllTeams], ...(teams.length ? teams.map((t) => [t, t] as [string, string]) : [["none", dict.body.library.filterTeamsNone, dict.body.library.filterTeamsNoneWhy] as [string, string, string]])]} />
-        <FilterBox x={1462} w={176} label={dict.body.library.createdBy} value={f.creator} onChange={(v) => setF({ ...f, creator: v })}
+        <FilterBox label={dict.body.library.filterTeam} value={f.team} onChange={(v) => setF({ ...f, team: v })} options={[["all", dict.body.library.filterAllTeams], ...(teams.length ? teams.map((t) => [t, t] as [string, string]) : [["none", dict.body.library.filterTeamsNone, dict.body.library.filterTeamsNoneWhy] as [string, string, string]])]} />
+        <FilterBox label={dict.body.library.createdBy} value={f.creator} onChange={(v) => setF({ ...f, creator: v })}
           options={[["any", dict.body.library.filterAnyUser], ...(me && creators.some((m) => m.user_id === me) ? [[me, dict.body.library.filterMe] as [string, string]] : []),
             ...creators.filter((m) => m.user_id !== me).map((m) => [m.user_id, m.display_name] as [string, string]),
             ...(creators.length ? [] : [["none", dict.body.library.filterMembersNone, dict.body.library.filterMembersNoneWhy] as [string, string, string]])]} />
-        <FilterBox x={1649} w={214} label={dict.body.library.filterDateRange} value={f.range} onChange={(v) => setF({ ...f, range: v })} options={RANGES.map(([v]) => [v, RANGE_LABEL[v]!] as [string, string])} />
-        <button type="button" aria-disabled={!filtered || undefined} onClick={() => (filtered ? setF(NO_FILTERS) : say(dict.body.library.sayNoFilters))} className="absolute"
-          style={{ left: u(1885), top: u(356 - 101 - 14), height: u(28), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(20), fontFamily: "inherit", cursor: "pointer", opacity: filtered ? 1 : 0.6, whiteSpace: "nowrap" }}>{dict.body.library.clearFilters}</button>
+        <FilterBox label={dict.body.library.filterDateRange} value={f.range} onChange={(v) => setF({ ...f, range: v })} options={RANGES.map(([v]) => [v, RANGE_LABEL[v]!] as [string, string])} />
+        <button type="button" aria-disabled={!filtered || undefined} onClick={() => (filtered ? setF(NO_FILTERS) : say(dict.body.library.sayNoFilters))}
+          className="px-1 py-1.5 text-sm text-primary hover:underline disabled:opacity-60">{dict.body.library.clearFilters}</button>
       </section>
 
-      <section aria-label={dict.body.library.savedSearchesAria} data-section="p09-s04">
-        <T x={431} y={436} size={19} color="#cfe0f5" as="h2">{dict.body.library.savedSearchesHeading}</T>
-        {saved.length === 0 ? <T x={578} y={438} size={19} color="#8ea3bf">{dict.body.library.noSavedSearches}</T> : (
-          <ul aria-label={dict.body.library.savedSearchesAriaList} className="absolute" style={{ left: u(578), top: u(420 - 101), width: u(930), height: u(36), margin: 0, padding: 0, listStyle: "none", display: "flex", gap: u(8), overflow: "hidden" }}>
+      <section aria-label={dict.body.library.savedSearchesAria} data-section="p09-s04" className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm text-ink">{dict.body.library.savedSearchesHeading}</h2>
+        {saved.length === 0 ? <span className="text-sm text-muted">{dict.body.library.noSavedSearches}</span> : (
+          <ul aria-label={dict.body.library.savedSearchesAriaList} className="flex flex-wrap gap-1.5">
             {saved.map((sv) => (
-              <li key={sv.id} style={{ display: "flex", alignItems: "center", gap: u(6), padding: `0 ${u(10)}`, borderRadius: u(6), background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, fontSize: u(17), whiteSpace: "nowrap" }}>
-                <button type="button" onClick={() => open(sv)} style={{ background: "transparent", border: 0, color: "#e3eefb", cursor: "pointer", font: "inherit", padding: 0 }}>{sv.name}</button>
-                <button type="button" aria-label={dict.body.library.deleteSavedSearch.replace("{a}", sv.name)} onClick={() => dropSearch(sv.id)} style={{ background: "transparent", border: 0, color: "#8ea3bf", cursor: "pointer", padding: 0, font: "inherit" }}>×</button>
+              <li key={sv.id} className="flex items-center gap-1 rounded-md border border-line bg-raised px-2 py-1 text-sm">
+                <button type="button" onClick={() => open(sv)} className="hover:underline">{sv.name}</button>
+                <button type="button" aria-label={dict.body.library.deleteSavedSearch.replace("{a}", sv.name)} onClick={() => dropSearch(sv.id)} className="px-0.5 text-muted hover:text-ink">×</button>
               </li>
             ))}
           </ul>
         )}
-        <button type="button" onClick={() => setTrash(true)} title={dict.body.library.trashBtnTitle} className={`${s.a} ${s.framed}`}
-          style={{ left: u(1522), top: u(417 - 101), width: u(124), height: u(42), background: "#08203f", borderRadius: u(8), ["--bc" as string]: "#17406f",
-            border: 0, padding: 0, color: "inherit", font: "inherit", cursor: "pointer" }}>
-          <Ic o={[1522, 417]} x={1546} y={438} k="trash" size={22} color="#cfe0f5" />
-          <T o={[1522, 417]} x={1568} y={438} size={19} color="#cfe0f5" as="span">{dict.body.library.trash}</T>
+        <span className="flex-1" />
+        <button type="button" onClick={() => setTrash(true)} title={dict.body.library.trashBtnTitle} className="vie-btn vie-btn-sm">
+          <Trash2 className="h-4 w-4" aria-hidden />{dict.body.library.trash}
         </button>
         <button type="button" aria-disabled={(!filtered && tab === 0) || undefined} title={dict.body.library.saveSearchTitle}
           onClick={() => (!filtered && tab === 0) ? say(dict.body.library.saveSearchNothing) : saveSearch((f.q.trim() || `${TAB_LABELS[tab]!}${filtered ? dict.body.library.saveSearchFiltered : ""}`).slice(0, 120))}
-          className={`${s.a} ${s.framed}`} style={{ left: u(1658), top: u(417 - 101), width: u(228), height: u(42), background: "#08203f", borderRadius: u(8), ["--bc" as string]: "#17406f",
-            border: 0, padding: 0, color: "inherit", font: "inherit", cursor: "pointer", opacity: !filtered && tab === 0 ? 0.6 : 1 }}>
-          <Ic o={[1658, 417]} x={1684} y={438} k="plus" size={22} color="#33a8ff" />
-          <T o={[1658, 417]} x={1708} y={438} size={19} color="#33a8ff" as="span">{dict.body.library.saveSearch}</T>
+          className="t-button inline-flex items-center gap-2 h-[30px] rounded-ctl border border-line2 bg-raised px-2.5 text-primary disabled:opacity-60">
+          <Plus className="h-4 w-4" aria-hidden />{dict.body.library.saveSearch}
         </button>
-      </section>
-
-      <section aria-label={dict.body.library.mainTableAria} data-section="p09-s05" data-rows={String(shown.length)}>
-        <B x={425} y={481} w={1558} h={946} style={{ background: "rgba(5,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
-        <div role="radiogroup" aria-label={dict.body.library.showAsAria} className="absolute" style={{ left: u(1896), top: u(417 - 101), display: "flex", gap: u(4) }}>
-          {([["cards", "▤", dict.body.library.viewCardsTitle], ["table", "☷", dict.body.library.viewTableTitle]] as const).map(([v, ic, t]) => (
+        <div role="radiogroup" aria-label={dict.body.library.showAsAria} className="flex gap-1">
+          {([["cards", LayoutGrid, dict.body.library.viewCardsTitle], ["table", Table2, dict.body.library.viewTableTitle]] as const).map(([v, Icon, t]) => (
             <button key={v} type="button" role="radio" aria-checked={view === v} aria-label={t} title={t} data-view={v} onClick={() => setView(v)}
-              style={{ width: u(42), height: u(42), borderRadius: u(8), border: `${u(1.5)} solid ${view === v ? "#1e90ff" : "#17406f"}`, background: view === v ? "#0d3a78" : "#08203f",
-                color: "#cfe0f5", fontSize: u(22), cursor: "pointer", padding: 0 }}>{ic}</button>
+              className={`vie-ib ${view === v ? "border-primary bg-raised" : ""}`}><Icon className="h-4 w-4" aria-hidden /></button>
           ))}
         </div>
+      </section>
+
+      <section aria-label={dict.body.library.mainTableAria} data-section="p09-s05" data-rows={String(shown.length)} className="vie-panel">
         {view === "table" && all ? (
-          <LibraryTable rows={rows} all={all} facts={facts} checked={checked} setChecked={setChecked} selected={selected}
-            onRow={onRow} />
-        ) : (<>
-        <button type="button" role="checkbox" aria-checked={allChecked} aria-label={dict.body.library.selectAllAria}
-          onClick={() => !rows.length ? say(dict.body.library.sayNoRows) : setChecked(allChecked ? new Set() : new Set(rows.map((a) => a.key)))} className="absolute"
-          style={{ left: u(447), top: u(500 - 101), width: u(26), height: u(26), padding: 0, borderRadius: u(5), border: allChecked ? 0 : `${u(2)} solid #cfe0f5`, background: allChecked ? "#1e90ff" : "transparent", cursor: "pointer" }}>
-          {allChecked && <Ic o={[447, 500]} x={460} y={513} k="chk" size={18} />}
-        </button>
-        {([[dict.body.library.colThumbTitle, 503, 514], [dict.body.library.colType, 1023, 512], [dict.body.library.colPlayers, 1157, 513], [dict.body.library.colCollaborators, 1352, 513], [dict.body.library.colUpdated, 1573, 514], [dict.body.library.colStatus, 1758, 514]] as const).map(([l, x, y]) => (
-          <T key={l} x={x} y={y} size={19} color="#cfe0f5">{l}</T>
-        ))}
-        <button type="button" aria-label={desc ? dict.body.library.sortOldest : dict.body.library.sortNewest} onClick={() => setDesc(!desc)} className="absolute"
-          style={{ left: u(1650), top: u(502 - 101), width: u(24), height: u(24), padding: 0, border: 0, background: "transparent", cursor: "pointer", transform: desc ? undefined : "scaleY(-1)" }}>
-          <Ic o={[1650, 502]} x={1662} y={514} k="sort" size={22} color="#33a8ff" />
-        </button>
-        {Y.slice(0, 9).map((y) => <B key={y} x={427} y={y + 45} w={1554} h={1} style={{ background: "#10294a" }} />)}
-        {all === undefined && (
-          <T x={1204} y={587} size={20} color="#8ea3bf" align="center"><span role="status">{dict.body.library.loadingLibrary}</span></T>
+          <LibraryTable rows={rows} all={all} facts={facts} checked={checked} setChecked={setChecked} selected={selected} onRow={onRow} />
+        ) : (
+          <div className="flex flex-col gap-1 p-2">
+            <div className="flex flex-wrap items-center gap-3 px-1 py-1 text-xs font-semibold text-muted">
+              <button type="button" role="checkbox" aria-checked={allChecked} aria-label={dict.body.library.selectAllAria}
+                onClick={() => !rows.length ? say(dict.body.library.sayNoRows) : setChecked(allChecked ? new Set() : new Set(rows.map((a) => a.key)))}
+                className={`flex h-5 w-5 items-center justify-center rounded border ${allChecked ? "border-primary bg-primary text-white" : "border-line bg-transparent"}`}>
+                {allChecked && <Check className="h-3.5 w-3.5" aria-hidden />}
+              </button>
+              <span className="w-[96px] shrink-0">{dict.body.library.colThumbTitle}</span>
+              <span className="min-w-0 flex-1">{dict.body.library.colType}</span>
+              <span className="hidden w-24 justify-center md:flex">{dict.body.library.colPlayers}</span>
+              <span className="hidden w-24 justify-center lg:flex">{dict.body.library.colCollaborators}</span>
+              <button type="button" aria-label={desc ? dict.body.library.sortOldest : dict.body.library.sortNewest} onClick={() => setDesc(!desc)}
+                className="flex items-center gap-1 text-primary hover:underline">
+                {dict.body.library.colUpdated}
+                <ArrowUpDown className={`h-3.5 w-3.5 transition-transform ${desc ? "" : "rotate-180"}`} aria-hidden />
+              </button>
+              <span className="w-20 text-center">{dict.body.library.colStatus}</span>
+              <span className="w-9" />
+            </div>
+            {all === undefined && <p role="status" className="py-6 text-center text-sm text-muted">{dict.body.library.loadingLibrary}</p>}
+            {all === null && (
+              <button type="button" onClick={() => void reload()} aria-label={dict.body.library.tryLoadAgainAria} className="py-6 text-center text-sm text-primary hover:underline">{dict.common.retry}</button>
+            )}
+            {all !== undefined && shown.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted">{all === null ? dict.body.library.libraryLoadFailedMain : openFolder && !openFolder.item_count ? dict.body.library.folderEmpty : (all.length === 0 ? dict.body.library.noAssetsYet : dict.body.library.noAssetMatches)}</p>
+            )}
+            {rows.map((a) => (
+              <AssetRow key={a.key} a={a} sel={a.key === selected} on={checked.has(a.key)} canWrite={canWrite} folder={folder} folders={folders}
+                select={select} setFolder={setFolder} toggleChecked={toggleChecked} setDeleting={setDeleting} setMoving={setMoving} setArchiving={setArchiving} />
+            ))}
+          </div>
         )}
-        {all === null && (
-          <button type="button" onClick={() => void reload()} className="absolute" aria-label={dict.body.library.tryLoadAgainAria}
-            style={{ left: u(1144), top: u(620 - 101), width: u(120), height: u(36), padding: 0, border: 0, background: "transparent", color: "#33a8ff", fontSize: u(20), fontFamily: "inherit", cursor: "pointer" }}>{dict.common.retry}</button>
-        )}
-        {all !== undefined && shown.length === 0 && (
-          <T x={1204} y={587} size={20} color="#8ea3bf" align="center">{all === null ? dict.body.library.libraryLoadFailedMain : openFolder && !openFolder.item_count ? dict.body.library.folderEmpty : (all.length === 0 ? dict.body.library.noAssetsYet : dict.body.library.noAssetMatches)}</T>
-        )}
-        {rows.map((a, i) => (
-          <AssetRow key={a.key} a={a} y={Y[i]!} i={i} sel={a.key === selected} on={checked.has(a.key)} canWrite={canWrite} folder={folder} folders={folders}
-            select={select} setFolder={setFolder} toggleChecked={toggleChecked} setDeleting={setDeleting} setMoving={setMoving} setArchiving={setArchiving} />
-        ))}
-        </>)}
         {checked.size > 0 && (
-          <div role="toolbar" aria-label={dict.body.library.selectedItemsAria} data-bulk-bar className="absolute" style={{ left: u(440), top: u(1384 - 101), height: u(36), display: "flex", alignItems: "center", gap: u(14),
-            fontSize: u(18), color: "#cfe0f5" }}>
+          <div role="toolbar" aria-label={dict.body.library.selectedItemsAria} data-bulk-bar className="flex flex-wrap items-center gap-4 border-t border-line px-3 py-2 text-sm">
             <span>{dict.body.library.bulkSelected.replace("{a}", String(checked.size))}</span>
-            <button type="button" onClick={bulkMove} style={{ background: "transparent", border: 0, color: "#33a8ff", cursor: "pointer", font: "inherit" }}>{dict.body.library.bulkMoveToFolder}</button>
-            <button type="button" onClick={bulkCsv} style={{ background: "transparent", border: 0, color: "#33a8ff", cursor: "pointer", font: "inherit" }}>{dict.body.library.bulkDownloadCsv}</button>
-            <button type="button" onClick={() => setChecked(new Set())} style={{ background: "transparent", border: 0, color: "#8ea3bf", cursor: "pointer", font: "inherit" }}>{dict.body.library.bulkClear}</button>
+            <button type="button" onClick={bulkMove} className="text-primary hover:underline">{dict.body.library.bulkMoveToFolder}</button>
+            <button type="button" onClick={bulkCsv} className="text-primary hover:underline">{dict.body.library.bulkDownloadCsv}</button>
+            <button type="button" onClick={() => setChecked(new Set())} className="text-muted hover:underline">{dict.body.library.bulkClear}</button>
           </div>
         )}
         {pages > 1 && (
-          <nav aria-label={dict.body.library.pagesAria} className="absolute" style={{ left: u(1700), top: u(1400 - 101), width: u(270), display: "flex", justifyContent: "flex-end", gap: u(12), alignItems: "center", fontSize: u(16), color: "#9fb3cc" }}>
-            <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} style={{ background: "transparent", border: 0, color: "#33a8ff", cursor: "pointer", font: "inherit" }}>{dict.body.library.prevPage}</button>
+          <nav aria-label={dict.body.library.pagesAria} className="flex items-center justify-end gap-3 border-t border-line px-3 py-2 text-sm text-muted">
+            <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className="text-primary hover:underline disabled:opacity-40">{dict.body.library.prevPage}</button>
             <span>{page + 1} / {pages}</span>
-            <button type="button" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} style={{ background: "transparent", border: 0, color: "#33a8ff", cursor: "pointer", font: "inherit" }}>{dict.body.library.nextPage}</button>
+            <button type="button" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="text-primary hover:underline disabled:opacity-40">{dict.body.library.nextPage}</button>
           </nav>
         )}
-      </section>
-
-      <section aria-label={dict.body.library.statusSectionAria} data-section="p09-s06">
-        {view === "cards" && rows.map((a, i) => <AssetStatus key={a.key} a={a} y={Y[i]!} />)}
       </section>
 
       <Dialog.Root open={creating} onOpenChange={setCreating}>
@@ -694,6 +662,6 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
       <TrashDialog open={trash} close={() => setTrash(false)} canWrite={canWrite} changed={async (msg) => { await reload(); say(msg); }} />
       <NewFolderDialog open={newFolder} close={() => setNewFolder(false)} done={async (fo) => { setNewFolder(false); await reload(); say(dict.body.library.folderMade.replace("{a}", fo.name)); }} />
       <ArchiveDialog target={archiving} canWrite={canWrite} onClose={() => setArchiving(null)} />
-    </>
+    </div>
   );
 }

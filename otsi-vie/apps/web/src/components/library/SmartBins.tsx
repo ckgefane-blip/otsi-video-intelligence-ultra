@@ -12,7 +12,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { u } from "@/components/stage/DesignStage";
 
 const GROUP = (d: Dictionary): Record<SearchKind, string> => ({ MATCH: d.body.library.tabMatches, PLAYER: d.body.library.binGroupPlayers, REEL: d.body.library.tabReels, PROJECT: d.body.library.kindPluralProject, MOMENT: d.body.library.binGroupMoments, MARKER: d.body.library.binGroupMarkers });
 export const binCount = (b: SmartBin) => `${b.count}${b.more ? "+" : ""}`;
@@ -83,7 +82,7 @@ export function BinDialog({ bin, onOpenChange, onDeleted }: { bin: SmartBin | nu
           <ul className="mt-3 max-h-[55vh] overflow-auto">
             {hits.map((h, i) => (
               <li key={`${h.kind}-${h.id}`}>
-                {(i === 0 || hits[i - 1]!.kind !== h.kind) && <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{GROUP(dict)[h.kind]}</p>}
+                {(i === 0 || hits[i - 1]!.kind !== h.kind) && <p className="t-th px-2 pb-1 pt-2">{GROUP(dict)[h.kind]}</p>}
                 <Link href={hitHref(h)} onClick={() => onOpenChange(false)} className="flex items-baseline justify-between gap-3 rounded-ctl px-2 py-1.5 hover:bg-primary/15">
                   <span className="min-w-0 truncate text-sm font-medium">{h.title}</span>
                   {h.detail && <span className="max-w-[55%] shrink-0 truncate text-xs text-muted">{h.detail}</span>}
@@ -116,15 +115,15 @@ export function SmartBinsTree({ head, row, count }: { head: CSSProperties; row: 
       <div style={head}>
         <span>{dict.body.library.smartBins}</span>
         <button type="button" data-tree="new-bin" onClick={() => setMaking(true)} aria-label={dict.body.library.newSmartBin} title={dict.body.library.binTreeNewTitle}
-          style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: u(18), cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
+          style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: 13, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }} data-smart-bins>
-        {bins === null ? <li style={{ fontSize: u(18), color: "#8ea3bf", padding: `${u(4)} ${u(12)}` }}>{dict.common.loading}</li>
-          : bins.length === 0 ? <li style={{ fontSize: u(18), color: "#8ea3bf", padding: `${u(4)} ${u(12)}`, whiteSpace: "normal" }}>{dict.body.library.binsEmpty}</li>
+        {bins === null ? <li style={{ fontSize: 13, color: "#8ea3bf", padding: "4px 12px" }}>{dict.common.loading}</li>
+          : bins.length === 0 ? <li style={{ fontSize: 13, color: "#8ea3bf", padding: "4px 12px", whiteSpace: "normal" }}>{dict.body.library.binsEmpty}</li>
           : bins.map((b) => (
             <li key={b.id}>
               <button type="button" onClick={() => setOpen(b)} style={row(open?.id === b.id)} data-tree={`bin-${b.id}`} title={b.q}>
-                <span aria-hidden style={{ width: u(22), textAlign: "center", flex: "none", color: "#a98bff" }}>✦</span>
+                <span aria-hidden style={{ width: 22, textAlign: "center", flex: "none", color: "#a98bff" }}>✦</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
                 <span style={count}>{binCount(b)}</span>
               </button>

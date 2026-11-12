@@ -1,26 +1,23 @@
-/** Page 07 Clip Studio: the reference's buttons, input boxes (.in) and chips (.ch) in design coordinates. */
+/** Page 07 Clip Studio: the reference's buttons, input boxes (.in) and chips (.ch), in flow layout. */
 import type { CSSProperties, ReactNode } from "react";
-import { stageStyles as s, u } from "@/components/stage/DesignStage";
 import { notBuilt } from "@/lib/devMode";
 
 const bc = (c: string) => ({ ["--bc" as string]: c }) as CSSProperties;
-/** the reference's input box (.in); the border is drawn by the stage's frame overlay */
-export const IN: CSSProperties = { background: "#041022", borderRadius: u(8), ...bc("#17406f") };
+/** the reference's input box (.in) */
+export const IN: CSSProperties = { background: "#041022", borderRadius: 8, border: "1px solid #17406f" };
 /** the reference's chip (.ch) */
-export const CH: CSSProperties = { background: "#0a2447", borderRadius: u(6), ...bc("#1d4f8a") };
+export const CH: CSSProperties = { background: "#0a2447", borderRadius: 6, border: "1px solid #1d4f8a" };
 export const frame = bc;
 
-/** a button whose children are placed in design coordinates from its outer corner; border drawn by the frame overlay (--bc).
- * Never disabled: `dim` only shows that it cannot act right now, and its click then explains why (no dead controls). */
-export function Btn({ x, y, w, h, label, onClick, dim, title, style, children, pressed }: {
-  x: number; y: number; w: number; h: number; label: string; onClick: () => void; dim?: boolean; title?: string; style?: CSSProperties;
-  children?: ReactNode; pressed?: boolean;
+/** a flow button. Never disabled: `dim` only shows that it cannot act right now, and its click then explains why (no dead controls). */
+export function Btn({ label, onClick, dim, title, style, children, pressed, className }: {
+  label: string; onClick: () => void; dim?: boolean; title?: string; style?: CSSProperties;
+  children?: ReactNode; pressed?: boolean; className?: string;
 }) {
   return (
     <button type="button" aria-label={label} title={title ?? label} onClick={onClick} aria-pressed={pressed} aria-disabled={dim || undefined}
-      className={`${s.a} ${s.framed}`}
-      style={{ left: u(x), top: u(y - 101), width: u(w), height: u(h), padding: 0, color: "inherit", font: "inherit", border: 0,
-        cursor: "pointer", opacity: dim ? 0.6 : 1, background: "transparent", ...bc("transparent"), ...style }}>
+      className={`vie-btn ${pressed ? "border-primary text-primary" : ""} ${className ?? ""}`}
+      style={{ opacity: dim ? 0.6 : 1, ...style }}>
       {children}
     </button>
   );

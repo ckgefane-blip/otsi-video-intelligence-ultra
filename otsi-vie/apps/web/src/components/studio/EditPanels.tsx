@@ -11,24 +11,22 @@
 import { ReelBlock, TRANSITION_DEFAULT_MS, transitionsForAll, type BoundarySuggestion, type TransitionKind } from "@otsi-vie/contracts";
 import { Evidence } from "@/components/evidence/Evidence";
 import { useEffect, useState } from "react";
-import { u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { reelTimeOf } from "./editing";
 import { tc, type Ui } from "./kit";
 import { locate, type Placed, type Studio } from "./useStudio";
 import { useLocale } from "@/lib/i18n";
 
-const chip = (on: boolean, can: boolean) => ({ padding: `${u(5)} ${u(11)}`, borderRadius: u(6), border: `${u(1.5)} solid ${on ? "#33a8ff" : "#1d4f8a"}`,
-  background: on ? "#0d3a78" : "#0a2447", color: "#fff", fontSize: u(16), fontFamily: "inherit", cursor: can ? "pointer" : "default", opacity: can ? 1 : 0.5 });
-const note = { margin: 0, fontSize: u(15), color: "#8ea3bf", lineHeight: 1.3 };
-const row = { display: "flex", flexWrap: "wrap" as const, gap: u(6), alignItems: "center", fontSize: u(16), color: "#cfe0f5" };
+const chip = (on: boolean, can: boolean) => `t-button rounded-md border px-2.5 py-1.5 ${on ? "border-primary bg-[#0d3a78] text-white" : "border-line2 bg-[#0a2447] text-white"} ${can ? "cursor-pointer" : "opacity-50"}`;
+const note = "t-small leading-snug";
+const row = "t-body flex flex-wrap items-center gap-1.5 text-[#cfe0f5]";
 const MS = [400, 600, 1000];
 
 /** a two-colour sample of the kind, moving in a loop (CSS only: what the renderer draws, not the footage) */
 function Sample({ kind }: { kind: TransitionKind }) {
   const anim: Record<TransitionKind, string> = { FADE: "otsiTrFade", DISSOLVE: "otsiTrDiss", ZOOM: "otsiTrZoom", SPIN: "otsiTrSpin" };
   return (
-    <span aria-hidden data-tr-sample={kind} style={{ position: "relative", display: "inline-block", width: u(54), height: u(30), borderRadius: u(4), overflow: "hidden", background: "#2a6fb8" }}>
+    <span aria-hidden data-tr-sample={kind} style={{ position: "relative", display: "inline-block", width: 54, height: 30, borderRadius: 4, overflow: "hidden", background: "#2a6fb8" }}>
       <span style={{ position: "absolute", inset: 0, background: "#2d7a3a", animation: `${anim[kind]} 2s ease-in-out infinite` }} />
     </span>
   );
@@ -49,28 +47,28 @@ export function TransitionsPanel({ st, placed, can, why }: { st: Studio; placed:
   const plan = transitionsForAll(st.items.map((p) => ({ id: p.clip.id, in_pts_us: p.clip.in_pts_us, out_pts_us: p.clip.out_pts_us, gap_ms: p.clip.fx.gap_ms })), ms);
   const cuts = plan.filter((x) => x.ms !== null).length, skipped = Math.max(0, st.items.length - 1) - cuts;
   return (
-    <div data-transitions-panel="" style={{ display: "flex", flexDirection: "column", gap: u(8), paddingBottom: u(10) }}>
+    <div data-transitions-panel="" className="flex flex-col gap-2 pb-2.5">
       <style>{KEYFRAMES}</style>
-      <span style={row}>
+      <span className={row}>
         {KINDS.map(([k, l]) => (
-          <button key={k} type="button" data-tr-kind={k} aria-pressed={kind === k} onClick={() => setKind(k)} style={{ ...chip(kind === k, true), display: "flex", alignItems: "center", gap: u(6) }}>
+          <button key={k} type="button" data-tr-kind={k} aria-pressed={kind === k} onClick={() => setKind(k)} className={chip(kind === k, true) + " flex items-center gap-1.5"}>
             <Sample kind={k} />{l}
           </button>
         ))}
       </span>
-      <span style={row}>{dict.body.studio.lengthLabel}
-        {MS.map((v) => <button key={v} type="button" data-tr-ms={v} aria-pressed={ms === v} onClick={() => setMs(v)} style={chip(ms === v, true)}>{`${(v / 1000).toFixed(1)} s`}</button>)}
+      <span className={row}>{dict.body.studio.lengthLabel}
+        {MS.map((v) => <button key={v} type="button" data-tr-ms={v} aria-pressed={ms === v} onClick={() => setMs(v)} className={chip(ms === v, true)}>{`${(v / 1000).toFixed(1)} s`}</button>)}
       </span>
-      <span style={row}>
-        <button type="button" data-tr-apply="cut" disabled={!cut} style={chip(false, can && !!cut)}
+      <span className={row}>
+        <button type="button" data-tr-apply="cut" disabled={!cut} className={chip(false, can && !!cut)}
           onClick={() => { if (!can) return why(); if (cut) st.setTransition(cut.clip.id, kind, Math.min(ms, Math.floor((cut.clip.out_pts_us - cut.clip.in_pts_us) / 2000))); }}>
           {cut ? dict.body.studio.intoClipN.replace("{a}", String(cut.index + 1)) : dict.body.studio.selectClip2Later}</button>
-        {t && <button type="button" data-tr-apply="cut-none" style={chip(false, can)} onClick={() => (can ? st.setTransition(t.clip_id, null) : why())}>{dict.body.studio.removeFromCut}</button>}
-        <button type="button" data-tr-apply="all" disabled={st.items.length < 2} style={chip(false, can && st.items.length > 1)}
+        {t && <button type="button" data-tr-apply="cut-none" className={chip(false, can)} onClick={() => (can ? st.setTransition(t.clip_id, null) : why())}>{dict.body.studio.removeFromCut}</button>}
+        <button type="button" data-tr-apply="all" disabled={st.items.length < 2} className={chip(false, can && st.items.length > 1)}
           onClick={() => (can ? st.setAllTransitions(kind, ms) : why())}>{dict.body.studio.onEveryCutN.replace("{a}", String(cuts))}</button>
-        {reel.transitions.length > 0 && <button type="button" data-tr-apply="none" style={chip(false, can)} onClick={() => (can ? st.setAllTransitions(null) : why())}>{dict.body.studio.removeAll}</button>}
+        {reel.transitions.length > 0 && <button type="button" data-tr-apply="none" className={chip(false, can)} onClick={() => (can ? st.setAllTransitions(null) : why())}>{dict.body.studio.removeAll}</button>}
       </span>
-      <p style={note}>{skipped > 0 ? (skipped === 1 ? dict.body.studio.skippedCutsOne : dict.body.studio.skippedCutsMany).replace("{a}", String(skipped)) : ""}{dict.body.studio.everyCutReplaces}</p>
+      <p className={note}>{skipped > 0 ? (skipped === 1 ? dict.body.studio.skippedCutsOne : dict.body.studio.skippedCutsMany).replace("{a}", String(skipped)) : ""}{dict.body.studio.everyCutReplaces}</p>
     </div>
   );
 }
@@ -79,18 +77,18 @@ export function MarkersPanel({ st, ui }: { st: Studio; ui: Ui }) {
   const { t: dict } = useLocale();
   const marks = st.notes.filter((n) => n.at_pts_us !== null).map((n) => ({ n, at: reelTimeOf(st.items, n.at_pts_us!) }))
     .sort((x, y) => (x.at ?? Infinity) - (y.at ?? Infinity) || x.n.at_pts_us! - y.n.at_pts_us!);
-  if (!marks.length) return <p style={{ ...note, paddingBottom: u(10) }}>{dict.body.studio.noMarkersHint}</p>;
+  if (!marks.length) return <p className={note} style={{ paddingBottom: 10 }}>{dict.body.studio.noMarkersHint}</p>;
   return (
-    <ul data-marker-list="" style={{ listStyle: "none", margin: 0, padding: `0 0 ${u(10)}`, display: "flex", flexDirection: "column", gap: u(4), maxHeight: u(260), overflowY: "auto" }}>
+    <ul data-marker-list="" className="m-0 flex max-h-[260px] flex-col gap-1 overflow-y-auto pb-2.5" style={{ listStyle: "none" }}>
       {marks.map(({ n, at }) => (
-        <li key={n.id} data-marker={n.id} style={{ display: "flex", alignItems: "center", gap: u(8), fontSize: u(16), color: "#e3eefb" }}>
+        <li key={n.id} data-marker={n.id} className="t-body flex items-center gap-2">
           <button type="button" data-marker-go={n.id} disabled={at === null} onClick={() => at !== null && st.setPlayhead(at)}
             title={at === null ? dict.body.studio.markerNoClip : dict.body.studio.goToMarker}
-            style={{ ...chip(false, at !== null), minWidth: u(92), padding: `${u(3)} ${u(8)}` }}>{at === null ? dict.body.studio.markerNotInReel : tc(at)}</button>
+            className={chip(false, at !== null)} style={{ minWidth: 92 }}>{at === null ? dict.body.studio.markerNotInReel : tc(at)}</button>
           <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={`${n.body} · ${n.author.display_name}`}>{n.body}</span>
           <button type="button" data-marker-delete={n.id} aria-label={dict.body.studio.deleteMarker.replace("{a}", n.body)} title={dict.body.studio.deleteMarkerHint}
             onClick={() => void st.removeNote(n.id).then(() => ui.say(dict.body.studio.markerDeleted), () => ui.say(dict.body.studio.markerDeleteDenied))}
-            style={{ ...chip(false, true), padding: `${u(3)} ${u(8)}` }}>×</button>
+            className={chip(false, true)}>×</button>
         </li>
       ))}
     </ul>
@@ -115,28 +113,28 @@ export function BlocksPanel({ st, ui, placed, can, why }: { st: Studio; ui: Ui; 
       .then(() => { setName(""); ui.say(dict.body.studio.blockSaved.replace("{a}", String(a)).replace("{b}", String(b))); return load(); }, () => ui.say(dict.body.studio.blockNotSaved));
   };
   const at = (() => { const h = locate(st.items, st.playhead); return h && st.playhead < st.total ? h.p.index : null; })();
-  const sel = { height: u(32), fontSize: u(16), color: "#fff", background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(6) };
+  const sel = { height: 32, fontSize: 13, color: "#fff", background: "#041022", border: "1.5px solid #17406f", borderRadius: 6 };
   return (
-    <div data-blocks-panel="" style={{ display: "flex", flexDirection: "column", gap: u(8), paddingBottom: u(10) }}>
+    <div data-blocks-panel="" className="flex flex-col gap-2 pb-2.5">
       {n > 0 ? (
-        <span style={row}>{dict.body.studio.saveClips}
+        <span className={row}>{dict.body.studio.saveClips}
           <select aria-label={dict.body.studio.firstClipBlock} value={from} onChange={(e) => setFrom(Number(e.target.value))} style={sel}>{st.items.map((p) => <option key={p.clip.id} value={p.index + 1}>{p.index + 1}</option>)}</select>{dict.body.studio.blockTo}
           <select aria-label={dict.body.studio.lastClipBlock} value={to} onChange={(e) => setTo(Number(e.target.value))} style={sel}>{st.items.map((p) => <option key={p.clip.id} value={p.index + 1}>{p.index + 1}</option>)}</select>
           <input aria-label={dict.body.studio.blockName} placeholder={dict.body.studio.blockNamePlaceholder} value={name} maxLength={120} onChange={(e) => setName(e.target.value)}
-            style={{ ...sel, width: u(150), padding: `0 ${u(6)}`, fontFamily: "inherit" }} />
-          <button type="button" data-block-save="" style={chip(false, can)} onClick={save}>{dict.body.studio.saveBlock}</button>
+            style={{ ...sel, width: 150, padding: "0 6px", fontFamily: "inherit" }} />
+          <button type="button" data-block-save="" className={chip(false, can)} onClick={save}>{dict.body.studio.saveBlock}</button>
         </span>
-      ) : <p style={note}>{dict.body.studio.addClipsBlockHint}</p>}
-      {blocks === null ? <p style={note}>{dict.body.studio.loadingBlocks}</p> : !blocks.length ? <p style={note}>{dict.body.studio.noBlocksYet}</p> : (
-        <ul data-block-list="" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: u(4) }}>
+      ) : <p className={note}>{dict.body.studio.addClipsBlockHint}</p>}
+      {blocks === null ? <p className={note}>{dict.body.studio.loadingBlocks}</p> : !blocks.length ? <p className={note}>{dict.body.studio.noBlocksYet}</p> : (
+        <ul data-block-list="" className="m-0 flex flex-col gap-1 p-0" style={{ listStyle: "none" }}>
           {blocks.map((b) => (
-            <li key={b.id} data-block={b.id} style={{ display: "flex", alignItems: "center", gap: u(8), fontSize: u(16), color: "#e3eefb" }}>
+            <li key={b.id} data-block={b.id} className="t-body flex items-center gap-2">
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                 title={b.clips.map((c) => `${tc(c.in_pts_us)}–${tc(c.out_pts_us)}${c.label ? ` ${c.label}` : ""}`).join("\n")}>
                 {b.clips.length === 1 ? dict.body.studio.blockClipsOne.replace("{a}", b.name).replace("{b}", (b.length_us / 1e6).toFixed(1)) : dict.body.studio.blockClipsMany.replace("{a}", b.name).replace("{b}", String(b.clips.length)).replace("{c}", (b.length_us / 1e6).toFixed(1))}</span>
-              <button type="button" data-block-insert={b.id} style={chip(false, can)} onClick={() => (can ? st.insertBlock(b.id, at, b.name) : why())}
+              <button type="button" data-block-insert={b.id} className={chip(false, can)} onClick={() => (can ? st.insertBlock(b.id, at, b.name) : why())}
                 title={at === null ? dict.body.studio.putClipsEndHint : dict.body.studio.putClipsBeforeHint.replace("{a}", String(at + 1))}>{at === null ? dict.body.studio.putInAtEnd : dict.body.studio.putInBefore.replace("{a}", String(at + 1))}</button>
-              <button type="button" data-block-delete={b.id} aria-label={dict.body.studio.deleteBlock.replace("{a}", b.name)} style={{ ...chip(false, can), padding: `${u(3)} ${u(8)}` }}
+              <button type="button" data-block-delete={b.id} aria-label={dict.body.studio.deleteBlock.replace("{a}", b.name)} className={chip(false, can)}
                 onClick={() => { if (!can) return why(); void api(`/v1/reels/${reel.id}/blocks/${b.id}`, { method: "DELETE" }).then(() => { ui.say(dict.body.studio.blockDeleted); return load(); }, () => ui.say(dict.body.studio.blockNotDeleted)); }}>×</button>
             </li>
           ))}
@@ -162,17 +160,17 @@ export function CutsPanel({ st, can, why }: { st: Studio; can: boolean; why: () 
   }, [reel.id, reel.version]);
   const index = new Map(st.items.map((p, i) => [p.clip.id, i]));
   return (
-    <div data-cuts-panel="" style={{ display: "flex", flexDirection: "column", gap: u(8), paddingBottom: u(10) }}>
-      <p style={note}>{dict.body.studio.cutsIntro}</p>
-      {list === undefined ? <p style={note}>{dict.body.studio.readingEvents}</p> : list === null ? <p style={note}>{dict.body.studio.suggestionsNotRead}</p>
-        : list.length === 0 ? <p style={note} data-cuts-none>{dict.body.studio.noCutSuggestion}</p> : list.map((s) => {
+    <div data-cuts-panel="" className="flex flex-col gap-2 pb-2.5">
+      <p className={note}>{dict.body.studio.cutsIntro}</p>
+      {list === undefined ? <p className={note}>{dict.body.studio.readingEvents}</p> : list === null ? <p className={note}>{dict.body.studio.suggestionsNotRead}</p>
+        : list.length === 0 ? <p className={note} data-cuts-none>{dict.body.studio.noCutSuggestion}</p> : list.map((s) => {
           const i = index.get(s.clip_id), clip = st.items[i ?? -1]?.clip;
           if (i === undefined || !clip) return null;
           return (
-            <div key={s.clip_id} data-cut-suggestion={s.clip_id} style={{ display: "flex", alignItems: "center", gap: u(8), fontSize: u(15), color: "#cfe0f5" }}>
+            <div key={s.clip_id} data-cut-suggestion={s.clip_id} className="t-small flex items-center gap-2">
               <Evidence level="INFERRED" compact size={11} />
-              <span style={{ flex: 1, minWidth: 0 }}>{dict.body.studio.clipSuggestion.replace("{a}", String(i + 1)).replace("{b}", s.why)}<span style={{ display: "block", color: "#8ea3bf" }}>{`${tc(s.from_in_us)}–${tc(s.from_out_us)} → ${tc(s.in_pts_us)}–${tc(s.out_pts_us)}`}</span></span>
-              <button type="button" data-cut-apply={s.clip_id} style={chip(false, can)} onClick={() => (can ? st.trim(clip, s.in_pts_us, s.out_pts_us) : why())}>{dict.body.studio.applyLabel}</button>
+              <span style={{ flex: 1, minWidth: 0 }}>{dict.body.studio.clipSuggestion.replace("{a}", String(i + 1)).replace("{b}", s.why)}<span className="block text-muted">{`${tc(s.from_in_us)}–${tc(s.from_out_us)} → ${tc(s.in_pts_us)}–${tc(s.out_pts_us)}`}</span></span>
+              <button type="button" data-cut-apply={s.clip_id} className={chip(false, can)} onClick={() => (can ? st.trim(clip, s.in_pts_us, s.out_pts_us) : why())}>{dict.body.studio.applyLabel}</button>
             </div>
           );
         })}

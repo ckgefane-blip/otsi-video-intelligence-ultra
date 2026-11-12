@@ -17,12 +17,12 @@
  * start / end of the clip under the playhead to the playhead. Each clip's top line is green when the last rendered file has it as it is.
  */
 import { TRANSITION_DEFAULT_MS, beatSnapTargets, beatsUsable, clipOutputUs, effectActive, reelBeats, strapStartUs, type BeatGrid, type BeatGridView, type TransitionKind } from "@otsi-vie/contracts";
+import { Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
-import { Btn, IN, NOT_BUILT, tc, type Ui } from "./kit";
+import { NOT_BUILT, tc, type Ui } from "./kit";
 import { MOMENT_MIME } from "./MediaBin";
 import { locate, reviewTime, trimEdge, type Placed, type Studio } from "./useStudio";
 import { renderedState } from "./spotlight";
@@ -63,16 +63,17 @@ function laneItems(st: Studio): Item[][] {
   ];
 }
 
-const O = 343, W = 2128;
 const RULER = [357, 568, 809, 1055, 1296, 1533, 1780, 2022, 2265];
 const LENGTHS = [400, 600, 1000];
 const mmss = (t: number) => { const s = Math.round(t / 1e6); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+/** the lane label column width (176px) plus the 8px gap to the lanes */
+const LABEL_OFF = 184;
 
 export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: Ui }) {
   const { t: dict } = useLocale();
   const [zoom, setZoom] = useState(1);
-  const LANES: [string, number, string][] = [[dict.body.studio.videoClipsLabel, 1027, "p07-s07"], [dict.body.studio.transitionsSection, 1074, "p07-s08"], [dict.body.studio.graphicsOverlays, 1121, "p07-s09"],
-    [dict.body.studio.lowerThirds, 1168, "p07-s10"], [dict.body.studio.captionsLabel, 1215, "p07-s10"], [dict.body.studio.statisticsLabel, 1266, "p07-s10"], [dict.body.studio.soundtrackLabel, 1320, "p07-s11"], [dict.body.studio.audioFxLabel, 1372, "p07-s11"]];
+  const LANES: [string, string][] = [[dict.body.studio.videoClipsLabel, "p07-s07"], [dict.body.studio.transitionsSection, "p07-s08"], [dict.body.studio.graphicsOverlays, "p07-s09"],
+    [dict.body.studio.lowerThirds, "p07-s10"], [dict.body.studio.captionsLabel, "p07-s10"], [dict.body.studio.statisticsLabel, "p07-s10"], [dict.body.studio.soundtrackLabel, "p07-s11"], [dict.body.studio.audioFxLabel, "p07-s11"]];
   const SECTIONS: [string, string][] = [["p07-s07", dict.body.studio.videoClipsLane], ["p07-s08", dict.body.studio.transitionsLane], ["p07-s09", dict.body.studio.graphicsSpotlightHint],
     ["p07-s10", dict.body.studio.lowerLanesHint], ["p07-s11", dict.body.studio.soundtrackHint]];
   const KINDS: [TransitionKind, string][] = [["FADE", dict.body.studio.fadeLabel], ["DISSOLVE", dict.body.studio.dissolveLabel], ["ZOOM", dict.body.studio.zoomLabel2], ["SPIN", dict.body.studio.spinLabel]];
@@ -106,9 +107,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
   const edit = !!st.reel && !!r?.canEdit && !r.busy && !locked;
   const span = st.total / zoom;                                          // visible reel time
   const start = Math.max(0, Math.min(st.total - span, st.playhead - span / 2));
-  const scale = st.total ? W / span : 0;
-  const X = (t: number) => O + (t - start) * scale;
-  const head = st.total ? X(st.playhead) : 336;
+  const headPct = span > 0 ? Math.max(0, Math.min(1, (st.playhead - start) / span)) : 0;
   const selected = st.items.find((p) => p.clip.id === r?.selectedClip) ?? null;
   // the playhead moves every frame while playing, so these derivations are memoised on what they actually read:
   // st.items is memoised on the reel in useStudio, so they hold still while only the playhead moves
@@ -297,25 +296,24 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
     if (ids.join() !== st.items.map((p) => p.clip.id).join()) st.reorder(ids);
   };
 
-  const TOOLS: [string, string, number, number, (() => void) | null, string][] = [
-    ["split", dict.body.studio.splitTool, 74, 101, edit && under ? () => { if (!st.split()) explain("split", ""); } : null, dict.body.studio.splitClipHint],
-    ["cut", dict.body.studio.cutTool, 218, 245, edit && under ? cut : null, dict.body.studio.endClipHint],
-    ["trash", dict.body.studio.rippleDelete, 355, 382, edit && (selected || under) ? ripple : null, dict.body.studio.rippleDeleteHint],
-    ["marker", dict.body.studio.addMarkerTool, 535, 562, edit && under ? addMarker : null, dict.body.studio.addMarkerHint],
-    ["gfx", dict.body.studio.addGraphic, 1083, 1112, st.reel ? () => { st.setBinTab(1); ui.say(dict.body.studio.graphicsHint); } : null, dict.body.studio.openGraphicsHint],
+  const TOOLS: [string, string, (() => void) | null, string][] = [
+    ["split", dict.body.studio.splitTool, edit && under ? () => { if (!st.split()) explain("split", ""); } : null, dict.body.studio.splitClipHint],
+    ["cut", dict.body.studio.cutTool, edit && under ? cut : null, dict.body.studio.endClipHint],
+    ["trash", dict.body.studio.rippleDelete, edit && (selected || under) ? ripple : null, dict.body.studio.rippleDeleteHint],
+    ["marker", dict.body.studio.addMarkerTool, edit && under ? addMarker : null, dict.body.studio.addMarkerHint],
+    ["gfx", dict.body.studio.addGraphic, st.reel ? () => { st.setBinTab(1); ui.say(dict.body.studio.graphicsHint); } : null, dict.body.studio.openGraphicsHint],
     // owner 2026-11-06 ("Why is the AI feature not working?"): the button says its state; dimmed alone looked broken
-    ["ai", missing.length ? dict.body.studio.suggestionsCount.replace("{a}", String(missing.length)) : r?.moments?.length ? dict.body.studio.suggestionsCheck : dict.body.studio.suggestionsLabel, 1265, 1291, edit && missing.length ? highlights : null,
+    ["ai", missing.length ? dict.body.studio.suggestionsCount.replace("{a}", String(missing.length)) : r?.moments?.length ? dict.body.studio.suggestionsCheck : dict.body.studio.suggestionsLabel, edit && missing.length ? highlights : null,
       missing.length ? dict.body.studio.addMomentsSuggested.replace("{a}", String(missing.length)) : r?.moments?.length ? dict.body.studio.allMomentsInReelCount.replace("{a}", String(r.moments.length)) : dict.body.studio.noMomentsSuggested],
-    ["speed", dict.body.studio.speedSection, 1474, 1502, st.reel ? () => { st.setInspTab(2); ui.say(under || selected ? dict.body.studio.speedHint : dict.body.studio.selectClipSpeed); } : null,
+    ["speed", dict.body.studio.speedSection, st.reel ? () => { st.setInspTab(2); ui.say(under || selected ? dict.body.studio.speedHint : dict.body.studio.selectClipSpeed); } : null,
       dict.body.studio.speedToolHint],
-    ["col", dict.body.studio.colorLabel, 1617, 1645, st.reel ? () => { st.openAdjust("look"); ui.say(dict.body.studio.lookHint); } : null,
+    ["col", dict.body.studio.colorLabel, st.reel ? () => { st.openAdjust("look"); ui.say(dict.body.studio.lookHint); } : null,
       dict.body.studio.colourToolHint],
-    ["mus", dict.body.studio.audioLabel, 1754, 1781, st.reel ? () => { st.setBinTab(2); ui.say(dict.body.studio.audioChooseMusic); } : null, dict.body.studio.chooseMusicMediaBin],
-    ["trf", dict.body.studio.transformLabel, 1892, 1919, st.reel ? () => { st.openAdjust("zoom"); st.openAdjust("draw"); ui.say(under || selected ? dict.body.studio.zoomDrawHint : dict.body.studio.selectClipZoomDraw); } : null,
+    ["mus", dict.body.studio.audioLabel, st.reel ? () => { st.setBinTab(2); ui.say(dict.body.studio.audioChooseMusic); } : null, dict.body.studio.chooseMusicMediaBin],
+    ["trf", dict.body.studio.transformLabel, st.reel ? () => { st.openAdjust("zoom"); st.openAdjust("draw"); ui.say(under || selected ? dict.body.studio.zoomDrawHint : dict.body.studio.selectClipZoomDraw); } : null,
       dict.body.studio.transformToolHint],
-    ["fit", dict.body.studio.fitToScreen, 2133, 2160, () => setZoom(1), dict.body.studio.showWholeReel],
+    ["fit", dict.body.studio.fitToScreen, () => setZoom(1), dict.body.studio.showWholeReel],
   ];
-  const zf = (zoom - 1) / 7;                                             // zoom 1..8 on the slider
   /** why a tool cannot act right now (or open the reel chooser): no dead buttons */
   const explain = (k: string, why: string) => {
     if (why.startsWith(NOT_BUILT)) return ui.say(why);
@@ -328,224 +326,221 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
     if (k === "trim") return ui.say(dict.body.studio.dragClipEdge);
     return ui.say(st.items.length ? dict.body.studio.movePlayheadOntoClip : dict.body.studio.reelNoClips);
   };
+  const headLeft = `calc(${LABEL_OFF}px + (100% - ${LABEL_OFF}px) * ${headPct})`;
 
   return (
-    <>
-      <section aria-label={dict.body.studio.editingRibbon} data-section="p07-s05">
-        <P x={28} y={843} w={2506} h={62} />
-        {TOOLS.map(([k, l, ix, tx, fn, why]) => (
-          <button key={l} type="button" aria-label={l} title={why} aria-disabled={!fn || undefined} data-tool={k} data-pro={k === "col" || k === "trf" ? "" : undefined} onClick={fn ?? (() => explain(k, why))} className="absolute"
-            style={{ left: u(ix - 20), top: u(851 - 101), width: u(tx - ix + 20 + l.length * 10 + 10), height: u(48), padding: 0, border: 0, background: "transparent",
-              cursor: "pointer", opacity: fn || l.endsWith("✓") ? 1 : 0.55, color: "inherit", font: "inherit" }}>
-            <Ic o={[ix - 20, 851]} x={ix} y={875} k={k} size={28} color={k === "ai" ? "#33a8ff" : "#cfe0f5"} />
-            <T o={[ix - 20, 851]} x={tx} y={875} size={19} color="#e3eefb" as="span">{l}</T>
-          </button>
+    <section aria-label={dict.body.studio.editingRibbon} data-section="p07-s05" className="vie-panel shrink-0 space-y-2 p-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {TOOLS.map(([k, l, fn, why]) => (
+          <button key={l} type="button" aria-label={l} title={why} aria-disabled={!fn || undefined} data-tool={k} data-pro={k === "col" || k === "trf" ? "" : undefined} onClick={fn ?? (() => explain(k, why))}
+            className={`vie-btn vie-btn-sm ${fn ? "" : "opacity-55"} ${k === "ai" ? "border-primary text-primary" : ""}`}>{l}</button>
         ))}
-        <B x={1421} y={860} w={1} h={32} style={{ background: "#12335f" }} />
-        <B x={2078} y={860} w={1} h={32} style={{ background: "#12335f" }} />
-        <Btn x={2270} y={862} w={26} h={26} label={dict.body.studio.zoomOut} onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say(dict.body.studio.alreadyWholeReel)}>
-          <Ic o={[2270, 862]} x={2283} y={875} k="zo" size={26} color="#cfe0f5" />
-        </Btn>
-        <div className="absolute" style={{ left: u(2300), top: u(862 - 101), width: u(178), height: u(26) }}>
-          <B o={[2300, 862]} x={2310} y={873} w={158} h={5} style={{ background: "#0b2a4d", borderRadius: u(3) }} />
-          <B o={[2300, 862]} x={2310} y={873} w={10 + zf * 148} h={5} style={{ background: "#1e90ff", borderRadius: u(3) }} />
-          <B o={[2300, 862]} x={2310 + zf * 136} y={865} w={22} h={22} style={{ background: "#cfe8ff", border: `${u(3)} solid #33a8ff`, borderRadius: "50%" }} />
-          <input type="range" min={1} max={8} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label={dict.body.studio.timelineZoom}
-            style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", cursor: "pointer" }} />
-        </div>
-        <Btn x={2485} y={862} w={26} h={26} label={dict.body.studio.zoomIn} onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say(dict.body.studio.maxZoom)}>
-          <Ic o={[2485, 862]} x={2498} y={875} k="zi" size={26} color="#cfe0f5" />
-        </Btn>
-      </section>
+        <span aria-hidden className="mx-1 h-8 w-px bg-line" />
+        <button type="button" aria-label={dict.body.studio.zoomOut} onClick={zoom > 1 ? () => setZoom((z) => Math.max(1, z / 1.5)) : () => ui.say(dict.body.studio.alreadyWholeReel)}
+          className="vie-btn vie-btn-sm px-2">−</button>
+        <input type="range" min={1} max={8} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label={dict.body.studio.timelineZoom}
+          className="vie-range w-44" />
+        <button type="button" aria-label={dict.body.studio.zoomIn} onClick={zoom < 8 ? () => setZoom((z) => Math.min(8, z * 1.5)) : () => ui.say(dict.body.studio.maxZoom)}
+          className="vie-btn vie-btn-sm px-2">+</button>
+      </div>
 
-      <section aria-label={dict.body.studio.timelineRuler} data-section="p07-s06">
-        <T x={42} y={937} size={32} weight={700} color="#33a8ff">{tc(st.playhead)}</T>
-        <T x={42} y={972} size={20} color="#8ea3bf">{tc(st.total)}</T>
-        {([["snap", snap ? dict.body.studio.snapOn : dict.body.studio.snapOff, snap ? (beatsUsable(beatGrid) ? dict.body.studio.snapTitleOnBeats : dict.body.studio.snapTitleOnPlain) : dict.body.studio.snapTitleOff, () => setSnap(!snap), snap, 152, 56],
-           ["tall", laneMode === "tall" ? dict.body.studio.tallOn : dict.body.studio.tallOff, laneMode === "tall" ? dict.body.studio.backToNormalLanes : dict.body.studio.tallLaneHint, () => setLaneMode(laneMode === "tall" ? "normal" : "tall"), laneMode === "tall", 212, 56],
-           ["dual", dual ? dict.body.studio.dualOn : dict.body.studio.dualOff, dual ? dict.body.studio.exitDual : dict.body.studio.compareTwoCuts, () => setDual(!dual), dual, 272, 58]] as const).map(([k, l, t, go, on, x, bw]) => (
-          <button key={k} type="button" data-timeline-toggle={k} aria-pressed={on} title={t} aria-label={t} onClick={go} className="absolute"
-            style={{ left: u(x), top: u(957 - 101), width: u(bw), height: u(28), fontSize: u(14), fontWeight: 600, color: on ? "#fff" : "#cfe0f5", background: on ? "#0d3a78" : "#0a2447",
-              border: `${u(1.5)} solid ${on ? "#33a8ff" : "#1d4f8a"}`, borderRadius: u(6), cursor: "pointer", padding: 0, fontFamily: "inherit", zIndex: 5 }}>{l}</button>
-        ))}
-        {RULER.map((x, i) => <T key={x} x={x} y={937} size={20} color="#cfe0f5">{i === 0 ? mmss(start) : st.total ? mmss(start + ((x - 357) / (2265 - 357)) * span * (8 / 8)) : "—"}</T>)}
-        {/* overview strip: the whole reel, click to move the playhead */}
-        <div role="slider" aria-label={dict.body.studio.reelOverview} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
-          onClick={(e) => { if (!st.total) { if (!st.reel) ui.pick(); else ui.say(dict.body.studio.reelNoClipsShort); return; } const rc = e.currentTarget.getBoundingClientRect(); st.setPlayhead(((e.clientX - rc.left) / rc.width) * st.total); }}
-          className="absolute" style={{ left: u(335), top: u(958 - 101), width: u(2199), height: u(42), background: "#0a1d38", opacity: 0.75, cursor: "pointer" }}>
-          {st.items.map((p) => (
-            <span key={p.clip.id} style={{ position: "absolute", left: `${(p.start / st.total) * 100}%`, width: `${(p.dur / st.total) * 100}%`, top: u(8), bottom: u(8),
-              background: p.clip.id === r?.selectedClip ? "#33a8ff" : "#1e5aa0", borderRight: `${u(1)} solid #0a1d38` }} />
-          ))}
-          {st.total > 0 && marks.map((m) => <span key={m.key} title={`${tc(m.t)} ${m.body}`} data-marker={m.t}
-            style={{ position: "absolute", left: `${(m.t / st.total) * 100}%`, width: u(3), top: 0, bottom: 0, background: "#f5d02e" }} />)}
-          {st.total > 0 && st.reel && st.reviews.map((x) => {                // E5: reviewers' comments, where they fall in this edit
-            const t = reviewTime(x, st.reel!, st.total, dict).at_us;
-            return t === null ? null : <span key={x.id} title={`${tc(t)} ${x.name}: ${x.body}`} data-review-marker={t}
-              style={{ position: "absolute", left: `${(t / st.total) * 100}%`, width: u(4), top: 0, bottom: 0, background: "#ff6bd5" }} />;
-          })}
-          {st.total > 0 && <span style={{ position: "absolute", left: `${(start / st.total) * 100}%`, width: `${100 / zoom}%`, top: 0, bottom: 0, border: `${u(1.5)} solid #33a8ff` }} />}
+      <div className="flex items-start gap-2">
+        <div className="w-44 shrink-0">
+          <p className="t-metric">{tc(st.playhead)}</p>
+          <p className="t-small">{tc(st.total)}</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {([["snap", snap ? dict.body.studio.snapOn : dict.body.studio.snapOff, snap ? (beatsUsable(beatGrid) ? dict.body.studio.snapTitleOnBeats : dict.body.studio.snapTitleOnPlain) : dict.body.studio.snapTitleOff, () => setSnap(!snap), snap],
+               ["tall", laneMode === "tall" ? dict.body.studio.tallOn : dict.body.studio.tallOff, laneMode === "tall" ? dict.body.studio.backToNormalLanes : dict.body.studio.tallLaneHint, () => setLaneMode(laneMode === "tall" ? "normal" : "tall"), laneMode === "tall"],
+               ["dual", dual ? dict.body.studio.dualOn : dict.body.studio.dualOff, dual ? dict.body.studio.exitDual : dict.body.studio.compareTwoCuts, () => setDual(!dual), dual]] as const).map(([k, l, t, go, on]) => (
+              <button key={k} type="button" data-timeline-toggle={k} aria-pressed={on} title={t} aria-label={t} onClick={go}
+                className={`vie-btn vie-btn-sm ${on ? "border-primary bg-[#0d3a78] text-white" : ""}`}>{l}</button>
+            ))}
+          </div>
         </div>
-        <B x={28} y={1003} w={304} h={412} style={{ background: "#06122a", border: `${u(1.5)} solid #12335f`, borderRadius: u(10) }} />
-        <div ref={lane} aria-hidden className="absolute" style={{ left: u(O), top: u(1003 - 101), width: u(W), height: u(4) }} />
-        <div role="slider" aria-label={dict.body.studio.playheadLabel} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
-          onPointerDown={dragHead} onKeyDown={(e) => { if (e.key === "ArrowRight") st.setPlayhead(Math.min(st.total, st.playhead + 1e6)); if (e.key === "ArrowLeft") st.setPlayhead(Math.max(0, st.playhead - 1e6)); }}
-          className="absolute" style={{ left: u(head - 15), top: u(922 - 101), width: u(30), height: u(28), background: "#1e90ff", borderRadius: u(6), zIndex: 3, cursor: st.total ? "ew-resize" : "default", touchAction: "none" }}>
-          <Ic o={[head - 15, 922]} x={head} y={936} k="chev" size={16} />
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="relative h-5">
+            {RULER.map((x, i) => (
+              <span key={x} className="t-tc absolute -translate-x-1/2" style={{ left: `${((x - 357) / (2265 - 357)) * 100}%` }}>
+                {i === 0 ? mmss(start) : st.total ? mmss(start + ((x - 357) / (2265 - 357)) * span) : "—"}
+              </span>
+            ))}
+          </div>
+          {/* overview strip: the whole reel, click to move the playhead */}
+          <div role="slider" aria-label={dict.body.studio.reelOverview} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
+            onClick={(e) => { if (!st.total) { if (!st.reel) ui.pick(); else ui.say(dict.body.studio.reelNoClipsShort); return; } const rc = e.currentTarget.getBoundingClientRect(); st.setPlayhead(((e.clientX - rc.left) / rc.width) * st.total); }}
+            className="relative h-10 cursor-pointer rounded bg-[#0a1d38] opacity-75">
+            {st.items.map((p) => (
+              <span key={p.clip.id} className="absolute bottom-2 top-2 border-r border-[#0a1d38]"
+                style={{ left: `${(p.start / st.total) * 100}%`, width: `${(p.dur / st.total) * 100}%`, background: p.clip.id === r?.selectedClip ? "#33a8ff" : "#1e5aa0" }} />
+            ))}
+            {st.total > 0 && marks.map((m) => <span key={m.key} title={`${tc(m.t)} ${m.body}`} data-marker={m.t}
+              className="absolute bottom-0 top-0 w-[3px] bg-[#f5d02e]" style={{ left: `${(m.t / st.total) * 100}%` }} />)}
+            {st.total > 0 && st.reel && st.reviews.map((x) => {                // E5: reviewers' comments, where they fall in this edit
+              const t = reviewTime(x, st.reel!, st.total, dict).at_us;
+              return t === null ? null : <span key={x.id} title={`${tc(t)} ${x.name}: ${x.body}`} data-review-marker={t}
+                className="absolute bottom-0 top-0 w-1 bg-[#ff6bd5]" style={{ left: `${(t / st.total) * 100}%` }} />;
+            })}
+            {st.total > 0 && <span className="absolute bottom-0 top-0 border-[1.5px] border-[#33a8ff]" style={{ left: `${(start / st.total) * 100}%`, width: `${100 / zoom}%` }} />}
+          </div>
         </div>
-        <B x={head - 1} y={935} w={2} h={480} style={{ background: "#33a8ff", boxShadow: `0 0 ${u(8)} #33a8ff`, zIndex: 3, pointerEvents: "none" }} />
-      </section>
+      </div>
 
-      {SECTIONS.map(([id, label]) => (
-        <section key={id} aria-label={label} data-section={id}>
-          {LANES.map(([name, , sec], i) => { const { y, h } = geo[i]!; return sec !== id ? null : (
-            <div key={name} role="group" aria-label={dict.body.studio.laneAria.replace("{a}", name)}>
-              {i === 0 ? (
-                <>
-                  <Btn x={36} y={y - 16} w={32} h={32} label={hidden ? dict.body.studio.showLane : dict.body.studio.dimLane} pressed={hidden} onClick={() => setHidden((h) => !h)}>
-                    <Ic o={[36, y - 16]} x={52} y={y} k="eye" size={26} color={hidden ? "#6a7f9c" : "#cfe0f5"} />
-                  </Btn>
-                  <Btn x={74} y={y - 16} w={30} h={32} label={locked ? dict.body.studio.unlockLane : dict.body.studio.lockLane} pressed={locked} onClick={() => setLocked((l) => !l)}>
-                    <Ic o={[74, y - 16]} x={89} y={y} k="lock" size={24} color={locked ? "#f5b82e" : "#cfe0f5"} />
-                  </Btn>
-                </>
-              ) : (() => {
-                const eye = laneEye(i);
-                return eye ? (
-                  <Btn x={36} y={y - 16} w={32} h={32} label={eye[1]} pressed={eye[0]} onClick={eye[2]}>
-                    <Ic o={[36, y - 16]} x={52} y={y} k={i === 7 ? "mute" : "eye"} size={i === 7 ? 24 : 26} color={eye[0] ? "#cfe0f5" : "#6a7f9c"} />
-                  </Btn>
-                ) : <span title={i === 1 ? `${name}: click + on a cut to add a transition; the render draws it` : name}><Ic x={52} y={y} k="eye" size={26} color={i === 1 ? "#cfe0f5" : "#6a7f9c"} /></span>;
-              })()}
-              <button type="button" data-lane-solo={i} aria-pressed={solo === i} onClick={() => setSolo(solo === i ? null : i)}
-                title={solo === i ? dict.body.studio.showEveryLane : `Solo: show the ${name} lane alone (the others dimmed)`} className="absolute"
-                style={{ left: u(124), top: u(y - 14 - 101), height: u(28), maxWidth: u(162), padding: `0 ${u(4)}`, border: 0, borderRadius: u(4), cursor: "pointer", fontFamily: "inherit",
-                  fontSize: u(18), color: solo === i ? "#06122a" : "#e3eefb", background: solo === i ? "#f5d02e" : "transparent", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</button>
-              <B x={289} y={y - 16} w={32} h={32} style={{ background: "#0a2447", borderRadius: u(6) }} />
-              <T x={305} y={y} size={19} align="center">{i === 0 ? st.items.length : i === 1 ? (st.reel?.transitions.length ?? 0) : lanes[i]!.length}</T>
-              <div className="absolute" onClick={(e) => { if (st.total && !(e.target as HTMLElement).closest("[data-clip]")) st.setPlayhead(toTime(e.clientX)); }}
-                onDragOver={i === 0 ? (e) => { if (edit) e.preventDefault(); } : undefined} onDrop={i === 0 ? drop : undefined}
-                data-lane-height={h} style={{ left: u(O), top: u(y - h / 2 - 101), width: u(W), height: u(h), boxSizing: "border-box", background: "#07162c", border: `${u(1.5)} solid #12335f`,
-                  borderRadius: u(6), overflow: "hidden", opacity: (i === 0 && hidden) || (solo !== null && solo !== i) ? 0.3 : 1 }}>
-                {i > 0 && lanes[i]!.map((m) => {
-                  const left = (m.from - start) * scale, w = Math.max(2, (m.to - m.from) * scale);
-                  if (left + w < 0 || left > W) return null;
+      <div className="relative space-y-1">
+        {SECTIONS.map(([id, label]) => (
+          <section key={id} aria-label={label} data-section={id} className="space-y-1">
+            {LANES.map(([name, sec], i) => { const { h } = geo[i]!; return sec !== id ? null : (
+              <div key={name} role="group" aria-label={dict.body.studio.laneAria.replace("{a}", name)} className="relative flex items-stretch gap-2">
+                <div className="flex w-44 shrink-0 items-center gap-1">
+                  {i === 0 ? (
+                    <>
+                      <button type="button" aria-label={hidden ? dict.body.studio.showLane : dict.body.studio.dimLane} aria-pressed={hidden} onClick={() => setHidden((x) => !x)}
+                        className="vie-btn vie-btn-sm shrink-0 px-2">{hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                      <button type="button" aria-label={locked ? dict.body.studio.unlockLane : dict.body.studio.lockLane} aria-pressed={locked} onClick={() => setLocked((x) => !x)}
+                        className="vie-btn vie-btn-sm shrink-0 px-2">{locked ? <Lock className="h-4 w-4 text-[#f5b82e]" /> : <Unlock className="h-4 w-4" />}</button>
+                    </>
+                  ) : (() => {
+                    const eye = laneEye(i);
+                    return eye ? (
+                      <button type="button" aria-label={eye[1]} aria-pressed={eye[0]} onClick={eye[2]}
+                        className="vie-btn vie-btn-sm shrink-0 px-2">{eye[0] ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted" />}</button>
+                    ) : <span title={i === 1 ? `${name}: click + on a cut to add a transition; the render draws it` : name} className="shrink-0 px-1"><Eye className="h-4 w-4 text-muted" /></span>;
+                  })()}
+                  <button type="button" data-lane-solo={i} aria-pressed={solo === i} onClick={() => setSolo(solo === i ? null : i)}
+                    title={solo === i ? dict.body.studio.showEveryLane : `Solo: show the ${name} lane alone (the others dimmed)`}
+                    className={`t-body min-w-0 flex-1 truncate rounded px-1 py-1 text-left ${solo === i ? "bg-[#f5d02e] font-semibold text-[#06122a]" : ""}`}>{name}</button>
+                  <span className="t-small flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-raised">{i === 0 ? st.items.length : i === 1 ? (st.reel?.transitions.length ?? 0) : lanes[i]!.length}</span>
+                </div>
+                <div ref={i === 0 ? lane : undefined}
+                  className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line bg-[#07162c]"
+                  style={{ height: h, opacity: (i === 0 && hidden) || (solo !== null && solo !== i) ? 0.3 : 1 }}
+                  onClick={(e) => { if (st.total && !(e.target as HTMLElement).closest("[data-clip]")) st.setPlayhead(toTime(e.clientX)); }}
+                  onDragOver={i === 0 ? (e) => { if (edit) e.preventDefault(); } : undefined} onDrop={i === 0 ? drop : undefined}
+                  data-lane-height={h}>
+                  {i > 0 && lanes[i]!.map((m) => {
+                    const leftPct = ((m.from - start) / span) * 100, wPct = ((m.to - m.from) / span) * 100;
+                    if (leftPct + wPct < 0 || leftPct > 100) return null;
+                    return (
+                      <span key={m.key} data-lane-item={m.key} title={`${m.text} · ${tc(m.from)} – ${tc(m.to)}`}
+                        className="absolute truncate rounded border border-white/25 px-1.5 text-white"
+                        style={{ left: `${leftPct}%`, width: `${Math.max(0.5, wPct)}%`, top: m.row === 1 ? "50%" : 3, bottom: m.row === 0 ? "50%" : 3,
+                          background: m.color, fontSize: m.row === undefined ? 13 : 12, lineHeight: m.row === undefined ? `${h - 8}px` : `${(h - 8) / 2}px` }}>{m.text}</span>
+                    );
+                  })}
+                  {i === 6 && beatsUsable(beatGrid) && reelBeats(beatGrid, st.total).map((bt, bi) => {
+                    const leftPct = ((bt - start) / span) * 100;
+                    if (leftPct < 0 || leftPct > 100) return null;
+                    return <span key={bi} data-beat-tick={bt} aria-hidden className="pointer-events-none absolute bottom-0 top-0 z-[1] w-0.5 bg-white/35" style={{ left: `${leftPct}%` }} />;
+                  })}
+                  {i === 1 && st.items.slice(1).map((p) => {
+                    const leftPct = ((p.start - start) / span) * 100;
+                    if (leftPct < -2 || leftPct > 102) return null;
+                    const t = st.reel?.transitions.find((x) => x.clip_id === p.clip.id);
+                    const wPct = t ? ((t.duration_ms * 1000) / span) * 100 : 0;
+                    return (
+                      <button key={p.clip.id} type="button" data-transition={p.clip.id} data-kind={t?.kind ?? "NONE"} aria-pressed={menuCut === p.clip.id}
+                        aria-label={t ? dict.body.studio.transitionChangeAria.replace("{a}", kindName(t.kind)).replace("{b}", String(p.index + 1)).replace("{c}", (t.duration_ms / 1000).toFixed(1)) : dict.body.studio.addTransitionIntoClip.replace("{a}", String(p.index + 1))}
+                        title={t ? dict.body.studio.transitionDrawnOver.replace("{a}", kindName(t.kind)).replace("{b}", (t.duration_ms / 1000).toFixed(1)).replace("{c}", String(p.index + 1)) : dict.body.studio.cutIntoClip.replace("{a}", String(p.index + 1))}
+                        onClick={(e) => { e.stopPropagation(); setMenuCut((c) => (c === p.clip.id ? null : p.clip.id)); }}
+                        className="absolute bottom-1 top-1 truncate rounded px-1.5 text-white"
+                        style={t
+                          ? { left: `${leftPct}%`, width: `${wPct}%`, minWidth: 70, background: "#7a3a9a", border: "1.5px solid #d9a6ff", fontSize: 13, lineHeight: 1 }
+                          : { left: `calc(${leftPct}% - 17px)`, width: 34, background: "#0d2a50", border: "1.5px solid #2d6cc0", fontSize: 13, lineHeight: 1 }}>
+                        {t ? `${kindName(t.kind)} ${(t.duration_ms / 1000).toFixed(1)}s` : "+"}
+                      </button>
+                    );
+                  })}
+                  {i === 0 && st.total > 0 && marks.map((m) => {
+                    const leftPct = ((m.t - start) / span) * 100;
+                    return leftPct < 0 || leftPct > 100 ? null : <span key={m.key} aria-hidden className="pointer-events-none absolute bottom-0 top-0 z-[2] w-[3px] bg-[#f5d02e]" style={{ left: `${leftPct}%` }} />;
+                  })}
+                  {i === 0 && st.items.map((p) => {
+                    const td = trimDrag?.id === p.clip.id ? trimDrag : null, sd = slipDrag?.id === p.clip.id ? slipDrag : null;
+                    const leftPct = ((p.start - start) / span) * 100, sel = p.clip.id === r?.selectedClip;
+                    const ghost = td ? clipOutputUs({ ...p.clip, ...(td.edge === "in" ? { in_pts_us: p.clip.in_pts_us + td.d } : { out_pts_us: p.clip.out_pts_us + td.d }) }) : p.dur;
+                    const wPct = (ghost / span) * 100;
+                    if (leftPct + wPct < 0 || leftPct > 100) return null;
+                    return (
+                      <button key={p.clip.id} type="button" data-clip={p.clip.id} draggable={edit && !trimDrag} aria-pressed={sel}
+                        data-rendered={rendered?.clip(p.clip.id) ?? "CHANGED"}
+                        title={rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.lastRenderedUnchanged : dict.body.studio.notYetRenderedApprox}
+                        aria-label={`${dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))}: ${p.clip.label ?? dict.body.studio.clipWord}, ${(p.dur / 1e6).toFixed(1)} s, ${rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.renderedWord : dict.body.studio.notRenderedAsIs}`}
+                        onPointerDown={slipDown(p)}
+                        onDragStart={(e) => { if (trimming.current || e.altKey) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-otsi-clip", p.clip.id); setDragging(p.clip.id); }} onDragEnd={() => setDragging(null)}
+                        onClick={() => { if (trimming.current) return; r?.setSelectedClip(p.clip.id); st.setPreview(null); st.setPlayhead(p.start); }}
+                        className="absolute bottom-[3px] top-[3px] truncate rounded px-2 text-left text-white"
+                        style={{ left: `${leftPct}%`, width: `${Math.max(0.5, wPct)}%`, minWidth: 2, cursor: edit ? "grab" : "pointer", fontSize: 13,
+                          background: sel ? "#1e90ff" : p.clip.origin === "SUGGESTED" ? "#1a4a8a" : "#245a3a", border: `1.5px solid ${sel ? "#cfe8ff" : "#2d6cc0"}`,
+                          opacity: dragging === p.clip.id ? 0.5 : 1 }}>
+                        <i aria-hidden className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: rendered?.clip(p.clip.id) === "RENDERED" ? "#3ecf7a" : "#ffb86b" }} />
+                        {sd ? `${dict.body.studio.slipLabel} ${sd.d >= 0 ? "+" : "−"}${(Math.abs(sd.d) / 1e6).toFixed(2)} s · ${tc(p.clip.in_pts_us + sd.d)} – ${tc(p.clip.out_pts_us + sd.d)}`
+                          : td ? `${td.edge === "in" ? dict.body.studio.trimEdgeIn : dict.body.studio.trimEdgeOut} ${td.d >= 0 ? "+" : "−"}${(Math.abs(td.d) / 1e6).toFixed(1)} s · ${(ghost / 1e6).toFixed(1)}s`
+                          : <>{p.clip.effect.kind !== "NONE" && <b data-clip-effect={p.clip.effect.kind} title={effectActive(p.clip) ? effectName(p.clip.effect, dict) : dict.body.studio.effectMomentOutside.replace("{a}", effectName(p.clip.effect, dict))}
+                              className="mr-1.5 rounded px-1 text-xs text-[#06122a]"
+                              style={{ background: effectActive(p.clip) ? "#f5b82e" : "#556" }}>
+                              {p.clip.effect.kind === "SLOW" ? `${p.clip.effect.speed}x` : p.clip.effect.kind === "FREEZE" ? "FRZ" : "RAMP"}</b>}
+                            {p.clip.label ?? dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))} · {(p.dur / 1e6).toFixed(1)}s
+                            {h > 60 && <span data-clip-source="" className="mt-1 block text-xs text-[#cfe0f5]">{`${tc(p.clip.in_pts_us)} – ${tc(p.clip.out_pts_us)} · ${dict.body.studio.altDragToSlip}`}</span>}</>}
+                        {(["in", "out"] as const).map((edge) => (
+                          <span key={edge} data-trim-edge={edge} aria-hidden onPointerDown={edgeDown(p, edge)}
+                            title={edge === "in" ? dict.body.studio.dragTrimStart : dict.body.studio.dragTrimEnd}
+                            className="absolute bottom-0 top-0 z-[1] w-2.5"
+                            style={{ [edge === "in" ? "left" : "right"]: 0, cursor: edit ? "ew-resize" : "not-allowed",
+                              background: td?.edge === edge ? "rgba(245,184,46,.9)" : "rgba(255,255,255,.18)" }} />
+                        ))}
+                      </button>
+                    );
+                  })}
+                  {i === 0 && st.items.length === 0 && (
+                    <span className="t-body absolute inset-0 grid place-items-center text-center text-muted">{st.reel ? dict.body.studio.dragClipsStart : dict.body.studio.chooseReelStart}</span>
+                  )}
+                </div>
+                {i === 1 && menuCut && (() => {
+                  const p = st.items.find((x) => x.clip.id === menuCut);
+                  if (!p || p.index === 0) return null;
+                  const t = st.reel?.transitions.find((x) => x.clip_id === menuCut);
+                  const menuPct = Math.min(0.6, Math.max(0, ((p.start - start) / span) - 0.03));
+                  const max = Math.min(...[1000], Math.floor(p.dur / 2000));
+                  const pick = (k: TransitionKind | null, ms: number) => {
+                    if (!canSet) return ui.say(r?.canEdit ? dict.body.studio.savingPrevChange : dict.body.studio.roleViewReel);
+                    st.setTransition(menuCut, k, ms); setMenuCut(null);
+                  };
+                  const chipCls = (on: boolean) => `t-button rounded-md border px-3 py-1.5 ${on ? "border-[#d9a6ff] bg-[#5a2a7a] text-white" : "border-line2 bg-raised"} ${canSet ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`;
+                  const len = t?.duration_ms ?? TRANSITION_DEFAULT_MS;
                   return (
-                    <span key={m.key} data-lane-item={m.key} title={`${m.text} · ${tc(m.from)} – ${tc(m.to)}`}
-                      style={{ position: "absolute", left: u(left), width: u(w), top: m.row === 1 ? "50%" : u(3), bottom: m.row === 0 ? "50%" : u(3), padding: `0 ${u(6)}`,
-                        borderRadius: u(4), background: m.color, border: `${u(1)} solid rgba(255,255,255,.25)`, color: "#fff", fontSize: u(m.row === undefined ? 15 : 12),
-                        lineHeight: m.row === undefined ? u(h - 8) : u((h - 8) / 2), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box" }}>{m.text}</span>
-                  );
-                })}
-                {i === 6 && beatsUsable(beatGrid) && reelBeats(beatGrid, st.total).map((bt, bi) => {
-                  const left = (bt - start) * scale;
-                  if (left < 0 || left > W) return null;
-                  return <span key={bi} data-beat-tick={bt} aria-hidden style={{ position: "absolute", left: u(left), width: u(2), top: 0, bottom: 0, background: "rgba(255,255,255,0.35)", pointerEvents: "none", zIndex: 1 }} />;
-                })}
-                {i === 1 && st.items.slice(1).map((p) => {
-                  const left = (p.start - start) * scale;
-                  if (left < -40 || left > W + 40) return null;
-                  const t = st.reel?.transitions.find((x) => x.clip_id === p.clip.id);
-                  const w = t ? Math.max(70, (t.duration_ms * 1000) * scale) : 34;
-                  return (
-                    <button key={p.clip.id} type="button" data-transition={p.clip.id} data-kind={t?.kind ?? "NONE"} aria-pressed={menuCut === p.clip.id}
-                      aria-label={t ? dict.body.studio.transitionChangeAria.replace("{a}", kindName(t.kind)).replace("{b}", String(p.index + 1)).replace("{c}", (t.duration_ms / 1000).toFixed(1)) : dict.body.studio.addTransitionIntoClip.replace("{a}", String(p.index + 1))}
-                      title={t ? dict.body.studio.transitionDrawnOver.replace("{a}", kindName(t.kind)).replace("{b}", (t.duration_ms / 1000).toFixed(1)).replace("{c}", String(p.index + 1)) : dict.body.studio.cutIntoClip.replace("{a}", String(p.index + 1))}
-                      onClick={(e) => { e.stopPropagation(); setMenuCut((c) => (c === p.clip.id ? null : p.clip.id)); }}
-                      style={{ position: "absolute", left: u(t ? left : left - w / 2), width: u(w), top: u(4), bottom: u(4), padding: `0 ${u(6)}`, borderRadius: u(5), cursor: "pointer",
-                        background: t ? "#7a3a9a" : "#0d2a50", border: `${u(1.5)} solid ${t ? "#d9a6ff" : "#2d6cc0"}`, color: "#fff", fontSize: u(14), lineHeight: 1,
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" }}>
-                      {t ? `${kindName(t.kind)} ${(t.duration_ms / 1000).toFixed(1)}s` : "+"}
-                    </button>
-                  );
-                })}
-                {i === 0 && st.total > 0 && marks.map((m) => {
-                  const left = (m.t - start) * scale;
-                  return left < 0 || left > W ? null : <span key={m.key} aria-hidden style={{ position: "absolute", left: u(left), width: u(3), top: 0, bottom: 0, background: "#f5d02e", zIndex: 2, pointerEvents: "none" }} />;
-                })}
-                {i === 0 && st.items.map((p) => {
-                  const td = trimDrag?.id === p.clip.id ? trimDrag : null, sd = slipDrag?.id === p.clip.id ? slipDrag : null;
-                  const left = (p.start - start) * scale, sel = p.clip.id === r?.selectedClip;
-                  const ghost = td ? clipOutputUs({ ...p.clip, ...(td.edge === "in" ? { in_pts_us: p.clip.in_pts_us + td.d } : { out_pts_us: p.clip.out_pts_us + td.d }) }) : p.dur;
-                  const w = Math.max(2, ghost * scale);
-                  if (left + w < 0 || left > W) return null;
-                  return (
-                    <button key={p.clip.id} type="button" data-clip={p.clip.id} draggable={edit && !trimDrag} aria-pressed={sel}
-                      data-rendered={rendered?.clip(p.clip.id) ?? "CHANGED"}
-                      title={rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.lastRenderedUnchanged : dict.body.studio.notYetRenderedApprox}
-                      aria-label={`${dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))}: ${p.clip.label ?? dict.body.studio.clipWord}, ${(p.dur / 1e6).toFixed(1)} s, ${rendered?.clip(p.clip.id) === "RENDERED" ? dict.body.studio.renderedWord : dict.body.studio.notRenderedAsIs}`}
-                      onPointerDown={slipDown(p)}
-                      onDragStart={(e) => { if (trimming.current || e.altKey) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-otsi-clip", p.clip.id); setDragging(p.clip.id); }} onDragEnd={() => setDragging(null)}
-                      onClick={() => { if (trimming.current) return; r?.setSelectedClip(p.clip.id); st.setPreview(null); st.setPlayhead(p.start); }}
-                      style={{ position: "absolute", left: u(left), width: u(w), top: u(3), bottom: u(3), padding: `0 ${u(8)}`, borderRadius: u(4), cursor: edit ? "grab" : "pointer",
-                        background: sel ? "#1e90ff" : p.clip.origin === "SUGGESTED" ? "#1a4a8a" : "#245a3a", border: `${u(1.5)} solid ${sel ? "#cfe8ff" : "#2d6cc0"}`,
-                        color: "#fff", fontSize: u(15), textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: dragging === p.clip.id ? 0.5 : 1 }}>
-                      <i aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: u(3),
-                        background: rendered?.clip(p.clip.id) === "RENDERED" ? "#3ecf7a" : "#ffb86b" }} />
-                      {sd ? `${dict.body.studio.slipLabel} ${sd.d >= 0 ? "+" : "−"}${(Math.abs(sd.d) / 1e6).toFixed(2)} s · ${tc(p.clip.in_pts_us + sd.d)} – ${tc(p.clip.out_pts_us + sd.d)}`
-                        : td ? `${td.edge === "in" ? dict.body.studio.trimEdgeIn : dict.body.studio.trimEdgeOut} ${td.d >= 0 ? "+" : "−"}${(Math.abs(td.d) / 1e6).toFixed(1)} s · ${(ghost / 1e6).toFixed(1)}s`
-                        : <>{p.clip.effect.kind !== "NONE" && <b data-clip-effect={p.clip.effect.kind} title={effectActive(p.clip) ? effectName(p.clip.effect, dict) : dict.body.studio.effectMomentOutside.replace("{a}", effectName(p.clip.effect, dict))}
-                            style={{ marginRight: u(6), padding: `0 ${u(4)}`, borderRadius: u(3), background: effectActive(p.clip) ? "#f5b82e" : "#556", color: "#06122a", fontSize: u(12) }}>
-                            {p.clip.effect.kind === "SLOW" ? `${p.clip.effect.speed}x` : p.clip.effect.kind === "FREEZE" ? "FRZ" : "RAMP"}</b>}
-                          {p.clip.label ?? dict.body.studio.clipIndex.replace("{a}", String(p.index + 1))} · {(p.dur / 1e6).toFixed(1)}s
-                          {h > 60 && <span data-clip-source="" style={{ display: "block", fontSize: u(13), color: "#cfe0f5", marginTop: u(4) }}>{`${tc(p.clip.in_pts_us)} – ${tc(p.clip.out_pts_us)} · ${dict.body.studio.altDragToSlip}`}</span>}</>}
-                      {(["in", "out"] as const).map((edge) => (
-                        <span key={edge} data-trim-edge={edge} aria-hidden onPointerDown={edgeDown(p, edge)}
-                          title={edge === "in" ? dict.body.studio.dragTrimStart : dict.body.studio.dragTrimEnd}
-                          style={{ position: "absolute", top: 0, bottom: 0, [edge === "in" ? "left" : "right"]: 0, width: u(10), cursor: edit ? "ew-resize" : "not-allowed",
-                            background: td?.edge === edge ? "rgba(245,184,46,.9)" : "rgba(255,255,255,.18)", zIndex: 1 }} />
-                      ))}
-                    </button>
-                  );
-                })}
-              </div>
-              {i === 1 && menuCut && (() => {
-                const p = st.items.find((x) => x.clip.id === menuCut);
-                if (!p || p.index === 0) return null;
-                const t = st.reel?.transitions.find((x) => x.clip_id === menuCut);
-                const x = Math.min(Math.max(O, O + (p.start - start) * scale - 60), O + W - 520);
-                const max = Math.min(...[1000], Math.floor(p.dur / 2000));
-                const pick = (k: TransitionKind | null, ms: number) => {
-                  if (!canSet) return ui.say(r?.canEdit ? dict.body.studio.savingPrevChange : dict.body.studio.roleViewReel);
-                  st.setTransition(menuCut, k, ms); setMenuCut(null);
-                };
-                const chip = (on: boolean) => ({ padding: `${u(5)} ${u(12)}`, borderRadius: u(6), border: `${u(1.5)} solid ${on ? "#d9a6ff" : "#1d4f8a"}`,
-                  background: on ? "#5a2a7a" : "#0a2447", color: "#fff", fontSize: u(16), cursor: canSet ? "pointer" : "not-allowed", fontFamily: "inherit", opacity: canSet ? 1 : 0.5 });
-                const len = t?.duration_ms ?? TRANSITION_DEFAULT_MS;
-                return (
-                  <div role="dialog" aria-label={dict.body.studio.transitionIntoClip.replace("{a}", String(p.index + 1))} data-transition-menu={menuCut} className="absolute"
-                    style={{ left: u(x), top: u(geo[1]!.y + geo[1]!.h / 2 + 4 - 101), width: u(520), zIndex: 6, padding: u(12), boxSizing: "border-box", borderRadius: u(10),
-                      background: "#06122a", border: `${u(1.5)} solid #2d6cc0`, boxShadow: "0 8px 24px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", gap: u(10) }}>
-                    <span style={{ fontSize: u(16), color: "#cfe0f5" }}>{dict.body.studio.intoClipDrawn.replace("{a}", String(p.index + 1))}</span>
-                    <span style={{ display: "flex", gap: u(8), flexWrap: "wrap" }}>
-                      <button type="button" data-pick="NONE" aria-pressed={!t} onClick={() => pick(null, len)} style={chip(!t)}>{dict.body.studio.noneCut}</button>
-                      {KINDS.map(([k, name]) => (
-                        <button key={k} type="button" data-pick={k} aria-pressed={t?.kind === k} disabled={max < 200} onClick={() => pick(k, Math.min(len, max))} style={chip(t?.kind === k)}>{name}</button>
-                      ))}
-                    </span>
-                    {t && (
-                      <span style={{ display: "flex", gap: u(8), alignItems: "center", fontSize: u(16), color: "#cfe0f5" }}>{dict.body.studio.lengthLabel}
-                        {LENGTHS.filter((ms) => ms <= max).map((ms) => (
-                          <button key={ms} type="button" data-length={ms} aria-pressed={t.duration_ms === ms} onClick={() => pick(t.kind, ms)} style={chip(t.duration_ms === ms)}>{(ms / 1000).toFixed(1)} s</button>
+                    <div role="dialog" aria-label={dict.body.studio.transitionIntoClip.replace("{a}", String(p.index + 1))} data-transition-menu={menuCut}
+                      className="absolute left-0 top-full z-10 mt-1 flex w-[520px] max-w-full flex-col gap-2.5 rounded-lg border border-[#2d6cc0] bg-[#06122a] p-3 shadow-2xl"
+                      style={{ left: `calc(${LABEL_OFF}px + (100% - ${LABEL_OFF}px) * ${menuPct})` }}>
+                      <span className="t-body">{dict.body.studio.intoClipDrawn.replace("{a}", String(p.index + 1))}</span>
+                      <span className="flex flex-wrap gap-2">
+                        <button type="button" data-pick="NONE" aria-pressed={!t} onClick={() => pick(null, len)} className={chipCls(!t)}>{dict.body.studio.noneCut}</button>
+                        {KINDS.map(([k, name]) => (
+                          <button key={k} type="button" data-pick={k} aria-pressed={t?.kind === k} disabled={max < 200} onClick={() => pick(k, Math.min(len, max))} className={chipCls(t?.kind === k)}>{name}</button>
                         ))}
                       </span>
-                    )}
-                    {max < 200 && <span style={{ fontSize: u(15), color: "#ffb86b" }}>{dict.body.studio.clipTooShortTransition}</span>}
-                    <button type="button" onClick={() => setMenuCut(null)} style={{ ...chip(false), alignSelf: "flex-end" }}>{dict.common.close}</button>
-                  </div>
-                );
-              })()}
-              {i === 0 && st.items.length === 0 && <T x={1407} y={y} size={19} color="#8ea3bf" align="center">{st.reel ? dict.body.studio.dragClipsStart : dict.body.studio.chooseReelStart}</T>}
-              {i === 0 && (
-                <Btn x={2477} y={1005} w={49} h={44} label={dict.body.studio.fitReelTimeline} style={IN} onClick={() => setZoom(1)}>
-                  <Ic o={[2477, 1005]} x={2501} y={1027} k="fit" size={24} color="#cfe0f5" />
-                </Btn>
-              )}
-            </div>
-          ); })}
-        </section>
-      ))}
+                      {t && (
+                        <span className="t-body flex flex-wrap items-center gap-2">{dict.body.studio.lengthLabel}
+                          {LENGTHS.filter((ms) => ms <= max).map((ms) => (
+                            <button key={ms} type="button" data-length={ms} aria-pressed={t.duration_ms === ms} onClick={() => pick(t.kind, ms)} className={chipCls(t.duration_ms === ms)}>{(ms / 1000).toFixed(1)} s</button>
+                          ))}
+                        </span>
+                      )}
+                      {max < 200 && <span className="t-body" style={{ color: "#ffb86b" }}>{dict.body.studio.clipTooShortTransition}</span>}
+                      <button type="button" onClick={() => setMenuCut(null)} className={`${chipCls(false)} self-end`}>{dict.common.close}</button>
+                    </div>
+                  );
+                })()}
+              </div>
+            ); })}
+          </section>
+        ))}
+        {/* playhead: the line over the lanes, the handle above them to drag it */}
+        <div aria-hidden className="pointer-events-none absolute bottom-0 top-0 z-[3] w-0.5 bg-[#33a8ff] shadow-[0_0_8px_#33a8ff]" style={{ left: headLeft }} />
+        <div role="slider" aria-label={dict.body.studio.playheadLabel} aria-valuemin={0} aria-valuemax={Math.round(st.total / 1e6)} aria-valuenow={Math.round(st.playhead / 1e6)} tabIndex={0}
+          onPointerDown={dragHead} onKeyDown={(e) => { if (e.key === "ArrowRight") st.setPlayhead(Math.min(st.total, st.playhead + 1e6)); if (e.key === "ArrowLeft") st.setPlayhead(Math.max(0, st.playhead - 1e6)); }}
+          className="absolute z-[4] flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md bg-primary text-xs text-white"
+          style={{ left: headLeft, top: 0 }}>▾</div>
+      </div>
       {dual && <DualTimeline st={st} ui={ui} onClose={() => setDual(false)} />}
-    </>
+    </section>
   );
 }

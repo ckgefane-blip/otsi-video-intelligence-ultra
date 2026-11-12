@@ -77,8 +77,8 @@ export function ConfirmRender({ reel, settings, codec, dirty, open, onOpenChange
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Content data-dialog="confirm-render" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(560px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.reels.renderReel}</Dialog.Title>
+        <Dialog.Content data-dialog="confirm-render" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(560px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-xl">
+          <Dialog.Title className="t-section">{dict.body.reels.renderReel}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.reelstage.confirmDesc}</Dialog.Description>
           <dl className="mb-3 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5" data-render-summary>
             {rows.map(([k, v]) => (<div key={k} className="contents" data-summary-row={k}><dt className="text-muted">{k}</dt><dd>{v}</dd></div>))}

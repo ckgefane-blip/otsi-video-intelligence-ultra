@@ -2470,6 +2470,14 @@ export interface Dictionary {
       durationAuto: string;
       durationAria: string;
       durationTitle: string;
+      lengthLabel: string;
+      lengthNote: string;
+      budgetOf: string;
+      budgetOver: string;
+      budgetCrossFixed: string;
+      segment0Label: string;
+      segment0Note: string;
+      openPlayerProfile: string;
       musicChosen: string;
       chooseMusic: string;
       chooseMusicHit: string;
@@ -8414,6 +8422,14 @@ export const en: Dictionary = {
       durationAuto: "Auto (Best Moments)",
       durationAria: "The reel's duration is the total of its clips",
       durationTitle: "Automatic: the total of the clips you add",
+      lengthLabel: "Reel length",
+      lengthNote: "Best Moment Rule v2.1 — never over 5:00. Per match: 3 clips at 90 s, 4 at 3 min, 5 at 5 min. Tier S (goals, assists) always in.",
+      budgetOf: "{a} of {b}",
+      budgetOver: "Over the {a} cap — remove or unpin clips to fit.",
+      budgetCrossFixed: "Fixed by the reel: {a}",
+      segment0Label: "Segment 0 · Player Profile Intro (16:9)",
+      segment0Note: "Plays first, before the first football clip",
+      openPlayerProfile: "Open player profile",
       musicChosen: "Music chosen",
       chooseMusic: "Choose music",
       chooseMusicHit: "Choose music: upload your own, with the right to use it",
@@ -14354,6 +14370,14 @@ export const ru: DeepPartial<Dictionary> = {
       durationAuto: "Авто (лучшие моменты)",
       durationAria: "Длительность ролика — сумма его клипов",
       durationTitle: "Автоматически: сумма добавленных клипов",
+      lengthLabel: "Длина рила",
+      lengthNote: "Правило лучших моментов v2.1 — не более 5:00. На матч: 3 клипа при 90 с, 4 при 3 мин, 5 при 5 мин. Уровень S (голы, голевые передачи) — всегда.",
+      budgetOf: "{a} из {b}",
+      budgetOver: "Больше лимита {a} — уберите или открепите клипы.",
+      budgetCrossFixed: "Задано рилом: {a}",
+      segment0Label: "Сегмент 0 · Интро профиля игрока (16:9)",
+      segment0Note: "Идёт первым, перед первым футбольным клипом",
+      openPlayerProfile: "Открыть профиль игрока",
       musicChosen: "Музыка выбрана",
       chooseMusic: "Выбрать музыку",
       chooseMusicHit: "Выбрать музыку: загрузите свою, с правом на использование",
@@ -20294,6 +20318,14 @@ export const es: DeepPartial<Dictionary> = {
       durationAuto: "Auto (mejores momentos)",
       durationAria: "La duración del reel es el total de sus clips",
       durationTitle: "Automático: el total de los clips que añades",
+      lengthLabel: "Duración del reel",
+      lengthNote: "Regla de mejores momentos v2.1: nunca más de 5:00. Por partido: 3 clips a 90 s, 4 a 3 min, 5 a 5 min. El nivel S (goles, asistencias) siempre entra.",
+      budgetOf: "{a} de {b}",
+      budgetOver: "Por encima del límite de {a}: quita clips o desancla algunos.",
+      budgetCrossFixed: "Fijado por el reel: {a}",
+      segment0Label: "Segmento 0 · Intro del perfil del jugador (16:9)",
+      segment0Note: "Se reproduce primero, antes del primer clip de fútbol",
+      openPlayerProfile: "Abrir perfil del jugador",
       musicChosen: "Música elegida",
       chooseMusic: "Elegir música",
       chooseMusicHit: "Elegir música: sube la tuya, con derecho a usarla",
@@ -26234,6 +26266,14 @@ export const de: DeepPartial<Dictionary> = {
       durationAuto: "Auto (beste Momente)",
       durationAria: "Die Reel-Dauer ist die Summe seiner Clips",
       durationTitle: "Automatisch: die Summe der hinzugefügten Clips",
+      lengthLabel: "Reel-Länge",
+      lengthNote: "Best-Moment-Regel v2.1 – nie über 5:00. Pro Spiel: 3 Clips bei 90 s, 4 bei 3 Min., 5 bei 5 Min. Stufe S (Tore, Vorlagen) immer dabei.",
+      budgetOf: "{a} von {b}",
+      budgetOver: "Über dem Limit von {a} – Clips entfernen oder lösen.",
+      budgetCrossFixed: "Vom Reel vorgegeben: {a}",
+      segment0Label: "Segment 0 · Spielerprofil-Intro (16:9)",
+      segment0Note: "Läuft zuerst, vor dem ersten Fußball-Clip",
+      openPlayerProfile: "Spielerprofil öffnen",
       musicChosen: "Musik gewählt",
       chooseMusic: "Musik wählen",
       chooseMusicHit: "Musik wählen: Lade eigene hoch, mit Nutzungsrecht",
@@ -32174,6 +32214,14 @@ export const fr: DeepPartial<Dictionary> = {
       durationAuto: "Auto (meilleurs moments)",
       durationAria: "La durée du reel est le total de ses clips",
       durationTitle: "Automatique : le total des clips ajoutés",
+      lengthLabel: "Durée du reel",
+      lengthNote: "Règle des meilleurs moments v2.1 : jamais plus de 5:00. Par match : 3 clips à 90 s, 4 à 3 min, 5 à 5 min. Le niveau S (buts, passes décisives) entre toujours.",
+      budgetOf: "{a} sur {b}",
+      budgetOver: "Au-dessus de la limite de {a} : retirez ou détachez des clips.",
+      budgetCrossFixed: "Fixé par le reel : {a}",
+      segment0Label: "Segment 0 · Intro du profil joueur (16:9)",
+      segment0Note: "Diffusé en premier, avant le premier clip de football",
+      openPlayerProfile: "Ouvrir le profil du joueur",
       musicChosen: "Musique choisie",
       chooseMusic: "Choisir la musique",
       chooseMusicHit: "Choisir la musique : importez la vôtre, avec le droit de l’utiliser",
@@ -38124,6 +38172,14 @@ export const pt: DeepPartial<Dictionary> = {
       "durationAuto": "Automático (melhores momentos)",
       "durationAria": "A duração do reel é o total dos clipes",
       "durationTitle": "Automático: o total dos clipes que você adicionar",
+      "lengthLabel": "Duração do reel",
+      "lengthNote": "Regra dos melhores momentos v2.1 — nunca mais de 5:00. Por jogo: 3 clipes aos 90 s, 4 aos 3 min, 5 aos 5 min. O nível S (golos, assistências) entra sempre.",
+      "budgetOf": "{a} de {b}",
+      "budgetOver": "Acima do limite de {a} — remova ou desafixe clipes.",
+      "budgetCrossFixed": "Definido pelo reel: {a}",
+      "segment0Label": "Segmento 0 · Intro do perfil do jogador (16:9)",
+      "segment0Note": "Toca primeiro, antes do primeiro clipe de futebol",
+      "openPlayerProfile": "Abrir perfil do jogador",
       "musicChosen": "Música escolhida",
       "chooseMusic": "Escolher música",
       "chooseMusicHit": "Escolher música: envie a sua, com o direito de usá-la",

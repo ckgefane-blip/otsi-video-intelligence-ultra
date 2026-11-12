@@ -1,35 +1,32 @@
 "use client";
 /**
- * Page 06 Section 05 — Cinematic Spotlight preview and player (approved reference 06_REEL_BUILDER, upper centre).
+ * Page 06 Section 05 — Cinematic Spotlight preview and player (upper centre).
  *
- * With a reel: the source footage of the chosen clip (playback stops at the clip's end), or — after Preview Render — the latest render
- * with its spotlight. Without one: the reference's empty scene, and the organization's reels to open. The player card shows the reel's
- * confirmed player as recorded: team, shirt number and position from the match team sheet, nationality, foot and age from the Players list
- * (position: this match's team sheet first, else his usual one; "—" where nothing is recorded; the pencil opens his row there), on a dark backing so it reads over bright footage; the scoreboard shows the linked match's
- * recorded teams and score. Play, previous / next clip, seek (within the clip), volume, speed and full screen work on the real media.
+ * With a reel: the source footage of the chosen clip, or — after Preview Render — the latest render with its spotlight, played through
+ * the shared VideoPlayer (its transport really controls the picture: play, pause, seek, speed, full screen). The player card shows the
+ * reel's confirmed player as recorded: team, shirt number and position from the match team sheet, nationality, foot and age from the
+ * Players list (position: this match's team sheet first, else his usual one; "—" where nothing is recorded; the pencil opens his row
+ * there), on a dark backing so it reads over bright footage; the scoreboard shows the linked match's recorded teams and score.
+ * Source footage starts at the clip's in point; when it reaches the out point the preview advances to the next clip (looping to the
+ * first) and keeps playing — the shared player exposes no external pause, so the old stop-at-the-out-point becomes advance-and-play-on.
+ * Without a reel: the honest empty state, and the organization's reels to open below it.
  */
 import type { Match, Playback, Reel, TrackSummary, Video } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
-import { FullscreenBar, frameStyle, usePlayerFullscreen } from "@/components/media/Fullscreen";
-import { Sel } from "@/components/tactics/kit";
 import { api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { Hit, Thumb } from "@/components/workspace/shared";
+import { Thumb } from "@/components/workspace/shared";
 import { FOOT_NAMES, POSITION_NAMES } from "@/components/players/PlayersList";
 import { teamCode } from "@/lib/team";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { CoverageBar, LiveSpotlight, spotlightNote, useReelPath } from "./LiveSpotlight";
-import { DEFAULTS, mmss, useStage } from "./shared";
-import { notBuilt } from "@/lib/devMode";
+import { DEFAULTS, useStage } from "./shared";
 
-const SCENE = { x: 447, y: 127, w: 1589, h: 653 };
-const glyph = { fill: "none" } as const;
-const shade = { textShadow: "0 1px 3px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.6)" } as const;   // readable on bright grass without a dark box
-const CARD_SCALE = 0.66;
-const slot = { fontSize: u(24), fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", whiteSpace: "nowrap" } as const;
+const shade = { textShadow: "0 1px 3px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.6)" } as const;
 const score = (n: number | null | undefined) => (n === null || n === undefined ? "—" : String(n));
+const ASPECT: Record<string, string> = { "16:9": "16 / 9", "9:16": "9 / 16", "1:1": "1 / 1", "4:5": "4 / 5" };
 
 /** the player card (memoised: it does not change while the preview plays, so the per-timeupdate re-render does not rebuild it) */
 const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, pos, foot, age, playerId, targetTrackId }: {
@@ -39,23 +36,20 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
   const { t: dict } = useLocale();
   const d = dict.body.reelstage;
   return (
-    <div aria-label={d.cardAria} className="absolute" style={{ inset: 0, transform: `scale(${CARD_SCALE})`, transformOrigin: `${u(452 - SCENE.x)} ${u(136 - SCENE.y)}`, pointerEvents: "none" }}>
-      <B o={[SCENE.x, SCENE.y]} x={452} y={136} w={640} h={150} style={{ background: "rgba(3,10,24,.3)", borderRadius: u(10) }} />
-      <B o={[SCENE.x, SCENE.y]} x={464} y={147} w={129} h={127} style={{ opacity: 0.85, borderRadius: u(8), border: `${u(1.5)} solid #8ec4ef`, background: "linear-gradient(135deg,#9fd0f5,#3a6fa8)", overflow: "hidden" }}>
-        {targetTrackId && <Thumb track={{ track_id: targetTrackId, has_thumbnail: true } as TrackSummary} w={129} h={127} />}
-      </B>
-      <T o={[SCENE.x, SCENE.y]} x={618} y={170} size={36} weight={700} as="h2" style={{ ...shade, maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{name}</T>
-      <B o={[SCENE.x, SCENE.y]} x={966} y={147} w={56} h={42} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(26), display: "flex", alignItems: "center", justifyContent: "center" }}>{jersey}</B>
-      {playerId && <Link href={`/players?player=${playerId}`} aria-label={d.editProfileAria} title={d.editProfileTitle}
-        className="absolute" style={{ pointerEvents: "auto", left: u(1034 - 447), top: u(147 - 127), width: u(44), height: u(42), borderRadius: u(6), border: `${u(1.5)} solid #33a8ff`, color: "#33a8ff",
-          fontSize: u(22), display: "flex", alignItems: "center", justifyContent: "center" }}>✎</Link>}
-      <B o={[SCENE.x, SCENE.y]} x={620} y={201} w={26} h={26} style={{ borderRadius: "50%", background: "#6cc4ff" }} />
-      <T o={[SCENE.x, SCENE.y]} x={659} y={214} size={22} style={{ ...shade, maxWidth: u(160), overflow: "hidden", textOverflow: "ellipsis" }}>{team}</T>
-      <T o={[SCENE.x, SCENE.y]} x={827} y={214} size={22} color="#8ea3bf">|</T>
-      <B o={[SCENE.x, SCENE.y]} x={856} y={203} w={22} h={22} style={{ background: "#3a5a88" }} />
-      <T o={[SCENE.x, SCENE.y]} x={891} y={214} size={22} style={{ ...shade, maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis" }}>{nationality}</T>
-      <T o={[SCENE.x, SCENE.y]} x={618} y={256} size={20} color="#e3ecf8" style={{ ...shade, maxWidth: u(250), overflow: "hidden", textOverflow: "ellipsis" }}>{pos}</T>
-      <T o={[SCENE.x, SCENE.y]} x={875} y={256} size={20} color="#e3ecf8" style={shade}>{d.footAge.replace("{a}", foot).replace("{b}", String(age))}</T>
+    <div aria-label={d.cardAria} className="pointer-events-none absolute left-2 top-2 flex max-w-[72%] items-start gap-2 rounded-md bg-black/55 p-2">
+      <div className="h-16 w-14 shrink-0 overflow-hidden rounded border border-[#8ec4ef] bg-raised/60">
+        {targetTrackId && <Thumb track={{ track_id: targetTrackId, has_thumbnail: true } as TrackSummary} w={56} h={64} />}
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="t-section truncate" style={shade}>{name}</span>
+          <span className="t-panel shrink-0 rounded bg-primary px-1.5 py-0.5 text-white">{jersey}</span>
+          {playerId && <Link href={`/players?player=${playerId}`} aria-label={d.editProfileAria} title={d.editProfileTitle}
+            className="pointer-events-auto flex h-6 w-6 shrink-0 items-center justify-center rounded border border-[#33a8ff] text-[#33a8ff]">✎</Link>}
+        </div>
+        <p className="t-small truncate" style={shade}>{team} · {nationality}</p>
+        <p className="t-small truncate" style={shade}>{pos} · {d.footAge.replace("{a}", foot).replace("{b}", String(age))}</p>
+      </div>
     </div>
   );
 });
@@ -64,24 +58,21 @@ const PlayerCard = memo(function PlayerCard({ name, jersey, team, nationality, p
 const AllMatchesNote = memo(function AllMatchesNote() {
   const { t: dict } = useLocale();
   return (
-    <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6), display: "flex", alignItems: "center", justifyContent: "center", fontSize: u(20), color: "#cfe0f5" }}>
+    <div className="pointer-events-none absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 t-small">
       {dict.body.reels.allMatches}
-    </B>
+    </div>
   );
 });
 
 /** the scoreboard (memoised: the linked match does not change while the preview plays) */
 const Scoreboard = memo(function Scoreboard({ match }: { match: Match | null }) {
   return (
-    <>
-      <B o={[SCENE.x, SCENE.y]} x={1630} y={153} w={382} h={45} style={{ background: "rgba(5,16,36,.8)", borderRadius: u(6) }} />
-      <Ic o={[SCENE.x, SCENE.y]} x={1660} y={176} k="ball" size={34} />
-      {/* owner 2026-11-02 ("letters overlapping"): each code and score has its own fixed slot, so no name runs into a score box */}
-      <B o={[SCENE.x, SCENE.y]} x={1684} y={153} w={90} h={45} style={slot}>{teamCode(match?.home?.name, match?.home?.short_name)}</B>
-      <B o={[SCENE.x, SCENE.y]} x={1776} y={153} w={62} h={45} style={{ ...slot, background: "#0a2bd0", fontSize: u(26) }}>{score(match?.home_score)}</B>
-      <B o={[SCENE.x, SCENE.y]} x={1842} y={153} w={98} h={45} style={slot}>{teamCode(match?.away?.name, match?.away?.short_name)}</B>
-      <B o={[SCENE.x, SCENE.y]} x={1942} y={153} w={70} h={45} style={{ ...slot, background: "#1e5bff", fontSize: u(26), borderRadius: `0 ${u(6)} ${u(6)} 0` }}>{score(match?.away_score)}</B>
-    </>
+    <div className="pointer-events-none absolute right-2 top-2 flex items-stretch overflow-hidden rounded-md bg-black/70 t-panel">
+      <span className="px-2 py-1">{teamCode(match?.home?.name, match?.home?.short_name)}</span>
+      <span className="bg-[#0a2bd0] px-2 py-1 text-white">{score(match?.home_score)}</span>
+      <span className="px-2 py-1">{teamCode(match?.away?.name, match?.away?.short_name)}</span>
+      <span className="bg-[#1e5bff] px-2 py-1 text-white">{score(match?.away_score)}</span>
+    </div>
   );
 });
 
@@ -100,12 +91,12 @@ export function PreviewPanel() {
   const [list, setList] = useState<Reel[] | null>(null);
   const [listFailed, setListFailed] = useState(false);
   const [src, setSrc] = useState<{ url: string; kind: "render" | "source" } | null>(null);
-  const [t, setT] = useState(0);
-  const [muted, setMuted] = useState(false);
-  const [speed, setSpeed] = useState("1");
-  const [playing, setPlaying] = useState(false);
-  const ref = useRef<HTMLVideoElement | null>(null);
-  const fs = usePlayerFullscreen();                                    // ADR-079: the shared full screen
+  const [srcLoading, setSrcLoading] = useState(false);
+  // the preview advances to the next clip at the out point and keeps playing (autoPlay follows the advance only)
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [replay, setReplay] = useState(0);
+  const advanceRef = useRef(false);
+  const advancingRef = useRef(false);
   const clips = reel?.clips ?? [];
   const sel = r?.selectedClip ?? null;
   const clipIndex = Math.max(0, clips.findIndex((c) => c.id === sel));
@@ -133,34 +124,39 @@ export function PreviewPanel() {
   useEffect(() => {
     setSrc(null);
     if (!reel) return;
-    if (kind === "render" && renderId) void api<{ url: string }>(`/v1/renders/${renderId}/playback`).then((p) => setSrc({ url: p.url, kind: "render" }), () => setSrc(null));
-    else if (clipVideoId) void api<Playback>(`/v1/videos/${clipVideoId}/playback`).then((p) => setSrc(p.url ? { url: p.url, kind: "source" } : null), () => setSrc(null));
-    else setSrc(null);
+    setSrcLoading(true);
+    const done = () => setSrcLoading(false);
+    if (kind === "render" && renderId) void api<{ url: string }>(`/v1/renders/${renderId}/playback`).then((p) => { setSrc({ url: p.url, kind: "render" }); done(); }, () => { setSrc(null); done(); });
+    else if (clipVideoId) void api<Playback>(`/v1/videos/${clipVideoId}/playback`).then((p) => { setSrc(p.url ? { url: p.url, kind: "source" } : null); done(); }, () => { setSrc(null); done(); });
+    else { setSrc(null); done(); }
   }, [reel?.id, clipVideoId, kind, renderId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // source footage: start at the clip's in point and stop at its out point
+  // source footage: start at the clip's in point and stop at its out point (the player remounts per clip, so startAt applies)
   const inUs = clip?.in_pts_us ?? 0, outUs = clip?.out_pts_us ?? 0;
+  const hasClip = !!clip;
+  // an advance resets the autoplay flag on the next selection change, so a hand-picked clip never starts by itself
   useEffect(() => {
-    const v = ref.current;
-    if (!v || src?.kind !== "source" || !clip) return;
-    const go = () => { v.currentTime = inUs / 1e6; };
-    if (v.readyState >= 1) go(); else v.addEventListener("loadedmetadata", go, { once: true });
-  }, [src, clip?.id, inUs]);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { const v = ref.current; if (v) { v.playbackRate = Number(speed); v.muted = muted; } }, [speed, muted, src]);
-
-  const onTime = () => {
-    const v = ref.current;
-    if (!v) return;
-    if (src?.kind === "source" && clip && v.currentTime * 1e6 >= outUs) { v.pause(); v.currentTime = outUs / 1e6; }
-    setT(v.currentTime * 1e6);
+    if (advanceRef.current) { advanceRef.current = false; advancingRef.current = false; }
+    else setAutoPlay(false);
+  }, [sel]);
+  const advance = useCallback(() => {
+    if (!clips.length || advancingRef.current) return;
+    advancingRef.current = true;
+    const next = clips[(clipIndex + 1) % clips.length]!;
+    advanceRef.current = true;
+    setAutoPlay(true);
+    if (next.id === sel) setReplay((n) => n + 1);   // one clip: loop it from its in point
+    r?.setSelectedClip(next.id);
+  }, [clips, clipIndex, sel, r]);
+  const onTime = (sec: number) => {
+    if (src?.kind === "source" && clip && sec * 1e6 >= outUs) advance();
   };
-  const span = src?.kind === "source" && clip ? { a: inUs, b: outUs } : { a: 0, b: (ref.current?.duration ?? 0) * 1e6 };
-  const len = Math.max(1, span.b - span.a), p = src ? Math.max(0, Math.min(1, (t - span.a) / len)) : 0;
-  const seekTo = (frac: number) => { const v = ref.current; if (v) v.currentTime = (span.a + frac * len) / 1e6; };
   const step = (d: number) => {
-    if (src?.kind === "source" && clips.length) r?.setSelectedClip(clips[Math.max(0, Math.min(clips.length - 1, clipIndex + d))]!.id);
-    else { const v = ref.current; if (v) v.currentTime = Math.max(0, v.currentTime + d * 5); }
+    if (!clips.length) return;
+    setAutoPlay(false);
+    r?.setSelectedClip(clips[Math.max(0, Math.min(clips.length - 1, clipIndex + d))]!.id);
   };
+  const ready = !!src;
 
   const player = reel?.player ?? null;
   const prof = player?.profile ?? null;
@@ -168,94 +164,90 @@ export function PreviewPanel() {
   const code_ = sheet?.position ?? prof?.position ?? null;                  // his position in this match, else his usual one
   const pos = code_ ? POSITION_NAMES(dict)[code_] ?? code_ : "—";
   const target = reel?.targets[0] ?? null;
-  const ready = !!src;
-  const hasClip = !!clip;
-  const playPause = () => { const v = ref.current; if (!v) return; if (v.paused) { if (src?.kind === "source" && v.currentTime * 1e6 >= outUs - 50_000) v.currentTime = inUs / 1e6; void v.play(); } else v.pause(); };
-  const message = !reel ? null : !src ? dict.body.reelstage.previewNoSrc : kind === "source" && !hasClip ? dict.body.reelstage.previewAddMoment : null;
+  const message = !reel ? null : !src && !srcLoading ? dict.body.reelstage.previewNoSrc : kind === "source" && !hasClip ? dict.body.reelstage.previewAddMoment : null;
   const look = draft ?? reel?.settings ?? DEFAULTS;
   // the coverage is recomputed from the path on every render; the preview re-renders on every video timeupdate, so derive it once per clip/path/look
   const spotNote = useMemo(() => (reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock, dict.body.reelstage) : null),
     [reel, path, clip, look.lock, src?.kind, message, dict]);
 
+  const emptyTitle = !reel
+    ? (listFailed ? dict.body.reels.reelsNotLoaded : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? dict.body.reelstage.noReelYet : dict.body.reels.openReel)
+    : (message ?? dict.body.reelstage.previewNoSrc);
+
   return (
-    <section aria-label={dict.body.reelstage.previewAria} data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"}>
-      <P x={445} y={125} w={1593} h={732} />
-      <dialog ref={fs.ref} open data-player-full={fs.on ? "on" : undefined} role="region" aria-label={dict.body.reelstage.playerAria} className="absolute" style={frameStyle(fs.on, { left: u(SCENE.x), top: u(SCENE.y - 101), width: u(SCENE.w), height: u(SCENE.h), overflow: "hidden", borderRadius: `${u(12)} ${u(12)} 0 0`,
-        background: src ? "#000" : "radial-gradient(ellipse at 60% 25%,#5fb8ff 0,#1d5aa0 30%,transparent 62%),linear-gradient(180deg,#0a1a38,#04101f 60%,#0a2a30)" })}>
-        {!src && (
-          <>
-            <B o={[SCENE.x, SCENE.y]} x={1120} y={300} w={400} h={480} style={{ background: "radial-gradient(ellipse at 50% 20%,#4a9ee0,#2a6fb8 40%,transparent 70%)" }} />
-            <B o={[SCENE.x, SCENE.y]} x={1395} y={690} w={90} h={90} style={{ borderRadius: "50%", background: "radial-gradient(circle at 35% 30%,#dde7f5,#335)" }} />
-          </>
+    <section aria-label={dict.body.reelstage.previewAria} data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"} className="vie-panel p-3">
+      {/* the clip/match overlays sit on the preview frame, not inside the player: the shared player hides its children while it has
+          nothing to play, and the player card + scoreboard must still identify the clip when the footage URL is empty or fails */}
+      <div className="relative">
+        <VideoPlayer
+          key={`${src?.url ?? "none"}:${clip?.id ?? "none"}:${kind}:${replay}`}
+          src={reel ? (src?.url ?? (srcLoading ? undefined : null)) : null}
+          label={src?.kind === "render" ? dict.body.reels.previewRenderedAria : dict.body.reels.previewSourceAria}
+          aspect={ASPECT[reel?.aspect ?? "16:9"] ?? "16 / 9"}
+          autoPlay={autoPlay}
+          startAt={src?.kind === "source" && clip ? clip.in_pts_us / 1e6 : undefined}
+          onTime={onTime}
+          empty={{ title: emptyTitle, body: "" }}
+        >
+          {reel && src?.kind === "source" && <LiveSpotlight path={path} reel={reel} clip={clip} settings={look} on={!message && !reel.stale} />}
+          {message && src && <div className="pointer-events-none absolute inset-0 grid place-items-center"><p className="t-body bg-black/60 rounded-md px-3 py-1.5">{message}</p></div>}
+        </VideoPlayer>
+        {spotNote && <div data-spotlight-note className="pointer-events-none absolute bottom-12 left-2 rounded-md bg-black/60 px-2 py-1 t-small"
+          style={{ color: spotNote.seen === 0 ? "#f5b82e" : "#dbe8f8" }}>{spotNote.text}</div>}
+        {reel && (
+          <PlayerCard name={player?.display_name ?? dict.body.workspace.noPlayerSelected} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? dict.body.reelstage.teamDash}
+            nationality={prof?.nationality?.name ?? dict.body.reelstage.nationalityDash} pos={pos === "—" ? dict.body.reelstage.positionDash : pos}
+            foot={prof?.preferred_foot ? FOOT_NAMES(dict)[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
+            playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
         )}
-        {src && (
-          <video ref={ref} key={src.url} src={src.url} preload="metadata" playsInline aria-label={src.kind === "render" ? dict.body.reels.previewRenderedAria : dict.body.reels.previewSourceAria}
-            onTimeUpdate={onTime} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={onTime}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
-        )}
-        {reel && src?.kind === "source" && <LiveSpotlight video={ref} path={path} reel={reel} clip={clip} settings={look} on={!message && !reel.stale} />}
-        {spotNote && <div data-spotlight-note className="absolute" style={{ left: u(14), bottom: u(12), padding: `${u(4)} ${u(10)}`, borderRadius: u(6), background: "rgba(3,10,24,.6)",
-          fontSize: u(17), color: spotNote.seen === 0 ? "#f5b82e" : "#dbe8f8", pointerEvents: "none" }}>{spotNote.text}</div>}
-        {!reel && (
-          <div className="absolute" style={{ left: u(1020 - SCENE.x), top: u(360 - SCENE.y), width: u(520), textAlign: "center", fontSize: u(22), color: "#dbe8f8" }}>
-            {listFailed ? (<>{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} style={{ color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: u(22) }}>{dict.common.retry}</button></>) : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? (
-              <>{dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel)}.</>
-            ) : (
-              <>
-                <div style={{ marginBottom: u(10), fontWeight: 600 }}>{dict.body.reels.openReel}</div>
-                <ul aria-label={dict.pages.reels.title} style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: u(190), overflowY: "auto" }}>
-                  {list.map((x) => (
-                    <li key={x.id} style={{ marginBottom: u(6) }}>
-                      <Link href={`/reels/${x.id}`} style={{ color: "#33a8ff" }}>{x.name}</Link>
-                      <span style={{ color: "#8ea3bf", fontSize: u(18) }}> · {(x.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(x.clips.length))} · {renderWord(x.latest_render?.state, dict.body.reels)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+        {reel && (isCross && kind === "render" ? <AllMatchesNote /> : <Scoreboard match={match} />)}
+      </div>
+
+      {reel && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {kind === "source" && (
+            <>
+              <button type="button" className="vie-btn vie-btn-sm" disabled={!ready} onClick={() => step(-1)} title={dict.body.reelstage.prevClip}>‹ {dict.body.reelstage.prevClip}</button>
+              <button type="button" className="vie-btn vie-btn-sm" disabled={!ready} onClick={() => step(1)} title={dict.body.reelstage.nextClip}>{dict.body.reelstage.nextClip} ›</button>
+            </>
+          )}
+          <div role="group" aria-label={dict.body.reelstage.previewAria} className="ml-auto inline-flex rounded-md border border-line2 bg-p0 p-0.5">
+            {(["clip", "render"] as const).map((m) => (
+              <button key={m} type="button" role="radio" aria-checked={mode === m} disabled={m === "render" && !renderId}
+                title={m === "render" && !renderId ? dict.body.reelstage.previewNoRender : undefined}
+                onClick={() => setMode(m)}
+                className={`t-button rounded px-3 py-1 ${mode === m ? "bg-raised text-ink" : "text-muted hover:text-ink"}`}>
+                {m === "clip" ? dict.body.reels.previewSourceAria : dict.body.reels.previewRenderedAria}
+              </button>
+            ))}
           </div>
-        )}
-        {message && <T o={[SCENE.x, SCENE.y]} x={1242} y={500} size={24} color="#dbe8f8" align="center">{message}</T>}
+        </div>
+      )}
+      {reel && src?.kind === "source" && <div className="mt-2"><CoverageBar path={path} clip={clip} lock={look.lock} /></div>}
 
-        <PlayerCard name={player?.display_name ?? dict.body.workspace.noPlayerSelected} jersey={sheet?.jersey_number ?? "—"} team={sheet?.team ?? dict.body.reelstage.teamDash}
-          nationality={prof?.nationality?.name ?? dict.body.reelstage.nationalityDash} pos={pos === "—" ? dict.body.reelstage.positionDash : pos}
-          foot={prof?.preferred_foot ? FOOT_NAMES(dict)[prof.preferred_foot] ?? "—" : "—"} age={prof?.age ?? "—"}
-          playerId={player?.player_id ?? null} targetTrackId={player && target ? target.track_id : null} />
-
-        {isCross && kind === "render" ? <AllMatchesNote /> : <Scoreboard match={match} />}
-        {fs.on && <FullscreenBar playing={playing} onPlay={playPause} now={Math.max(0, t - span.a)} total={len > 1 ? len : 0} onSeek={seekTo}
-          muted={muted} onMute={() => setMuted((m) => !m)} onExit={fs.exit} />}
-      </dialog>
-
-      {/* transport */}
-      <Hit x={470} y={800} w={50} h={40} label={dict.body.reelstage.prevClip} {...(ready ? { onClick: () => step(-1) } : { reason: dict.body.reelstage.noVideoYet })} />
-      <Ic x={493} y={820} k="prev" size={26} color={ready ? "#fff" : "#8ea3bf"} {...glyph} />
-      <Hit x={540} y={796} w={56} h={48} label={playing ? dict.body.reelstage.pauseBtn : dict.body.reelstage.playBtn} {...(ready && (kind === "render" || hasClip) ? { onClick: playPause } : { reason: dict.body.reelstage.addMomentFirst })} />
-      {playing ? (
-        <>
-          <B x={558} y={806} w={8} h={28} style={{ background: "#fff", borderRadius: u(2) }} />
-          <B x={572} y={806} w={8} h={28} style={{ background: "#fff", borderRadius: u(2) }} />
-        </>
-      ) : <Ic x={568} y={820} k="play" size={32} color={ready ? "#fff" : "#8ea3bf"} fill={ready ? "#fff" : "none"} />}
-      <Hit x={612} y={800} w={50} h={40} label={dict.body.reelstage.nextClip} {...(ready ? { onClick: () => step(1) } : { reason: dict.body.reelstage.noVideoYet })} />
-      <Ic x={637} y={820} k="next" size={26} color={ready ? "#fff" : "#8ea3bf"} />
-      <T x={687} y={820} size={21}>{ready && (hasClip || kind === "render") ? `${mmss(Math.max(0, t - span.a))} / ${mmss(len > 1 ? len : null)}` : "— / —"}</T>
-      <div role="slider" aria-label={dict.body.processing.position} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)} tabIndex={ready ? 0 : -1}
-        onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); seekTo(Math.max(0, Math.min(1, (e.clientX - b.left) / b.width))); }}
-        className="absolute" style={{ left: u(824), top: u(806 - 101), width: u(800), height: u(30), cursor: ready ? "pointer" : "default" }} />
-      <B x={836} y={815} w={777} h={10} style={{ background: "#0b2a4d", borderRadius: u(5), pointerEvents: "none" }}>
-        <i style={{ display: "block", height: "100%", width: `${p * 100}%`, borderRadius: u(5), background: "#1e90ff" }} />
-      </B>
-      {src?.kind === "source" && <CoverageBar path={path} clip={clip} lock={look.lock} />}
-      <B x={824 + p * 777} y={809} w={24} h={24} style={{ borderRadius: "50%", background: "#cfe8ff", border: `${u(3)} solid #1e90ff`, boxSizing: "border-box", pointerEvents: "none" }} />
-      <Hit x={1668} y={800} w={44} h={40} label={muted ? dict.body.reelstage.unmuteBtn : dict.body.reelstage.muteBtn} {...(ready ? { onClick: () => setMuted((m) => !m) } : { reason: dict.body.reelstage.noVideoYet })} />
-      <Ic x={1690} y={820} k={muted ? "mute" : "vol"} size={34} color={ready ? "#fff" : "#8ea3bf"} />
-      <Sel x={1738} y={797} w={124} h={46} label={dict.body.processing.playbackSpeed} value={speed} options={[["0.5", "0.5x"], ["1", "1x"], ["1.5", "1.5x"], ["2", "2x"]]} onChange={setSpeed}
-        style={{ background: "#041022", borderColor: "#17406f", borderRadius: u(8) }} />
-      <Hit x={1895} y={798} w={44} h={44} label={dict.body.reelstage.playbackSettings} reason={notBuilt("no playback settings")} />
-      <Ic x={1917} y={820} k="gear" size={36} color="#8ea3bf" />
-      <Hit x={1970} y={798} w={44} h={44} label={dict.body.processing.fullScreen} {...(ready ? { onClick: fs.toggle } : { reason: dict.body.reelstage.noVideoYet })} />
-      <Ic x={1992} y={820} k="full" size={34} color={ready ? "#fff" : "#8ea3bf"} />
+      {!reel && (
+        <div className="mt-2">
+          {listFailed ? (
+            <p className="t-body">{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} className="text-primary underline">{dict.common.retry}</button></p>
+          ) : list === null ? (
+            <p className="t-small">{dict.body.reelstage.previewLoadingReels}</p>
+          ) : list.length === 0 ? (
+            <p className="t-body">{dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel)}.</p>
+          ) : (
+            <>
+              <p className="t-panel mb-1">{dict.body.reels.openReel}</p>
+              <ul aria-label={dict.pages.reels.title} className="max-h-44 space-y-1 overflow-y-auto t-body">
+                {list.map((x) => (
+                  <li key={x.id}>
+                    <Link href={`/reels/${x.id}`} className="text-primary underline">{x.name}</Link>
+                    <span className="t-small"> · {(x.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(x.clips.length))} · {renderWord(x.latest_render?.state, dict.body.reels)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

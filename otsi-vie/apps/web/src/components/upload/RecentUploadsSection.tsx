@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 02 Section 08 — recent uploads panel (approved reference 02_UPLOAD_INGEST, "right: recent").
+ * Page 02 Section 08 — recent uploads panel, on the Desktop UI flow layout.
  *
  * The organization's five newest videos (GET /v1/videos, followed every few seconds while anything uploads or is being checked): the
  * frame decoded from the file, measured length, date and size, and the real state — uploading with this page's own progress, checked by
@@ -10,19 +10,16 @@
 import type { RemovalPreview, Video } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
+import { MoreVertical } from "lucide-react";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
-import { RIGHT_EXTRA } from "./layout";
-import { DATE_TAG, mmss, pitchThumb, usePage02 } from "./page02";
+import { DATE_TAG, mmss, usePage02 } from "./page02";
 import { useUpload, videoStatusText } from "./UploadWorkspace";
 
-/** row centre y, title y, second line y, third line y */
-const ROWS: [number, number, number, number][] = [[251, 226, 254, 282], [360, 335, 363, 391], [471, 443, 473, 502], [583, 557, 586, 615], [697, 671, 701, 729]];
-const TONE: Record<string, [string, string]> = { ok: ["#3ee6a8", "#063a2a"], busy: ["#7fd0ff", "#06305a"], warn: ["#ffc66d", "#3a2a06"], bad: ["#ff9aa8", "#3a0f18"], idle: ["#cfe0f5", "#1a2840"] };
+const TONE: Record<string, string> = { ok: "text-ok border-ok/40 bg-ok/10", busy: "text-cyan border-cyan/40 bg-cyan/10", warn: "text-amber border-amber/40 bg-amber/10", bad: "text-danger border-danger/40 bg-danger/10", idle: "text-muted border-line" };
 
-function Thumb({ v, x, y, a }: { v: Video | undefined; x: number; y: number; a: number }) {
+function Thumb({ v }: { v: Video | undefined }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     setSrc(null);
@@ -31,7 +28,8 @@ function Thumb({ v, x, y, a }: { v: Video | undefined; x: number; y: number; a: 
     void apiBlob(`/v1/videos/${v.id}/thumbnail`).then((b) => { url = URL.createObjectURL(b); if (live) setSrc(url); }, () => undefined);
     return () => { live = false; if (url) URL.revokeObjectURL(url); };
   }, [v?.id, v?.has_thumbnail]);
-  return <B x={x} y={y} w={153} h={88} style={{ borderRadius: u(5), background: src ? `center / cover no-repeat url(${src}), #0a1d38` : pitchThumb(a), pointerEvents: "none" }} />;
+  if (src) return <img src={src} alt="" className="h-[88px] w-[153px] shrink-0 rounded border border-line object-cover" />;
+  return <div className="grid h-[88px] w-[153px] shrink-0 place-items-center rounded border border-line bg-raised text-xs text-muted">—</div>;
 }
 
 export function RecentUploadsSection() {
@@ -131,149 +129,129 @@ export function RecentUploadsSection() {
     return { text: s.label, tone: s.tone };
   };
 
+  const pill = "rounded-ctl border px-2 py-0.5 text-xs hover:border-primary/60 disabled:opacity-50";
   return (
-    <section aria-label={d.recentUploads} data-section="p02-s08" data-count={String(videos?.length ?? 0)}>
-      <P x={1923} y={134} w={612} h={626 + RIGHT_EXTRA} />
-      <T x={1943} y={165} size={28} weight={600} as="h2">{d.recentUploads}</T>
-      <Link href="/library" className="absolute" style={{ left: u(2506 - 90), top: u(166 - 101 - 12), width: u(90), height: u(24), color: "#33a8ff", fontSize: u(20),
-        textAlign: "right", textDecoration: "none", lineHeight: u(24) }}>{dict.body.home.viewAll}</Link>
-      <B x={1943} y={198} w={574} h={1} style={{ background: "#12335f" }} />
-      <ul aria-label={d.recentUploadsPlain} style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        {ROWS.map(([y0, ty00, y200, y300], i) => {
-          const sh = RIGHT_EXTRA / 10 + (RIGHT_EXTRA / 5) * i;          // each of the five boxes is taller by RIGHT_EXTRA / 5: half of it above, half below
-          const y = y0 + sh, ty0 = ty00 + sh, y20 = y200 + sh, y3 = y300 + sh;
-          const v = rows[i];
-          // a verified video with running jobs has four lines (title, date, one line per job): they are spread over the whole height of the box
-          // (the bottom of the box was empty) so none is squeezed against another
-          const spread = !!v && v.state === "INGESTED" && barsOf(v).length > 0;
-          const ty = spread ? y - 38 : ty0;
-          const y2 = spread ? y - 14 : y20;
-          const sel = !!v && selected?.id === v.id;
-          const p = v ? progressOf(v) : null;
-          const [fg, bg] = TONE[p?.tone ?? "idle"] ?? TONE.idle!;
-          const first = i === 0 && !v;
+    <section aria-label={d.recentUploads} data-section="p02-s08" data-count={String(videos?.length ?? 0)} className="vie-panel">
+      <div className="vie-ph">
+        <h2 className="t-panel">{d.recentUploads}</h2>
+        <Link href="/library" className="text-sm text-primary">{dict.body.home.viewAll}</Link>
+      </div>
+      {videos === null && <p className="p-3 text-sm text-muted" role="status">{dict.common.loading}</p>}
+      {videos?.length === 0 && (
+        <div className="p-3 text-sm text-muted">
+          <p className="font-medium text-ink">{d.noUploadsYet}</p>
+          <p>{d.uploadsAppearHere}</p>
+        </div>
+      )}
+      <ul aria-label={d.recentUploadsPlain} className="divide-y divide-line/60">
+        {rows.map((v) => {
+          const sel = selected?.id === v.id;
+          const p = progressOf(v);
+          const bars = barsOf(v);
+          const stop = analysing(v), gone = v.state === "FAILED" || v.state === "QUARANTINED", t = transferOf(v);
+          const name = v.title ?? v.original_filename;
+          const verb = stop ? d.cancelAnalysis : gone ? d.removeVerb : dict.common.cancel;
+          const proxyOn = v.job?.kind === "PROXY" && (v.job.state === "RUNNING" || v.job.state === "QUEUED");
+          const proxyStopped = v.job?.kind === "PROXY" && v.job.state === "CANCELLED";
+          const anaOn = analysing(v);
+          const key = (k: string) => `${v.id}:${k}`;
           return (
-            <li key={y}>
-              {sel && <B x={1931} y={y - 50 - RIGHT_EXTRA / 10} w={596} h={100 + RIGHT_EXTRA / 5} style={{ background: "#04264a", border: `${u(2)} solid #1e90ff`, borderRadius: u(8) }} />}
-              <Thumb v={v} x={1943} y={y - 44} a={20 + i * 8} />
-              {!v && (
-                <>
-                  <B x={2034} y={y + 17} w={58} h={24} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4) }} />
-                  <T x={2063} y={y + 29} size={19} weight={600} align="center">—</T>
-                </>
-              )}
-              {v ? (
-                <button type="button" onClick={() => select(v.id)} aria-pressed={sel} aria-label={`${v.title ?? v.original_filename}: ${p!.text}`} className="absolute"
-                  style={{ left: u(1943), top: u(y - 50 - 101), width: u(550), height: u(100), padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
-                  <B o={[1943, y - 50]} x={2034} y={y + 17} w={58} h={24} style={{ background: "rgba(0,10,25,.8)", borderRadius: u(4) }} />
-                  <T o={[1943, y - 50]} x={2063} y={y + 29} size={19} weight={600} align="center" as="span">{mmss(v.duration_us)}</T>
-                  <T o={[1943, y - 50]} x={2115} y={ty} size={20} weight={600} as="span" style={{ maxWidth: u(v.state === "INGESTED" && canWrite && (analysing(v) || (v.job?.kind === "PROXY" && v.job.state !== "SUCCEEDED")) ? 140 : 370), overflow: "hidden", textOverflow: "ellipsis" }}>{v.title ?? v.original_filename ?? d.untitledVideo}</T>
-                  <T o={[1943, y - 50]} x={2115} y={y2} size={18} color="#9fb3cc" as="span">
-                    {`${new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })} · ${formatBytes(v.byte_size)}`}
-                  </T>
-                  {!(v.state === "INGESTED" && barsOf(v).length > 0) && <span data-video-state={v.state} style={{ position: "absolute", left: u(2115 - 1943), top: u(y3 - (y - 50) - 13), height: u(26), padding: `0 ${u(10)}`,
-                    borderRadius: u(13), background: bg, color: fg, fontSize: u(16), fontWeight: 600, lineHeight: u(26), whiteSpace: "nowrap" }}>{p!.text}</span>}
-                  {barsOf(v).map((b, i, all) => {
-                    const lines = v.state === "INGESTED";        // one labelled line per job, each with its own bar
-                    const ly = lines ? y + (all.length === 2 ? (i === 0 ? 12 : 38) : 22) : y3 + 16;
-                    const color = b.label === d.analysisWord ? "#1e90ff" : "#33d0c8";       // one colour per job, always: playback copy teal, analysis blue
-                    return (
-                      <Fragment key={b.label}>
-                        {lines && <T o={[1943, y - 50]} x={2115} y={ly} size={15} weight={600} color={b.tone === "idle" ? "#ffc66d" : "#e3eefb"} as="span">
-                          {b.tone === "idle" ? `${b.label} · ${d.waitingWord}` : `${b.label} ${Math.round(b.pct)}%`}</T>}
-                        <B o={[1943, y - 50]} x={lines ? 2262 : 2115} y={lines ? ly - 4 : ly} w={lines ? 215 : 290} h={lines ? 8 : 6} style={{ background: "#12335f", borderRadius: u(4) }}>
-                          <i role="progressbar" aria-label={`${v.title ?? v.original_filename}: ${b.label} progress`} aria-valuenow={Math.round(b.pct)} aria-valuemin={0} aria-valuemax={100}
-                            style={{ display: "block", height: "100%", width: `${Math.min(100, Math.max(b.tone === "idle" ? 0 : 2, b.pct))}%`, borderRadius: u(4), background: color, transition: "width .6s" }} />
-                        </B>
-                      </Fragment>
-                    );
-                  })}
+            <li key={v.id} className="relative px-3 py-2.5">
+              <div className="flex items-start gap-3">
+                <div className="relative shrink-0">
+                  <Thumb v={v} />
+                  <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[11px] font-semibold text-white">{mmss(v.duration_us)}</span>
+                </div>
+                <button type="button" onClick={() => select(v.id)} aria-pressed={sel} aria-label={`${v.title ?? v.original_filename}: ${p!.text}`}
+                  className={`min-w-0 flex-1 rounded-ctl p-1 text-left hover:bg-raised/50 ${sel ? "bg-primary/10" : ""}`}>
+                  <span className="block truncate text-sm font-medium">{v.title ?? v.original_filename ?? d.untitledVideo}</span>
+                  <span className="block text-xs text-muted">{`${new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })} · ${formatBytes(v.byte_size)}`}</span>
+                  {bars.length === 0 && (
+                    <span data-video-state={v.state} className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${TONE[p?.tone ?? "idle"]}`}>{p!.text}</span>
+                  )}
+                  {bars.map((b) => (
+                    <Fragment key={b.label}>
+                      <span className={`mt-1 block text-xs font-semibold ${b.tone === "idle" ? "text-amber" : "text-ink2"}`}>
+                        {b.tone === "idle" ? `${b.label} · ${d.waitingWord}` : `${b.label} ${Math.round(b.pct)}%`}
+                      </span>
+                      <span className="mt-0.5 block h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-label={`${v.title ?? v.original_filename}: ${b.label} progress`} aria-valuenow={Math.round(b.pct)} aria-valuemin={0} aria-valuemax={100}>
+                        <i className="block h-full rounded" style={{ width: `${Math.min(100, Math.max(b.tone === "idle" ? 0 : 2, b.pct))}%`, background: b.label === d.analysisWord ? "#1e90ff" : "#33d0c8" }} />
+                      </span>
+                    </Fragment>
+                  ))}
                 </button>
-              ) : (
-                <>
-                  <T x={2115} y={ty} size={20} weight={600}>{first ? (videos === null ? dict.common.loading : d.noUploadsYet) : "—"}</T>
-                  <T x={2115} y={y2} size={18} color="#9fb3cc">{first ? d.uploadsAppearHere : "—"}</T>
-                  {first && <T x={2115} y={y3} size={18} color="#9fb3cc">—</T>}
-                </>
-              )}
-              {v && canWrite && v.state !== "INGESTED" && (() => {
-                const stop = analysing(v), gone = v.state === "FAILED" || v.state === "QUARANTINED", t = transferOf(v), name = v.title ?? v.original_filename;
-                const verb = stop ? d.cancelAnalysis : gone ? d.removeVerb : dict.common.cancel;
-                return confirm === v.id ? (
-                  <span className="absolute" style={{ left: u(2330), top: u(y3 - 101 - 12), display: "flex", gap: u(10), fontSize: u(17), whiteSpace: "nowrap", zIndex: 5, color: "#ffc66d" }}>
-                    {stop ? d.cancelAnalysisQ : gone ? d.removeQ : d.cancelUploadQ}
-                    <button type="button" aria-label={d.confirmAria.replace("{text}", `${verb.toLowerCase()} ${name}`)} onClick={() => (stop ? stopAnalysis(v) : remove(v))}
-                      style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>
-                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
-                  </span>
-                ) : (
-                  <>
-                    {t && (t.state === "sending" || t.state === "paused" || t.state === "error") && (
-                      <button type="button" aria-label={t.state === "sending" ? d.pauseFile.replace("{name}", name ?? "") : d.resumeFile.replace("{name}", name ?? "")} onClick={() => (t.state === "sending" ? pause(t.id) : resume(t.id))} className="absolute"
-                        style={{ left: u(2310), top: u(y3 - 101 - 12), height: u(24), padding: `0 ${u(10)}`, borderRadius: u(12), border: `${u(1.5)} solid #1d4f8a`, background: "transparent", color: "#cfe0f5",
-                          fontSize: u(15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{t.state === "sending" ? d.pause : d.resume}</button>
-                    )}
-                    <button type="button" aria-label={`${verb} ${name}`} onClick={() => setConfirm(v.id)} className="absolute"
-                      style={{ left: u(stop ? 2392 : 2400), top: u(y3 - 101 - 12), height: u(24), padding: `0 ${u(8)}`, borderRadius: u(12), border: `${u(1.5)} solid #7a3a48`, background: "transparent", color: "#ff9aa8",
-                        fontSize: u(stop ? 13 : 15), fontFamily: "inherit", cursor: "pointer", zIndex: 5 }}>{verb}</button>
-                  </>
-                );
-              })()}
-              {v && canWrite && v.state === "INGESTED" && (() => {
-                const proxyOn = v.job?.kind === "PROXY" && (v.job.state === "RUNNING" || v.job.state === "QUEUED");
-                const proxyStopped = v.job?.kind === "PROXY" && v.job.state === "CANCELLED";
-                const anaOn = analysing(v), name = v.title ?? v.original_filename;
-                const key = (k: string) => `${v.id}:${k}`;
-                const pill = (left: number, label: string, aria: string, onClick: () => void, tone: "stop" | "go") => (
-                  <button type="button" aria-label={aria} onClick={onClick} className="absolute"
-                    style={{ left: u(left), top: u(ty - 101 - 12), height: u(24), padding: `0 ${u(8)}`, borderRadius: u(12), border: `${u(1.5)} solid ${tone === "stop" ? "#7a3a48" : "#1d6fb8"}`,
-                      background: "transparent", color: tone === "stop" ? "#ff9aa8" : "#7fd0ff", fontSize: u(13), fontFamily: "inherit", cursor: "pointer", zIndex: 5, whiteSpace: "nowrap" }}>{label}</button>
-                );
-                const ask = (text: string, yes: () => void) => (
-                  <span className="absolute" style={{ left: u(2290), top: u(ty - 101 - 12), display: "flex", gap: u(10), fontSize: u(15), whiteSpace: "nowrap", zIndex: 5, color: "#ffc66d" }}>
-                    {text}
-                    <button type="button" aria-label={d.confirmAria.replace("{text}", text.replace("?", "").toLowerCase())} onClick={yes} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>
-                    <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
-                  </span>
-                );
-                if (confirm === key("proxy")) return ask(d.cancelPlaybackQ, () => cancelPlayback(v));
-                if (confirm === key("analysis")) return ask(d.cancelAnalysisQ, () => stopAnalysis(v));
-                return (
-                  <>
-                    {proxyOn && pill(2262, d.cancelPlayback, d.cancelPlaybackOf.replace("{name}", name ?? ""), () => setConfirm(key("proxy")), "stop")}
-                    {anaOn && pill(proxyOn ? 2378 : 2262, d.cancelAnalysis, d.cancelAnalysisOf.replace("{name}", name ?? ""), () => setConfirm(key("analysis")), "stop")}
-                    {proxyStopped && pill(2262, d.makePlayback, d.makePlaybackOf.replace("{name}", name ?? ""), () => makePlayback(v), "go")}
-                  </>
-                );
-              })()}
-              <button type="button" aria-label={v ? d.moreFor.replace("{name}", v.title ?? v.original_filename ?? "") : d.noUploadRow} aria-expanded={menu === v?.id}
-                onClick={() => { setConfirm(null); setMenu((m) => (v && m !== v.id ? v.id : null)); }} className="absolute"
-                style={{ left: u(2496), top: u(y - 16 - 101), width: u(28), height: u(32), padding: 0, border: 0, background: "transparent", cursor: "pointer" }}>
-                <Ic o={[2496, y - 16]} x={2510} y={y} k="dots" size={22} color={v ? "#cfe0f5" : "#4a5a78"} />
-              </button>
-              {v && menu === v.id && (
-                <nav aria-label={d.openThisVideo} className="absolute" style={{ left: u(2290), top: u(y + 18 - 101), width: u(230), zIndex: 6, background: "#081a35",
-                  border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8), padding: u(6), display: "flex", flexDirection: "column", fontSize: u(18) }}>
+                <button type="button" aria-label={d.moreFor.replace("{name}", v.title ?? v.original_filename ?? "")} aria-expanded={menu === v.id}
+                  onClick={() => { setConfirm(null); setMenu((m) => (m !== v.id ? v.id : null)); }} className="vie-ib !h-8 !w-8 shrink-0">
+                  <MoreVertical className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+
+              {/* per-row actions */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[165px]">
+                {canWrite && v.state !== "INGESTED" && (() => {
+                  if (confirm === v.id) {
+                    return (
+                      <span className="flex flex-wrap items-center gap-2 text-xs text-amber">
+                        {stop ? d.cancelAnalysisQ : gone ? d.removeQ : d.cancelUploadQ}
+                        <button type="button" aria-label={d.confirmAria.replace("{text}", `${verb.toLowerCase()} ${name}`)} onClick={() => (stop ? stopAnalysis(v) : remove(v))}
+                          className="font-semibold text-danger">{d.yes}</button>
+                        <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
+                      </span>
+                    );
+                  }
+                  return (
+                    <>
+                      {t && (t.state === "sending" || t.state === "paused" || t.state === "error") && (
+                        <button type="button" aria-label={t.state === "sending" ? d.pauseFile.replace("{name}", name ?? "") : d.resumeFile.replace("{name}", name ?? "")}
+                          onClick={() => (t.state === "sending" ? pause(t.id) : resume(t.id))} className={pill}>{t.state === "sending" ? d.pause : d.resume}</button>
+                      )}
+                      <button type="button" aria-label={`${verb} ${name}`} onClick={() => setConfirm(v.id)} className={`${pill} text-danger`}>{verb}</button>
+                    </>
+                  );
+                })()}
+                {canWrite && v.state === "INGESTED" && (() => {
+                  if (confirm === key("proxy")) return (
+                    <span className="flex flex-wrap items-center gap-2 text-xs text-amber">{d.cancelPlaybackQ}
+                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelPlaybackQ.replace("?", "").toLowerCase())} onClick={() => cancelPlayback(v)} className="font-semibold text-danger">{d.yes}</button>
+                      <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
+                    </span>
+                  );
+                  if (confirm === key("analysis")) return (
+                    <span className="flex flex-wrap items-center gap-2 text-xs text-amber">{d.cancelAnalysisQ}
+                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelAnalysisQ.replace("?", "").toLowerCase())} onClick={() => stopAnalysis(v)} className="font-semibold text-danger">{d.yes}</button>
+                      <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
+                    </span>
+                  );
+                  return (
+                    <>
+                      {proxyOn && <button type="button" aria-label={d.cancelPlaybackOf.replace("{name}", name ?? "")} onClick={() => setConfirm(key("proxy"))} className={`${pill} text-danger`}>{d.cancelPlayback}</button>}
+                      {anaOn && <button type="button" aria-label={d.cancelAnalysisOf.replace("{name}", name ?? "")} onClick={() => setConfirm(key("analysis"))} className={`${pill} text-danger`}>{d.cancelAnalysis}</button>}
+                      {proxyStopped && <button type="button" aria-label={d.makePlaybackOf.replace("{name}", name ?? "")} onClick={() => makePlayback(v)} className={`${pill} text-cyan`}>{d.makePlayback}</button>}
+                    </>
+                  );
+                })()}
+              </div>
+
+              {menu === v.id && (
+                <nav aria-label={d.openThisVideo} className="absolute right-3 top-12 z-40 w-60 rounded-md border border-line2 bg-panel p-1 text-sm shadow-xl">
                   {v.state === "INGESTED" ? (
                     <>
-                      <Link href={`/processing?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>{dict.nav.processing}</Link>
-                      <Link href={`/videos/${v.id}/analyze`} style={{ padding: u(7), color: "#e3eefb" }}>{d.analysisWorkspace}</Link>
-                      <Link href={`/tactics?video=${v.id}`} style={{ padding: u(7), color: "#e3eefb" }}>{d.tacticalView}</Link>
+                      <Link href={`/processing?video=${v.id}`} className="block rounded px-2.5 py-1.5 hover:bg-raised">{dict.nav.processing}</Link>
+                      <Link href={`/videos/${v.id}/analyze`} className="block rounded px-2.5 py-1.5 hover:bg-raised">{d.analysisWorkspace}</Link>
+                      <Link href={`/tactics?video=${v.id}`} className="block rounded px-2.5 py-1.5 hover:bg-raised">{d.tacticalView}</Link>
                     </>
-                  ) : <span style={{ padding: u(7), color: "#8ea3bf" }}>{d.availableOnceVerified}</span>}
+                  ) : <span className="block px-2.5 py-1.5 text-muted">{d.availableOnceVerified}</span>}
                   {canWrite && (
                     confirm === v.id ? (
-                      <span style={{ display: "flex", flexWrap: "wrap", gap: u(8), padding: u(7), alignItems: "center", color: "#ffc66d", maxWidth: u(420), whiteSpace: "normal" }}>
-                        {!takes ? d.checking : takes.blocked ? takes.blocked
-                          : d.moveToTrash}
-                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} style={{ color: "#ff9aa8", fontWeight: 700, background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.yes}</button>}
-                        <button type="button" onClick={() => setConfirm(null)} style={{ color: "#cfe0f5", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.no}</button>
+                      <span className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-amber">
+                        {!takes ? d.checking : takes.blocked ? takes.blocked : d.moveToTrash}
+                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} className="font-semibold text-danger">{d.yes}</button>}
+                        <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
                       </span>
-                    ) : <button type="button" onClick={() => setConfirm(v.id)} style={{ textAlign: "left", padding: u(7), color: "#ff9aa8", background: "transparent", border: 0, cursor: "pointer", font: "inherit" }}>{d.removeUpload}</button>
+                    ) : <button type="button" onClick={() => setConfirm(v.id)} className="block w-full rounded px-2.5 py-1.5 text-left text-danger hover:bg-raised">{d.removeUpload}</button>
                   )}
                 </nav>
               )}
-              {i < 4 && <B x={1943} y={y + 54 + RIGHT_EXTRA / 10} w={574} h={1} style={{ background: "#10294a" }} />}
             </li>
           );
         })}

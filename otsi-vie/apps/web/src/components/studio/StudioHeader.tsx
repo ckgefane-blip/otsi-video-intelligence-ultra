@@ -15,10 +15,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
 import { HistoryDialog } from "@/components/reels/HistoryDialog";
-import { Ic, T, stageStyles as s, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
-import { Btn, frame, IN, type Ui } from "./kit";
+import { Btn, IN, type Ui } from "./kit";
 import { openKeymap } from "@/lib/keymap";
 import { typing } from "./shortcuts";
 import { LAYOUTS, type Layout, type Studio } from "./useStudio";
@@ -71,85 +70,78 @@ export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Stu
   }, dict.body.studio.suggestedMomentsAdded.replace("{a}", String(missing.length)));
 
   return (
-    <section aria-label={dict.body.studio.editorHeader} data-section="p07-s01">
-      <Link href={reel ? `/reels/${reel.id}` : "/reels"} aria-label={dict.body.studio.backToReelBuilder} className={`${s.a} ${s.framed}`}
-        style={{ left: u(28), top: u(120 - 101), width: u(64), height: u(62), ...IN }}>
-        <Ic o={[28, 120]} x={60} y={151} k={dict.body.analysis.shirtBack} size={32} color="#33a8ff" />
+    <section aria-label={dict.body.studio.editorHeader} data-section="p07-s01" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <Link href={reel ? `/reels/${reel.id}` : "/reels"} aria-label={dict.body.studio.backToReelBuilder} className="vie-btn" title={dict.body.studio.backToReelBuilder}>
+        ←
       </Link>
-      <h1 style={{ margin: 0, fontSize: "inherit" }}>
-        <T as="span" x={117} y={139} size={36} weight={700}>{dict.pages.studio.title}</T>{" "}
-        <T as="span" x={303} y={139} size={36} weight={700} color="#1e90ff">/</T>{" "}
-        <T as="span" x={332} y={139} size={36} weight={700}>{dict.body.studio.timelineEditor}</T>
-      </h1>
-      <T x={117} y={178} size={22} color="#b9cbe2" style={{ maxWidth: u(1500), overflow: "hidden", textOverflow: "ellipsis" }}>
-        {reel ? `${reel.name}${reel.player ? ` · ${reel.player.display_name}` : ""}${dict.body.studio.everyEditSavedSuffix}`
-          : dict.body.studio.studioSubtitle}
-      </T>
+      <div className="min-w-0 flex-1">
+        <h1 className="t-page">
+          {dict.pages.studio.title} <span className="text-primary">/</span> {dict.body.studio.timelineEditor}
+        </h1>
+        <p className="t-small truncate">
+          {reel ? `${reel.name}${reel.player ? ` · ${reel.player.display_name}` : ""}${dict.body.studio.everyEditSavedSuffix}`
+            : dict.body.studio.studioSubtitle}
+        </p>
+      </div>
 
-      <div role="radiogroup" aria-label={dict.body.studio.taskLayout} className="absolute" style={{ left: u(1180), top: u(124 - 101), display: "flex", gap: u(6), zIndex: 2 }}>
+      <div role="radiogroup" aria-label={dict.body.studio.taskLayout} className="flex items-center gap-1">
         {(Object.keys(LAYOUTS) as Layout[]).map((l) => (
           <button key={l} type="button" role="radio" aria-checked={st.layout === l} data-layout={l} data-pro title={layoutText[l].hint}
             onClick={() => { st.setLayout(l); ui.say(layoutText[l].hint); }}
-            style={{ height: u(40), padding: `0 ${u(16)}`, borderRadius: u(8), fontSize: u(19), fontFamily: "inherit", cursor: "pointer", color: "#fff",
-              border: `${u(1.5)} solid ${st.layout === l ? "#33a8ff" : "#1d4f8a"}`, background: st.layout === l ? "#0f4f9a" : "#0a2447" }}>{layoutText[l].label}</button>
+            className={`vie-btn vie-btn-sm ${st.layout === l ? "border-primary bg-[#0f4f9a] text-white" : ""}`}>{layoutText[l].label}</button>
         ))}
         <button type="button" aria-label={dict.body.studio.keyboardShortcuts} data-shortcuts onClick={openKeymap} title={dict.body.studio.keyboardShortcutsTitle}
-          style={{ width: u(40), height: u(40), borderRadius: u(8), fontSize: u(20), fontWeight: 700, fontFamily: "inherit", cursor: "pointer", color: "#cfe0f5",
-            border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447" }}>?</button>
+          className="vie-btn vie-btn-sm font-semibold">?</button>
         <button type="button" aria-label={dict.body.studio.historyReel} data-history-open disabled={!reel} onClick={() => setHist(true)} title={dict.body.studio.historyTitle}
-          style={{ height: u(40), padding: `0 ${u(14)}`, borderRadius: u(8), fontSize: u(19), fontFamily: "inherit", cursor: reel ? "pointer" : "default", color: "#cfe0f5",
-            border: `${u(1.5)} solid #1d4f8a`, background: "#0a2447", opacity: reel ? 1 : 0.5 }}>{dict.body.reels.history}{r?.history?.entries.length ? ` (${r.history.entries.length})` : ""}</button>
+          className="vie-btn vie-btn-sm disabled:opacity-50">{dict.body.reels.history}{r?.history?.entries.length ? ` (${r.history.entries.length})` : ""}</button>
       </div>
       <HistoryDialog r={r} open={hist} onOpenChange={setHist} />
-      <Btn x={1677} y={120} w={192} h={62} label={dict.body.studio.saveProjectName} style={IN} dim={!edit}
-        onClick={need(() => { setName(reel!.name); setNaming(true); })}>
-        <Ic o={[1677, 120]} x={1714} y={151} k="sav" size={28} color="#cfe0f5" />
-        <T o={[1677, 120]} x={1743} y={152} size={21} weight={600} as="span">{dict.body.reels.saveProject}</T>
-      </Btn>
-      <Btn x={1886} y={120} w={128} h={62} label={dict.body.studio.undo} style={IN} dim={!edit || !st.canUndo} onClick={need(() => (st.canUndo ? st.undo() : ui.say(dict.body.studio.nothingUndo)))}>
-        <Ic o={[1886, 120]} x={1922} y={151} k="undo" size={28} color={st.canUndo ? "#cfe0f5" : "#6a7f9c"} />
-        <T o={[1886, 120]} x={1948} y={152} size={21} weight={600} color={st.canUndo ? undefined : "#6a7f9c"} as="span">{dict.body.studio.undo}</T>
-      </Btn>
-      <Btn x={2031} y={120} w={129} h={62} label={dict.body.studio.redo} style={IN} dim={!edit || !st.canRedo} onClick={need(() => (st.canRedo ? st.redo() : ui.say(dict.body.studio.nothingRedo)))}>
-        <Ic o={[2031, 120]} x={2066} y={151} k="redo" size={28} color={st.canRedo ? "#cfe0f5" : "#6a7f9c"} />
-        <T o={[2031, 120]} x={2095} y={152} size={21} weight={st.canRedo ? 600 : 400} color={st.canRedo ? undefined : "#6a7f9c"} as="span">{dict.body.studio.redo}</T>
-      </Btn>
-      <Btn x={2176} y={120} w={144} h={62} label={dict.body.studio.suggestAddMoments.replace("{a}", String(missing.length))} dim={!edit || missing.length === 0}
-        style={{ background: "linear-gradient(90deg,#2a1ab0,#3a2ae0)", borderRadius: u(8), ...frame("#5a4af0") }}
-        onClick={need(() => (missing.length ? addSuggested()
-          : ui.say(r?.moments?.length ? dict.body.studio.allMomentsInReel : dict.body.studio.noMomentsSuggested)))}>
-        <Ic o={[2176, 120]} x={2201} y={151} k="ai" size={28} color="#9fc8ff" />
-        <T o={[2176, 120]} x={2224} y={152} size={21} weight={600} as="span">{dict.body.studio.suggestLabel}</T>
-      </Btn>
-      <Btn x={2344} y={120} w={190} h={62} label={rendering ? dict.body.studio.renderingDots : dict.body.studio.exportRenderReel} dim={!edit || !reel?.clips.length || rendering}
-        style={{ background: "#0a84ff", borderRadius: u(8) }} pressed={menu}
-        onClick={need(() => (!reel!.clips.length ? ui.say(dict.body.studio.addClipsBeforeExport)
-          : rendering ? ui.say(dict.body.studio.renderAlreadyRunning) : setMenu((m) => !m)))}>
-        <Ic o={[2344, 120]} x={2381} y={151} k="exp" size={30} />
-        <T o={[2344, 120]} x={2411} y={152} size={22} weight={600} as="span">{rendering ? dict.body.studio.renderingLabel : dict.body.studio.exportLabel}</T>
-        <Ic o={[2344, 120]} x={2503} y={151} k="chev" size={20} />
-      </Btn>
-      {menu && (
-        <div role="menu" aria-label={dict.body.studio.exportFormat} className="absolute" style={{ left: u(2304), top: u(190 - 101), width: u(230), zIndex: 6, background: "#081a35",
-          border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8), padding: u(6), fontSize: u(19) }}>
-          {([["h264", "MP4 · H.264"], ["av1", "MP4 · AV1"], ["vp9", "WebM · VP9"]] as const).map(([c, l]) => (
-            <button key={c} role="menuitem" type="button" onClick={() => render(c)}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: u(8), background: "transparent", border: 0, color: "#e3eefb", cursor: "pointer", font: "inherit" }}>{l}</button>
-          ))}
-        </div>
-      )}
+      <div className="flex items-center gap-1.5">
+        <Btn label={dict.body.studio.saveProjectName} style={IN} dim={!edit}
+          onClick={need(() => { setName(reel!.name); setNaming(true); })}>
+          {dict.body.reels.saveProject}
+        </Btn>
+        <Btn label={dict.body.studio.undo} style={IN} dim={!edit || !st.canUndo} onClick={need(() => (st.canUndo ? st.undo() : ui.say(dict.body.studio.nothingUndo)))}>
+          ↶ {dict.body.studio.undo}
+        </Btn>
+        <Btn label={dict.body.studio.redo} style={IN} dim={!edit || !st.canRedo} onClick={need(() => (st.canRedo ? st.redo() : ui.say(dict.body.studio.nothingRedo)))}>
+          ↷ {dict.body.studio.redo}
+        </Btn>
+        <Btn label={dict.body.studio.suggestAddMoments.replace("{a}", String(missing.length))} dim={!edit || missing.length === 0}
+          style={{ background: "#2a1ab0", borderRadius: 8, border: "1px solid #5a4af0", color: "#fff" }}
+          onClick={need(() => (missing.length ? addSuggested()
+            : ui.say(r?.moments?.length ? dict.body.studio.allMomentsInReel : dict.body.studio.noMomentsSuggested)))}>
+          ✦ {dict.body.studio.suggestLabel}
+        </Btn>
+        <span className="relative">
+          <Btn label={rendering ? dict.body.studio.renderingDots : dict.body.studio.exportRenderReel} dim={!edit || !reel?.clips.length || rendering}
+            style={{ background: "#0a84ff", borderRadius: 8, border: "1px solid transparent", color: "#fff" }} pressed={menu}
+            onClick={need(() => (!reel!.clips.length ? ui.say(dict.body.studio.addClipsBeforeExport)
+              : rendering ? ui.say(dict.body.studio.renderAlreadyRunning) : setMenu((m) => !m)))}>
+            {rendering ? dict.body.studio.renderingLabel : dict.body.studio.exportLabel} ▾
+          </Btn>
+          {menu && (
+            <div role="menu" aria-label={dict.body.studio.exportFormat} className="absolute right-0 top-full z-20 mt-1 w-[230px] rounded-lg border border-line2 bg-panel p-1.5 t-body shadow-xl">
+              {([["h264", "MP4 · H.264"], ["av1", "MP4 · AV1"], ["vp9", "WebM · VP9"]] as const).map(([c, l]) => (
+                <button key={c} role="menuitem" type="button" onClick={() => render(c)}
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-raised">{l}</button>
+              ))}
+            </div>
+          )}
+        </span>
+      </div>
       {(note || r?.msg) && (
-        <T x={1677} y={196} size={16} color={note ? "#ffc66d" : r!.msg!.ok ? "#3ee6a8" : "#ff8a8a"} style={{ maxWidth: u(860), overflow: "hidden", textOverflow: "ellipsis" }}>
+        <p className="t-small w-full truncate" style={{ color: note ? "#ffc66d" : r!.msg!.ok ? "#3ee6a8" : "#ff8a8a" }}>
           <span role="status">{note ?? r!.msg!.text}</span>
-        </T>
+        </p>
       )}
 
       <Dialog.Root open={naming} onOpenChange={setNaming}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{dict.body.studio.saveProjectLabel}</Dialog.Title>
-            <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.studio.editsSavedNameReel}</Dialog.Description>
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 t-body shadow-2xl">
+            <Dialog.Title className="t-panel">{dict.body.studio.saveProjectLabel}</Dialog.Title>
+            <Dialog.Description className="mb-3 t-small">{dict.body.studio.editsSavedNameReel}</Dialog.Description>
             <form onSubmit={(e) => { e.preventDefault(); setNaming(false); r?.run(() => api(`/v1/reels/${reel!.id}`, { method: "PATCH", json: { version: reel!.version, name } }), dict.body.studio.projectSaved); }}>
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} required aria-label={dict.body.studio.reelName}
                 className="mb-3 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-ink" />

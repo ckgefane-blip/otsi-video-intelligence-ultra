@@ -9,6 +9,19 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { safeNext } from "@/lib/safe-next";
 
+/** Drop 1 card: the shared vie-panel, centred by the login layout. */
+const card = "w-full max-w-sm vie-panel p-6";
+const field = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 t-body outline-none focus:border-primary";
+const alert = "mt-3 rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger";
+
+function Brand() {
+  return (
+    // the same brand mark the shell rail uses — a real asset, not a drawn wordmark
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/brand/otsi-logo.png" alt="OTSI VIE" className="h-[22px] w-auto" draggable={false} />
+  );
+}
+
 function LoginForm() {
   const { status, signIn, signInWithCode, signInWithPasskey } = useAuth();
   const { t } = useLocale();
@@ -65,19 +78,19 @@ function LoginForm() {
 
   if (challenge) {
     return (
-      <form onSubmit={submit} className="mx-auto mt-16 w-full max-w-sm rounded-card border border-line bg-panel p-6" aria-labelledby="login-title" data-two-step-form>
-        <p className="text-[22px] font-extrabold tracking-wide">OTSI <span className="text-primary">VIE</span></p>
-        <h1 id="login-title" className="mt-4 text-xl font-bold">{t.body.auth.enterCode}</h1>
-        <p className="mt-2 text-sm text-muted">{t.body.auth.codeDesc}</p>
-        <label className="mt-4 block text-sm" htmlFor="code">{t.body.auth.code}</label>
+      <form onSubmit={submit} className={card} aria-labelledby="login-title" data-two-step-form>
+        <Brand />
+        <h1 id="login-title" className="t-page mt-4">{t.body.auth.enterCode}</h1>
+        <p className="t-small mt-2">{t.body.auth.codeDesc}</p>
+        <label className="t-label mt-4 block" htmlFor="code">{t.body.auth.code}</label>
         <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" required autoFocus maxLength={9} value={code}
           onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
-          className="mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 text-center font-mono text-lg tracking-[0.3em] outline-none focus:border-primary" />
-        {error && <p role="alert" className="mt-3 rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-        <button type="submit" disabled={busy || code.length < 6} className="mt-4 flex w-full items-center justify-center gap-2 rounded-ctl bg-primary px-4 py-2.5 font-semibold text-white disabled:opacity-60">
+          className="mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 text-center font-mono text-base tracking-[0.3em] outline-none focus:border-primary" />
+        {error && <p role="alert" className={alert}>{error}</p>}
+        <button type="submit" disabled={busy || code.length < 6} className="vie-btn vie-btn-pri vie-btn-lg mt-4 w-full">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} {t.body.auth.signIn}
         </button>
-        <button type="button" onClick={() => { setChallenge(null); setError(null); setPassword(""); }} className="mt-3 w-full text-center text-xs text-muted underline">
+        <button type="button" onClick={() => { setChallenge(null); setError(null); setPassword(""); }} className="mt-3 w-full text-center t-small underline">
           {t.body.auth.startAgain}
         </button>
       </form>
@@ -85,40 +98,40 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto mt-16 w-full max-w-sm rounded-card border border-line bg-panel p-6" aria-labelledby="login-title">
-      <p className="text-[22px] font-extrabold tracking-wide">OTSI <span className="text-primary">VIE</span></p>
-      <h1 id="login-title" className="mt-4 text-xl font-bold">{t.body.auth.signIn}</h1>
-      <label className="mt-4 block text-sm" htmlFor="email">{t.body.auth.email}</label>
+    <form onSubmit={submit} className={card} aria-labelledby="login-title">
+      <Brand />
+      <h1 id="login-title" className="t-page mt-4">{t.body.auth.signIn}</h1>
+      <label className="t-label mt-4 block" htmlFor="email">{t.body.auth.email}</label>
       <input id="email" name="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)}
-        className="mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 text-sm outline-none focus:border-primary" />
-      <label className="mt-3 block text-sm" htmlFor="password">{t.body.auth.password}</label>
+        className={field} />
+      <label className="t-label mt-3 block" htmlFor="password">{t.body.auth.password}</label>
       <div className="relative mt-1">
         <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-ctl border border-line bg-canvas px-3 py-2 pr-10 text-sm outline-none focus:border-primary" />
+          className="w-full rounded-ctl border border-line bg-canvas px-3 py-2 pr-10 t-body outline-none focus:border-primary" />
         <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword} aria-pressed={showPassword}
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      {error && <p role="alert" className="mt-3 rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-      <button type="submit" disabled={busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-ctl bg-primary px-4 py-2.5 font-semibold text-white disabled:opacity-60">
+      {error && <p role="alert" className={alert}>{error}</p>}
+      <button type="submit" disabled={busy} className="vie-btn vie-btn-pri vie-btn-lg mt-4 w-full">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} {t.body.auth.signIn}
       </button>
       {passkeySupported === true && (
         <>
-          <div className="mt-4 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+          <div className="mt-4 flex items-center gap-3 t-small" aria-hidden="true">
             <span className="h-px flex-1 bg-line" /><span>{t.webauthn.passkeyOr}</span><span className="h-px flex-1 bg-line" />
           </div>
-          <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-ctl border border-line bg-canvas px-4 py-2.5 font-semibold disabled:opacity-60">
+          <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy} className="vie-btn mt-4 w-full">
             {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
             {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskey}
           </button>
         </>
       )}
       {passkeySupported === false && (
-        <p className="mt-4 text-xs text-muted">{t.webauthn.passkeyUnavailable}</p>
+        <p className="t-small mt-4">{t.webauthn.passkeyUnavailable}</p>
       )}
-      <p className="mt-4 text-xs text-muted">
+      <p className="t-small mt-4">
         {t.body.auth.invited}
       </p>
     </form>

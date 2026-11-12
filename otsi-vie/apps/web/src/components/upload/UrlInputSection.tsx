@@ -1,6 +1,6 @@
 "use client";
 /**
- * Page 02 Section 06 — URL input and external-source ingestion (approved reference 02_UPLOAD_INGEST, the link bar in the drop zone).
+ * Page 02 Section 06 — URL input and external-source ingestion, on the Desktop UI flow layout.
  *
  * Paste a link and Add URL: the server imports it into the chosen project (POST /v1/imports), downloading from public addresses only and
  * verifying the file like an upload. While typing, the link's provider is explained from the server's own list (works / needs the
@@ -11,7 +11,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { IMPORT_PROVIDERS, importProviderFor, type ImportProvider } from "@otsi-vie/contracts";
 import { useEffect, useRef, useState } from "react";
-import { B, Ic, T, u } from "@/components/stage/DesignStage";
 import { ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { useSourceMode } from "./UploadHeaderSection";
@@ -61,45 +60,31 @@ export function UrlInputSection() {
 
   if (mode !== "url") return <section aria-label={d.urlInputAria} data-section="p02-s06" data-hidden="true" />;
   return (
-    <section aria-label={d.urlInputAria} data-section="p02-s06">
-      <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
-        <label className="absolute" style={{ left: u(631), top: u(649 - 101), width: u(886), height: u(64), boxSizing: "border-box", borderRadius: u(8),
-          background: "rgba(4,16,34,.85)", border: `${u(1.5)} solid #1e90ff` }}>
-          <Ic o={[632.5, 650.5]} x={672} y={681} k="link" size={30} color="#cfe0f5" />
+    <section aria-label={d.urlInputAria} data-section="p02-s06" className="vie-panel">
+      <div className="vie-ph"><h2 className="t-panel">{d.pasteLinkHere}</h2>
+        <button type="button" onClick={() => setList(true)} className="text-sm text-primary">{d.whichLinksWork}</button>
+      </div>
+      <div className="space-y-2 p-3">
+        <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex gap-2">
           <input ref={field} value={url} onChange={(e) => { setUrl(e.target.value); setMsg(null); }} type="url" placeholder={d.pasteYoutubeLink} aria-label={d.videoUrl}
-            style={{ position: "absolute", left: u(716 - 632.5), top: 0, width: u(780), height: "100%", background: "transparent", border: 0, outline: "none", color: "#e3eefb",
-              fontSize: u(22), fontFamily: "inherit" }} />
-        </label>
-        <button type="submit" aria-label={d.addUrl} aria-busy={busy} className="absolute"
-          style={{ left: u(1534), top: u(649 - 101), width: u(170), height: u(64), padding: 0, borderRadius: u(8), background: "#041022", border: `${u(2)} solid #1e90ff`,
-            color: "#fff", font: "inherit", cursor: "pointer", opacity: provider?.status === "unsupported" ? 0.6 : 1 }}>
-          <T o={[1536, 651]} x={1559} y={681} size={23} weight={600} as="span">{busy ? d.adding : d.addUrl}</T>
-          <Ic o={[1536, 651]} x={1668} y={681} k="arrow" size={24} />
-        </button>
-      </form>
-      <button type="button" onClick={() => setList(true)} className="absolute"
-        style={{ left: u(1704 - 160), top: u(853 - 101 - 12), width: u(160), height: u(24), zIndex: 5, padding: 0, border: 0, background: "transparent", color: "#33a8ff",
-          fontSize: u(16), fontFamily: "inherit", cursor: "pointer", textAlign: "right" }}>{d.whichLinksWork}</button>
-
-      {(showProvider || msg) && (
-        <div className="absolute" style={{ left: u(631), top: u(725 - 101), width: u(1073), zIndex: 4, background: "#081a35", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(8),
-          padding: `${u(10)} ${u(14)}`, fontSize: u(17), color: "#cfe0f5" }}>
-          {showProvider && provider && (
-            <div data-provider={provider.id} data-provider-status={provider.status}>
-              <strong style={{ color: provider.status === "unsupported" ? "#ff8a8a" : provider.status === "supported" ? "#3ee6a8" : "#ffc66d" }}>
-                {provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}
-              </strong>
-              <span style={{ marginLeft: u(8), color: "#9fb3cc" }}>{provider.status === "unsupported" ? `${provider.reason} ${provider.alternative}` : provider.method}</span>
-              {provider.status === "needs_authorization" && (
-                <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" minLength={8} placeholder={d.yourAccessToken.replace("{name}", provider.name)}
-                  aria-label={d.accessToken} style={{ display: "block", marginTop: u(8), width: "100%", background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(6),
-                    color: "#e3eefb", padding: `${u(6)} ${u(10)}`, fontSize: u(17), fontFamily: "inherit" }} />
-              )}
-            </div>
-          )}
-          {msg && <p role={msg.ok ? "status" : "alert"} style={{ margin: showProvider ? `${u(6)} 0 0` : 0, color: msg.ok ? "#3ee6a8" : "#ff8a8a" }}>{msg.text}</p>}
-        </div>
-      )}
+            className="min-w-0 flex-1 rounded-ctl border border-line bg-canvas px-3 py-2 text-sm" />
+          <button type="submit" aria-label={d.addUrl} aria-busy={busy} disabled={provider?.status === "unsupported"}
+            className="vie-btn vie-btn-pri disabled:opacity-50">{busy ? d.adding : d.addUrl}</button>
+        </form>
+        {showProvider && provider && (
+          <div data-provider={provider.id} data-provider-status={provider.status}
+            className={`rounded-ctl border p-2 text-xs ${provider.status === "unsupported" ? "border-danger/40 bg-danger/10" : "border-line bg-raised/40"}`}>
+            <p className="font-semibold">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
+            <p className="mt-0.5 text-muted">{provider.status === "unsupported" ? `${provider.reason} ${provider.alternative}` : provider.method}</p>
+            {provider.status === "needs_authorization" && (
+              <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" minLength={8} placeholder={d.yourAccessToken.replace("{name}", provider.name)}
+                aria-label={d.accessToken} className="mt-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
+            )}
+          </div>
+        )}
+        {msg && <p role={msg.ok ? "status" : "alert"} className={`text-xs ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
+        <p className="text-xs text-muted">{d.onlyVideoRights}</p>
+      </div>
 
       <Dialog.Root open={list} onOpenChange={setList}>
         <Dialog.Portal>

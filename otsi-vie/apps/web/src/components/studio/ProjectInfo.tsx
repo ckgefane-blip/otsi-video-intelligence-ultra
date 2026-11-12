@@ -7,7 +7,6 @@
  */
 import type { Match, Reel } from "@otsi-vie/contracts";
 import { presetOf, SPOTLIGHT_PRESETS } from "@otsi-vie/contracts";
-import { u } from "@/components/stage/DesignStage";
 import { tc } from "./kit";
 import { renderedState } from "./spotlight";
 import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
@@ -36,20 +35,19 @@ export function ProjectInfo({ reel, match, total, canPick, onPick }: { reel: Ree
   const { t: dict } = useLocale();
   const rows = projectRows(reel, match, total, dict);
   return (
-    <div data-project-info="" className="absolute" style={{ left: u(1990), top: u(280 - 101), width: u(526), height: u(530), fontSize: u(19), color: "#cfe0f5", display: "flex", flexDirection: "column", gap: u(8) }}>
-      <h2 style={{ margin: 0, fontSize: u(24), fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reel.name}</h2>
-      <p style={{ margin: 0, fontSize: u(15), color: "#8ea3bf" }}>{dict.body.studio.reelChooseClip}</p>
-      <dl style={{ margin: `${u(6)} 0 0`, display: "grid", gridTemplateColumns: `${u(120)} 1fr`, rowGap: u(10), columnGap: u(12) }}>
+    <div data-project-info="" className="flex flex-col gap-2">
+      <h2 className="t-section truncate text-white">{reel.name}</h2>
+      <p className="t-small m-0">{dict.body.studio.reelChooseClip}</p>
+      <dl className="mt-1.5 grid grid-cols-[120px_1fr] gap-x-3 gap-y-2.5">
         {rows.map(([k, v]) => (
-          <div key={k} data-project-row={k} style={{ display: "contents" }}>
-            <dt style={{ color: "#8ea3bf" }}>{k}</dt>
-            <dd style={{ margin: 0, color: "#e3eefb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</dd>
+          <div key={k} data-project-row={k} className="contents">
+            <dt className="t-label">{k}</dt>
+            <dd className="t-body m-0 truncate text-[#e3eefb]">{v}</dd>
           </div>
         ))}
       </dl>
       <button type="button" data-pick-playhead="" disabled={!canPick} onClick={onPick}
-        style={{ marginTop: u(14), alignSelf: "flex-start", height: u(40), padding: `0 ${u(16)}`, fontSize: u(18), fontWeight: 600, color: "#fff", background: "#0a2447",
-          border: `${u(1.5)} solid #33a8ff`, borderRadius: u(6), cursor: canPick ? "pointer" : "default", opacity: canPick ? 1 : 0.4, fontFamily: "inherit" }}>{dict.body.studio.selectClipPlayhead}
+        className="t-button mt-3 inline-flex items-center justify-center gap-2 self-start h-9 rounded-ctl border border-primary bg-[#0a2447] px-3.5 text-white disabled:opacity-40">{dict.body.studio.selectClipPlayhead}
       </button>
     </div>
   );

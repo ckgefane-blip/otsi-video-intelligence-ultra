@@ -266,12 +266,12 @@ export function AdminConsole() {
 
   if (!isAuthorized) {
     return (
-      <div className="mx-auto max-w-4xl p-6">
+      <div className="w-full max-w-4xl">
         <div className="flex items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
           <ShieldAlert className="h-6 w-6 shrink-0" />
           <div>
             <h2 className="font-semibold">{t.body.admin.accessRequired}</h2>
-            <p className="text-sm opacity-90">
+            <p className="t-body opacity-90">
               {t.body.admin.accessOnly}
             </p>
           </div>
@@ -292,17 +292,17 @@ export function AdminConsole() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl p-6" data-testid="admin-console">
+    <div className="w-full max-w-6xl space-y-4" data-testid="admin-console">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">{t.body.admin.title}</h1>
+            <h1 className="t-page">{t.body.admin.title}</h1>
             <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
               v3 Phase D.3
             </span>
           </div>
-          <p className="text-sm text-muted">
+          <p className="t-body mt-1 text-muted">
             {t.body.admin.subtitle}
           </p>
         </div>
@@ -310,7 +310,7 @@ export function AdminConsole() {
           type="button"
           onClick={loadData}
           disabled={loading}
-          className="flex items-center gap-2 rounded-ctl border border-line bg-panel px-3 py-1.5 text-sm font-medium hover:border-primary/50 disabled:opacity-50"
+          className="vie-btn vie-btn-sm"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {t.body.admin.refresh}
@@ -318,7 +318,7 @@ export function AdminConsole() {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-center gap-2 rounded-card border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+        <div className="flex items-center gap-2 rounded-ctl border border-danger/40 bg-danger/10 p-3 t-body text-danger">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -326,7 +326,7 @@ export function AdminConsole() {
 
       {/* System Monitoring Alerts Banner */}
       {monitoring?.alerts && monitoring.alerts.length > 0 && (
-        <div className="mb-6 space-y-2" data-testid="monitoring-alerts">
+        <div className="space-y-2" data-testid="monitoring-alerts">
           {monitoring.alerts.map((alt) => (
             <div
               key={alt.id}
@@ -342,13 +342,13 @@ export function AdminConsole() {
                   <div className="font-semibold">{alt.title}</div>
                   <div className="mt-0.5 opacity-90">{alt.message}</div>
                   {alt.suggested_action && (
-                    <div className="mt-1 font-mono text-[11px] opacity-80">
+                    <div className="mt-1 font-mono t-small opacity-80">
                       {t.body.admin.recommendation.replace("{a}", alt.suggested_action)}
                     </div>
                   )}
                 </div>
               </div>
-              <span className="rounded bg-canvas/60 px-2 py-0.5 font-mono text-[10px] uppercase font-semibold">
+              <span className="rounded bg-canvas/60 px-2 py-0.5 font-mono text-xs font-semibold uppercase">
                 {({ INFO: t.body.admin.severityInfo, WARNING: t.body.admin.severityWarning, CRITICAL: t.body.admin.severityCritical } as Record<string, string>)[alt.severity] ?? alt.severity}
               </span>
             </div>
@@ -357,7 +357,7 @@ export function AdminConsole() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="mb-6 flex gap-1 border-b border-line">
+      <div className="flex gap-1 overflow-x-auto border-b border-line">
         {[
           { id: "overview", label: t.body.admin.tabOverview, icon: Activity },
           { id: "gates", label: t.body.admin.tabGates, icon: ShieldCheck },
@@ -372,7 +372,7 @@ export function AdminConsole() {
             type="button"
             onClick={() => setActiveTab(id as Tab)}
             data-tab={id}
-            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 font-medium transition-colors ${
               activeTab === id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted hover:border-line hover:text-foreground"
@@ -395,87 +395,85 @@ export function AdminConsole() {
             <div className="space-y-6" data-testid="tab-overview">
               {/* Metric Cards Grid */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricMembers}</span>
+                    <span className="t-th">{t.body.admin.metricMembers}</span>
                     <Users className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">{dashboard.organization.member_count}</div>
-                  <div className="text-[11px] text-muted">{t.body.admin.metricActiveAccounts}</div>
+                  <div className="t-metric mt-2">{dashboard.organization.member_count}</div>
+                  <div className="t-small">{t.body.admin.metricActiveAccounts}</div>
                 </div>
 
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricVideos}</span>
+                    <span className="t-th">{t.body.admin.metricVideos}</span>
                     <Layers className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">{dashboard.organization.video_count}</div>
-                  <div className="text-[11px] text-muted">{t.body.admin.metricReelsCut.replace("{a}", String(dashboard.organization.reel_count))}</div>
+                  <div className="t-metric mt-2">{dashboard.organization.video_count}</div>
+                  <div className="t-small">{t.body.admin.metricReelsCut.replace("{a}", String(dashboard.organization.reel_count))}</div>
                 </div>
 
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricStorage}</span>
+                    <span className="t-th">{t.body.admin.metricStorage}</span>
                     <HardDrive className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">
+                  <div className="t-metric mt-2">
                     {formatBytes(dashboard.organization.storage_bytes)}
                   </div>
-                  <div className="text-[11px] text-muted">{t.body.admin.metricFootage}</div>
+                  <div className="t-small">{t.body.admin.metricFootage}</div>
                 </div>
 
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricWorkers}</span>
+                    <span className="t-th">{t.body.admin.metricWorkers}</span>
                     <Cpu className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">
+                  <div className="t-metric mt-2">
                     {dashboard.workers.reduce((acc, g) => acc + g.active_workers, 0)}
                   </div>
-                  <div className="text-[11px] text-muted">{t.body.admin.metricRunningNodes}</div>
+                  <div className="t-small">{t.body.admin.metricRunningNodes}</div>
                 </div>
 
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricModels}</span>
+                    <span className="t-th">{t.body.admin.metricModels}</span>
                     <Database className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">{dashboard.models.length}</div>
-                  <div className="text-[11px] text-muted">
+                  <div className="t-metric mt-2">{dashboard.models.length}</div>
+                  <div className="t-small">
                     {t.body.admin.metricCached.replace("{a}", String(dashboard.models.filter((m) => m.files.every((f) => f.verified)).length))}
                   </div>
                 </div>
 
-                <div className="rounded-card border border-line bg-panel p-4">
+                <div className="vie-panel p-4">
                   <div className="flex items-center justify-between text-muted">
-                    <span className="text-xs uppercase font-medium">{t.body.admin.metricQueued}</span>
+                    <span className="t-th">{t.body.admin.metricQueued}</span>
                     <FileText className="h-4 w-4" />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">
+                  <div className="t-metric mt-2">
                     {dashboard.workers.reduce((acc, g) => acc + g.queued_jobs, 0)}
                   </div>
-                  <div className="text-[11px] text-muted">{t.body.admin.metricPendingJobs}</div>
+                  <div className="t-small">{t.body.admin.metricPendingJobs}</div>
                 </div>
               </div>
 
               {/* System & Runtime Host Specs */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  {t.body.admin.sysRuntime}
-                </h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <div className="vie-panel">
+                <div className="vie-ph"><h3 className="t-section">{t.body.admin.sysRuntime}</h3></div>
+                <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-4">
                   <div>
-                    <div className="text-xs text-muted">{t.body.admin.sysHost}</div>
+                    <div className="t-small">{t.body.admin.sysHost}</div>
                     <div className="font-medium">{dashboard.system_resources.host ?? "localhost"}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">{t.body.admin.sysCpu}</div>
+                    <div className="t-small">{t.body.admin.sysCpu}</div>
                     <div className="font-medium">
                       {t.body.admin.sysCores.replace("{a}", String(dashboard.system_resources.cpu_count ?? "—")).replace("{b}", dashboard.system_resources.cpu_percent != null ? String(dashboard.system_resources.cpu_percent) : "—")}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">{t.body.admin.sysMemory}</div>
+                    <div className="t-small">{t.body.admin.sysMemory}</div>
                     <div className="font-medium">
                       {dashboard.system_resources.memory_used_bytes && dashboard.system_resources.memory_total_bytes
                         ? `${formatBytes(dashboard.system_resources.memory_used_bytes)} / ${formatBytes(dashboard.system_resources.memory_total_bytes)}`
@@ -483,7 +481,7 @@ export function AdminConsole() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted">{t.body.admin.sysGpu}</div>
+                    <div className="t-small">{t.body.admin.sysGpu}</div>
                     <div className="font-medium">
                       {dashboard.system_resources.gpu_name ?? t.body.admin.sysGpuFallback}
                     </div>
@@ -492,11 +490,9 @@ export function AdminConsole() {
               </div>
 
               {/* Quick Worker Groups Summary */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  {t.body.admin.workerGroups}
-                </h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="vie-panel">
+                <div className="vie-ph"><h3 className="t-section">{t.body.admin.workerGroups}</h3></div>
+                <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
                   {dashboard.workers.map((group) => (
                     <div key={group.group_name} className="rounded-card border border-line bg-canvas p-3">
                       <div className="flex items-center justify-between font-semibold">
@@ -507,7 +503,7 @@ export function AdminConsole() {
                           {t.body.admin.workerOnline.replace("{a}", String(group.active_workers))}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted truncate">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
+                      <p className="mt-1 t-small truncate">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
                       <div className="mt-3 flex justify-between text-xs">
                         <span>{t.body.admin.workerRunning}: <strong>{group.running_jobs}</strong></span>
                         <span>{t.body.admin.workerQueued}: <strong>{group.queued_jobs}</strong></span>
@@ -528,24 +524,20 @@ export function AdminConsole() {
 
           {/* TAB 2: MEMBERS & ROLES */}
           {activeTab === "members" && (
-            <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-members">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">{t.body.admin.membersTitle}</h2>
-                  <p className="text-xs text-muted">
-                    {t.body.admin.membersTotal.replace("{a}", String(dashboard.members.length)).replace("{b}", dashboard.organization.name)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+            <div className="vie-panel" data-testid="tab-members">
+              <div className="vie-ph"><h2 className="t-section">{t.body.admin.membersTitle}</h2></div>
+              <div className="p-4">
+                <p className="t-small">
+                  {t.body.admin.membersTotal.replace("{a}", String(dashboard.members.length)).replace("{b}", dashboard.organization.name)}
+                </p>
+                <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">{t.body.admin.colMember}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colRole}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colTwoFa}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colJoined}</th>
+                    <tr className="t-th border-b border-line text-left">
+                      <th className="pb-3">{t.body.admin.colMember}</th>
+                      <th className="pb-3">{t.body.admin.colRole}</th>
+                      <th className="pb-3">{t.body.admin.colTwoFa}</th>
+                      <th className="pb-3">{t.body.admin.colJoined}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
@@ -553,13 +545,13 @@ export function AdminConsole() {
                       <tr key={m.user_id} className="hover:bg-raised/40">
                         <td className="py-3">
                           <div className="font-medium">{m.display_name}</div>
-                          <div className="text-xs text-muted">{m.email}</div>
+                          <div className="t-small">{m.email}</div>
                         </td>
                         <td className="py-3">
                           <span
                             className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
                               m.role === "OWNER"
-                                ? "bg-amber-500/10 text-amber-500 border border-amber-500/30"
+                                ? "bg-amber/10 text-amber border border-amber/30"
                                 : m.role === "ADMIN"
                                 ? "bg-primary/10 text-primary border border-primary/30"
                                 : "bg-panel text-muted border border-line"
@@ -574,40 +566,39 @@ export function AdminConsole() {
                               <ShieldCheck className="h-3.5 w-3.5" /> {t.body.admin.twoFaEnforced}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-muted">
+                            <span className="inline-flex items-center gap-1 t-small">
                               {t.body.admin.twoFaOff}
                             </span>
                           )}
                         </td>
-                        <td className="py-3 text-xs text-muted">{formatDate(m.created_at)}</td>
+                        <td className="py-3 t-small">{formatDate(m.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* TAB 3: MODEL REGISTRY */}
           {activeTab === "models" && (
-            <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-models">
-              <div className="mb-4">
-                <h2 className="text-base font-semibold">{t.body.admin.modelsTitle}</h2>
-                <p className="text-xs text-muted">
+            <div className="vie-panel" data-testid="tab-models">
+              <div className="vie-ph"><h2 className="t-section">{t.body.admin.modelsTitle}</h2></div>
+              <div className="p-4">
+                <p className="t-small">
                   {t.body.admin.modelsSubtitle}
                 </p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">{t.body.admin.colModelKey}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colFamilyTask}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colLicense}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colAdapter}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colWeights}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.colStatus}</th>
+                    <tr className="t-th border-b border-line text-left">
+                      <th className="pb-3">{t.body.admin.colModelKey}</th>
+                      <th className="pb-3">{t.body.admin.colFamilyTask}</th>
+                      <th className="pb-3">{t.body.admin.colLicense}</th>
+                      <th className="pb-3">{t.body.admin.colAdapter}</th>
+                      <th className="pb-3">{t.body.admin.colWeights}</th>
+                      <th className="pb-3">{t.body.admin.colStatus}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
@@ -618,15 +609,15 @@ export function AdminConsole() {
                         <tr key={mod.key} className="hover:bg-raised/40">
                           <td className="py-3">
                             <div className="font-mono text-xs font-medium">{mod.key}</div>
-                            <div className="text-[11px] text-muted">{mod.source}</div>
+                            <div className="t-small">{mod.source}</div>
                           </td>
                           <td className="py-3">
                             <div className="text-xs font-medium">{mod.family}</div>
-                            <div className="text-[11px] text-muted capitalize">{mod.task}</div>
+                            <div className="t-small capitalize">{mod.task}</div>
                           </td>
-                          <td className="py-3 text-xs text-muted">{mod.weights_license}</td>
+                          <td className="py-3 t-small">{mod.weights_license}</td>
                           <td className="py-3 text-xs font-mono">{mod.adapter}</td>
-                          <td className="py-3 text-xs text-muted">
+                          <td className="py-3 t-small">
                             {mod.files.length === 1 ? t.body.admin.modelFilesOne.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount)) : t.body.admin.modelFilesMany.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount))}
                           </td>
                           <td className="py-3">
@@ -645,6 +636,7 @@ export function AdminConsole() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -653,23 +645,21 @@ export function AdminConsole() {
           {activeTab === "workers" && (
             <div className="space-y-6" data-testid="tab-workers">
               {/* Concurrency Sliders */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold">{t.body.admin.concurrencyTitle}</h2>
-                  <p className="text-xs text-muted">
-                    {t.body.admin.concurrencySubtitle}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="vie-panel">
+                <div className="vie-ph"><h2 className="t-section">{t.body.admin.concurrencyTitle}</h2></div>
+                <div className="p-4">
+                <p className="t-small">
+                  {t.body.admin.concurrencySubtitle}
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-3">
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{t.body.admin.concRender}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                      <span className="t-panel">{t.body.admin.concRender}</span>
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
                         {renderConcurrency}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 t-small">
                       {t.body.admin.concRenderDesc}
                     </p>
                     <input
@@ -678,9 +668,9 @@ export function AdminConsole() {
                       max={8}
                       value={renderConcurrency}
                       onChange={(e) => setRenderConcurrency(Number(e.target.value))}
-                      className="mt-4 w-full accent-primary"
+                      className="vie-range mt-4 w-full"
                     />
-                    <div className="mt-1 flex justify-between text-[10px] text-muted">
+                    <div className="mt-1 flex justify-between t-small">
                       <span>1</span>
                       <span>4</span>
                       <span>8</span>
@@ -689,12 +679,12 @@ export function AdminConsole() {
 
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{t.body.admin.concAnalysis}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                      <span className="t-panel">{t.body.admin.concAnalysis}</span>
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
                         {analysisConcurrency}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 t-small">
                       {t.body.admin.concAnalysisDesc}
                     </p>
                     <input
@@ -703,9 +693,9 @@ export function AdminConsole() {
                       max={8}
                       value={analysisConcurrency}
                       onChange={(e) => setAnalysisConcurrency(Number(e.target.value))}
-                      className="mt-4 w-full accent-primary"
+                      className="vie-range mt-4 w-full"
                     />
-                    <div className="mt-1 flex justify-between text-[10px] text-muted">
+                    <div className="mt-1 flex justify-between t-small">
                       <span>1</span>
                       <span>4</span>
                       <span>8</span>
@@ -714,12 +704,12 @@ export function AdminConsole() {
 
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{t.body.admin.concIngest}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                      <span className="t-panel">{t.body.admin.concIngest}</span>
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
                         {ingestConcurrency}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 t-small">
                       {t.body.admin.concIngestDesc}
                     </p>
                     <input
@@ -728,9 +718,9 @@ export function AdminConsole() {
                       max={8}
                       value={ingestConcurrency}
                       onChange={(e) => setIngestConcurrency(Number(e.target.value))}
-                      className="mt-4 w-full accent-primary"
+                      className="vie-range mt-4 w-full"
                     />
-                    <div className="mt-1 flex justify-between text-[10px] text-muted">
+                    <div className="mt-1 flex justify-between t-small">
                       <span>1</span>
                       <span>4</span>
                       <span>8</span>
@@ -742,9 +732,9 @@ export function AdminConsole() {
                   <button
                     type="button"
                     onClick={() => setQueuePaused(!queuePaused)}
-                    className={`flex items-center gap-2 rounded-ctl border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`t-button inline-flex items-center gap-2 rounded-ctl border px-3 py-1.5 ${
                       queuePaused
-                        ? "border-amber-500/40 bg-amber-500/10 text-amber-500"
+                        ? "border-amber/40 bg-amber/10 text-amber"
                         : "border-line bg-canvas hover:border-primary/50"
                     }`}
                   >
@@ -754,7 +744,7 @@ export function AdminConsole() {
                 </div>
 
                 <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
-                  <div className="text-xs text-muted">
+                  <div className="t-small">
                     {t.body.admin.queueStatus.replace("{a}", queuePaused ? t.body.admin.queuePausedWord : t.body.admin.queueActiveWord)}
                   </div>
                   <div className="flex items-center gap-3">
@@ -767,7 +757,7 @@ export function AdminConsole() {
                       type="button"
                       onClick={handleSaveConcurrency}
                       disabled={savingConcurrency}
-                      className="flex items-center gap-2 rounded-ctl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                      className="vie-btn vie-btn-pri"
                     >
                       {savingConcurrency ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -778,14 +768,13 @@ export function AdminConsole() {
                     </button>
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* Worker Groups Status Detailed */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-                  {t.body.admin.workerTopology}
-                </h3>
-                <div className="space-y-3">
+              <div className="vie-panel">
+                <div className="vie-ph"><h3 className="t-section">{t.body.admin.workerTopology}</h3></div>
+                <div className="space-y-3 p-4">
                   {dashboard.workers.map((group) => (
                     <div
                       key={group.group_name}
@@ -793,7 +782,7 @@ export function AdminConsole() {
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold">{group.group_name}</span>
+                          <span className="font-semibold">{group.group_name}</span>
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                               group.active_workers > 0 ? "bg-ok/10 text-ok" : "bg-muted/20 text-muted"
@@ -802,15 +791,15 @@ export function AdminConsole() {
                             {group.active_workers === 1 ? t.body.admin.workerCountOne.replace("{a}", String(group.active_workers)) : t.body.admin.workerCountMany.replace("{a}", String(group.active_workers))}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-muted">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
+                        <p className="mt-0.5 t-small">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
                       </div>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-6">
                         <div>
-                          <span className="text-xs text-muted">{t.body.admin.workerRunning}</span>
+                          <span className="t-small">{t.body.admin.workerRunning}</span>
                           <div className="font-semibold">{group.running_jobs}</div>
                         </div>
                         <div>
-                          <span className="text-xs text-muted">{t.body.admin.workerQueued}</span>
+                          <span className="t-small">{t.body.admin.workerQueued}</span>
                           <div className="font-semibold">{group.queued_jobs}</div>
                         </div>
                       </div>
@@ -825,15 +814,13 @@ export function AdminConsole() {
           {activeTab === "retention" && (
             <div className="space-y-6" data-testid="tab-retention">
               {/* Retention Policy Settings */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold">{t.body.admin.retentionTitle}</h2>
-                  <p className="text-xs text-muted">
-                    {t.body.admin.retentionSubtitle}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="vie-panel">
+                <div className="vie-ph"><h2 className="t-section">{t.body.admin.retentionTitle}</h2></div>
+                <div className="p-4">
+                <p className="t-small">
+                  {t.body.admin.retentionSubtitle}
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <label className="text-xs font-medium text-muted">{t.body.admin.retTrash}</label>
                     <input
@@ -842,9 +829,9 @@ export function AdminConsole() {
                       max={365}
                       value={retentionDraft.trash_days}
                       onChange={(e) => setRetentionDraft({ ...retentionDraft, trash_days: parseInt(e.target.value) || 0 })}
-                      className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono text-sm outline-none focus:border-primary"
+                      className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono outline-none focus:border-primary"
                     />
-                    <p className="mt-1 text-[11px] text-muted">{t.body.admin.retTrashHint}</p>
+                    <p className="mt-1 t-small">{t.body.admin.retTrashHint}</p>
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
@@ -855,9 +842,9 @@ export function AdminConsole() {
                       max={3650}
                       value={retentionDraft.audit_log_days}
                       onChange={(e) => setRetentionDraft({ ...retentionDraft, audit_log_days: parseInt(e.target.value) || 365 })}
-                      className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono text-sm outline-none focus:border-primary"
+                      className="mt-2 w-full rounded-ctl border border-line bg-panel px-3 py-1.5 font-mono outline-none focus:border-primary"
                     />
-                    <p className="mt-1 text-[11px] text-muted">{t.body.admin.retAuditHint}</p>
+                    <p className="mt-1 t-small">{t.body.admin.retAuditHint}</p>
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
@@ -879,13 +866,13 @@ export function AdminConsole() {
                   <div className="flex flex-col justify-between rounded-card border border-line bg-canvas p-4">
                     <div>
                       <span className="text-xs font-medium text-muted">{t.body.admin.retMaintenance}</span>
-                      <p className="text-[11px] text-muted mt-1">{t.body.admin.retMaintenanceDesc}</p>
+                      <p className="t-small mt-1">{t.body.admin.retMaintenanceDesc}</p>
                     </div>
                     <button
                       type="button"
                       disabled={purgingTrash}
                       onClick={handlePurgeTrash}
-                      className="mt-2 rounded-ctl border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 disabled:opacity-50"
+                      className="t-button mt-2 inline-flex items-center gap-2 rounded-ctl border border-danger/40 bg-danger/10 px-3 py-1.5 text-danger hover:bg-danger/20 disabled:opacity-50"
                     >
                       {purgingTrash ? t.body.admin.retPurging : t.body.admin.retPurgeBtn}
                     </button>
@@ -899,7 +886,7 @@ export function AdminConsole() {
                 )}
 
                 <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
-                  <div className="text-xs text-muted">
+                  <div className="t-small">
                     {retentionPolicy?.updated_at ? t.body.admin.retLastUpdated.replace("{a}", new Date(retentionPolicy.updated_at).toLocaleString()) : ""}
                   </div>
                   <div className="flex items-center gap-3">
@@ -912,25 +899,24 @@ export function AdminConsole() {
                       type="button"
                       onClick={handleSavePolicy}
                       disabled={savingPolicy}
-                      className="flex items-center gap-2 rounded-ctl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                      className="vie-btn vie-btn-pri"
                     >
                       {savingPolicy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       {t.body.admin.retSave}
                     </button>
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* GDPR Subject Erasure */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold">{t.body.admin.gdprTitle}</h2>
-                  <p className="text-xs text-muted">
-                    {t.body.admin.gdprSubtitle}
-                  </p>
-                </div>
-
-                <div className="rounded-card border border-line bg-canvas p-4">
+              <div className="vie-panel">
+                <div className="vie-ph"><h2 className="t-section">{t.body.admin.gdprTitle}</h2></div>
+                <div className="p-4">
+                <p className="t-small">
+                  {t.body.admin.gdprSubtitle}
+                </p>
+                <div className="mt-4 rounded-ctl border border-line bg-canvas p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div>
                       <label className="text-xs font-medium text-muted">{t.body.admin.gdprSubjectKind}</label>
@@ -961,7 +947,7 @@ export function AdminConsole() {
                         type="button"
                         disabled={executingErasure || !erasureSubjectId.trim()}
                         onClick={handleExecuteErasure}
-                        className="mt-1 w-full rounded-ctl border border-danger/50 bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger/90 disabled:opacity-40"
+                        className="t-button mt-1 flex w-full items-center justify-center gap-2 rounded-ctl bg-danger px-3 py-1.5 text-white hover:bg-danger/90 disabled:opacity-40"
                       >
                         {executingErasure ? t.body.admin.gdprProcessing : t.body.admin.gdprExecute}
                       </button>
@@ -993,10 +979,10 @@ export function AdminConsole() {
                   </h3>
                   <div className="max-h-60 overflow-y-auto rounded-card border border-line bg-canvas">
                     {erasures.length === 0 ? (
-                      <p className="p-4 text-center text-xs text-muted">{t.body.admin.gdprNone}</p>
+                      <p className="p-4 text-center t-small">{t.body.admin.gdprNone}</p>
                     ) : (
                       <table className="w-full text-left text-xs">
-                        <thead className="border-b border-line bg-panel/50 text-[11px] text-muted">
+                        <thead className="t-th border-b border-line bg-panel/50 text-left">
                           <tr>
                             <th className="p-2.5">{t.body.admin.gdprColDate}</th>
                             <th className="p-2.5">{t.body.admin.gdprColKind}</th>
@@ -1007,15 +993,15 @@ export function AdminConsole() {
                         <tbody className="divide-y divide-line">
                           {erasures.map((r) => (
                             <tr key={r.id}>
-                              <td className="p-2.5 font-mono text-[11px] text-muted">
+                              <td className="p-2.5 t-tc text-muted">
                                 {new Date(r.executed_at).toLocaleString()}
                               </td>
                               <td className="p-2.5">
-                                <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] font-semibold border border-line">
+                                <span className="rounded bg-panel px-1.5 py-0.5 text-xs font-semibold border border-line">
                                   {r.subject_kind}
                                 </span>
                               </td>
-                              <td className="p-2.5 font-mono text-[11px]">{r.subject_ref ?? r.subject_id}</td>
+                              <td className="p-2.5 t-tc">{r.subject_ref ?? r.subject_id}</td>
                               <td className="p-2.5 text-muted">
                                 {r.summary?.pseudonymized_name}
                                 {r.summary?.cleared_identities ? t.body.admin.gdprCleared.replace("{a}", String(r.summary.cleared_identities)) : ""}
@@ -1027,17 +1013,13 @@ export function AdminConsole() {
                     )}
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* Backups & Disaster Recovery */}
-              <div className="rounded-card border border-line bg-panel p-5">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold">{t.body.admin.backupsTitle}</h2>
-                    <p className="text-xs text-muted">
-                      {t.body.admin.backupsSubtitle}
-                    </p>
-                  </div>
+              <div className="vie-panel">
+                <div className="vie-ph">
+                  <h2 className="t-section">{t.body.admin.backupsTitle}</h2>
                   {backupsStatus && (
                     <span
                       className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -1049,22 +1031,24 @@ export function AdminConsole() {
                     </span>
                   )}
                 </div>
+                <div className="p-4">
+                <p className="t-small">{t.body.admin.backupsSubtitle}</p>
 
                 <div className="rounded-card border border-line bg-canvas p-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
-                      <span className="text-xs text-muted">{t.body.admin.backupsTotal}</span>
-                      <div className="text-lg font-bold">{backupsStatus?.backups.length ?? 0}</div>
+                      <span className="t-small">{t.body.admin.backupsTotal}</span>
+                      <div className="t-metric">{backupsStatus?.backups.length ?? 0}</div>
                     </div>
                     <div>
-                      <span className="text-xs text-muted">{t.body.admin.backupsLatest}</span>
-                      <div className="text-sm font-mono mt-0.5">
+                      <span className="t-small">{t.body.admin.backupsLatest}</span>
+                      <div className="t-tc mt-0.5">
                         {backupsStatus?.latest_backup_at ? new Date(backupsStatus.latest_backup_at).toLocaleString() : t.body.admin.backupsNone}
                       </div>
                     </div>
                     <div>
-                      <span className="text-xs text-muted">{t.body.admin.backupsDrill}</span>
-                      <div className="text-sm font-mono mt-0.5 text-ok">
+                      <span className="t-small">{t.body.admin.backupsDrill}</span>
+                      <div className="t-tc mt-0.5 text-ok">
                         {backupsStatus?.latest_verified_at ? new Date(backupsStatus.latest_verified_at).toLocaleString() : t.body.admin.backupsNone}
                       </div>
                     </div>
@@ -1074,10 +1058,10 @@ export function AdminConsole() {
                 {/* Backups Inventory Table */}
                 <div className="mt-4 max-h-60 overflow-y-auto rounded-card border border-line bg-canvas">
                   {!backupsStatus || backupsStatus.backups.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-muted">{t.body.admin.backupsNoArchives}</p>
+                    <p className="p-4 text-center t-small">{t.body.admin.backupsNoArchives}</p>
                   ) : (
                     <table className="w-full text-left text-xs">
-                      <thead className="border-b border-line bg-panel/50 text-[11px] text-muted">
+                      <thead className="t-th border-b border-line bg-panel/50 text-left">
                         <tr>
                           <th className="p-2.5">{t.body.admin.backupsColSnapshot}</th>
                           <th className="p-2.5">{t.body.admin.backupsColSize}</th>
@@ -1088,22 +1072,22 @@ export function AdminConsole() {
                       <tbody className="divide-y divide-line">
                         {backupsStatus.backups.map((b) => (
                           <tr key={b.id}>
-                            <td className="p-2.5 font-mono text-[11px] font-semibold">{b.id}</td>
-                            <td className="p-2.5 font-mono text-[11px] text-muted">{formatBytes(b.db_bytes)}</td>
+                            <td className="p-2.5 t-tc">{b.id}</td>
+                            <td className="p-2.5 t-tc text-muted">{formatBytes(b.db_bytes)}</td>
                             <td className="p-2.5 text-muted">
                               {t.body.admin.backupsTables.replace("{a}", String(b.tables)).replace("{b}", b.rows.toLocaleString())}
                             </td>
                             <td className="p-2.5">
                               {b.verification_ok ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-[10px] font-semibold text-ok border border-ok/20">
+                                <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-semibold text-ok border border-ok/20">
                                   <CheckCircle2 className="h-3 w-3" /> {t.body.admin.backupsVerified}
                                 </span>
                               ) : b.verified ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger border border-danger/20">
+                                <span className="inline-flex items-center gap-1 rounded bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger border border-danger/20">
                                   <XCircle className="h-3 w-3" /> {t.body.admin.backupsMismatch}
                                 </span>
                               ) : (
-                                <span className="rounded bg-panel px-2 py-0.5 text-[10px] text-muted border border-line">
+                                <span className="rounded bg-panel px-2 py-0.5 text-xs text-muted border border-line">
                                   {t.body.admin.backupsPending}
                                 </span>
                               )}
@@ -1114,20 +1098,16 @@ export function AdminConsole() {
                     </table>
                   )}
                 </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* TAB 6: AUDIT LOG */}
           {activeTab === "audit" && (
-            <div className="rounded-card border border-line bg-panel p-5" data-testid="tab-audit">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">{t.body.admin.auditTitle}</h2>
-                  <p className="text-xs text-muted">
-                    {t.body.admin.auditSubtitle}
-                  </p>
-                </div>
+            <div className="vie-panel" data-testid="tab-audit">
+              <div className="vie-ph">
+                <h2 className="t-section">{t.body.admin.auditTitle}</h2>
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
                   <input
@@ -1139,29 +1119,30 @@ export function AdminConsole() {
                   />
                 </div>
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+              <div className="p-4">
+                <p className="t-small">{t.body.admin.auditSubtitle}</p>
+                <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-line text-xs uppercase text-muted">
-                      <th className="pb-3 font-medium">{t.body.admin.auditColTimestamp}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.auditColAction}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.auditColActor}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.auditColEntity}</th>
-                      <th className="pb-3 font-medium">{t.body.admin.auditColDetails}</th>
+                    <tr className="t-th border-b border-line text-left">
+                      <th className="pb-3">{t.body.admin.auditColTimestamp}</th>
+                      <th className="pb-3">{t.body.admin.auditColAction}</th>
+                      <th className="pb-3">{t.body.admin.auditColActor}</th>
+                      <th className="pb-3">{t.body.admin.auditColEntity}</th>
+                      <th className="pb-3">{t.body.admin.auditColDetails}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/60">
                     {filteredAudits.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-6 text-center text-xs text-muted">
+                        <td colSpan={5} className="py-6 text-center t-small">
                           {t.body.admin.auditNone}
                         </td>
                       </tr>
                     ) : (
                       filteredAudits.map((item) => (
                         <tr key={item.id} className="hover:bg-raised/40">
-                          <td className="py-3 text-xs text-muted">{formatDate(item.occurred_at)}</td>
+                          <td className="py-3 t-small">{formatDate(item.occurred_at)}</td>
                           <td className="py-3">
                             <span className="rounded bg-panel px-2 py-0.5 font-mono text-xs font-semibold text-foreground border border-line">
                               {item.action}
@@ -1169,17 +1150,17 @@ export function AdminConsole() {
                           </td>
                           <td className="py-3">
                             <div className="text-xs font-mono">{item.actor_name ?? item.actor_id ?? t.body.admin.auditSystem}</div>
-                            <div className="text-[10px] text-muted">{item.actor_kind}</div>
+                            <div className="t-small">{item.actor_kind}</div>
                           </td>
                           <td className="py-3 text-xs">
                             <span className="font-medium capitalize">{item.entity_type}</span>
                             {item.entity_id && (
-                              <div className="font-mono text-[11px] text-muted">{item.entity_id}</div>
+                              <div className="t-tc text-muted">{item.entity_id}</div>
                             )}
                           </td>
                           <td className="py-3 text-xs">
                             {item.after_state ? (
-                              <pre className="max-w-xs truncate rounded bg-canvas p-1 font-mono text-[10px] text-muted">
+                              <pre className="max-w-xs truncate rounded bg-canvas p-1 t-tc text-muted">
                                 {JSON.stringify(item.after_state)}
                               </pre>
                             ) : (
@@ -1191,6 +1172,7 @@ export function AdminConsole() {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}

@@ -2,24 +2,29 @@
 /**
  * Page 08 Sections 02-06 — report rail, player hero, Identity & Evidence (was Tracking Confidence, v3 Phase 0: identity confirmed by a
  * person or not, and evidence coverage = his on-camera time measured on a calibrated pitch; never an accuracy score), Player Role &
- * Summary, nine KPI cards
- * (approved reference 08_PLAYER_REPORT, 2560 x 1440 composition).
+ * Summary, nine KPI cards.
+ *
+ * Drop 1 layout: the same sections, controls and API reads as the 2560-px DesignStage composition, laid out in the page's flow on the
+ * Desktop UI shell (AppRail / AppTopBar / StatusBar from the (app) layout) with the shared `vie-panel` / `vie-btn` classes and the
+ * Drop 1 `ActionsMenu` for the hero's More menu. Nothing was removed or rewired.
  *
  * Recorded: the registry's facts (name, OTSI Player ID or "provisional, no ID yet", state) and what the footage measured from the tracks a
  * person CONFIRMED as this player (`/v1/players/:id/measures`): time seen on camera, distance and top speed over measured stretches, the
  * heat map, the detector's confidence on those tracks. Club, shirt number and position come from his latest match team sheet; nationality,
- * age and foot from the Players list (a person records them there); height and weight are not recorded: "—". The Player Role & Summary card
- * shows the published scouting assessment (a person's opinion, marked so); Edit writes it. Add to Scouting Dossier, Export PDF, Share Link and
- * the rail's Notes & Tags open their dialogs (ADR-056). Rail entries move to the section they name.
+ * age and foot from the Players list (a person records them there); height and weight from the profile details he entered there, "—" when
+ * not entered. The Player Role & Summary card shows the published scouting assessment (a person's opinion, marked so); Edit writes it.
+ * Add to Scouting Dossier, Export PDF, Share Link and the rail's Notes & Tags open their dialogs (ADR-056). Rail entries move to the
+ * section they name. The hero photo is the photo he uploaded on the Players list (`profile.details.photo_url`); with no photo it says so
+ * in words — never a gradient stand-in.
  */
 import { HIGH_SPEED_KMH, SPRINT_KMH, type PlayerAssessment, type PlayerIdentity, type PlayerMeasures, type PlayerProfile } from "@otsi-vie/contracts";
+import { ArrowLeftRight, BarChart3, CheckSquare, Clapperboard, Clock, FileText, Gauge, KeyRound, LayoutGrid, ListOrdered, Route, Send, Share2, Shield, StickyNote, Target, User, Users, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ComponentType } from "react";
+import { ActionsMenu } from "@/components/media/ActionsMenu";
 import { FOOT_NAMES } from "@/components/players/PlayersList";
 import { Evidence, type EvidenceLevel } from "@/components/evidence/Evidence";
-import { B, Ic, P, T, u } from "@/components/stage/DesignStage";
-import { copyLink, MoreMenu } from "@/components/stage/MoreMenu";
-import { Hit } from "@/components/workspace/shared";
+import { copyLink, type MoreItem } from "@/components/stage/MoreMenu";
 import type { DialogName } from "./Dialogs";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 
@@ -48,8 +53,10 @@ export const RAIL: [string, number, string, string | null][] = [["Overview", 231
   ["Passing Analysis", 428, "arr", "p08-action"], ["Defensive Actions", 494, "shield", "p08-action"], ["Heatmaps", 561, "grid", "p08-heat"], ["Event Timeline", 627, "ring", "p08-events"],
   ["Comparisons", 692, "user", "p08-compare"], ["Scouting Report", 762, "bag", "p08-scout"], ["Video Clips", 828, "cam", null], ["Notes & Tags", 895, "note", null]];
 
-const KPIS: [string, number, number, string][] = [["Match Minutes", 388, 247, "clock"], ["Distance (Est.)", 647, 247, "run"], ["Top Speed", 907, 238, "dbl"], ["Sprints", 1157, 205, "dbl"],
-  ["Passes", 1374, 234, "ball"], ["Key Passes", 1621, 222, "key"], ["Shots", 1856, 220, "tgt"], ["xG", 2089, 217, "bars"], ["xA", 2319, 219, "share"]];
+const RAIL_ICONS: LucideIcon[] = [CheckSquare, User, Target, ArrowLeftRight, Shield, LayoutGrid, ListOrdered, Users, FileText, Clapperboard, StickyNote];
+
+const KPIS: [string, ComponentType<{ className?: string }>][] = [["Match Minutes", Clock], ["Distance (Est.)", Route], ["Top Speed", Gauge], ["Sprints", Zap],
+  ["Passes", Send], ["Key Passes", KeyRound], ["Shots", Target], ["xG", BarChart3], ["xA", Share2]];
 
 const RAIL_LABEL = (d: Dictionary): string[] => [d.body.reports.railOverview, d.body.reports.railPerformance, d.body.reports.railAttacking, d.body.reports.railPassing,
   d.body.reports.railDefensive, d.body.reports.railHeatmaps, d.body.reports.railEvents, d.body.reports.railComparisons, d.body.reports.railScouting,
@@ -64,8 +71,6 @@ const KPI_COVER: Record<string, "TIME" | "MOVEMENT" | "EVENTS"> = {
   "Match Minutes": "TIME", "Distance (Est.)": "MOVEMENT", "Top Speed": "MOVEMENT", Sprints: "MOVEMENT", Passes: "EVENTS", "Key Passes": "EVENTS", Shots: "EVENTS",
 };
 
-const hl = (on: boolean) => (on ? { borderColor: "#33a8ff" } : undefined);
-
 /** how each KPI is known (ADR-063): time on camera and events are detected, movement is inferred from pitch positions; xG and xA are
  *  not measured by the engine */
 const KPI_EVIDENCE: Record<string, EvidenceLevel> = {
@@ -75,25 +80,28 @@ const KPI_EVIDENCE: Record<string, EvidenceLevel> = {
 
 function RailInner({ r }: { r: Report }) {
   const { t: dict } = useLocale();
+  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-medium leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
+  const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   return (
-    <section aria-label="Report sections" data-section="p08-s02">
-      <P x={22} y={115} w={348} h={978} />
-      <T x={44} y={158} size={28} weight={700} as="h2">{dict.body.reports.reportTitle}</T>
-      <B x={28} y={RAIL[r.selected]![1] - 32} w={334} h={61} style={{ background: "#0a2b55", border: `${u(2)} solid #1e90ff`, borderRadius: u(8) }} />
-      <nav aria-label="Report sections">
-        {RAIL.map(([l, y, icon, target], i) => {
-          const on = r.selected === i, label = RAIL_LABEL(dict)[i]!;
-          return (
-            <div key={l}>
-              {icon === "chk" ? (<><B x={50} y={y - 12} w={24} h={24} style={{ border: `${u(2)} solid #fff`, borderRadius: u(4) }} /><Ic x={62} y={y} k="chk" size={16} /></>)
-                : <Ic x={62} y={y} k={icon} size={28} color={on ? "#fff" : "#d6e4f7"} />}
-              <T x={109} y={y} size={24} weight={on ? 600 : 400} color={on ? "#fff" : "#d6e4f7"}>{label}</T>
-              <Hit x={28} y={y - 32} w={334} h={62} label={label} pressed={on} onClick={i === 10 ? () => (r.player ? r.open("notes") : r.pick()) : () => r.go(i)} />
-            </div>
-          );
-        })}
-      </nav>
-    </section>
+    <aside aria-label="Report sections" data-section="p08-s02" className="w-full shrink-0 lg:w-60">
+      <div className="vie-panel lg:sticky lg:top-4">
+        <div className="vie-ph"><h2 className="t-panel">{dict.body.reports.reportTitle}</h2></div>
+        <nav aria-label="Report sections" className="flex flex-col gap-0.5 p-2">
+          {RAIL.map(([l, , ,], i) => {
+            const selected = r.selected === i, label = RAIL_LABEL(dict)[i]!;
+            const Icon = RAIL_ICONS[i]!;
+            return (
+              <button key={l} type="button" aria-label={label} aria-pressed={selected} aria-current={selected ? "true" : undefined}
+                onClick={i === 10 ? () => (r.player ? r.open("notes") : r.pick()) : () => r.go(i)}
+                className={`${link} ${selected ? on : ""}`}>
+                <Icon className={`h-[18px] w-[18px] shrink-0 ${selected ? "text-primary" : ""}`} aria-hidden />
+                <span className="truncate">{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
   );
 }
 export const Rail = memo(RailInner);
@@ -104,106 +112,103 @@ function HeroInner({ r }: { r: Report }) {
   const idText = !p ? null : p.canonical_otsi_id ?? dict.body.reports.provisionalPlayer;
   const pr = r.profile, team = pr?.latest_team ?? null;
   const foot = pr?.preferred_foot ? FOOT_NAMES(dict)[pr.preferred_foot]! : "—";
+  const height = pr?.details?.height_cm != null ? `${pr.details.height_cm} cm` : "—";
+  const weight = pr?.details?.weight_kg != null ? `${pr.details.weight_kg} kg` : "—";
+  const photo = pr?.details?.photo_url ?? null;
   /** the identity & evidence figures, computed once per measures read instead of on every render */
   const evidence = useMemo(() => {
     const m = r.measures, confirmed = !!m?.tracks, cov = m && m.seen_s > 0 ? Math.max(0, Math.min(1, m.measured_s / m.seen_s)) : null;
     return { confirmed, cov };
   }, [r.measures]);
+  const { confirmed, cov } = evidence;
+  const moreItems: MoreItem[] = p ? [
+    { label: dict.body.reports.menuEditProfile, href: `/players?player=${p.player_id}` },
+    { label: dict.body.matches.menuMakeReel, href: "/reels" },
+    { label: dict.body.reports.menuHisReels, href: `/library?q=${encodeURIComponent(p.display_name)}` },
+    { label: dict.body.reports.menuCopyReportLink, run: () => copyLink(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`) },
+    { label: dict.body.reports.chooseAnother, run: r.pick },
+  ] : [{ label: dict.body.reports.choosePlayer, run: r.pick }, { label: dict.body.reports.menuPlayersList, href: "/players" }];
+  const a = r.assessment?.published ?? null;
   return (
-    <section id="p08-overview" aria-label="Player identity" data-section="p08-s03" data-player={p?.player_id ?? ""}>
-      <P x={387} y={115} w={2151} h={372} style={{ background: "linear-gradient(90deg,#0a2a5a,#071a38 55%,#06122a)", overflow: "hidden", ...hl(r.focus === "p08-overview") }} />
-      <B x={420} y={115} w={485} h={372} style={{ background: "radial-gradient(circle at 50% 38%,#e8b898 0,#c98c6a 14%,transparent 15%),radial-gradient(ellipse at 50% 90%,#6fb8ee,#3a86c8 40%,transparent 60%),linear-gradient(180deg,#10244a,#0a1a38)", opacity: 0.9 }} />
-      <B x={929} y={197} w={78} h={61} style={{ background: "#1e90ff", borderRadius: u(6), fontSize: u(44), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{team?.jersey_number ?? "—"}</B>
-      <T x={1035} y={224} size={58} weight={700} as="h1" style={{ maxWidth: u(660), overflow: "hidden", textOverflow: "ellipsis" }}>{p?.display_name ?? dict.body.reports.noPlayerSelected}</T>
-      <T x={1035} y={276} size={22} color="#33a8ff" style={{ maxWidth: u(125), overflow: "hidden", textOverflow: "ellipsis" }}>{team?.position ?? pr?.position ?? dict.body.workspace.positionDash}</T>
-      {[1166, 1228, 1290].map((x, i) => <B key={x} x={x} y={265} w={[56, 55, 57][i]!} h={28} style={{ background: "#0a2447", border: `${u(1.5)} solid #1d4f8a`, borderRadius: u(6), fontSize: u(17), color: "#9fc8f5", display: "flex", alignItems: "center", justifyContent: "center" }}>—</B>)}
-      {idText && <T x={1390} y={276} size={20} color={p?.canonical_otsi_id ? "#3ee6a8" : "#f5b82e"} style={{ maxWidth: u(330), overflow: "hidden", textOverflow: "ellipsis" }}>{idText}</T>}
-      <B x={935} y={308} w={60} h={58} style={{ borderRadius: "50%", background: "radial-gradient(circle,#f2c56b,#6cc4ff 70%,#fff)" }} />
-      <T x={1015} y={338} size={24} style={{ maxWidth: u(190), overflow: "hidden", textOverflow: "ellipsis" }}>{team?.team ?? dict.body.reelstage.teamDash}</T>
-      <B x={1213} y={320} w={2} h={36} style={{ background: "#2a4a75" }} />
-      <B x={1241} y={318} w={58} h={39} style={{ background: "#3a5a88", borderRadius: u(4) }} />
-      <T x={1314} y={338} size={24} style={{ maxWidth: u(260), overflow: "hidden", textOverflow: "ellipsis" }}>{pr?.nationality?.name ?? dict.body.reports.nationalityDash}</T>
-      {p && <Link href={`/players?player=${p.player_id}`} className="absolute" style={{ left: u(1600), top: u(338 - 101 - 14), fontSize: u(19), color: "#33a8ff" }}>{dict.body.reports.editProfile}</Link>}
-      {([[dict.body.reports.heroAge, 963, pr?.age ?? "—"], [dict.body.reports.heroHeight, 1082, "—"], [dict.body.reports.heroWeight, 1242, "—"], [dict.body.reports.heroFoot, 1410, foot]] as const).map(([l, x, v]) => (
-        <div key={l}><T x={x} y={399} size={18} color="#b9cbe2" align="center">{l}</T><T x={x} y={431} size={26} weight={600} align="center">{String(v)}</T></div>
-      ))}
-      {[1017, 1168, 1320].map((x) => <B key={x} x={x} y={390} w={2} h={56} style={{ background: "#2a4a75" }} />)}
-
-      <Hit x={1035} y={186} w={680} h={80} label={p ? dict.body.reports.chooseAnother : dict.body.reports.choosePlayer} onClick={r.pick} />
-      <B x={1035} y={450} w={230} h={30} style={{ border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(6), background: "#0a2a55" }} />
-      <T x={1150} y={465} size={18} weight={600} color="#33a8ff" align="center">{p ? dict.body.reports.chooseAnotherChevron : dict.body.reports.choosePlayerChevron}</T>
-      <Hit x={1035} y={450} w={230} h={30} label={dict.body.reports.choosePlayer} onClick={r.pick} />
-      {r.missing && <T x={1290} y={465} size={18} color="#ff8a8a">{r.missing}</T>}
-
-      <B x={1725} y={130} w={297} h={50} style={{ background: "#0a84ff", borderRadius: u(8), opacity: p ? 1 : 0.6 }} />
-      <Ic x={1751} y={155} k="doc" size={28} /><T x={1778} y={155} size={21} weight={600}>{dict.body.reports.addToDossier}</T>
-      <Hit x={1725} y={130} w={297} h={50} label={dict.body.reports.addToDossier} onClick={() => (p ? r.open("dossier") : r.pick())} />
-      {([[dict.body.reports.exportPdf, 2040, 198, "pdf", 2078, 2110, "pdf"], [dict.body.reports.shareLink, 2256, 196, "link", 2292, 2330, "share"]] as const).map(([l, x, w, icon, ix, tx, d]) => (
-        <div key={l}>
-          <B x={x} y={130} w={w} h={50} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), opacity: p ? 1 : 0.7 }} />
-          <Ic x={ix} y={155} k={icon} size={28} /><T x={tx} y={155} size={21} weight={600}>{l}</T>
-          <Hit x={x} y={130} w={w} h={50} label={l} onClick={() => (p ? r.open(d) : r.pick())} />
+    <section id="p08-overview" aria-label="Player identity" data-section="p08-s03" data-player={p?.player_id ?? ""}
+      className={`vie-panel ${r.focus === "p08-overview" ? "border-primary" : ""}`}>
+      <div className="flex flex-wrap gap-5 p-4">
+        <div className="w-28 shrink-0">
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt={p?.display_name ?? ""} className="h-36 w-28 rounded-ctl border border-line object-cover" />
+          ) : (
+            <div className="grid h-36 w-28 place-items-center rounded-ctl border border-line p-2 text-center t-small">{dict.body.players.noPhotoYet}</div>
+          )}
         </div>
-      ))}
-      <B x={2469} y={130} w={54} h={50} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8) }} />
-      <MoreMenu x={2496} y={155} w={54} h={50} size={28} color="#fff" label={dict.body.reports.moreForPlayer}
-        items={p ? [
-          { label: dict.body.reports.menuEditProfile, href: `/players?player=${p.player_id}` },
-          { label: dict.body.matches.menuMakeReel, href: "/reels" },
-          { label: dict.body.reports.menuHisReels, href: `/library?q=${encodeURIComponent(p.display_name)}` },
-          { label: dict.body.reports.menuCopyReportLink, run: () => copyLink(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`) },
-          { label: dict.body.reports.chooseAnother, run: r.pick },
-        ] : [{ label: dict.body.reports.choosePlayer, run: r.pick }, { label: dict.body.reports.menuPlayersList, href: "/players" }]} />
-
-      {/* Identity & Evidence (v3 Phase 0, was Tracking Confidence) */}
-      {(() => {
-        const { confirmed, cov } = evidence;
-        return (
-          <>
-            <B x={1581} y={196} w={365} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
-            <T x={1616} y={224} size={22}>{dict.body.reports.identityEvidence}</T>
-            <div title={dict.body.reports.identityEvidenceTip}><Ic x={1855} y={224} k="help" size={26} color="#8ea3bf" /></div>
-            <B x={1599} y={257} w={156} h={156} style={{ borderRadius: "50%", background: cov != null ? `conic-gradient(#1e90ff ${cov * 100}%,#0a2a52 0)` : "#0a2a52" }} />
-            <B x={1615} y={273} w={124} h={124} style={{ borderRadius: "50%", background: "#06142a" }} />
-            <T x={1677} y={325} size={34} weight={700} align="center">{cov != null ? `${Math.round(cov * 100)}%` : "—"}</T>
-            <T x={1677} y={358} size={14} color="#8ea3bf" align="center">{dict.body.reports.evidenceCoverage}</T>
-            <B x={1767} y={280} w={132} h={35} style={{ background: confirmed ? "#0d3a2e" : "#1a2840", border: `${u(1.5)} solid ${confirmed ? "#19c48a" : "#4a5a78"}`, borderRadius: u(6) }} />
-            <B x={1779} y={293} w={11} h={11} style={{ borderRadius: "50%", background: confirmed ? "#3ee6a8" : "#8ea3bf" }} />
-            <T x={1798} y={298} size={18} weight={600} color="#dfe8f5">{confirmed ? dict.body.reports.confirmedShort : dict.body.reports.unverifiedShort}</T>
-          </>
-        );
-      })()}
-      <T x={1767} y={395} size={17} color="#8ea3bf">{r.measures?.tracks ? (r.measures.tracks === 1 ? dict.body.reports.tracksOne : dict.body.reports.tracksMany.replace("{a}", String(r.measures.tracks))) : r.measuresFailed ? dict.body.reports.couldNotBeLoaded : dict.body.reports.noTrackingData}</T>
-      <T x={1767} y={421} size={17} color="#8ea3bf">{r.measures?.tracks ? (r.measures.videos === 1 ? dict.body.reports.inVideosOne : dict.body.reports.inVideosMany.replace("{a}", String(r.measures.videos))) : r.measuresFailed ? dict.body.reports.choosePlayerAgain : dict.body.reports.forPlayerYet}</T>
-
-      {/* Player Role & Summary */}
-      <B x={1964} y={196} w={574} h={280} style={{ background: "rgba(4,16,34,.7)", border: `${u(1.5)} solid #12335f`, borderRadius: u(12) }} />
-      <T x={1987} y={223} size={22} weight={600}>{dict.body.reports.roleSummary}</T>
-      <B x={2419} y={208} w={92} h={37} style={{ background: "#041022", border: `${u(1.5)} solid #17406f`, borderRadius: u(8), opacity: p && r.can.assess ? 1 : 0.7 }} />
-      <Ic x={2445} y={227} k="edit" size={20} /><T x={2467} y={227} size={18}>{dict.body.library.editBtn}</T>
-      {!p ? <Hit x={2419} y={208} w={92} h={37} label={dict.body.reports.editRoleSummary} onClick={r.pick} />
-        : r.can.assess ? <Hit x={2419} y={208} w={92} h={37} label={dict.body.reports.editRoleSummary} onClick={() => r.open("assess")} />
-        : <Hit x={2419} y={208} w={92} h={37} label={dict.body.reports.editRoleSummary} reason={dict.body.reports.cannotWriteAssessments} />}
-      {(() => {
-        const a = r.assessment?.published;
-        if (!a || (!a.role && !a.summary && !a.traits.length)) return (
-          <>
-            <T x={1987} y={268} size={24} weight={600}>{dict.body.reports.roleNotAssessed}</T>
-            <T x={1990} y={303} size={20} color="#b9cbe2">{r.assessment?.unpublished_changes && r.can.assess ? dict.body.reports.draftWritten : dict.body.reports.analystSummaryHere}</T>
-            <T x={1988} y={401} size={17} color="#8ea3bf">{dict.body.reports.noTraits}</T>
-          </>
-        );
-        return (
-          <div data-role-published title={dict.body.reports.analystOpinionPublished.replace("{a}", r.assessment!.published_by_name ?? "")}>
-            <T x={1987} y={268} size={24} weight={600} style={{ maxWidth: u(420), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role || dict.body.reports.roleNotGiven}</T>
-            <div className="absolute" style={{ left: u(1990), top: u(290 - 101), width: u(525), height: u(88), overflow: "hidden", fontSize: u(18), lineHeight: 1.3, color: "#b9cbe2" }}>{a.summary}</div>
-            <div className="absolute" style={{ left: u(1988), top: u(388 - 101), width: u(525), height: u(30), overflow: "hidden", display: "flex", gap: u(6) }}>
-              {a.traits.map((t) => <span key={t} style={{ fontSize: u(15), padding: `${u(2)} ${u(8)}`, borderRadius: u(10), border: `${u(1.5)} solid #1d4f8a`, color: "#cfe0f5", whiteSpace: "nowrap" }}>{t}</span>)}
-            </div>
-            <T x={1988} y={445} size={14} color="#f1a824" style={{ fontStyle: "italic" }}>{dict.body.reports.analystOpinionBy.replace("{a}", r.assessment!.published_by_name ?? "")}</T>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-ctl bg-primary t-metric text-white" aria-label={dict.body.players.teamNumber}>{team?.jersey_number ?? "—"}</span>
+            <h1 className="min-w-0 truncate t-page">{p?.display_name ?? dict.body.reports.noPlayerSelected}</h1>
+            <span className="t-section text-primary">{team?.position ?? pr?.position ?? dict.body.workspace.positionDash}</span>
           </div>
-        );
-      })()}
+          {idText && <p className={`mt-1 truncate t-panel ${p?.canonical_otsi_id ? "text-ok" : "text-amber"}`}>{idText}</p>}
+          <p className="mt-1 truncate t-body text-muted">{team?.team ?? dict.body.reelstage.teamDash} · {pr?.nationality?.name ?? dict.body.reports.nationalityDash}</p>
+          <dl className="mt-3 grid max-w-md grid-cols-4 gap-3 text-center">
+            {([[dict.body.reports.heroAge, pr?.age ?? "—"], [dict.body.reports.heroHeight, height], [dict.body.reports.heroWeight, weight], [dict.body.reports.heroFoot, foot]] as const).map(([l, v]) => (
+              <div key={l}><dt className="t-small">{l}</dt><dd className="mt-0.5 t-panel">{String(v)}</dd></div>
+            ))}
+          </dl>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={r.pick} className="vie-btn">{p ? dict.body.reports.chooseAnotherChevron : dict.body.reports.choosePlayerChevron}</button>
+            <button type="button" onClick={() => (p ? r.open("dossier") : r.pick())} className="vie-btn vie-btn-pri">{dict.body.reports.addToDossier}</button>
+            <button type="button" onClick={() => (p ? r.open("pdf") : r.pick())} className="vie-btn">{dict.body.reports.exportPdf}</button>
+            <button type="button" onClick={() => (p ? r.open("share") : r.pick())} className="vie-btn">{dict.body.reports.shareLink}</button>
+            {p && <Link href={`/players?player=${p.player_id}`} className="vie-btn">{dict.body.reports.editProfile}</Link>}
+            <ActionsMenu label={dict.body.reports.moreForPlayer} items={moreItems} />
+          </div>
+          {r.missing && <p role="alert" className="mt-2 t-body text-danger">{r.missing}</p>}
+        </div>
+        {/* Identity & Evidence (v3 Phase 0, was Tracking Confidence) */}
+        <div className="w-full rounded-ctl border border-line bg-canvas/60 p-3 sm:w-72" title={dict.body.reports.identityEvidenceTip}>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="t-panel">{dict.body.reports.identityEvidence}</h2>
+            <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${confirmed ? "bg-ok/20 text-ok" : "bg-raised text-muted"}`}>{confirmed ? dict.body.reports.confirmedShort : dict.body.reports.unverifiedShort}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="relative grid h-[104px] w-[104px] shrink-0 place-items-center rounded-full" style={{ background: cov != null ? `conic-gradient(#1e90ff ${cov * 100}%,#0a2a52 0)` : "#0a2a52" }}>
+              <div className="grid h-[80px] w-[80px] place-items-center rounded-full bg-[#06142a]">
+                <div className="text-center"><div className="t-metric">{cov != null ? `${Math.round(cov * 100)}%` : "—"}</div>
+                <div className="mt-0.5 t-small text-muted">{dict.body.reports.evidenceCoverage}</div></div>
+              </div>
+            </div>
+            <div className="min-w-0 t-body text-muted">
+              <p>{r.measures?.tracks ? (r.measures.tracks === 1 ? dict.body.reports.tracksOne : dict.body.reports.tracksMany.replace("{a}", String(r.measures.tracks))) : r.measuresFailed ? dict.body.reports.couldNotBeLoaded : dict.body.reports.noTrackingData}</p>
+              <p className="mt-1">{r.measures?.tracks ? (r.measures.videos === 1 ? dict.body.reports.inVideosOne : dict.body.reports.inVideosMany.replace("{a}", String(r.measures.videos))) : r.measuresFailed ? dict.body.reports.choosePlayerAgain : dict.body.reports.forPlayerYet}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Player Role & Summary */}
+      <div className="border-t border-line p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="t-panel">{dict.body.reports.roleSummary}</h2>
+          {!p ? <button type="button" onClick={r.pick} className="vie-btn vie-btn-sm">{dict.body.library.editBtn}</button>
+            : r.can.assess ? <button type="button" onClick={() => r.open("assess")} className="vie-btn vie-btn-sm">{dict.body.library.editBtn}</button>
+            : <button type="button" disabled title={dict.body.reports.cannotWriteAssessments} className="vie-btn vie-btn-sm">{dict.body.library.editBtn}</button>}
+        </div>
+        {!a || (!a.role && !a.summary && !a.traits.length) ? (
+          <div className="mt-2">
+            <p className="font-semibold">{dict.body.reports.roleNotAssessed}</p>
+            <p className="mt-1 t-body text-muted">{r.assessment?.unpublished_changes && r.can.assess ? dict.body.reports.draftWritten : dict.body.reports.analystSummaryHere}</p>
+            <p className="mt-2 t-body text-muted">{dict.body.reports.noTraits}</p>
+          </div>
+        ) : (
+          <div data-role-published title={dict.body.reports.analystOpinionPublished.replace("{a}", r.assessment!.published_by_name ?? "")}>
+            <p className="mt-2 truncate t-section font-semibold">{a.role || dict.body.reports.roleNotGiven}</p>
+            <p className="mt-1 whitespace-pre-wrap t-body text-muted">{a.summary}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {a.traits.map((t) => <span key={t} className="rounded-full border border-primary/50 px-2 py-0.5 text-xs">{t}</span>)}
+            </div>
+            <p className="mt-2 text-xs italic text-amber">{dict.body.reports.analystOpinionBy.replace("{a}", r.assessment!.published_by_name ?? "")}</p>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -237,28 +242,29 @@ const coverText = (kind: "TIME" | "MOVEMENT" | "EVENTS", m: PlayerMeasures | nul
 };
 
 /** one KPI card: measured() is computed once, not once per field, and the card only re-renders when its own inputs change */
-const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, measuresFailed, focused }: {
-  label: string; x: number; w: number; icon: string; first: boolean; measures: PlayerMeasures | null; measuresFailed: boolean; focused: boolean;
+const KpiCard = memo(function KpiCard({ label, Icon, first, measures, measuresFailed, focused }: {
+  label: string; Icon: ComponentType<{ className?: string }>; first: boolean; measures: PlayerMeasures | null; measuresFailed: boolean; focused: boolean;
 }) {
   const { t: dict } = useLocale();
   const m = measured(label, measures, dict);
   const cover = m && KPI_COVER[label] ? coverText(KPI_COVER[label]!, measures, dict) : null;
   return (
-    <div data-kpi={label} title={measuresFailed ? dict.body.reports.kpiLoadFailedTip : m?.[2] ?? dict.body.reports.kpiNotMeasuredYet}>
-      <P x={x} y={505} w={w} h={132} style={{ ...(first ? { borderLeft: `${u(4)} solid #1e90ff` } : {}), ...hl(focused) }} />
-      <T x={x + 40} y={531} size={21} color="#d6e4f7">{KPI_LABEL(dict)[label] ?? label}</T>
-      <Ic x={x + 60} y={586} k={icon} size={44} color="#1e90ff" />
-      {m && <B x={x + w - 32} y={520} w={20} h={20}><Evidence level={KPI_EVIDENCE[label] ?? "DETECTED"} compact size={12} /></B>}
-      {measuresFailed
-        ? <T x={x + 104} y={575} size={19} color="#ff8a8a">{dict.body.reports.kpiLoadFailed}</T>
-        : m || !measures
-          ? <T x={x + 104} y={575} size={30} weight={700}>{m?.[0] ?? "—"}</T>
-          : <T x={x + 104} y={575} size={19} color="#8ea3bf">{dict.body.reports.notMeasured}</T>}
-      <T x={x + 104} y={609} size={19} color="#b9cbe2">{measuresFailed ? dict.body.reports.kpiCouldNotLoad : m?.[1] ?? (measures && KPI_EVIDENCE[label] === "NOT_MEASURED" ? dict.body.reports.kpiNotMeasured : "—")}</T>
-      {cover && (
-        <T x={x + 14} y={628} size={13} color="#7f97b5" style={{ maxWidth: u(w - 28), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <span data-kpi-coverage>{cover}</span></T>
-      )}
+    <div data-kpi={label} title={measuresFailed ? dict.body.reports.kpiLoadFailedTip : m?.[2] ?? dict.body.reports.kpiNotMeasuredYet}
+      className={`vie-panel p-3 ${first ? "border-l-4 border-l-primary" : ""} ${focused ? "border-primary" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <span className="t-small">{KPI_LABEL(dict)[label] ?? label}</span>
+        {m && <Evidence level={KPI_EVIDENCE[label] ?? "DETECTED"} compact size={12} />}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <Icon className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+        {measuresFailed
+          ? <span className="t-panel text-danger">{dict.body.reports.kpiLoadFailed}</span>
+          : m || !measures
+            ? <span className="truncate t-metric">{m?.[0] ?? "—"}</span>
+            : <span className="t-body text-muted">{dict.body.reports.notMeasured}</span>}
+      </div>
+      <p className="mt-1 truncate t-small">{measuresFailed ? dict.body.reports.kpiCouldNotLoad : m?.[1] ?? (measures && KPI_EVIDENCE[label] === "NOT_MEASURED" ? dict.body.reports.kpiNotMeasured : "—")}</p>
+      {cover && <p className="mt-0.5 truncate t-small text-muted"><span data-kpi-coverage>{cover}</span></p>}
     </div>
   );
 });
@@ -266,9 +272,10 @@ const KpiCard = memo(function KpiCard({ label, x, w, icon, first, measures, meas
 function KpisInner({ r }: { r: Report }) {
   const { t: dict } = useLocale();
   return (
-    <section id="p08-kpi" aria-label={dict.body.reports.keyMetrics} data-section="p08-s06" data-cards={String(KPIS.length)}>
-      {KPIS.map(([l, x, w, icon], i) => (
-        <KpiCard key={l} label={l} x={x} w={w} icon={icon} first={i === 0} measures={r.measures} measuresFailed={r.measuresFailed} focused={r.focus === "p08-kpi"} />
+    <section id="p08-kpi" aria-label={dict.body.reports.keyMetrics} data-section="p08-s06" data-cards={String(KPIS.length)}
+      className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-9">
+      {KPIS.map(([l, Icon], i) => (
+        <KpiCard key={l} label={l} Icon={Icon} first={i === 0} measures={r.measures} measuresFailed={r.measuresFailed} focused={r.focus === "p08-kpi"} />
       ))}
     </section>
   );

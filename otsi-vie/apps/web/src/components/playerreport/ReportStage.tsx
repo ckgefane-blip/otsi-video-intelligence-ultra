@@ -4,6 +4,10 @@
  * Player ID (or the internal id of a provisional player). The identity comes from the player registry; measurements from his confirmed
  * tracks; notes, dossiers, PDFs, share links and the assessment through their dialogs (ADR-056). Without a player it shows the reference's
  * empty state and a player picker.
+ *
+ * Drop 1 layout: the same rail, hero, KPIs, lower sections, dialogs and API reads, laid out in the page's flow (sticky section rail on
+ * the left, content column on the right) on the Desktop UI shell, instead of the 2560-px DesignStage composition. Nothing was removed
+ * or rewired.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { PlayerAssessment, PlayerIdentity, PlayerListEntry, PlayerMeasures, PlayerProfile } from "@otsi-vie/contracts";
@@ -11,7 +15,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { DesignStage } from "@/components/stage/DesignStage";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { parsePlayerRef, type PlayerRef } from "@/lib/identity";
@@ -39,9 +42,9 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-player">
-          <Dialog.Title className="text-base font-semibold">{dict.body.reports.choosePlayer}</Dialog.Title>
-          <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.reports.pickerDesc}
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 t-body shadow-2xl" data-dialog="choose-player">
+          <Dialog.Title className="t-section">{dict.body.reports.choosePlayer}</Dialog.Title>
+          <Dialog.Description className="mb-3 t-small">{dict.body.reports.pickerDesc}
             {" "}<Link href="/players" className="text-primary hover:underline">{dict.body.reports.playersListLink}</Link></Dialog.Description>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label={dict.body.reports.pickerSearchAria} placeholder={dict.body.reports.searchPlayers} className="mb-2 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
           {hits === undefined && <p className="text-muted">{dict.common.loading}</p>}
@@ -53,7 +56,7 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
                 <button type="button" data-player={p.player_id} onClick={() => { onOpenChange(false); router.push(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`); }}
                   className="flex w-full items-center justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
                   <span className="min-w-0 truncate font-medium">{p.display_name}</span>
-                  <span className="shrink-0 text-xs text-muted" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? dict.body.reports.provisionalNoIdShort}{p.canonical_state === "RETIRED" ? dict.body.reports.retiredSuffix : ""}</span>
+                  <span className="shrink-0 t-small" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? dict.body.reports.provisionalNoIdShort}{p.canonical_state === "RETIRED" ? dict.body.reports.retiredSuffix : ""}</span>
                 </button>
               </li>
             ))}
@@ -128,11 +131,13 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
   const r: Report = useMemo(() => ({ player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, open: setDialog, can }),
     [player, missing, focus, selected, go, pick, measures, measuresFailed, profile, assessment, can]);
   return (
-    <DesignStage page="reports" background="#010812" extra={600}>
+    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4 lg:flex-row" data-page="reports">
       <Rail r={r} />
-      <Hero r={r} />
-      <Kpis r={r} />
-      <Lower r={r} />
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <Hero r={r} />
+        <Kpis r={r} />
+        <Lower r={r} />
+      </div>
       <PlayerPicker open={picking} onOpenChange={setPicking} />
       {player && (
         <>
@@ -142,6 +147,6 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
           <AssessmentDialog player={player} open={dialog === "assess" || dialog === "read"} edit={dialog === "assess"} onClose={close} onSaved={setAssessment} confirmed={!!measures?.tracks} />
         </>
       )}
-    </DesignStage>
+    </div>
   );
 }

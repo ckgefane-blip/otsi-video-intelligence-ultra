@@ -1,14 +1,15 @@
 "use client";
 /**
- * Page 09 Library / Project Center on the approved composition (corrected reference 09_LIBRARY_PROJECT_CENTER). The tab can come from
- * the address (?tab=matches etc.), an open folder too (?folder=<id>); the selected asset's linked match feeds the left panel and the details.
+ * Page 09 Library / Project Center on the Desktop UI components: the left panel (the selected asset's match, or the Library tree),
+ * the asset list, and the selected item — laid out in the page's flow instead of the 2560-px DesignStage composition.
+ * The tab can come from the address (?tab=matches etc.), an open folder too (?folder=<id>); the selected asset's linked match feeds
+ * the left panel and the details.
  * v3 Phase A.14 (ADR-073): the left panel's Browse view is the Library tree; which view is open is kept per browser.
  */
 import type { Match, Member } from "@otsi-vie/contracts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { DesignStage, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { recallVideo } from "@/lib/currentVideo";
 import { LeftPanel, type TeamSide } from "./LeftPanel";
@@ -82,15 +83,19 @@ export function LibraryStage() {
   const analysed = !!asset && (asset.kind === "Reel" || asset.kind === "Export");   // a reel exists only for an analysed video
 
   return (
-    <DesignStage page="library">
-      <LeftPanel match={match} analysed={analysed} side={side} setSide={setSide} team={teamSide} setTeam={setTeamSide} say={say}
-        videoId={asset?.videoId ?? null} reelId={asset && (asset.kind === "Reel" || asset.kind === "Export") ? (asset.raw as { id: string }).id : null}
-        browse={browse} setBrowse={setBrowse} tree={tree} />
-      <LibraryMain all={all} shown={shown} tab={tab} setTab={setTab} f={f} setF={setF} desc={desc} setDesc={setDesc} selected={selected} select={select}
-        competitions={competitions} teams={teams} reload={load} canWrite={canWrite} members={members} me={me?.user.id ?? null} say={say}
-        folder={live ? folder : null} setFolder={setFolder} trash={trash} setTrash={setTrash} newFolder={newFolder} setNewFolder={setNewFolder} />
-      {note && <T x={1983} y={466} size={16} color="#ffc66d" align="right"><span role="status">{note}</span></T>}
-      <SelectedItem a={asset} match={match} onClose={closeSelected} reload={load} canWrite={canWrite} />
-    </DesignStage>
+    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4" data-page="library">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_340px]">
+        <LeftPanel match={match} analysed={analysed} side={side} setSide={setSide} team={teamSide} setTeam={setTeamSide} say={say}
+          videoId={asset?.videoId ?? null} reelId={asset && (asset.kind === "Reel" || asset.kind === "Export") ? (asset.raw as { id: string }).id : null}
+          browse={browse} setBrowse={setBrowse} tree={tree} />
+        <LibraryMain all={all} shown={shown} tab={tab} setTab={setTab} f={f} setF={setF} desc={desc} setDesc={setDesc} selected={selected} select={select}
+          competitions={competitions} teams={teams} reload={load} canWrite={canWrite} members={members} me={me?.user.id ?? null} say={say}
+          folder={live ? folder : null} setFolder={setFolder} trash={trash} setTrash={setTrash} newFolder={newFolder} setNewFolder={setNewFolder} />
+        <div className="lg:col-span-2 2xl:col-span-1">
+          <SelectedItem a={asset} match={match} onClose={closeSelected} reload={load} canWrite={canWrite} />
+        </div>
+      </div>
+      {note && <div role="status" className="fixed bottom-4 right-4 z-50 max-w-sm rounded-md border border-primary bg-panel px-3 py-2 text-sm shadow-xl">{note}</div>}
+    </div>
   );
 }

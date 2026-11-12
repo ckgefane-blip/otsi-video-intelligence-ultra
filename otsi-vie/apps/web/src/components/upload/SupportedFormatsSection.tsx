@@ -1,17 +1,16 @@
 "use client";
 /**
- * Page 02 Section 07 — supported formats strip (approved reference 02_UPLOAD_INGEST, "formats"). The eight tiles are containers the
+ * Page 02 Section 07 — supported formats strip, on the Desktop UI flow layout. The eight tiles are containers the
  * server accepts (each is in its accepted list); "View all formats" lists every accepted extension and the server's real size limit
- * (GET /v1/upload-limits). A tile opens the file chooser, like Browse Files.
+ * (GET /v1/upload-limits). The tiles state what is accepted; only "View all formats" is interactive.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { Ic, P, T, u } from "@/components/stage/DesignStage";
 import { useLocale } from "@/lib/i18n";
 import { usePage02 } from "./page02";
 
-const TILES: [string, string, number, number][] = [["MP4", "H.264/H.265", 463, 164], ["MOV", "Apple ProRes", 643, 173], ["AVI", "H.264", 832, 146], ["MKV", "H.264/H.265", 994, 171],
-  ["MPEG", "MPEG-2", 1181, 165], ["FLV", "H.264", 1362, 158], ["TS", "MPEG-TS", 1536, 163], ["WEBM", "VP9", 1715, 155]];
+const TILES: [string, string][] = [["MP4", "H.264/H.265"], ["MOV", "Apple ProRes"], ["AVI", "H.264"], ["MKV", "H.264/H.265"],
+  ["MPEG", "MPEG-2"], ["FLV", "H.264"], ["TS", "MPEG-TS"], ["WEBM", "VP9"]];
 
 export function SupportedFormatsSection() {
   const { t: dict } = useLocale();
@@ -19,23 +18,16 @@ export function SupportedFormatsSection() {
   const { limits } = usePage02();
   const [open, setOpen] = useState(false);
   return (
-    <section aria-label={d.supportedFormatsStrip} data-section="p02-s07">
-      <P x={438} y={886} w={1455} h={162} />
-      <T x={459} y={913} size={24} weight={600} as="h2">{d.supportedFormats}</T>
-      <button type="button" onClick={() => setOpen(true)} className="absolute"
-        style={{ left: u(1869 - 170), top: u(913 - 101 - 13), width: u(170), height: u(26), padding: 0, border: 0, background: "transparent", color: "#33a8ff",
-          fontSize: u(20), fontFamily: "inherit", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }}>{d.viewAllFormats}</button>
-      <ul aria-label={d.supportedFormats} style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        {TILES.map(([name, codec, x, w]) => (
-          <li key={name}>
-            {/* informational, as in the approved reference: the cards state what is accepted; only "View all formats" is interactive */}
-            <div className="absolute"
-              style={{ left: u(x), top: u(940 - 101), width: u(w), height: u(90), padding: 0, background: "#06142a", border: `${u(1.5)} solid #12335f`, borderRadius: u(8),
-                color: "inherit", font: "inherit" }}>
-              <Ic o={[x + 1.5, 941.5]} x={x + 36} y={972} k="file" size={40} color="#1e90ff" fill="#1e90ff" />
-              <T o={[x + 1.5, 941.5]} x={x + 72} y={970} size={20} weight={600} as="span">{name}</T>
-              <T o={[x + 1.5, 941.5]} x={x + 72} y={1000} size={17} color="#8ea3bf" as="span">{codec}</T>
-            </div>
+    <section aria-label={d.supportedFormatsStrip} data-section="p02-s07" className="vie-panel">
+      <div className="vie-ph">
+        <h2 className="t-panel">{d.supportedFormats}</h2>
+        <button type="button" onClick={() => setOpen(true)} className="text-sm text-primary">{d.viewAllFormats}</button>
+      </div>
+      <ul aria-label={d.supportedFormats} className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4">
+        {TILES.map(([name, codec]) => (
+          <li key={name} className="rounded-ctl border border-line/70 bg-raised/40 px-3 py-2">
+            <span className="block text-sm font-semibold">{name}</span>
+            <span className="block text-xs text-muted">{codec}</span>
           </li>
         ))}
       </ul>

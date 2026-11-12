@@ -1,15 +1,13 @@
 "use client";
 /**
- * Page 05 Transitions Analysis Panel (v3 Phase E.4, ADR-119).
+ * Page 05 Transitions Analysis Panel (v3 Phase E.4, ADR-119), in flow (Desktop UI Drop 2).
  * Displays turnover-to-action transitions (attacking regains, shots within 10s, counter-press within 5s).
  * Labelled strictly as Inferred because discrete events are linked across sequence windows.
  * Excludes events marked REJECT in event_decisions (E.1).
  */
 import { useEffect, useState } from "react";
 import type { TransitionsAnalysis } from "@otsi-vie/contracts";
-import { B, T, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
-import { Box, Head } from "./kit";
 import { useLocale } from "@/lib/i18n";
 
 export function TransitionsPanel({
@@ -55,121 +53,84 @@ export function TransitionsPanel({
   const teams = data?.summary.teams ?? [];
 
   return (
-    <section id="p05-s10" aria-label="Transitions analysis" data-section="p05-s10" style={{ position: "relative" }}>
-      <Box x={1460} y={1162} w={1072} h={258} />
-      {focus && <B x={1460} y={1162} w={1072} h={258} style={{ outline: `${u(3)} solid #33a8ff`, outlineOffset: u(2), borderRadius: u(10), pointerEvents: "none" }} />}
-      <Head
-        x={1460}
-        y={1193}
-        title={dict.body.tactics.transitionsInferred}
-        info={dict.body.tactics.transitionsDesc}
-      />
-
-      {/* Inferred badge */}
-      <span
-        style={{
-          position: "absolute",
-          left: u(1720),
-          top: u(1185 - 101),
-          fontSize: u(13),
-          fontWeight: 700,
-          padding: `${u(2)} ${u(8)}`,
-          borderRadius: u(4),
-          background: "rgba(51, 168, 255, 0.15)",
-          color: "#33a8ff",
-          border: `${u(1)} solid rgba(51, 168, 255, 0.4)`,
-        }}
-      >{dict.body.tactics.inferredLabel}
-      </span>
-
-      {!videoId ? (
-        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">{dict.body.tactics.noVideoSelected}
-        </T>
-      ) : loading ? (
-        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center">{dict.body.tactics.computingTransitions}
-        </T>
-      ) : !data || data.state === "NONE" || teams.length === 0 ? (
-        <T x={1996} y={1290} size={19} color="#8ea3bf" align="center" style={{ maxWidth: u(600) }}>
-          {dict.body.tactics.transitionsAppear}
-        </T>
-      ) : (
-        <div style={{ position: "absolute", left: u(1480), top: u(1230 - 101), width: u(1032), height: u(175), display: "flex", gap: u(16) }}>
-          {/* Team KPI comparison columns */}
-          <div style={{ width: u(420), display: "flex", flexDirection: "column", gap: u(8), borderRight: `${u(1)} solid #142f55`, paddingRight: u(16) }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", fontSize: u(14), color: "#8ea3bf", fontWeight: 600 }}>
-              <span>{dict.body.tactics.metricLabel}</span>
-              <span style={{ textAlign: "right", color: "#7ab6ff" }}>{teams[0]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[0]?.kit_group ?? 0))}</span>
-              <span style={{ textAlign: "right", color: "#e8d9a0" }}>{teams[1]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[1]?.kit_group ?? 1))}</span>
-            </div>
-            {[
-              [dict.body.tactics.turnoversWon, teams[0]?.attacking_transitions ?? 0, teams[1]?.attacking_transitions ?? 0],
-              [dict.body.tactics.shotsFromRegain, teams[0]?.shots_from_transitions ?? 0, teams[1]?.shots_from_transitions ?? 0],
-              [dict.body.tactics.possessionRetained, teams[0]?.transitions_retained ?? 0, teams[1]?.transitions_retained ?? 0],
-              [dict.body.tactics.turnoversLost5s, teams[0]?.transitions_lost ?? 0, teams[1]?.transitions_lost ?? 0],
-              [dict.body.tactics.counterPress5s, teams[0]?.counter_press_regains ?? 0, teams[1]?.counter_press_regains ?? 0],
-              [
-                dict.body.tactics.avgTimeToAction,
-                teams[0]?.avg_duration_to_action_s != null ? `${teams[0]?.avg_duration_to_action_s}s` : "—",
-                teams[1]?.avg_duration_to_action_s != null ? `${teams[1]?.avg_duration_to_action_s}s` : "—",
-              ],
-            ].map(([label, val1, val2]) => (
-              <div key={String(label)} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", fontSize: u(14), color: "#cfdcf0" }}>
-                <span>{label}</span>
-                <span style={{ textAlign: "right", fontWeight: 700 }}>{val1}</span>
-                <span style={{ textAlign: "right", fontWeight: 700 }}>{val2}</span>
+    <section id="p05-s10" aria-label="Transitions analysis" data-section="p05-s10"
+      className={`vie-panel ${focus ? "outline outline-2 outline-offset-2 outline-primary" : ""}`}>
+      <div className="vie-ph">
+        <h2 className="t-panel"><span aria-hidden className="mr-2 inline-block h-5 w-1.5 rounded bg-primary align-middle" />{dict.body.tactics.transitionsInferred}
+          <span tabIndex={0} role="note" aria-label={dict.body.tactics.transitionsDesc} title={dict.body.tactics.transitionsDesc} className="ml-2 cursor-help rounded-full border border-line2 px-1.5 text-xs font-normal text-muted">i</span>
+        </h2>
+        <span className="rounded border border-primary/40 bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">{dict.body.tactics.inferredLabel}</span>
+      </div>
+      <div className="p-3">
+        {!videoId ? (
+          <p className="py-6 text-center text-sm text-muted">{dict.body.tactics.noVideoSelected}</p>
+        ) : loading ? (
+          <p className="py-6 text-center text-sm text-muted">{dict.body.tactics.computingTransitions}</p>
+        ) : !data || data.state === "NONE" || teams.length === 0 ? (
+          <p className="mx-auto max-w-xl py-6 text-center text-sm text-muted">{dict.body.tactics.transitionsAppear}</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+            {/* Team KPI comparison columns */}
+            <div className="flex flex-col gap-2 border-b border-line pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
+              <div className="grid grid-cols-3 t-th">
+                <span>{dict.body.tactics.metricLabel}</span>
+                <span className="text-right text-[#7ab6ff]">{teams[0]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[0]?.kit_group ?? 0))}</span>
+                <span className="text-right text-[#e8d9a0]">{teams[1]?.name ?? dict.body.workspace.kitLabel.replace("{a}", String(teams[1]?.kit_group ?? 1))}</span>
               </div>
-            ))}
-          </div>
-
-          {/* Chronological transitions event stream */}
-          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: u(6) }}>
-            <div style={{ fontSize: u(13), color: "#8ea3bf", fontWeight: 600, marginBottom: u(2) }}>
-              {dict.body.tactics.recentTransitions.replace("{a}", String(data.items.length))}
-            </div>
-            {data.items.length === 0 ? (
-              <div style={{ fontSize: u(14), color: "#8ea3bf", padding: u(12) }}>{dict.body.tactics.noTurnovers}</div>
-            ) : (
-              data.items.slice(0, 8).map((it) => (
-                <div
-                  key={it.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: `${u(4)} ${u(8)}`,
-                    background: "rgba(18, 48, 90, 0.4)",
-                    borderRadius: u(4),
-                    fontSize: u(13),
-                    cursor: onSeek ? "pointer" : "default",
-                  }}
-                  onClick={() => onSeek && onSeek(it.trigger_pts_us)}
-                >
-                  <span style={{ color: "#9fb3cc", width: u(50) }}>{clock(it.trigger_pts_us)}</span>
-                  <span style={{ fontWeight: 600, color: it.kit_group === 0 ? "#7ab6ff" : "#e8d9a0" }}>
-                    {it.trigger_kind.replace("_", " ")}
-                  </span>
-                  <span style={{ color: "#8ea3bf" }}>→</span>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color:
-                        it.next_action.outcome === "SHOT" || it.next_action.outcome === "GOAL"
-                          ? "#19d3ff"
-                          : it.next_action.outcome === "KEY_PASS"
-                          ? "#19e6c0"
-                          : it.next_action.outcome === "DISPOSSESSED"
-                          ? "#f87171"
-                          : "#dbe8ff",
-                    }}
-                  >
-                    {it.next_action.outcome} ({it.next_action.duration_s}s)
-                  </span>
+              {[
+                [dict.body.tactics.turnoversWon, teams[0]?.attacking_transitions ?? 0, teams[1]?.attacking_transitions ?? 0],
+                [dict.body.tactics.shotsFromRegain, teams[0]?.shots_from_transitions ?? 0, teams[1]?.shots_from_transitions ?? 0],
+                [dict.body.tactics.possessionRetained, teams[0]?.transitions_retained ?? 0, teams[1]?.transitions_retained ?? 0],
+                [dict.body.tactics.turnoversLost5s, teams[0]?.transitions_lost ?? 0, teams[1]?.transitions_lost ?? 0],
+                [dict.body.tactics.counterPress5s, teams[0]?.counter_press_regains ?? 0, teams[1]?.counter_press_regains ?? 0],
+                [
+                  dict.body.tactics.avgTimeToAction,
+                  teams[0]?.avg_duration_to_action_s != null ? `${teams[0]?.avg_duration_to_action_s}s` : "—",
+                  teams[1]?.avg_duration_to_action_s != null ? `${teams[1]?.avg_duration_to_action_s}s` : "—",
+                ],
+              ].map(([label, val1, val2]) => (
+                <div key={String(label)} className="grid grid-cols-3 text-sm text-[#cfdcf0]">
+                  <span>{label}</span>
+                  <span className="text-right font-semibold tabular-nums">{val1}</span>
+                  <span className="text-right font-semibold tabular-nums">{val2}</span>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+
+            {/* Chronological transitions event stream */}
+            <div className="flex max-h-44 flex-col gap-1.5 overflow-y-auto">
+              <div className="mb-0.5 t-label">{dict.body.tactics.recentTransitions.replace("{a}", String(data.items.length))}</div>
+              {data.items.length === 0 ? (
+                <div className="p-3 text-sm text-muted">{dict.body.tactics.noTurnovers}</div>
+              ) : (
+                data.items.slice(0, 8).map((it) => (
+                  <button key={it.id} type="button" onClick={() => onSeek && onSeek(it.trigger_pts_us)} disabled={!onSeek}
+                    className="flex items-center justify-between gap-2 rounded bg-[#12305a66] px-2 py-1 text-left text-sm disabled:cursor-default">
+                    <span className="w-12 shrink-0 text-[#9fb3cc] t-tc">{clock(it.trigger_pts_us)}</span>
+                    <span className="font-semibold" style={{ color: it.kit_group === 0 ? "#7ab6ff" : "#e8d9a0" }}>
+                      {it.trigger_kind.replace("_", " ")}
+                    </span>
+                    <span className="text-muted">→</span>
+                    <span className="font-semibold"
+                      style={{
+                        color:
+                          it.next_action.outcome === "SHOT" || it.next_action.outcome === "GOAL"
+                            ? "#19d3ff"
+                            : it.next_action.outcome === "KEY_PASS"
+                              ? "#19e6c0"
+                              : it.next_action.outcome === "DISPOSSESSED"
+                                ? "#f87171"
+                                : "#dbe8ff",
+                      }}>
+                      {it.next_action.outcome} ({it.next_action.duration_s}s)
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

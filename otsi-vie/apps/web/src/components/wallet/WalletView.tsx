@@ -82,82 +82,87 @@ export function WalletView() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+    <div className="w-full max-w-5xl space-y-4">
       <header>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold"><Wallet className="h-6 w-6" /> {t.body.wallet.title}</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="t-page flex items-center gap-2"><Wallet className="h-4 w-4" /> {t.body.wallet.title}</h1>
+        <p className="t-body mt-1 text-muted">
           {t.body.wallet.subtitle}
         </p>
       </header>
 
-      {error && <p role="alert" className="rounded-ctl border border-red-400/50 bg-red-500/10 px-3 py-2 text-sm">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-emerald-400/50 bg-emerald-500/10 px-3 py-2 text-sm">{notice}</p>}
+      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
+      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
       {balance && (
-        <section aria-label="Balance" className="rounded-ctl border border-line bg-raised p-5">
+        <section aria-label="Balance" className="vie-panel">
+          <div className="vie-ph"><h2 className="t-section">{t.body.wallet.balance}</h2></div>
+          <div className="p-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t.body.wallet.balance}</p>
-              <p className="mt-1 flex items-center gap-2 text-4xl font-semibold"><Coins className="h-7 w-7 text-primary" /> {balance.balance} <span className="text-lg font-normal text-muted">{t.body.wallet.tokensUnit}</span></p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="t-metric mt-1 flex items-center gap-2"><Coins className="h-5 w-5 text-primary" /> {balance.balance} <span className="t-small">{t.body.wallet.tokensUnit}</span></p>
+              <p className="t-small mt-1">
                 {t.body.wallet.spendable.replace("{a}", String(balance.spendable_balance))}
                 {balance.expired_unwritten_off > 0 && t.body.wallet.expiredWaiting.replace("{a}", String(balance.expired_unwritten_off))}
               </p>
             </div>
-            <div className="text-sm text-muted">
+            <div className="t-small">
               <p>{t.body.wallet.costsA}</p>
               <p>{t.body.wallet.costsB}</p>
             </div>
           </div>
           {balance.low_balance && (
-            <p role="alert" className="mt-4 flex items-start gap-2 rounded-ctl border border-amber-400/50 bg-amber-500/10 px-3 py-2 text-sm">
+            <p role="alert" className="mt-4 flex items-start gap-2 rounded-ctl border border-amber/50 bg-amber/10 px-3 py-2 t-body text-amber">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{t.body.wallet.lowBalance}</span>
             </p>
           )}
+          </div>
         </section>
       )}
 
       {catalogue && !claimedFreeGrant && (
-        <section aria-label="Free tier" className="rounded-ctl border border-line bg-raised p-5">
-          <h2 className="font-semibold">{t.body.wallet.freeTitle}</h2>
-          <p className="mt-1 text-sm text-muted">
+        <section aria-label="Free tier" className="vie-panel">
+          <div className="vie-ph"><h2 className="t-section">{t.body.wallet.freeTitle}</h2></div>
+          <div className="p-4">
+          <p className="t-body text-muted">
             {t.body.wallet.freeDesc}
           </p>
           <button type="button" disabled={busy !== null} onClick={() => void act("grant", () => api("/v1/wallet/free-grant", { method: "POST" }), t.body.wallet.freeAdded)}
-            className="mt-3 rounded-ctl bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+            className="vie-btn vie-btn-pri mt-3">
             {busy === "grant" ? t.body.wallet.claiming : t.body.wallet.claim}
           </button>
+          </div>
         </section>
       )}
 
       {catalogue && (
-        <section aria-label="Token packs" className="rounded-ctl border border-line bg-raised p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold">{t.body.wallet.buyTitle}</h2>
+        <section aria-label="Token packs" className="vie-panel">
+          <div className="vie-ph">
+            <h2 className="t-section">{t.body.wallet.buyTitle}</h2>
             <div role="group" aria-label={t.body.wallet.currencyAria} className="flex gap-1">
               {(["NGN", "USD"] as const).map((c) => (
                 <button key={c} type="button" onClick={() => setCurrency(c)} aria-pressed={currency === c}
-                  className={`rounded-ctl border px-3 py-1 text-sm ${currency === c ? "border-primary bg-primary/10 text-primary" : "border-line"}`}>
+                  className={`rounded-ctl border px-3 py-1 t-button ${currency === c ? "border-primary bg-primary/10 text-primary" : "border-line"}`}>
                   {c === "NGN" ? t.body.wallet.currencyNaira : t.body.wallet.currencyUsd}
                 </button>
               ))}
             </div>
           </div>
-          <p className="mt-1 text-sm text-muted">
+          <div className="p-4">
+          <p className="t-small">
             {t.body.wallet.buyDesc}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {catalogue.packs.map((pack) => (
-              <article key={pack.code} className="rounded-ctl border border-line p-4">
-                <h3 className="font-semibold">{pack.label}</h3>
-                <p className="mt-1 text-2xl font-semibold">{pack.tokens} <span className="text-sm font-normal text-muted">{t.body.wallet.tokensUnit}</span></p>
-                <p className="text-lg">{money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)}</p>
-                <p className="mt-1 text-xs text-muted">{pack.covers}</p>
+              <article key={pack.code} className="rounded-ctl border border-line bg-canvas p-4">
+                <h3 className="t-panel">{pack.label}</h3>
+                <p className="t-metric mt-1">{pack.tokens} <span className="t-small">{t.body.wallet.tokensUnit}</span></p>
+                <p className="t-panel">{money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)}</p>
+                <p className="t-small mt-1">{pack.covers}</p>
                 <button type="button" disabled={busy !== null}
                   onClick={() => void act(`request-${pack.code}`, () => api("/v1/wallet/packs/request", { method: "POST", json: { pack_code: pack.code, currency } }),
                     t.body.wallet.requested.replace("{a}", pack.label).replace("{b}", money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)))}
-                  className="mt-3 w-full rounded-ctl border border-primary px-3 py-1.5 text-sm font-medium text-primary disabled:opacity-50">
+                  className="t-button mt-3 w-full rounded-ctl border border-primary px-3 py-1.5 text-primary disabled:opacity-50">
                   {busy === `request-${pack.code}` ? t.body.wallet.requesting : t.body.wallet.requestPack}
                 </button>
               </article>
@@ -165,42 +170,44 @@ export function WalletView() {
           </div>
           {requests.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-sm font-semibold">{t.body.wallet.packRequests}</h3>
-              <ul className="mt-2 space-y-2 text-sm">
+              <h3 className="t-panel">{t.body.wallet.packRequests}</h3>
+              <ul className="mt-2 space-y-2">
                 {requests.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-ctl border border-line px-3 py-2">
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-ctl border border-line bg-canvas px-3 py-2">
                     <span>{r.pack_code} · {r.tokens} {t.body.wallet.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: t.body.wallet.statusRequested, INVOICED: t.body.wallet.statusInvoiced, PAID: t.body.wallet.statusPaid, CANCELLED: t.body.wallet.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</span>
                     {(r.status === "REQUESTED" || r.status === "INVOICED") && (
                       <button type="button" disabled={busy !== null}
                         onClick={() => void act(`cancel-${r.id}`, () => api(`/v1/wallet/packs/requests/${r.id}/cancel`, { method: "POST" }), t.body.wallet.requestCancelled)}
-                        className="rounded-ctl border border-line px-2 py-1 text-xs disabled:opacity-50">{t.body.wallet.cancel}</button>
+                        className="vie-btn vie-btn-sm">{t.body.wallet.cancel}</button>
                     )}
                   </li>
                 ))}
               </ul>
             </div>
           )}
+          </div>
         </section>
       )}
 
-      <section aria-label="Ledger" className="rounded-ctl border border-line bg-raised p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{t.body.wallet.ledger}</h2>
-          <Link href="/settings/admin/billing" className="text-sm text-primary hover:underline">{t.body.wallet.billingLink}</Link>
+      <section aria-label="Ledger" className="vie-panel">
+        <div className="vie-ph">
+          <h2 className="t-section">{t.body.wallet.ledger}</h2>
+          <Link href="/settings/admin/billing" className="t-body text-primary hover:underline">{t.body.wallet.billingLink}</Link>
         </div>
+        <div className="p-4">
         {entries.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">{t.body.wallet.ledgerEmpty}</p>
+          <p className="t-body text-muted">{t.body.wallet.ledgerEmpty}</p>
         ) : (
-          <table className="mt-3 w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="text-left text-muted"><th className="py-1 pr-2">{t.body.wallet.colWhen}</th><th className="py-1 pr-2">{t.body.wallet.colWhat}</th><th className="py-1 pr-2">{t.body.wallet.colTokens}</th><th className="py-1 pr-2">{t.body.wallet.colBalance}</th><th className="py-1">{t.body.wallet.colNote}</th></tr>
+              <tr className="t-th text-left"><th className="py-1 pr-2">{t.body.wallet.colWhen}</th><th className="py-1 pr-2">{t.body.wallet.colWhat}</th><th className="py-1 pr-2">{t.body.wallet.colTokens}</th><th className="py-1 pr-2">{t.body.wallet.colBalance}</th><th className="py-1">{t.body.wallet.colNote}</th></tr>
             </thead>
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id} className="border-t border-line">
                   <td className="py-1.5 pr-2 whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</td>
                   <td className="py-1.5 pr-2">{kindLabel(t)[e.kind]}</td>
-                  <td className={`py-1.5 pr-2 font-medium ${e.amount > 0 ? "text-emerald-600" : "text-red-600"}`}>{e.amount > 0 ? `+${e.amount}` : e.amount}</td>
+                  <td className={`py-1.5 pr-2 font-medium ${e.amount > 0 ? "text-ok" : "text-danger"}`}>{e.amount > 0 ? `+${e.amount}` : e.amount}</td>
                   <td className="py-1.5 pr-2">{e.balance_after}</td>
                   <td className="py-1.5">{[e.reason, e.invoice_ref ? t.body.wallet.invoice.replace("{a}", e.invoice_ref) : null].filter(Boolean).join(" · ") || "—"}</td>
                 </tr>
@@ -208,6 +215,7 @@ export function WalletView() {
             </tbody>
           </table>
         )}
+        </div>
       </section>
     </div>
   );

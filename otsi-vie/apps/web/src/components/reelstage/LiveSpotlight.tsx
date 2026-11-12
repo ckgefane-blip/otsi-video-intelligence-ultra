@@ -10,7 +10,6 @@
  */
 import type { Reel, ReelClip, ReelPath, SpotlightSettings } from "@otsi-vie/contracts";
 import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { B, u } from "@/components/stage/DesignStage";
 import { api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { CROP_LOOKAHEAD_US, SpotlightPreview, boxAt, fitRect, smoothPath, strengthAt, visibleRuns } from "@/components/studio/spotlight";
@@ -87,7 +86,9 @@ export function useReelPath(reel: Reel | null, videoId?: string | null): ReelPat
 }
 
 export function LiveSpotlight({ video, path, reel, clip, settings, on }: {
-  video: RefObject<HTMLVideoElement | null>; path: ReelPath | null; reel: Reel; clip: ReelClip | null; settings: SpotlightSettings; on: boolean;
+  /** the preview's video element; when omitted it is found from the shared player's frame (the canvas sits inside
+   *  VideoPlayer's overlay, whose wrapper carries data-player) — the shared player exposes no ref */
+  video?: RefObject<HTMLVideoElement | null>; path: ReelPath | null; reel: Reel; clip: ReelClip | null; settings: SpotlightSettings; on: boolean;
 }) {
   const dark = useRef<HTMLCanvasElement | null>(null), light = useRef<HTMLCanvasElement | null>(null);
   const live = on && !!clip && !!path && path.points.length > 0;
@@ -96,7 +97,9 @@ export function LiveSpotlight({ video, path, reel, clip, settings, on }: {
   const look = useRef(settings);
   look.current = settings;                                            // the newest slider values, without restarting the loop
   useEffect(() => {
-    const c = dark.current, g = light.current, v = video.current;
+    const c = dark.current, g = light.current;
+    // the video element: the caller's ref, or the <video> of the shared player this canvas is drawn over
+    const v = video?.current ?? c?.closest("[data-player]")?.querySelector("video") ?? null;
     if (!live || !c || !g || !v || !path || !clip) { for (const x of [c, g]) x?.getContext("2d")?.clearRect(0, 0, x.width, x.height); return; }
     const sp = new SpotlightPreview();
     const runs = visibleRuns(path.points, FRAME_US, maxI);
@@ -146,7 +149,8 @@ export function spotlightNote(reel: Reel, path: ReelPath | null, clip: ReelClip 
     : `${d.spotNoteSeen.replace("{a}", String(pct))}${dp < pct ? d.spotNoteSeenDetected.replace("{a}", String(dp)) : ""}`, seen: cov.seen };
 }
 
-/** on the seek bar (the plan's coverage bar): solid where he was detected, hatched where a gap is bridged (interpolated), empty where unseen.
+/** on the seek bar (the plan's coverage bar): solid where he was detected, a distinct solid tone where a gap is bridged
+ * (interpolated), empty where unseen.
  * Memoised: the coverage is recomputed from the path on every render, and the preview re-renders on every video timeupdate. */
 export const CoverageBar = memo(function CoverageBar({ path, clip, lock }: { path: ReelPath | null; clip: ReelClip | null; lock: number }) {
   const { t: dict } = useLocale();
@@ -154,10 +158,10 @@ export const CoverageBar = memo(function CoverageBar({ path, clip, lock }: { pat
   if (!cov) return null;
   const pct = Math.round(cov.seen * 100), dp = Math.round(cov.detected * 100);
   return (
-    <B x={836} y={829} w={777} h={7} data-coverage={pct} data-detected={dp} aria-label={dict.body.reelstage.coverageAria.replace("{a}", String(dp)).replace("{b}", String(pct - dp)).replace("{c}", String(100 - pct))}
-      style={{ background: "transparent", border: `${u(1)} solid #2c4a6e`, borderRadius: u(2), overflow: "hidden", boxSizing: "border-box" }}>
+    <div data-coverage={pct} data-detected={dp} aria-label={dict.body.reelstage.coverageAria.replace("{a}", String(dp)).replace("{b}", String(pct - dp)).replace("{c}", String(100 - pct))}
+      className="relative h-2 w-full overflow-hidden rounded border border-[#2c4a6e] bg-transparent">
       {cov.parts.map(([a, b, k]) => <i key={`${k}${a}`} data-seen-part={k} style={{ position: "absolute", top: 0, bottom: 0, left: `${a * 100}%`, width: `${Math.max(0.3, (b - a) * 100)}%`,
-        background: k === "D" ? "#3ee6a8" : "repeating-linear-gradient(135deg,#3ee6a8 0 2px,transparent 2px 5px)" }} />)}
-    </B>
+        background: k === "D" ? "#3ee6a8" : "#2a9d8f" }} />)}
+    </div>
   );
 });
