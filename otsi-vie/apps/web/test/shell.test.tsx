@@ -36,44 +36,83 @@ describe("theme toggle", () => {
 });
 
 describe("command palette", () => {
-  it("opens with Ctrl+K: the role's commands and the pages; filters them and navigates with Enter", () => {
+  const player = {
+    player_id: "01a199aa-08fd-740d-93a3-a27fec2d7a8b", display_name: "Chinazom Godwin", canonical_otsi_id: "OTSI-NGA-2026-000001",
+    profile: {
+      birth_date: null, age: 20, preferred_foot: "RIGHT", nationality: { code: "NGA", name: "Nigeria" }, position: "DM",
+      role_confirmed: true, role_confirmation_state: "ROLE_CONFIRMED", role_confirmed_by: null, role_confirmed_at: null,
+      latest_team: { team: "FC Ercakhu", jersey_number: 4, position: "DM" }, details: null, editable: true,
+    },
+  };
+  const video = {
+    id: "02b199aa-08fd-740d-93a3-a27fec2d7a8c", title: "Nart v Ercakhu – round 2", original_filename: "nart.mp4",
+    analysis: { run_id: "03c199aa-08fd-740d-93a3-a27fec2d7a8d", status: "SUCCEEDED", progress: 100, stage_message: null },
+  };
+  // 13 passes + 8 ball won + 6 pressures + 51 set pieces = 78 events
+  const events78 = {
+    state: "READY", passes: Array(13).fill({}), changes: Array(8).fill({}), shots: [],
+    pressures: Array(6).fill({}), set_pieces: Array(51).fill({}), goals: [],
+  };
+  const mockLists = () => api.mockImplementation((url: unknown) => {
+    if (url === "/v1/player-list") return Promise.resolve([player]);
+    if (url === "/v1/videos") return Promise.resolve([video]);
+    if (typeof url === "string" && url.endsWith("/events")) return Promise.resolve(events78);
+    return Promise.reject(new Error(`unexpected ${String(url)}`));
+  });
+  const openPalette = async () => {
     render(<CommandPalette />);
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    const input = screen.getByRole("combobox", { name: "Search" });
-    expect(screen.getAllByRole("option")).toHaveLength(5 + 10);          // a Viewer: Players, Matches, Wallet, Keyboard shortcuts, Security (no Upload, no Team) + 10 pages
-    expect(screen.queryByText("Upload a video")).toBeNull();
-    fireEvent.change(input, { target: { value: "clip" } });
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([expect.stringContaining("Clip Studio"), expect.stringContaining("Search the Library for")]);
+    return screen.getByRole("combobox", { name: "Search" });
+  };
+
+  it("opens with Ctrl+K: the players, matches and actions (SOT, Page 8)", async () => {
+    mockLists();
+    const input = await openPalette();
+    expect(await screen.findByText("Chinazom Godwin")).toBeInTheDocument();
+    expect(screen.getByText("#4 · DM · FC Ercakhu")).toBeInTheDocument();
+    expect(screen.getByText("Nart v Ercakhu – round 2")).toBeInTheDocument();
+    expect(await screen.findByText("78 events")).toBeInTheDocument();
+    // "Players" and "Matches" each appear twice: the section heading and the action row of the same name
+    expect(screen.getAllByText("Players")).toHaveLength(2);
+    expect(screen.getAllByText("Matches")).toHaveLength(2);
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+    // a Viewer: Players, Matches, Token Wallet, Show keyboard shortcuts, Security, Open Jobs Center (no Upload, no Team)
+    expect(screen.queryByText("Upload a match video")).toBeNull();
+    expect(screen.getByText("Open Jobs Center · pause or resume jobs")).toBeInTheDocument();
+    expect(screen.getByText("Show keyboard shortcuts")).toBeInTheDocument();
+    // the SOT's palette has no Pages group
+    expect(screen.queryByText("Home")).toBeNull();
+    expect(input).toHaveAttribute("placeholder", "Search a player, a match or an action");
+  });
+
+  it("filters players, matches and actions as you type; Enter opens the first", async () => {
+    mockLists();
+    const input = await openPalette();
+    await screen.findByText("Chinazom Godwin");
+    fireEvent.change(input, { target: { value: "jobs" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByText("Open Jobs Center · pause or resume jobs")).toBeInTheDocument();
+    expect(screen.queryByText("Chinazom Godwin")).toBeNull();
+    fireEvent.change(input, { target: { value: "chinazom" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(push).toHaveBeenCalledWith("/studio");
+    expect(push).toHaveBeenCalledWith("/reports/players/OTSI-NGA-2026-000001");
   });
 
-  it("asks the API from 2 letters and opens a hit on its page", async () => {
-    role.value = "OWNER";
-    const id = "01a199aa-08fd-740d-93a3-a27fec2d7a8b";
-    api.mockResolvedValue({ q: "ada", hits: [{ kind: "PLAYER", id, title: "Ada Obi", detail: "OTSI-NGA-2026-000001", ref: "OTSI-NGA-2026-000001" }] });
-    render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    const input = screen.getByRole("combobox", { name: "Search" });
-    fireEvent.change(input, { target: { value: "a" } });
-    expect(screen.getByText(/Type 2 or more letters/)).toBeInTheDocument();
-    fireEvent.change(input, { target: { value: "ada" } });
-    expect(await screen.findByText("Ada Obi")).toBeInTheDocument();
-    expect(api).toHaveBeenCalledTimes(1);
-    expect(api).toHaveBeenCalledWith("/v1/search?q=ada");
-    expect(screen.getByText("Players")).toBeInTheDocument();
-    expect(screen.getByText(/1 recorded item match/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Ada Obi"));
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/reports/players/OTSI-NGA-2026-000001"));
-  });
-
-  it("says when the search cannot be reached; pages still work", async () => {
+  it("says when the lists cannot be reached; actions still work", async () => {
     api.mockRejectedValue(new Error("down"));
-    render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    fireEvent.change(screen.getByRole("combobox", { name: "Search" }), { target: { value: "home" } });
+    await openPalette();
     expect(await screen.findByText(/could not be reached/)).toBeInTheDocument();
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toContainEqual(expect.stringContaining("Home"));
+    expect(screen.getByText("Open Jobs Center · pause or resume jobs")).toBeInTheDocument();
+  });
+
+  it("Tab switches to the Assistant", async () => {
+    mockLists();
+    const input = await openPalette();
+    await screen.findByText("Chinazom Godwin");
+    fireEvent.keyDown(input, { key: "Tab" });
+    expect(screen.getByText("Assistant")).toBeInTheDocument();
   });
 });
 
@@ -91,11 +130,12 @@ describe("keyboard map (A.9)", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("the palette's Keyboard shortcuts command opens the map", () => {
+  it("the palette's Show keyboard shortcuts command opens the map", () => {
+    api.mockImplementation(() => Promise.resolve([]));
     render(<><CommandPalette /><KeyboardMap /></>);
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     fireEvent.change(screen.getByRole("combobox", { name: "Search" }), { target: { value: "keyboard" } });
-    fireEvent.click(screen.getByText("Keyboard shortcuts"));
+    fireEvent.click(screen.getByText("Show keyboard shortcuts"));
     expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });

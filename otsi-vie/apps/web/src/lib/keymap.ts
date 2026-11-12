@@ -1,7 +1,7 @@
 /**
  * v3 Phase A.9 (S14, ADR-071): the keyboard map, one table for the whole app. The "?" map (components/shell/KeyboardMap.tsx) lists it,
  * the current page first, and the tests check it; each key is handled where its tool lives:
- *   Everywhere   Ctrl/Cmd + K (CommandPalette), ? (KeyboardMap)
+ *   Everywhere   Ctrl/Cmd + K (CommandPalette), Ctrl/Cmd + J (Jobs Center), ? (KeyboardMap)
  *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing; StudioHeader: undo / redo; DualTimeline: snapshot / apply Cut B
  *   Analysis     CentreVideo: playback, J K L, frames; WhoIsThis: N, the next possible moment of the reel's player
  *   Reel Builder ReelStage: undo / redo
@@ -23,6 +23,7 @@ const JKL: Shortcut[] = [
 
 export const EVERYWHERE_KEYS: Shortcut[] = [
   { keys: "Ctrl + K", does: "Search matches, players, reels and projects, or run a command", group: "App" },
+  { keys: "Ctrl + J", does: "Open the Jobs Center", group: "App" },
   { keys: "?", does: "Show the keyboard map", group: "App" },
   { keys: "Escape", does: "Close a dialog or menu", group: "App" },
 ];

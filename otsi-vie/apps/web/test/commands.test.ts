@@ -7,10 +7,10 @@ import { EMPTY_CTX } from "../src/lib/workContext";
 describe("command palette", () => {
   it("offers only what the role may do", () => {
     const ids = (role: string | null) => matchCommands(commands(EMPTY_CTX), role, "").map((c) => c.id);
-    expect(ids("OWNER")).toEqual(["upload", "players", "matches", "admin", "wallet", "billing", "team", "keys", "security"]);
-    expect(ids("EDITOR")).toEqual(["upload", "players", "matches", "wallet", "keys", "security"]);
-    expect(ids("VIEWER")).toEqual(["players", "matches", "wallet", "keys", "security"]);
-    expect(ids(null)).toEqual(["players", "matches", "wallet", "keys", "security"]);
+    expect(ids("OWNER")).toEqual(["upload", "players", "matches", "admin", "wallet", "billing", "team", "keys", "jobs", "security"]);
+    expect(ids("EDITOR")).toEqual(["upload", "players", "matches", "wallet", "keys", "jobs", "security"]);
+    expect(ids("VIEWER")).toEqual(["players", "matches", "wallet", "keys", "jobs", "security"]);
+    expect(ids(null)).toEqual(["players", "matches", "wallet", "keys", "jobs", "security"]);
   });
 
   it("puts the open reel and match first", () => {

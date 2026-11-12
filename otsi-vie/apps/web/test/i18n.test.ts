@@ -489,6 +489,8 @@ describe("dictionaries (ADR-139)", () => {
       "body.shell.groupReel",
       "body.shell.groupPages",
       "body.shell.groupMoment",
+      "body.shell.cpActions",              // French "Actions"
+      "body.shell.cpFooterAssistant",      // French "Assistant"
       "body.shell.ctxNonePlayer",
       "body.shell.ctxProvisional",
       "body.shell.ctxOtsiId",
@@ -574,7 +576,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("admin").length).toBe(274);
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
-    expect(bodyKeys("shell").length).toBe(244);
+    expect(bodyKeys("shell").length).toBe(256);
     expect(bodyKeys("auth").length).toBe(88);
   });
 

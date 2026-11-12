@@ -6,6 +6,8 @@ import type { Ctx } from "./workContext";
 
 /** not a page: the palette opens the keyboard map (A.9, ADR-071) */
 export const KEYMAP_HREF = "#keyboard-map";
+/** not a page: the palette opens the Jobs Center (Page 8, SOT) */
+export const JOBS_HREF = "#jobs-center";
 
 export interface Command { id: string; label: string; hint: string; href: string; roles: readonly string[] | null; words: string }
 const ALL = null;
@@ -22,6 +24,7 @@ export function commands(ctx: Ctx): Command[] {
     { id: "billing", label: "Billing", hint: "Pack requests, top-ups, refunds, ledger", href: "/settings/admin/billing", roles: MANAGERS, words: "billing invoices bank transfer top up refund adjust packs" },
     { id: "team", label: "Team and roles", hint: "Invite people, change roles", href: "/settings/team", roles: MANAGERS, words: "invite members users access" },
     { id: "keys", label: "Keyboard shortcuts", hint: "Every key, this page's first (also: ?)", href: KEYMAP_HREF, roles: ALL, words: "keys keyboard hotkeys map" },
+    { id: "jobs", label: "Open Jobs Center", hint: "pause or resume jobs", href: JOBS_HREF, roles: ALL, words: "jobs queue pause resume workers center" },
     { id: "security", label: "Security: two-step sign-in", hint: "Your account's sign-in protection", href: "/settings/security", roles: ALL, words: "password mfa 2fa account" },
   ];
   if (ctx.video) list.unshift({ id: "continue", label: "Continue on the open match", hint: "Analysis of the match in the context bar", href: `/analysis?video=${ctx.video}`, roles: ALL, words: "resume back analysis" });

@@ -133,5 +133,16 @@ dialog[data-player-full]::backdrop { background: #000; }
 .seg.f { display: flex; }
 .seg.f button { flex: 1; }
 
+/* Eyebrow section heading (SOT) */
+.eb { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--muted)); }
+
+/* List row (SOT): icon + label + trailing detail, 36px tall */
+.lr { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
+.lr:last-child { border-bottom: 0; }
+.lr.sel { background: rgba(43, 212, 176, .07); box-shadow: inset 2px 0 0 rgb(var(--primary)); }
+
+/* Modal dialog (SOT): the command palette's shell */
+.modal { background: rgb(var(--panel)); border: 1px solid rgb(var(--line2)); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, .6); width: 100%; overflow: hidden; display: flex; flex-direction: column; max-height: 100%; }
+
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
 :root[data-interface="guided"] [data-advanced] { display: none !important; }
