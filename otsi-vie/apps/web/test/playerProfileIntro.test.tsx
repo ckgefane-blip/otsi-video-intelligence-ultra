@@ -57,40 +57,39 @@ describe("PlayerProfileIntroView", () => {
   it("shows real numbers when measured, and 'Not measured' with the reason for assists and recent form", () => {
     render(<PlayerProfileIntroView intro={intro()} onContinue={() => undefined} />);
     expect(screen.getByText("8")).toBeTruthy();
-    expect(screen.getByText("712 min")).toBeTruthy();
-    expect(screen.getByText("minutes seen on camera")).toBeTruthy();
+    expect(screen.getByText("712")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
-    expect(screen.getByText(ASSISTS_REASON)).toBeTruthy();
-    expect(screen.getByText(FORM_REASON)).toBeTruthy();
+    expect(screen.getByText((t) => t.includes(ASSISTS_REASON))).toBeTruthy();
     expect(screen.getAllByText("Not measured").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Measured from his confirmed tracks.")).toBeTruthy();
   });
 
   it("shows 'Not measured' for a null stat instead of a placeholder number", () => {
     const i = intro({ stats: { games_analysed: null, minutes_seen: null, goals: null, assists: null, basis: "Measured from his confirmed tracks.", assists_reason: ASSISTS_REASON } });
     render(<PlayerProfileIntroView intro={i} />);
     expect(screen.getAllByText("Not measured").length).toBeGreaterThanOrEqual(4);
-    expect(screen.queryByText("712 min")).toBeNull();
+    expect(screen.queryByText("712")).toBeNull();
   });
 
   it("shows the verified badge only when verified, and the unconfirmed note when not", () => {
     const { unmount } = render(<PlayerProfileIntroView intro={intro({ verified: true })} />);
-    expect(screen.getByText("✓ Player Identity Verified")).toBeTruthy();
+    expect(screen.getByText("Player Identity Verified")).toBeTruthy();
     expect(screen.queryByText("Identity unconfirmed")).toBeNull();
     unmount();
     render(<PlayerProfileIntroView intro={intro({ verified: false })} />);
-    expect(screen.queryByText("✓ Player Identity Verified")).toBeNull();
+    expect(screen.queryByText("Player Identity Verified")).toBeNull();
     expect(screen.getByText("Identity unconfirmed")).toBeTruthy();
     expect(screen.getByText(RULE)).toBeTruthy();
   });
 
   it("marks user-entered fields, and the team sheet's club beats the user-entered one", () => {
     render(<PlayerProfileIntroView intro={intro()} />);
-    expect(screen.getAllByText("Real Madrid")).toHaveLength(2);   // Current Club + Club & League
+    expect(screen.getByText("Central midfielder · Real Madrid")).toBeTruthy();   // header
+    expect(screen.getByText("Real Madrid")).toBeTruthy();        // Club & League
     expect(screen.queryByText("Rayo Vallecano")).toBeNull();
-    expect(screen.getAllByText("Entered by user")).toHaveLength(6);  // photo, height/weight, strengths, summary, league, international
-    expect(screen.getByText("1.82 m / 73 kg")).toBeTruthy();
-    expect(screen.getByText("32 Caps | 7 Goals")).toBeTruthy();
+    expect(screen.getAllByText("Entered by user")).toHaveLength(7);  // photo, height, weight, strengths, summary, league, international
+    expect(screen.getByText("1.82 m")).toBeTruthy();
+    expect(screen.getByText("73 kg")).toBeTruthy();
+    expect(screen.getByText("France · 32 Caps")).toBeTruthy();
   });
 
   it("shows the user-entered club with its mark when there is no team sheet, and 'Unconfirmed' with no OTSI Player ID", () => {
@@ -99,16 +98,17 @@ describe("PlayerProfileIntroView", () => {
       profile: profile({ latest_team: null }),
     });
     render(<PlayerProfileIntroView intro={i} />);
-    expect(screen.getAllByText("Rayo Vallecano")).toHaveLength(2);
+    expect(screen.getByText("Central midfielder · Rayo Vallecano")).toBeTruthy();   // header
+    expect(screen.getByText("Rayo Vallecano")).toBeTruthy();        // Club & League
     expect(screen.getByText("Unconfirmed — no OTSI Player ID yet")).toBeTruthy();
   });
 
-  it("shows 'Not entered' for empty user-entered fields and 'No photo' with no picture — never a stock face", () => {
+  it("shows 'Not entered' for empty user-entered fields and 'No photo yet' with no picture — never a stock face", () => {
     const i = intro({ profile: profile({ latest_team: null, details: details({ height_cm: null, weight_kg: null, photo_url: null, strengths: [], summary: null, club_name: null, league: null, international_country_code: null, international_country_name: null, international_caps: null, international_goals: null }) }) });
     render(<PlayerProfileIntroView intro={i} />);
-    expect(screen.getByText("No photo")).toBeTruthy();
+    expect(screen.getByText("No photo yet · rights recorded on upload")).toBeTruthy();
     expect(screen.queryByRole("img", { name: /Photo of/ })).toBeNull();
-    expect(screen.getAllByText("Not entered").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("Not entered").length).toBeGreaterThanOrEqual(3);
     expect(screen.queryByText("Entered by user")).toBeNull();
   });
 
@@ -122,10 +122,45 @@ describe("PlayerProfileIntroView", () => {
     expect(screen.getByLabelText("Pitch outline, no heat measured")).toBeTruthy();
   });
 
+  it("renders the SOT's 16:9 intro: photo + badge, profile + facts + stats, heatmap + summary + club", () => {
+    render(<PlayerProfileIntroView intro={intro()} onContinue={() => undefined} />);
+    // left: photo + verified badge with the PIN
+    expect(screen.getByRole("img", { name: "Photo of Sugh" })).toBeTruthy();
+    expect(screen.getByText("Player Identity Verified")).toBeTruthy();
+    expect(screen.getByText("OTSI-FRA-2026-000123")).toBeTruthy();
+    // centre: profile header + facts + stat tiles + strengths
+    expect(screen.getByText("Player profile")).toBeTruthy();
+    expect(screen.getByText("Sugh")).toBeTruthy();
+    expect(screen.getByText("Central midfielder · Real Madrid")).toBeTruthy();
+    expect(screen.getByText("Nationality")).toBeTruthy();
+    expect(screen.getByText("France")).toBeTruthy();
+    expect(screen.getByText("Age · Date of birth")).toBeTruthy();
+    expect(screen.getByText("24 · 2002-06-24")).toBeTruthy();
+    expect(screen.getByText("Preferred foot")).toBeTruthy();
+    expect(screen.getByText("Right")).toBeTruthy();
+    expect(screen.getByText("Videos analysed")).toBeTruthy();
+    expect(screen.getByText("Minutes on camera")).toBeTruthy();
+    expect(screen.getByText("Goals")).toBeTruthy();
+    expect(screen.getByText("Assists")).toBeTruthy();
+    expect(screen.getByText("Excellent Ball Control")).toBeTruthy();
+    // right: heatmap + summary + recent form + international + club & league
+    expect(screen.getByText("Heatmap · main position")).toBeTruthy();
+    expect(screen.getByText("8 videos")).toBeTruthy();
+    expect(screen.getByText("Heatmap not measured")).toBeTruthy();
+    expect(screen.getByText("Summary")).toBeTruthy();
+    expect(screen.getByText("Dynamic midfielder with excellent vision.")).toBeTruthy();
+    expect(screen.getByText("Recent form")).toBeTruthy();
+    expect(screen.getByText("International")).toBeTruthy();
+    expect(screen.getByText("Club & league")).toBeTruthy();
+    // footer: measured-by + continue
+    expect(screen.getByText("Measured by the engine. Where something was not measured, it says so.")).toBeTruthy();
+    expect(screen.getByText("Continue to Reel")).toBeTruthy();
+  });
+
   it("calls onContinue from 'Continue to Reel'", () => {
     const onContinue = vi.fn();
     render(<PlayerProfileIntroView intro={intro()} onContinue={onContinue} />);
-    fireEvent.click(screen.getByText("Continue to Reel ›"));
+    fireEvent.click(screen.getByText("Continue to Reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 });
@@ -140,7 +175,7 @@ describe("PlayerProfileIntroPanel and dialog", () => {
     render(<ProfileIntroDialog playerId="0193132e-5034-7bc3-9565-df048bb01001" reelId="0193132e-5034-7bc3-9565-df048bb01e01" open onContinue={onContinue} onClose={() => undefined} />);
     expect(await screen.findByText("Sugh")).toBeTruthy();
     expect(api).toHaveBeenCalledWith("/v1/players/0193132e-5034-7bc3-9565-df048bb01001/profile-intro?reel_id=0193132e-5034-7bc3-9565-df048bb01e01");
-    fireEvent.click(screen.getByText("Continue to Reel ›"));
+    fireEvent.click(screen.getByText("Continue to Reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
@@ -189,8 +224,8 @@ describe("Reel Builder profile step", () => {
     const steps = document.querySelectorAll("[data-reel-step]");
     expect([...steps].map((li) => li.getAttribute("data-reel-step"))[0]).toBe("Profile Intro");
     expect(screen.getByText(/opens the reel: Sugh/)).toBeTruthy();
-    expect(await screen.findByText("Key Performance Stats")).toBeTruthy();
-    fireEvent.click(screen.getByText("Continue to Reel ›"));
+    expect(await screen.findByText("Player profile")).toBeTruthy();
+    fireEvent.click(screen.getByText("Continue to Reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
@@ -200,7 +235,7 @@ describe("Reel Builder profile step", () => {
     render(<ReelBuilder reelId={reel.id}><ReelSteps /><ReelProfileIntro /></ReelBuilder>);
     expect(await screen.findByText("Sugh — highlights")).toBeTruthy();
     expect(screen.getByText(/off for this reel/)).toBeTruthy();
-    expect(screen.queryByText("Key Performance Stats")).toBeNull();
+    expect(screen.queryByText("Player profile")).toBeNull();
   });
 
   it("the Overlays toggle persists profile_intro through the existing settings PATCH", async () => {

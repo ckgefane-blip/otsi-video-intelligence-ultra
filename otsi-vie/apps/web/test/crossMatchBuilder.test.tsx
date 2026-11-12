@@ -224,7 +224,7 @@ describe("Cross-match Profile Intro", () => {
     await waitFor(() => expect(screen.getByRole("dialog", { name: "Player Profile Intro" })).toBeTruthy());
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/players/${PLAYER_ID}/profile-intro?reel_id=${CROSS_ID}`));
     const dialog = screen.getByRole("dialog", { name: "Player Profile Intro" });
-    await waitFor(() => expect(within(dialog).getByText("✓ Player Identity Verified")).toBeTruthy());
-    expect(within(dialog).getByText("Continue to Reel ›")).toBeTruthy();
+    await waitFor(() => expect(within(dialog).getByText("Player Identity Verified")).toBeTruthy());
+    expect(within(dialog).getByText("Continue to Reel")).toBeTruthy();
   });
 });

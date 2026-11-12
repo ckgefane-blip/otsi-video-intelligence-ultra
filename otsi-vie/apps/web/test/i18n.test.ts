@@ -463,6 +463,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.library.lbTracking",          // German "Tracking" is the same word
       "body.upload.mdRightsHolderPh",     // German "Name" is the same word
       "body.upload.mdProfileStandard",    // German "Standard" is the same word
+      "body.reels.piInternational",       // French "International" is the same word
       "body.library.lbTag",              // German "Tag" is the same word
       "body.library.lbDetails",          // German "Details" is the same word
       "body.library.lbCollections",      // French "Collections" is the same word
@@ -591,7 +592,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     expect(bodyKeys("home").length).toBe(125);
     expect(bodyKeys("analysis").length).toBe(243);
-    expect(bodyKeys("reels").length).toBe(212);
+    expect(bodyKeys("reels").length).toBe(237);
     expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(338);
     expect(bodyKeys("library").length).toBe(690);
