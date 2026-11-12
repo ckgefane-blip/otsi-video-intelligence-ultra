@@ -13,6 +13,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { api } from "@/lib/api";
 import { ago, agoTemplates } from "@/lib/jobs";
 import { useLocale } from "@/lib/i18n";
+import { kindVisible, useNotificationPrefs } from "@/lib/notificationPrefs";
 
 type Styles = Record<string, string>;
 const POLL_MS = 60_000;
@@ -25,10 +26,14 @@ export const bellBadge = (n: number) => (n <= 0 ? null : n > 9 ? "9+" : String(n
 export function NotificationBell({ styles }: { styles: Styles }) {
   const { t } = useLocale();
   const { status, organization } = useAuth();
+  const { prefs } = useNotificationPrefs();
   const org = organization?.organization_id ?? null;
   const [list, setList] = useState<Notifications | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
+  /** opening the bell marks everything read on the server, so the number goes even though the rows keep their
+   *  "new" mark while the panel is open; cleared when the panel closes and the list is read again */
+  const [readAll, setReadAll] = useState(false);
 
   const load = useCallback(async () => {
     if (!org) return;
@@ -43,20 +48,24 @@ export function NotificationBell({ styles }: { styles: Styles }) {
 
   const openBell = (o: boolean) => {
     setOpen(o);
-    if (!o) { void load(); return; }                     // closing: the unread marks go (they were read)
+    if (!o) { setReadAll(false); void load(); return; }  // closing: the unread marks go (they were read)
     void load();
     // opening reads everything so far; the rows keep their "new" mark while the panel is open
     void api<{ seen_at: string }>("/v1/notifications/read", { method: "POST", json: {} })
-      .then(() => setList((l) => (l ? { ...l, unread: 0 } : l)), () => { /* the number stays; the next open tries again */ });
+      .then(() => { setList((l) => (l ? { ...l, unread: 0 } : l)); setReadAll(true); }, () => { /* the number stays; the next open tries again */ });
   };
 
   if (status !== "signed-in" || !org) return null;
-  const b = bellBadge(list?.unread ?? 0);
+  // the Preferences switches filter the feed: only the kinds the person wants to see, and the badge counts
+  // only those (the server's unread count covers kinds that may be hidden)
+  const items = (list?.items ?? []).filter((n) => kindVisible(prefs, n.kind));
+  const unread = readAll ? 0 : items.filter((n) => n.unread).length;
+  const b = bellBadge(unread);
   return (
     <Dialog.Root open={open} onOpenChange={openBell}>
       <Dialog.Trigger asChild>
         <button type="button" className={`${styles.abs} ${styles.bell}`} data-notification-bell
-          aria-label={list ? t.body.shell.notifAriaNew.replace("{a}", String(list.unread)) : failed ? t.body.shell.notifAriaFailed : t.body.shell.notifAriaLoading} title={list ? t.body.shell.notifTitleAttr.replace("{a}", String(list.unread)).replace("{b}", String(list.window_days)) : t.body.shell.notifTitleFallback}>
+          aria-label={list ? t.body.shell.notifAriaNew.replace("{a}", String(unread)) : failed ? t.body.shell.notifAriaFailed : t.body.shell.notifAriaLoading} title={list ? t.body.shell.notifTitleAttr.replace("{a}", String(unread)).replace("{b}", String(list.window_days)) : t.body.shell.notifTitleFallback}>
           <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9" /><path d="M10 20a2 2 0 0 0 4 0" />
           </svg>
@@ -73,8 +82,8 @@ export function NotificationBell({ styles }: { styles: Styles }) {
           </div>
           <div className="mt-2 flex-1 overflow-y-auto pr-1">
             {failed && !list && <p role="alert" className="py-6 text-center text-sm text-danger">{t.body.shell.notifFailed}</p>}
-            {list && list.items.length === 0 && <p className="py-6 text-center text-sm text-muted">{t.body.shell.notifEmpty.replace("{a}", String(list.window_days))}</p>}
-            {list?.items.map((n) => <Row key={n.id} n={n} close={() => openBell(false)} />)}
+            {list && items.length === 0 && <p className="py-6 text-center text-sm text-muted">{t.body.shell.notifEmpty.replace("{a}", String(list.window_days))}</p>}
+            {items.map((n) => <Row key={n.id} n={n} close={() => openBell(false)} />)}
           </div>
           <p className="mt-2 text-[11px] text-muted">{t.body.shell.notifFooter}</p>
         </Dialog.Content>

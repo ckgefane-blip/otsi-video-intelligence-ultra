@@ -8,6 +8,7 @@ import { AppTopBar } from "@/components/shell/AppTopBar";
 import { StatusBar } from "@/components/shell/StatusBar";
 import { LocaleProvider } from "@/lib/i18n";
 import { InterfaceModeProvider } from "@/lib/interfaceMode";
+import { InterfaceScaleProvider } from "@/lib/interfaceScale";
 import { UiModeProvider } from "@/lib/uiMode";
 
 /** Every app page, Desktop UI shell (owner, 2026-11-11): the collapsible left rail, then a column of the top bar (work context, search,
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <LocaleProvider>
       <InterfaceModeProvider>
+        <InterfaceScaleProvider>
         <UiModeProvider>
           <div className="vie-shell">
             <AppRail />
@@ -32,6 +34,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </UiModeProvider>
+        </InterfaceScaleProvider>
       </InterfaceModeProvider>
     </LocaleProvider>
   );

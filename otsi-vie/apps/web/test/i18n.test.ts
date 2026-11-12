@@ -474,6 +474,20 @@ describe("dictionaries (ADR-139)", () => {
       "body.players.plTracks",           // German "Tracks" is the same word
       "body.processing.pjActions",       // French "Actions" is the same word
       "body.reels.rbRule",              // the versioned rule name, the same in every language
+      "body.settings.stSecWindowsHello", // the Windows Hello product name, the same in every language
+      "body.settings.stPrefNotifications", // French "Notifications" is the same word
+      "body.settings.stPrefLicenceStatus", // German "Status" is the same word
+      "body.settings.stPrefLicenceVersion", // German/French "Version" is the same word
+      "body.settings.stTeamTitle",       // German "Team" is the same word
+      "body.settings.stSecPasskeys",     // German "Passkeys" is the same word
+      "body.wallet.wlCurrencyNaira",    // the Naira name, the same in Spanish/German/French
+      "body.wallet.wlCurrencyDollar",   // the Dollar name, the same in German/French
+      "body.wallet.wlAnalysisCost",     // Spanish keeps "1 token / min"
+      "body.wallet.wlRenderCost",       // Spanish keeps "10 tokens"
+      "body.wallet.wlPlan",             // Spanish "Plan" is the same word
+      "body.wallet.wlPlanPro",          // Spanish/German "Pro · 24 GB" is the same
+      "body.wallet.wlPlanEnterprise",   // Spanish/German "Enterprise · 64 GB" is the same
+      "body.wallet.wlLedgerTitle",      // German "Ledger" is the same word
       "body.reels.rbHeading",          // the page name, the same in every language
       "body.reels.rbClip",             // French/Spanish/German "Clip" is the same word
       "body.reels.rbBudget",           // French/German "Budget" is the same word
@@ -596,7 +610,11 @@ describe("dictionaries (ADR-139)", () => {
       // Page 20 Reel Builder (2026-11-12) keeps it at 285: "Best Moment
       // Rule v2.1", "Clip" and "Budget" are the same in French. French is
       // the highest at 283.
-      expect(same.length, locale).toBeLessThan(285);
+      // Pages 21-24 Settings (2026-11-12) raise it from 285 to 292: 104 new
+      // settings/wallet keys, five of them the same in French — "Notifications",
+      // "Windows Hello", "₦ Naira", "$ Dollar" and "Version". French is the
+      // highest at 288.
+      expect(same.length, locale).toBeLessThan(292);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -630,8 +648,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // the Home extension (KPI cards, capability tiles, hero metrics, hero
     // player card, review inbox, active jobs).
     expect(bodyKeys("admin").length).toBe(274);
-    expect(bodyKeys("settings").length).toBe(74);
-    expect(bodyKeys("wallet").length).toBe(90);
+    expect(bodyKeys("settings").length).toBe(139);
+    expect(bodyKeys("wallet").length).toBe(129);
     expect(bodyKeys("shell").length).toBe(282);
     expect(bodyKeys("auth").length).toBe(100);
   });

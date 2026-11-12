@@ -1,14 +1,15 @@
 "use client";
 /**
- * Biometric sign-in (ADR-143): one switch, like a bank app. On = sign in with Windows Hello
- * (fingerprint, face or PIN) instead of typing your password. Off = it doesn't.
- * Turning it on enrols a passkey on this device (the browser's create() call); turning it
- * off removes every passkey on this account. The password still works everywhere — a passkey
- * is an extra way in, not a replacement. The state shown is GET /v1/auth/webauthn/credentials.
+ * Settings > Security — passkeys (SOT, Security.dc.html): biometric sign-in (ADR-143), one switch, like a bank
+ * app. On = sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Off = it
+ * doesn't. Turning it on enrols a passkey on this device (the browser's create() call); turning it off removes
+ * every passkey on this account. The password still works everywhere — a passkey is an extra way in, not a
+ * replacement. The state shown is GET /v1/auth/webauthn/credentials. The switch IS the SOT's "Register this
+ * device" action: turning it on registers the device.
  */
 import type { WebAuthnCredential } from "@otsi-vie/contracts";
 import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint, Loader2 } from "lucide-react";
+import { Fingerprint, KeyRound, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -23,6 +24,7 @@ function fmtDate(iso: string | null): string | null {
 
 export function PasskeySettings() {
   const { t } = useLocale();
+  const s = t.body.settings;
   const w = t.webauthn;
   const [list, setList] = useState<WebAuthnCredential[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -73,9 +75,9 @@ export function PasskeySettings() {
   }
 
   return (
-    <section className="vie-panel min-w-0" data-passkey-settings>
-      <div className="vie-ph"><h1 className="t-section">{w.biometricTitle}</h1></div>
-      <div className="space-y-4 p-4">
+    <section className="panel flex flex-col" data-passkey-settings aria-labelledby="pk">
+      <div className="ph"><h2 id="pk" className="h3">{s.stSecPasskeys}</h2><span className="mu sm">{s.stSecWindowsHello}</span></div>
+      <div className="pb flex flex-1 flex-col gap-4">
         <p className="t-body text-muted">{w.biometricHint}</p>
         {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
         {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
@@ -96,6 +98,14 @@ export function PasskeySettings() {
             {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
           </button>
         </div>
+
+        {list && list.length === 0 && (
+          <div className="empty flex-1">
+            <span className="ei"><KeyRound className="i" aria-hidden /></span>
+            <h3>{s.stSecNoPasskeys}</h3>
+            <p>{s.stSecPasskeyHint}</p>
+          </div>
+        )}
 
         {list && list.length > 0 && (
           <ul className="divide-y divide-line rounded-ctl border border-line bg-raised px-4">

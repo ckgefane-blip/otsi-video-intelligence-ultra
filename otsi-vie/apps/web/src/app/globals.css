@@ -202,3 +202,20 @@ dialog[data-player-full]::backdrop { background: #000; }
 
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
 :root[data-interface="guided"] [data-advanced] { display: none !important; }
+
+/* Settings pages (SOT, pages 21-24): panel body, the key/value list, the big metric number, the SOT switch and text inputs. */
+.pb { padding: 14px; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; font-size: 13px; line-height: 20px; align-items: center; margin: 0; }
+.kv dt { color: rgb(var(--muted)); }
+.kv dd { margin: 0; text-align: right; }
+.metric { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: rgb(var(--ink)); }
+.sw { width: 32px; height: 18px; flex: none; border-radius: 999px; background: rgb(var(--line)); border: 1px solid rgb(var(--line2)); position: relative; cursor: pointer; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
+.sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }
+.sw[aria-checked="true"]::after { left: 16px; background: rgb(var(--primary-ink)); }
+.sw:disabled { opacity: .45; cursor: not-allowed; }
+.in { height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--p0)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-family: inherit; width: 100%; min-width: 0; outline: none; }
+.in:focus { border-color: rgb(var(--primary)); }
+.in:disabled { opacity: .55; }
+.in[readonly] { color: rgb(var(--ink2)); }
+select.in { appearance: auto; }

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
-import { SettingsNav } from "@/components/settings/SettingsNav";
 import { TeamSettings } from "@/components/account/TeamSettings";
+import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
-export const metadata: Metadata = { title: "Team and roles" };
+export const metadata: Metadata = { title: "Team" };
 
-/** Account menu > Team and roles: invitations, roles and removal (owners and admins). Not one of the ten numbered pages. */
+/**
+ * Settings > Team (SOT, Team.dc.html): invitations, roles and removal (owners and admins). The Settings side
+ * nav is shared by the Settings and Admin Console pages.
+ */
 export default function Page() {
   return (
-    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4" data-page="settings-team">
-      <SettingsNav current="team" />
+    <div className="flex min-h-full w-full" data-stage="settings-team" data-page="settings-team">
+      <SettingsSideNav current="team" />
       <TeamSettings />
     </div>
   );
