@@ -104,7 +104,7 @@ export function WalletView() {
   ];
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]" data-page="settings-wallet">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-page="settings-wallet">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-0.5"><span className="eb">{t.desktop.navSettings}</span><h1 className="h1">{w.wlTitle}</h1></div>
         <div className="flex items-center gap-2">

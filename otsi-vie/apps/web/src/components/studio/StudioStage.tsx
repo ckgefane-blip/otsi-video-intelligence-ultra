@@ -85,7 +85,7 @@ function Sections({ r }: { r: ReelState | null }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [st]);
   return (
-    <div className="flex min-h-full w-full flex-col" data-stage="studio" data-page="studio">
+    <div className="flex h-full w-full flex-col" data-stage="studio" data-page="studio">
       <div className="flex min-h-0 flex-1">
         <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} binTab={binTab} setBinTab={setBinTab} />
         <main className="flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto bg-canvas p-2.5">

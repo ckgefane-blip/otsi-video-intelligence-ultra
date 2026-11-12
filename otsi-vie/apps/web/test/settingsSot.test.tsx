@@ -128,7 +128,7 @@ describe("Settings — Security (SOT, Page 22)", () => {
     expect(within(twoStep).getByRole("button", { name: "Enable two-step" })).toBeInTheDocument();
     expect(within(twoStep).getByText("Recovery codes")).toBeInTheDocument();
     expect(within(twoStep).getByText("Shown once, after enabling")).toBeInTheDocument();
-    expect(within(twoStep).getAllByText("•••• ••••")).toHaveLength(4);
+    expect(within(twoStep).getAllByText("•••• ••••")).toHaveLength(8);
     const passkeys = screen.getByText("Passkeys").closest("section")!;
     expect(within(passkeys).getByText("Windows Hello")).toBeInTheDocument();
     expect(within(passkeys).getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "false");

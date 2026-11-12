@@ -58,6 +58,7 @@ function Stage() {
   const [q, setQ] = useState(() => sp.get("q") ?? "");
   const [typeFilter, setTypeFilter] = useState<LibraryItemKind | "all">("all");
   const [matchFilter, setMatchFilter] = useState("all");
+  const [accessFilter, setAccessFilter] = useState<"all" | "ORGANIZATION" | "RESTRICTED">("all");
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [team, setTeam] = useState<TeamSide>("all");
   const [range, setRange] = useState<TimeRange>("full");
@@ -66,6 +67,8 @@ function Stage() {
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const say = useCallback((t: string) => { setNote(t); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 3500); }, []);
+  const { t: dict } = useLocale();
+  const d = dict.body.library;
 
   const matches = useMemo(() => (all ?? []).filter((a) => a.kind === "Match").map((a) => a.raw as Match), [all]);
   const folders = useMemo(() => (all ?? []).filter((a) => a.kind === "Folder").map((a) => a.raw as import("@otsi-vie/contracts").LibraryFolder), [all]);
@@ -88,7 +91,7 @@ function Stage() {
         out.push({ key: a.key, kind: "Match", title: matchTitle(m), details: n === undefined ? "—" : `${n} events`, videoId: vid, href: a.href, asset: a, player: null });
       } else if (a.kind === "Reel") {
         const r = a.raw as import("@otsi-vie/contracts").Reel;
-        out.push({ key: a.key, kind: "Reel", title: a.title, details: `${r.clips.length} clips`, videoId: r.video_id, href: a.href, asset: a, player: null });
+        out.push({ key: a.key, kind: "Reel", title: a.title, details: d.lbReelGenerated, videoId: r.video_id, href: a.href, asset: a, player: null });
       } else if (a.kind === "Report") {
         out.push({ key: a.key, kind: "Report", title: a.title, details: a.sub, videoId: a.videoId, href: a.href, asset: a, player: null });
       }
@@ -97,7 +100,7 @@ function Stage() {
       out.push({ key: `player-${p.player_id}`, kind: "Player", title: p.display_name, details: playerSub(p), videoId: null, href: `/reports/players/${p.canonical_otsi_id ?? p.player_id}`, asset: null, player: p });
     }
     return out;
-  }, [all, players, counts]);
+  }, [all, players, counts, d]);
 
   const shown = useMemo(() => items.filter((i) => collection === "all" || i.kind === collection), [items, collection]);
   const sel = items.find((i) => i.key === selected) ?? null;
@@ -121,7 +124,7 @@ function Stage() {
   }, []);
 
   const countsByKind = {
-    all: shown.length, videos: items.filter((i) => i.kind === "Match").length,
+    all: items.length, videos: items.filter((i) => i.kind === "Match").length,
     players: items.filter((i) => i.kind === "Player").length, reels: items.filter((i) => i.kind === "Reel").length,
     reports: items.filter((i) => i.kind === "Report").length,
   };
@@ -131,6 +134,7 @@ function Stage() {
       <LibraryLeft match={selMatch} matches={matches} videoId={videoId} onMatch={onMatch} team={team} setTeam={setTeam} range={range} setRange={setRange} say={say} />
       <LibraryCentre items={shown} all={all ?? []} facts={facts} selected={selected} onSelect={setSelected} videoId={videoId}
         q={q} setQ={setQ} typeFilter={typeFilter} setTypeFilter={setTypeFilter} matchFilter={matchFilter} setMatchFilter={setMatchFilter}
+        accessFilter={accessFilter} setAccessFilter={setAccessFilter}
         matches={matches.map((m) => ({ id: m.id, title: matchTitle(m) }))} folders={folders} checked={checked} setChecked={setChecked} reload={load} say={say} />
       <LibraryRight counts={countsByKind} collection={collection} setCollection={setCollection} folders={folders} onNewFolder={() => setNewFolder(true)}
         players={players} reportCount={countsByKind.reports} selected={sel} setQ={setQ} onNewBin={() => undefined} />

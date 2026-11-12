@@ -131,7 +131,7 @@ export class SharingService {
     const reel = render ? await this.db.one<RowDataPacket>("SELECT id, name, video_id, player_id FROM reel_projects WHERE id = ? AND organization_id = ? AND removed_at IS NULL", [render.reel_id, org]) : undefined;
     const stale = reel ? await this.db.one<RowDataPacket>(
       `SELECT COUNT(*) AS n FROM reel_targets rt LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id
-        WHERE rt.reel_id = ? AND NOT (ci.decision_id <=> rt.identity_decision_id AND ci.state = 'CONFIRMED' AND ci.player_id <=> rt.player_id)`, [reel.id]) : undefined;
+        WHERE rt.reel_id = ? AND NOT ((ci.decision_id = rt.identity_decision_id OR (ci.decision_id IS NULL AND rt.identity_decision_id IS NULL)) AND ci.state = 'CONFIRMED' AND (ci.player_id = rt.player_id OR (ci.player_id IS NULL AND rt.player_id IS NULL)))`, [reel.id]) : undefined;
     const grant = reel ? await this.grantOf(String(reel.video_id), org) : undefined;
     return { render, reel, staleTargets: Number(stale?.n ?? 0), grant };
   }

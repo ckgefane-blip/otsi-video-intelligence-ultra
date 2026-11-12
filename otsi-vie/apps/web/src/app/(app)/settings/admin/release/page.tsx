@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Release Control" };
  */
 export default function AdminReleasePage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-admin-release" data-page="settings-admin-release">
+    <div className="flex h-full w-full" data-stage="settings-admin-release" data-page="settings-admin-release">
       <SettingsSideNav current="release" />
       <ReleaseControl />
     </div>

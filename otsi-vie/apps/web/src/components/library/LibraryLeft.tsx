@@ -47,6 +47,15 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
   const [ev, setEv] = useState<MatchEvents | null | undefined>(undefined);
   useEffect(() => { setEv(undefined); if (videoId) void api<MatchEvents>(`/v1/videos/${videoId}/events`).then(setEv, () => setEv(null)); }, [videoId]);
   const total = ev && ev.state === "READY" ? (ev.passes?.length ?? 0) + (ev.changes?.length ?? 0) + (ev.shots?.length ?? 0) + (ev.pressures?.length ?? 0) + (ev.set_pieces?.length ?? 0) + (ev.goals?.length ?? 0) : null;
+  // confirmed players in this video: distinct non-null player ids across the events (a null id is an unconfirmed track)
+  const confirmedCount = ev && ev.state === "READY" ? new Set([
+    ...(ev.passes ?? []).flatMap((p) => [p.from_player_id, p.to_player_id]),
+    ...(ev.changes ?? []).map((c) => c.won_player_id),
+    ...(ev.shots ?? []).map((s) => s.player_id),
+    ...(ev.pressures ?? []).map((p) => p.presser_player_id),
+    ...(ev.set_pieces ?? []).map((s) => s.player_id),
+    ...(ev.goals ?? []).map((g) => g.player_id),
+  ].filter((id): id is string => !!id)).size : null;
   const confirmed = periods?.state === "CONFIRMED";
   const teamRows: [TeamSide, string][] = [["all", d.teamAllPlayers], ["home", match?.home?.name ?? d.homeTeam], ["away", match?.away?.name ?? d.awayTeam]];
   const rangeRows: [TimeRange | "custom", string][] = [["full", d.rangeFull], ["h1", d.rangeH1], ["h2", d.rangeH2], ["custom", d.rangeCustom]];
@@ -85,7 +94,7 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
           <dl className="kv" style={{ gap: "2px 12px", gridTemplateColumns: "auto minmax(0, 1fr)" }}>
             <dt>{d.homeTeam}</dt><dd>{match.home?.name ?? "—"}</dd>
             <dt>{d.awayTeam}</dt><dd>{match.away?.name ?? "—"}</dd>
-            <dt>{d.lbTracking}</dt><dd>{total === null ? "—" : `${total} events`}</dd>
+            <dt>{d.lbTracking}</dt><dd>{total === null || confirmedCount === null ? "—" : `${confirmedCount === 1 ? d.lbConfirmedPlayerOne : d.lbConfirmedPlayerMany.replace("{a}", String(confirmedCount))} · ${d.lbEventsMany.replace("{a}", String(total))}`}</dd>
           </dl>
         )}
         {confirmed && <span className="chip ev ev-c" style={{ alignSelf: "flex-start", marginTop: 2 }}>{d.lbMatchTimeConfirmed}</span>}

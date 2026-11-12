@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Security & Compliance" };
  */
 export default function AdminCompliancePage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-admin-compliance" data-page="settings-admin-compliance">
+    <div className="flex h-full w-full" data-stage="settings-admin-compliance" data-page="settings-admin-compliance">
       <SettingsSideNav current="compliance" />
       <Compliance />
     </div>

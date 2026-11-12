@@ -197,6 +197,7 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/85" />
         <Dialog.Content data-palette aria-label={s.cpTitle}
           className="modal fixed left-1/2 top-24 z-50 w-[min(720px,calc(100vw-32px))] -translate-x-1/2"
+          style={{ width: "min(720px, calc(100vw - 32px))" }}
           onKeyDown={(e) => {
             if (assistant || e.target instanceof HTMLButtonElement) return;
             if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, rows.length - 1)); }

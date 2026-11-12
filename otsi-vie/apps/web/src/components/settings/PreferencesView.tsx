@@ -78,7 +78,7 @@ export function PreferencesView() {
   ];
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]" data-page="settings-preferences">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-page="settings-preferences">
       <div className="flex flex-col gap-1.5"><span className="eb">{t.desktop.navSettings}</span><h1 className="h1">{t.body.admin.navPreferences}</h1></div>
       {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}

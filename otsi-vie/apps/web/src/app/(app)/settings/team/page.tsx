@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Team" };
  */
 export default function Page() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-team" data-page="settings-team">
+    <div className="flex h-full w-full" data-stage="settings-team" data-page="settings-team">
       <SettingsSideNav current="team" />
       <TeamSettings />
     </div>

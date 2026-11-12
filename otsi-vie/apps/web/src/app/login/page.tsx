@@ -142,7 +142,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-row flex-wrap" data-stage="sign-in">
-      <div className="relative flex min-h-[360px] flex-1 flex-col justify-between gap-10 overflow-hidden border-r border-line bg-p0 px-12 py-10 basis-[520px]">
+      <div className="relative flex min-h-[360px] grow-0 flex-col justify-between gap-10 overflow-hidden border-r border-line bg-p0 px-12 py-10 basis-[520px]">
         <div className="relative flex flex-col gap-10">
           <div className="flex items-center gap-4">
             <Brand />

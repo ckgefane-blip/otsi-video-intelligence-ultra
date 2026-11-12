@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Platform Health" };
  */
 export default function AdminPage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-admin" data-page="settings-admin">
+    <div className="flex h-full w-full" data-stage="settings-admin" data-page="settings-admin">
       <SettingsSideNav current="admin" />
       <PlatformHealth />
     </div>

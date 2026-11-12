@@ -1,0 +1,7 @@
+# Library audit-fix i18n keys (SOT audit 2026-11-13, Page 14).
+# 4 keys, inserted after libraryLoadFailedMain (the last key of body.library in all 7 blocks).
+# Format: key | en | ru | es | de | fr | pt
+lbReelGenerated | 1 reel generated | 1 ролик создан | 1 reel generado | 1 Reel erstellt | 1 reel généré | 1 reel gerado
+lbConfirmedPlayerOne | 1 confirmed player | 1 подтверждённый игрок | 1 jugador confirmado | 1 bestätigter Spieler | 1 joueur confirmé | 1 jogador confirmado
+lbConfirmedPlayerMany | {a} confirmed players | {a} подтверждённых игроков | {a} jugadores confirmados | {a} bestätigte Spieler | {a} joueurs confirmés | {a} jogadores confirmados
+lbEventsMany | {a} events | {a} событий | {a} eventos | {a} Ereignisse | {a} événements | {a} eventos

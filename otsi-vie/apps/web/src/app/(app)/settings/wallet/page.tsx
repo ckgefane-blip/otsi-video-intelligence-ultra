@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Token Wallet" };
  */
 export default function WalletPage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-wallet" data-page="settings-wallet">
+    <div className="flex h-full w-full" data-stage="settings-wallet" data-page="settings-wallet">
       <SettingsSideNav current="wallet" />
       <WalletView />
     </div>

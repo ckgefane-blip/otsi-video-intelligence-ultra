@@ -47,12 +47,13 @@ export interface LibraryItem {
   videoId: string | null; href: string | null; asset: Asset | null; player: PlayerListEntry | null;
 }
 
-export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, q, setQ, typeFilter, setTypeFilter, matchFilter, setMatchFilter, matches, folders, checked, setChecked, reload, say }: {
+export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, q, setQ, typeFilter, setTypeFilter, matchFilter, setMatchFilter, accessFilter, setAccessFilter, matches, folders, checked, setChecked, reload, say }: {
   items: LibraryItem[]; all: Asset[]; facts: Map<string, import("@otsi-vie/contracts").VideoFacts> | null;
   selected: string | null; onSelect: (k: string | null) => void;
   videoId: string | null; q: string; setQ: (q: string) => void;
   typeFilter: LibraryItemKind | "all"; setTypeFilter: (t: LibraryItemKind | "all") => void;
-  matchFilter: string; setMatchFilter: (id: string) => void; matches: { id: string; title: string }[];
+  matchFilter: string; setMatchFilter: (id: string) => void;
+  accessFilter: "all" | "ORGANIZATION" | "RESTRICTED"; setAccessFilter: (a: "all" | "ORGANIZATION" | "RESTRICTED") => void; matches: { id: string; title: string }[];
   folders: import("@otsi-vie/contracts").LibraryFolder[];
   checked: Set<string>; setChecked: (s: Set<string>) => void; reload: () => Promise<void>; say: (t: string) => void;
 }) {
@@ -71,7 +72,8 @@ export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, 
   }, [videoId]);
   const shown = useMemo(() => items.filter((i) =>
     (typeFilter === "all" || i.kind === typeFilter) && (matchFilter === "all" || (i.asset?.matchId ?? "") === matchFilter || i.videoId === matchFilter)
-    && (!q.trim() || `${i.title} ${i.details}`.toLowerCase().includes(q.trim().toLowerCase()))), [items, typeFilter, matchFilter, q]);
+    && (accessFilter === "all" || (i.asset?.project?.access ?? "ORGANIZATION") === accessFilter)
+    && (!q.trim() || `${i.title} ${i.details}`.toLowerCase().includes(q.trim().toLowerCase()))), [items, typeFilter, matchFilter, accessFilter, q]);
   const allOn = shown.length > 0 && shown.every((i) => checked.has(i.key));
   const toggle = (k: string) => { const n = new Set(checked); if (n.has(k)) n.delete(k); else n.add(k); setChecked(n); };
   const kindLabel = (k: LibraryItemKind) => ({ Match: d.kindLabelMatch, Player: d.binGroupPlayers, Reel: d.kindLabelReel, Report: d.kindLabelReport })[k];
@@ -117,6 +119,11 @@ export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, 
         <select aria-label={dict.body.analysis.match} value={matchFilter} onChange={(e) => setMatchFilter(e.target.value)} className="chip" style={{ height: 30, cursor: "pointer" }}>
           <option value="all">{dict.body.analysis.match}</option>
           {matches.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+        </select>
+        <select aria-label={d.lbAccess} value={accessFilter} onChange={(e) => setAccessFilter(e.target.value as "all" | "ORGANIZATION" | "RESTRICTED")} className="chip" style={{ height: 30, cursor: "pointer" }}>
+          <option value="all">{d.lbAccess}</option>
+          <option value="ORGANIZATION">{d.accessEveryone}</option>
+          <option value="RESTRICTED">{d.accessRestricted}</option>
         </select>
         <div className="seg" role="group" aria-label={d.lbViewAria}>
           <button type="button" className={view === "list" ? "on" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}><List className="h-3.5 w-3.5" aria-hidden />{d.lbList}</button>

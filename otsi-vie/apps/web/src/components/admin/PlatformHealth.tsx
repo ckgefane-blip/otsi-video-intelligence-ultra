@@ -129,7 +129,7 @@ export function PlatformHealth() {
 
   if (!isAuthorized) {
     return (
-      <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]">
         <div className="flex w-full max-w-4xl items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
           <ShieldAlert className="h-6 w-6 shrink-0" />
           <div>
@@ -194,7 +194,7 @@ export function PlatformHealth() {
   ];
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]" data-testid="admin-platform-health">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-testid="admin-platform-health">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="t-th">{t.body.shell.adminConsole}</span>

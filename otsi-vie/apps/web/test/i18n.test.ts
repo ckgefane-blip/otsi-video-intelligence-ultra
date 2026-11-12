@@ -639,7 +639,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("reels").length).toBe(276);
     expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(386);
-    expect(bodyKeys("library").length).toBe(690);
+    expect(bodyKeys("library").length).toBe(696);
     expect(bodyKeys("exports").length).toBe(90);
     expect(bodyKeys("players").length).toBe(148);
     expect(bodyKeys("matches").length).toBe(108);
@@ -660,7 +660,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("wallet").length).toBe(129);
     expect(bodyKeys("shell").length).toBe(282);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
-    expect(bodyKeys("auth").length).toBe(144);
+    expect(bodyKeys("auth").length).toBe(145);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

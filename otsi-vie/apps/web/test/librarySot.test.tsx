@@ -1,6 +1,6 @@
 /** SOT rebuild page 14 (alphabetical), Library: the three-column SOT layout — the left panel (Match + overlays + team + time),
  * the centre (header, the selected video, search and the items table) and the right inspector (Collections + Folders + Smart bins). */
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LibraryStage } from "@/components/library/LibraryStage";
 
@@ -28,7 +28,7 @@ const PLAYER = {
   profile: { position: "DM", latest_team: { jersey_number: 4, position: "DM", team: "FC Ercakhu" } },
 };
 const EVENTS = { video_id: "22222222-2222-4222-8222-222222222222", state: "READY", ball_track_id: null, match_time: true, counted_s: 0, possession_known_s: 0,
-  teams: [], passes: new Array(13).fill({}), changes: new Array(8).fill({}), shots: [], pressures: new Array(6).fill({}), set_pieces: new Array(51).fill({}), goals: [], rejected_events_count: 0 };
+  teams: [], passes: [{ from_player_id: "44444444-4444-4444-8444-444444444444", to_player_id: null }, ...new Array(12).fill({})], changes: new Array(8).fill({}), shots: [], pressures: new Array(6).fill({}), set_pieces: new Array(51).fill({}), goals: [], rejected_events_count: 0 };
 
 api.mockImplementation((path: string) => {
   if (path === "/v1/reels") return Promise.resolve([REEL]);
@@ -66,9 +66,9 @@ describe("Library (SOT)", () => {
     expect(screen.getByText("Name")).toBeInTheDocument();
     expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
     expect(screen.getByText("Chinazom Godwin — highlights")).toBeInTheDocument();
-    expect(screen.getAllByText("78 events").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1 confirmed player · 78 events").length).toBeGreaterThan(0);
     expect(screen.getByText("#4 · DM · FC Ercakhu")).toBeInTheDocument();
-    expect(screen.getByText("58 clips")).toBeInTheDocument();
+    expect(screen.getByText("1 reel generated")).toBeInTheDocument();
     // right inspector: collections + folders + smart bins
     expect(screen.getByText("Collections")).toBeInTheDocument();
     expect(screen.getByText("All items")).toBeInTheDocument();
@@ -76,6 +76,21 @@ describe("Library (SOT)", () => {
     expect(screen.getByText("Unconfirmed players")).toBeInTheDocument();
     expect(screen.getByText("Players without a report")).toBeInTheDocument();
     expect(screen.getByText("Save a search to reuse it.")).toBeInTheDocument();
+  });
+
+  it("All items stays the total when a collection is picked, and the Access filter is present", async () => {
+    render(<LibraryStage />);
+    await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
+    // 1 match + 1 reel + 1 player = 3 items; "All items" is the total, not the filtered list
+    const allRow = screen.getByText("All items").closest("button")!;
+    expect(allRow).toHaveTextContent("3");
+    // pick the Reels collection: the table narrows to the reel, but "All items" still reads 3
+    fireEvent.click(screen.getByRole("button", { name: /Reels/ }));
+    await waitFor(() => expect(screen.getByText("All items").closest("button")).toHaveTextContent("3"));
+    // the table narrowed: the player row (a Player kind, not the reel) is gone
+    expect(screen.queryByText("#4 · DM · FC Ercakhu")).not.toBeInTheDocument();
+    // SOT: the search row has Type / Match / Access filters
+    expect(screen.getByLabelText("Access")).toBeInTheDocument();
   });
 
   it("the bulk bar is disabled with nothing checked", async () => {

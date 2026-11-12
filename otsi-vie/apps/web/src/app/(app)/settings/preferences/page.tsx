@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Preferences" };
  */
 export default function PreferencesPage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-preferences" data-page="settings-preferences">
+    <div className="flex h-full w-full" data-stage="settings-preferences" data-page="settings-preferences">
       <SettingsSideNav current="preferences" />
       <PreferencesView />
     </div>

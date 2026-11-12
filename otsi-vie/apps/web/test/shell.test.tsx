@@ -85,6 +85,19 @@ describe("command palette", () => {
     expect(input).toHaveAttribute("placeholder", "Search a player, a match or an action");
   });
 
+  it("the dialog is a centred 720px modal, not full-width: its width is an inline style, not only a Tailwind class", async () => {
+    mockLists();
+    await openPalette();
+    // .modal sets width:100% in globals.css and beats the Tailwind width utility in the built CSS,
+    // so the width must also be inline (inline style outranks .modal)
+    const dialog = document.querySelector("[data-palette]") as HTMLElement;
+    expect(dialog).not.toBeNull();
+    // jsdom mangles min() commas when it serialises the style attribute, so match the parts it keeps
+    const style = dialog.getAttribute("style") ?? "";
+    expect(style).toContain("width: min(720px");
+    expect(style).toContain("calc(100vw - 32px)");
+  });
+
   it("filters players, matches and actions as you type; Enter opens the first", async () => {
     mockLists();
     const input = await openPalette();

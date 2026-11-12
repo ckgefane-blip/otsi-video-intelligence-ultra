@@ -132,7 +132,11 @@ export default function InvitePage() {
               <span className="t-small self-start">{t.body.auth.inviteYouAreInvited}</span>
               <h2 className="t-page">{t.body.auth.join.replace("{a}", inv.organization_name)}</h2>
               <p className="t-body text-ink2">
-                {t.body.auth.inviteIntro.replace("{a}", inv.invited_by).replace("{b}", roleLabel(t, inv.role))}
+                {(() => {
+                  // SOT: the role is a chip ("invited you as [Role]"), not plain text inside the sentence
+                  const parts = t.body.auth.inviteIntro.replace("{a}", inv.invited_by).split("{b}");
+                  return (<>{parts[0]}<span className="chip" style={{ height: 22 }}>{roleLabel(t, inv.role)}</span>{parts[1]}</>);
+                })()}
               </p>
             </div>
 
@@ -160,7 +164,7 @@ export default function InvitePage() {
                   <span className="t-small">{t.body.auth.inviteEmailHint}</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="t-label" htmlFor="name">{t.body.auth.yourName}</label>
+                  <label className="t-label" htmlFor="name">{t.body.auth.inviteFullName}</label>
                   <input id="name" required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={field} />
                 </div>
                 <div className="flex flex-col gap-1.5">

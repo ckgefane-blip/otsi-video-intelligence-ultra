@@ -54,7 +54,7 @@ export class HomeInboxService {
       `SELECT r.id, r.name FROM reel_projects r
         WHERE r.organization_id = ? AND r.removed_at IS NULL${rh}
           AND EXISTS (SELECT 1 FROM reel_targets rt LEFT JOIN v_track_current_identity ci ON ci.track_id = rt.track_id
-                       WHERE rt.reel_id = r.id AND NOT (ci.decision_id <=> rt.identity_decision_id AND ci.state = 'CONFIRMED' AND ci.player_id <=> rt.player_id))
+                       WHERE rt.reel_id = r.id AND NOT ((ci.decision_id = rt.identity_decision_id OR (ci.decision_id IS NULL AND rt.identity_decision_id IS NULL)) AND ci.state = 'CONFIRMED' AND (ci.player_id = rt.player_id OR (ci.player_id IS NULL AND rt.player_id IS NULL))))
         ORDER BY r.updated_at DESC LIMIT 5`, [org]);
     for (const r of stale) {
       items.push({ kind: "STALE_REEL", title: "Refresh a reel: a player identity it follows changed", detail: r.name as string, count: 1, href: `/reels/${r.id}` });

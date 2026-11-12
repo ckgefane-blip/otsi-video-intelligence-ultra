@@ -49,12 +49,19 @@ export function LibraryRight({ counts, collection, setCollection, folders, onNew
     ["Report", d.lbReportsDossiers, counts.reports],
   ];
   const accessDefault = selected?.asset?.project?.access ?? null;
+  // SOT: three options — Everyone (ORGANIZATION), Only me and the owner (RESTRICTED, no collaborators),
+  // Chosen members (RESTRICTED, collaborators chosen). The mode is what the select sets; the member list
+  // itself is managed in the Access dialog.
+  const accessValue = accessDefault === "RESTRICTED"
+    ? ((selected?.asset?.project?.collaborators?.length ?? 0) > 0 ? "members" : "owner")
+    : "everyone";
   const [accessBusy, setAccessBusy] = useState(false);
   const setDefaultAccess = async (v: string) => {
     const project = selected?.asset?.project;
     if (!project || accessBusy) return;
     setAccessBusy(true);
-    try { await api(`/v1/projects/${project.id}/access`, { method: "PUT", json: { access: v === "restricted" ? "RESTRICTED" : "OPEN" } }); }
+    // the API enum is ORGANIZATION | RESTRICTED — "OPEN" is not a value (zod rejects it), so send ORGANIZATION
+    try { await api(`/v1/projects/${project.id}/access`, { method: "PUT", json: { access: v === "everyone" ? "ORGANIZATION" : "RESTRICTED" } }); }
     catch { /* the access dialog reports its own errors; this select stays on the old value */ }
     setAccessBusy(false);
   };
@@ -124,11 +131,12 @@ export function LibraryRight({ counts, collection, setCollection, folders, onNew
         )}
         <div className="field">
           <label className="lab" htmlFor="lb-default-access">{d.lbDefaultNew}</label>
-          <select id="lb-default-access" className="in" value={accessDefault === "RESTRICTED" ? "restricted" : "everyone"}
+          <select id="lb-default-access" className="in" value={accessValue}
             disabled={!selected?.asset?.project || accessBusy}
             onChange={(e) => void setDefaultAccess(e.target.value)}>
             <option value="everyone">{d.accessEveryone}</option>
-            <option value="restricted">{d.accessRestricted}</option>
+            <option value="owner">{d.accessOwnerOnly}</option>
+            <option value="members">{d.accessChosenMembers}</option>
           </select>
         </div>
       </div>

@@ -172,9 +172,13 @@ export function PreviewPanel() {
   const spotNote = useMemo(() => (reel && src?.kind === "source" && !message ? spotlightNote(reel, path, clip, look.lock, dict.body.reelstage) : null),
     [reel, path, clip, look.lock, src?.kind, message, dict]);
 
+  const noSrc = !!reel && !src && !srcLoading;
+  // SOT: a reel with no footage to play says "No playable footage / Open the match file from this computer to play it."
+  // with the "Open local footage" button (allowLocal) — not the generic "No preview yet" line
   const emptyTitle = !reel
     ? (listFailed ? dict.body.reels.reelsNotLoaded : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel) : dict.body.reels.openReel)
-    : (message ?? dict.body.reelstage.previewNoSrc);
+    : (noSrc ? dict.body.reels.rbNoFootage : (message ?? dict.body.reelstage.previewNoSrc));
+  const emptyBody = noSrc ? dict.body.reels.rbOpenLocal : "";
 
   return (
     <section aria-label={dict.body.reelstage.previewAria} data-section="p06-s05" data-preview={reel ? src?.kind ?? "none" : "none"} className="vie-panel p-3">
@@ -191,7 +195,8 @@ export function PreviewPanel() {
           videoRef={ref}
           range={src?.kind === "source" && clip ? { inUs: clip.in_pts_us, outUs: clip.out_pts_us } : null}
           onTime={onTime}
-          empty={{ title: emptyTitle, body: "" }}
+          allowLocal
+          empty={{ title: emptyTitle, body: emptyBody }}
         >
           {reel && src?.kind === "source" && <LiveSpotlight video={ref} path={path} reel={reel} clip={clip} settings={look} on={!message && !reel.stale} />}
           {message && src && <div className="pointer-events-none absolute inset-0 grid place-items-center"><p className="t-body bg-black/60 rounded-md px-3 py-1.5">{message}</p></div>}

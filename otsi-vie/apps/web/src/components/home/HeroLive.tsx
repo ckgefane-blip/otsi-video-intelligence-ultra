@@ -119,7 +119,7 @@ export function HeroLive() {
       )}
       <div className="absolute left-3 top-3"><HeroPlayerCard m={m} loading={cur === undefined} /></div>
       <div className="absolute bottom-3 left-3 max-w-[calc(100%-280px)]"><span className="t-small text-muted">{t.body.home.hmHeroCaption}</span></div>
-      <div className="absolute bottom-3 right-3 w-[236px]"><HeroMetrics playerId={m?.player_id ?? null} /></div>
+      {m && <div className="absolute bottom-3 right-3 w-[236px]"><HeroMetrics playerId={m?.player_id ?? null} /></div>}
     </div>
   );
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Models & AI" };
  */
 export default function AdminModelsPage() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-admin-models" data-page="settings-admin-models">
+    <div className="flex h-full w-full" data-stage="settings-admin-models" data-page="settings-admin-models">
       <SettingsSideNav current="models" />
       <ModelsAi />
     </div>

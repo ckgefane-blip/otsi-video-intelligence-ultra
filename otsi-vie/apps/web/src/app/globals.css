@@ -145,6 +145,10 @@ dialog[data-player-full]::backdrop { background: #000; }
 
 /* Modal dialog (SOT): the command palette's shell */
 .modal { background: rgb(var(--panel)); border: 1px solid rgb(var(--line2)); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, .6); width: 100%; overflow: hidden; display: flex; flex-direction: column; max-height: 100%; }
+/* SOT inline-SVG icons: without a width/height an <svg> renders at the browser default 300x150px
+   (Clip Studio lock + drawing toolbar, ProcessingJobs heartbeat, PlayerProfileIntro arrow) */
+.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.i.s { width: 14px; height: 14px; }
 
 /* Jobs Center drawer (SOT, page 12): a right-hand drawer with tabs and a job table. The SOT positions it absolute inside the app shell
    (top 48px, bottom 28px); the Radix portal renders at the viewport, so fixed with the same offsets. */

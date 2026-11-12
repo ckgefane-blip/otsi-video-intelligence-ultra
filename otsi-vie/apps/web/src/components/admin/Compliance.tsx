@@ -173,7 +173,7 @@ export function Compliance() {
 
   if (!isAuthorized) {
     return (
-      <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]">
         <div className="flex w-full max-w-4xl items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
           <ShieldAlert className="h-6 w-6 shrink-0" />
           <div>
@@ -189,7 +189,7 @@ export function Compliance() {
   const keepFor = keepForValue(policy?.raw_footage_days);
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]" data-testid="admin-compliance">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-testid="admin-compliance">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="t-th">{t.body.shell.adminConsole}</span>
@@ -331,7 +331,7 @@ export function Compliance() {
             </div>
           </section>
 
-          <section className="vie-panel flex flex-col" aria-labelledby="comp-audit">
+          <section id="audit" className="vie-panel flex flex-col" aria-labelledby="comp-audit">
             <div className="vie-ph">
               <h2 id="comp-audit" className="t-section">{t.body.admin.compAudit}</h2>
             </div>

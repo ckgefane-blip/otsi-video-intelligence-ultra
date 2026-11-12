@@ -2700,6 +2700,12 @@ export interface Dictionary {
       viewCardsTitle: string;
       viewTableTitle: string;
       libraryLoadFailedMain: string;
+      lbReelGenerated: string;
+      lbConfirmedPlayerOne: string;
+      lbConfirmedPlayerMany: string;
+      lbEventsMany: string;
+      accessOwnerOnly: string;
+      accessChosenMembers: string;
     };
     exports: {
       projectSummary: string;
@@ -6746,6 +6752,7 @@ export interface Dictionary {
       tourReelsBody: string;
       tourEvidenceBody: string;
       tourClose: string;
+      inviteFullName: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -9473,6 +9480,12 @@ export const en: Dictionary = {
       viewCardsTitle: "Cards: the rows with pictures",
       viewTableTitle: "Table: rights, evidence, profile and device columns",
       libraryLoadFailedMain: "The library could not be loaded",
+      lbReelGenerated: "1 reel generated",
+      lbConfirmedPlayerOne: "1 confirmed player",
+      lbConfirmedPlayerMany: "{a} confirmed players",
+      lbEventsMany: "{a} events",
+      accessOwnerOnly: "Only me and the owner",
+      accessChosenMembers: "Chosen members",
     },
     exports: {
       projectSummary: "Project Summary",
@@ -13400,7 +13413,7 @@ export const en: Dictionary = {
       signOutSignIn: "Sign out and sign in as {a}",
       signInAccept: "Sign in to accept",
       yourName: "Your name",
-      choosePassword: "Choose a password",
+      choosePassword: "Password",
       passwordMin: "(at least 12 characters)",
       typeAgain: "Type it again",
       createJoin: "Create my account and join",
@@ -13519,6 +13532,7 @@ export const en: Dictionary = {
       tourReelsBody: "Build a highlight reel from the moments the engine measured, or a player report from the same numbers. Nothing is filled in that was not measured.",
       tourEvidenceBody: "Every number carries a label: Confirmed means checked by a person, Detected means measured by the engine, Inferred means derived from other measurements, and Not measured means no measurement exists. Unmeasured values are never filled in.",
       tourClose: "Close tour",
+      inviteFullName: "Полное имя",
     },
   },
   webauthn: {
@@ -16242,6 +16256,12 @@ export const ru: DeepPartial<Dictionary> = {
       viewCardsTitle: "Карточки: строки с картинками",
       viewTableTitle: "Таблица: столбцы прав, доказательств, профиля и устройства",
       libraryLoadFailedMain: "Не удалось загрузить библиотеку",
+      lbReelGenerated: "1 ролик создан",
+      lbConfirmedPlayerOne: "1 подтверждённый игрок",
+      lbConfirmedPlayerMany: "{a} подтверждённых игроков",
+      lbEventsMany: "{a} событий",
+      accessOwnerOnly: "Только я и владелец",
+      accessChosenMembers: "Выбранные участники",
     },
     exports: {
       projectSummary: "Сводка проекта",
@@ -20169,7 +20189,7 @@ export const ru: DeepPartial<Dictionary> = {
       signOutSignIn: "Выйти и войти как {a}",
       signInAccept: "Войдите, чтобы принять",
       yourName: "Ваше имя",
-      choosePassword: "Выберите пароль",
+      choosePassword: "Пароль",
       passwordMin: "(не менее 12 символов)",
       typeAgain: "Введите ещё раз",
       createJoin: "Создать учётную запись и присоединиться",
@@ -20288,6 +20308,7 @@ export const ru: DeepPartial<Dictionary> = {
       tourReelsBody: "Соберите нарезку лучших моментов из того, что измерил движок, или отчёт по игроку из тех же цифр. Ничего не заполняется, если это не было измерено.",
       tourEvidenceBody: "У каждой цифры есть метка: «Подтверждено» — проверено человеком, «Обнаружено» — измерено движком, «Выведено» — получено из других измерений, «Не измерено» — измерения нет. Неизмеренные значения никогда не заполняются.",
       tourClose: "Закрыть тур",
+      inviteFullName: "Nombre completo",
     },
   },
   webauthn: {
@@ -23011,6 +23032,12 @@ export const es: DeepPartial<Dictionary> = {
       viewCardsTitle: "Tarjetas: las filas con imágenes",
       viewTableTitle: "Tabla: columnas de derechos, evidencia, perfil y dispositivo",
       libraryLoadFailedMain: "No se pudo cargar la biblioteca",
+      lbReelGenerated: "1 reel generado",
+      lbConfirmedPlayerOne: "1 jugador confirmado",
+      lbConfirmedPlayerMany: "{a} jugadores confirmados",
+      lbEventsMany: "{a} eventos",
+      accessOwnerOnly: "Solo yo y el propietario",
+      accessChosenMembers: "Miembros elegidos",
     },
     exports: {
       projectSummary: "Resumen del proyecto",
@@ -26938,7 +26965,7 @@ export const es: DeepPartial<Dictionary> = {
       signOutSignIn: "Cerrar sesión e iniciar sesión como {a}",
       signInAccept: "Inicia sesión para aceptar",
       yourName: "Tu nombre",
-      choosePassword: "Elige una contraseña",
+      choosePassword: "Contraseña",
       passwordMin: "(al menos 12 caracteres)",
       typeAgain: "Escríbela de nuevo",
       createJoin: "Crear mi cuenta y unirme",
@@ -27057,6 +27084,7 @@ export const es: DeepPartial<Dictionary> = {
       tourReelsBody: "Crea un reel de momentos destacados a partir de los momentos que midió el motor, o un informe de jugador con los mismos números. Nada se rellena si no se midió.",
       tourEvidenceBody: "Cada número lleva una etiqueta: Confirmado significa revisado por una persona, Detectado significa medido por el motor, Inferido significa derivado de otras mediciones, y No medido significa que no existe medición. Los valores no medidos nunca se rellenan.",
       tourClose: "Cerrar recorrido",
+      inviteFullName: "Vollständiger Name",
     },
   },
   webauthn: {
@@ -29780,6 +29808,12 @@ export const de: DeepPartial<Dictionary> = {
       viewCardsTitle: "Karten: die Zeilen mit Bildern",
       viewTableTitle: "Tabelle: Spalten für Rechte, Belege, Profil und Gerät",
       libraryLoadFailedMain: "Die Bibliothek konnte nicht geladen werden",
+      lbReelGenerated: "1 Reel erstellt",
+      lbConfirmedPlayerOne: "1 bestätigter Spieler",
+      lbConfirmedPlayerMany: "{a} bestätigte Spieler",
+      lbEventsMany: "{a} Ereignisse",
+      accessOwnerOnly: "Nur ich und der Eigentümer",
+      accessChosenMembers: "Ausgewählte Mitglieder",
     },
     exports: {
       projectSummary: "Projektübersicht",
@@ -33707,7 +33741,7 @@ export const de: DeepPartial<Dictionary> = {
       signOutSignIn: "Abmelden und als {a} anmelden",
       signInAccept: "Zum Annehmen anmelden",
       yourName: "Ihr Name",
-      choosePassword: "Passwort wählen",
+      choosePassword: "Passwort",
       passwordMin: "(mindestens 12 Zeichen)",
       typeAgain: "Erneut eingeben",
       createJoin: "Mein Konto erstellen und beitreten",
@@ -33826,6 +33860,7 @@ export const de: DeepPartial<Dictionary> = {
       tourReelsBody: "Erstellen Sie ein Highlight-Reel aus den Momenten, die die Engine gemessen hat, oder einen Spielerbericht aus denselben Zahlen. Nichts wird ausgefüllt, was nicht gemessen wurde.",
       tourEvidenceBody: "Jede Zahl trägt ein Label: Bestätigt heißt von einer Person geprüft, Erkannt heißt von der Engine gemessen, Abgeleitet heißt aus anderen Messungen abgeleitet, und Nicht gemessen heißt, es gibt keine Messung. Nicht gemessene Werte werden nie ausgefüllt.",
       tourClose: "Tour schließen",
+      inviteFullName: "Nom complet",
     },
   },
   webauthn: {
@@ -36549,6 +36584,12 @@ export const fr: DeepPartial<Dictionary> = {
       viewCardsTitle: "Cartes : les lignes avec images",
       viewTableTitle: "Tableau : colonnes droits, preuves, profil et appareil",
       libraryLoadFailedMain: "Impossible de charger la bibliothèque",
+      lbReelGenerated: "1 reel généré",
+      lbConfirmedPlayerOne: "1 joueur confirmé",
+      lbConfirmedPlayerMany: "{a} joueurs confirmés",
+      lbEventsMany: "{a} événements",
+      accessOwnerOnly: "Seulement moi et le propriétaire",
+      accessChosenMembers: "Membres choisis",
     },
     exports: {
       projectSummary: "Résumé du projet",
@@ -40476,7 +40517,7 @@ export const fr: DeepPartial<Dictionary> = {
       signOutSignIn: "Se déconnecter et se connecter en tant que {a}",
       signInAccept: "Connectez-vous pour accepter",
       yourName: "Votre nom",
-      choosePassword: "Choisissez un mot de passe",
+      choosePassword: "Mot de passe",
       passwordMin: "(au moins 12 caractères)",
       typeAgain: "Saisissez-le à nouveau",
       createJoin: "Créer mon compte et rejoindre",
@@ -40595,6 +40636,7 @@ export const fr: DeepPartial<Dictionary> = {
       tourReelsBody: "Créez un reel des meilleurs moments à partir des moments mesurés par le moteur, ou un rapport joueur à partir des mêmes chiffres. Rien n'est rempli si cela n'a pas été mesuré.",
       tourEvidenceBody: "Chaque chiffre porte une étiquette : Confirmé signifie vérifié par une personne, Détecté signifie mesuré par le moteur, Déduit signifie dérivé d'autres mesures, et Non mesuré signifie qu'aucune mesure n'existe. Les valeurs non mesurées ne sont jamais remplies.",
       tourClose: "Fermer la visite",
+      inviteFullName: "Nome completo",
     },
   },
   webauthn: {
@@ -43327,7 +43369,13 @@ export const pt: DeepPartial<Dictionary> = {
       "uploadVideo": "Enviar um vídeo",
       "viewCardsTitle": "Cartões: as linhas com imagens",
       "viewTableTitle": "Tabela: colunas de direitos, evidências, perfil e dispositivo",
-      "libraryLoadFailedMain": "Não foi possível carregar a biblioteca"
+      "libraryLoadFailedMain": "Não foi possível carregar a biblioteca",
+      "lbReelGenerated": "1 reel gerado",
+      "lbConfirmedPlayerOne": "1 jogador confirmado",
+      "lbConfirmedPlayerMany": "{a} jogadores confirmados",
+      "lbEventsMany": "{a} eventos",
+      "accessOwnerOnly": "Só eu e o proprietário",
+      "accessChosenMembers": "Membros escolhidos",
     },
     "exports": {
       "projectSummary": "Resumo do projeto",
@@ -47255,7 +47303,7 @@ export const pt: DeepPartial<Dictionary> = {
       "signOutSignIn": "Sair e entrar como {a}",
       "signInAccept": "Entre para aceitar",
       "yourName": "Seu nome",
-      "choosePassword": "Escolha uma senha",
+      "choosePassword": "Senha",
       "passwordMin": "(pelo menos 12 caracteres)",
       "typeAgain": "Digite-a novamente",
       "createJoin": "Criar minha conta e participar",
@@ -47374,6 +47422,7 @@ export const pt: DeepPartial<Dictionary> = {
       "tourReelsBody": "Crie um reel de destaques a partir dos momentos que o motor mediu, ou um relatório de jogador a partir dos mesmos números. Nada é preenchido se não foi medido.",
       "tourEvidenceBody": "Cada número tem um rótulo: Confirmado significa verificado por uma pessoa, Detetado significa medido pelo motor, Inferido significa derivado de outras medições, e Não medido significa que não existe medição. Os valores não medidos nunca são preenchidos.",
       "tourClose": "Fechar tour",
+      "inviteFullName": "Nome completo",
     }
   },
   "webauthn": {

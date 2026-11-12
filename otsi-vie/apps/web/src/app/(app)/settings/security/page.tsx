@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Security" };
  */
 export default function Page() {
   return (
-    <div className="flex min-h-full w-full" data-stage="settings-security" data-page="settings-security">
+    <div className="flex h-full w-full" data-stage="settings-security" data-page="settings-security">
       <SettingsSideNav current="security" />
       <SecurityView />
     </div>

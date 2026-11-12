@@ -1,0 +1,5 @@
+# Library access-default options (SOT audit 2026-11-13, Page 14).
+# 2 keys, inserted after lbEventsMany (the last key of body.library).
+# Format: key | en | ru | es | de | fr | pt
+accessOwnerOnly | Only me and the owner | Только я и владелец | Solo yo y el propietario | Nur ich und der Eigentümer | Seulement moi et le propriétaire | Só eu e o proprietário
+accessChosenMembers | Chosen members | Выбранные участники | Miembros elegidos | Ausgewählte Mitglieder | Membres choisis | Membros escolhidos

@@ -137,7 +137,7 @@ export function TwoStepSettings() {
           {codes ? (
             <div className="mono sm mu grid grid-cols-2 gap-1.5">{codes.map((c) => <span key={c}>{c}</span>)}</div>
           ) : (
-            <div className="mono sm mu grid grid-cols-2 gap-1.5"><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span></div>
+            <div className="mono sm mu grid grid-cols-2 gap-1.5"><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span></div>
           )}
           <div className="flex gap-2">
             <button className="btn sm" type="button" disabled={!codes}
