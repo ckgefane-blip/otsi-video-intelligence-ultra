@@ -42,6 +42,16 @@
     border: 1px solid #2a4a7a; background: #10294f; color: #fff; outline: none;
   }
   form input:focus { border-color: #2f7de1; }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 38px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    margin: 0; padding: 6px; background: none; border: none; cursor: pointer;
+    color: #9db4d4; line-height: 0; border-radius: 4px;
+  }
+  .pw-toggle:hover { color: #fff; background: #1a3a66; }
+  .pw-toggle:focus { outline: 2px solid #2f7de1; outline-offset: 1px; }
+  .pw-toggle svg { width: 18px; height: 18px; display: block; }
   button {
     margin-top: 18px; padding: 10px 18px; font-size: 14px; border: none;
     border-radius: 6px; background: #2f7de1; color: #fff; cursor: pointer;
@@ -84,9 +94,15 @@
       <label for="org">Organisation (your club or academy)</label>
       <input id="org" type="text" required autocomplete="organization">
       <label for="password">Password (at least 12 characters)</label>
-      <input id="password" type="password" required autocomplete="new-password" minlength="12">
+      <div class="pw-wrap">
+        <input id="password" type="password" required autocomplete="new-password" minlength="12">
+        <button class="pw-toggle" type="button" data-target="password" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <label for="password2">Repeat the password</label>
-      <input id="password2" type="password" required autocomplete="new-password" minlength="12">
+      <div class="pw-wrap">
+        <input id="password2" type="password" required autocomplete="new-password" minlength="12">
+        <button class="pw-toggle" type="button" data-target="password2" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <div id="owner-error" class="err"></div>
       <button id="owner-submit" type="submit">Create account</button>
     </form>
@@ -136,6 +152,21 @@
     $('error-message').textContent = data.message || 'Something did not work.';
     $('error-log').textContent = data.log || '';
     show('error');
+  });
+
+  // Show / hide password (eye toggle on each password field).
+  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  document.querySelectorAll('.pw-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = $(btn.dataset.target);
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.innerHTML = showing ? EYE : EYE_OFF;
+      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      btn.setAttribute('title', showing ? 'Show password' : 'Hide password');
+      input.focus();
+    });
   });
 
   $('owner-form').addEventListener('submit', (e) => {
