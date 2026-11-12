@@ -42,14 +42,14 @@ describe("First run — owner setup (SOT)", () => {
     expect(screen.getByText("At least 12 characters. A passphrase works well.")).toBeInTheDocument();
   });
 
-  it("creates the owner, signs them in and takes them to the welcome tour", async () => {
+  it("creates the owner, signs them in and takes them to Home, where the welcome tour opens", async () => {
     setupOwner.mockResolvedValue(session);
     render(<SetupPage />);
     fill();
     fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
     await waitFor(() => expect(setupOwner).toHaveBeenCalledWith({ email: "owner@club.com", display_name: "Edmond Osio", password: "a-strong-passphrase-12" }));
     expect(adoptSession).toHaveBeenCalledWith(session);
-    expect(replace).toHaveBeenCalledWith("/welcome");
+    expect(replace).toHaveBeenCalledWith("/dashboard");
   });
 
   it("refuses a short password without calling the API", async () => {

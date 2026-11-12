@@ -59,7 +59,7 @@ export default function SetupPage() {
     try {
       const s = await setupOwner({ email: email.trim(), display_name: name.trim(), password });
       adoptSession(s);
-      router.replace("/welcome");
+      router.replace("/dashboard");
     } catch (x) {
       if (x instanceof ApiProblem && x.code === "ALREADY_SET_UP") { setAlready(true); setError(t.body.auth.setupAlready); }
       else setError(x instanceof ApiProblem ? x.message : t.body.auth.setupUnreachable);

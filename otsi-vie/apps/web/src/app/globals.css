@@ -229,3 +229,16 @@ select.in { appearance: auto; }
 .ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
 .gh { background: transparent; border-color: transparent; color: rgb(var(--ink2)); }
 .h2 { font-size: 14px; font-weight: 600; line-height: 20px; }
+
+/* Token counter + Tactical (SOT, pages 29-31): the top-bar token counter
+ * (the SOT's .tok: database icon in amber, bold tabular number, "tokens" in
+ * muted; teal border while its popover is open, amber border on low balance),
+ * and the Tactical window ruler (the 0'–90' ticks, spaced out, mono). */
+.tok { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid rgb(var(--line2)); border-radius: 6px; background: rgb(var(--raised)); color: rgb(var(--ink)); text-decoration: none; font-size: 13px; line-height: 1; font-family: inherit; white-space: nowrap; cursor: pointer; }
+.tok:hover { border-color: rgb(var(--primary)); }
+.tok .i { width: 16px; height: 16px; stroke: rgb(var(--amber)); }
+.tok b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.tok span { color: rgb(var(--muted)); }
+.tok[aria-expanded="true"] { border-color: rgb(var(--primary)); }
+.tok.low { border-color: rgb(var(--amber)); }
+.ruler { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500; font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; color: rgb(var(--muted)); }

@@ -396,6 +396,9 @@ describe("dictionaries (ADR-139)", () => {
       "body.studio.warmValue",
       "body.studio.zoomLabel2",
       "body.studio.zoomSection",
+      "body.tactics.needTracking",        // German "Tracking", the same word as English
+      "body.tactics.periodMatch",          // French "Match", the same word as English
+      "body.tactics.teamSegLabel",         // German "Team", the same word as English
       "body.tactics.phaseLabel",
       "body.tactics.possessionLabel",
       "body.tactics.transitionsMenu",
@@ -643,8 +646,9 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("upload").length).toBe(485);
     expect(bodyKeys("processing").length).toBe(325);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
-    expect(bodyKeys("tactics").length).toBe(164);
-    expect(bodyKeys("workspace").length).toBe(729);
+    // SOT UI rebuild Pages 29-31 (2026-11-12): +34 tactics keys.
+    expect(bodyKeys("tactics").length).toBe(206);
+    expect(bodyKeys("workspace").length).toBe(730);
     // Group C (2026-11-11): Reel Builder + Export pages.
     expect(bodyKeys("reelstage").length).toBe(443);
     expect(bodyKeys("exportstage").length).toBe(515);
@@ -655,7 +659,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("settings").length).toBe(139);
     expect(bodyKeys("wallet").length).toBe(129);
     expect(bodyKeys("shell").length).toBe(282);
-    expect(bodyKeys("auth").length).toBe(128);
+    // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
+    expect(bodyKeys("auth").length).toBe(144);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

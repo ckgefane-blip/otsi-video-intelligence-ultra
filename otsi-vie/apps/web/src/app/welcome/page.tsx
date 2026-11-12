@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import { Onboarding } from "@/components/auth/Onboarding";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Welcome" };
-
-/** First-run welcome: splash, three-screen tour, then the person's own name. Shown once per account (users.onboarded_at). */
+/**
+ * The welcome tour is a modal over Home now (SOT, page 31), not a separate page — the (app) layout mounts it and it
+ * opens for anyone who has not finished it, and the profile menu replays it. This address only exists for old links.
+ */
 export default function Page() {
-  return <Onboarding />;
+  redirect("/dashboard");
 }

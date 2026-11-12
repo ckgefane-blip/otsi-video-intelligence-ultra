@@ -15,11 +15,11 @@ export function RequireSession({ children }: { children: ReactNode }) {
       router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
     }
   }, [status, router]);
-  // a person who has not finished the first-run welcome (their name and the tour) goes there once
+  // a person who has not finished the first-run welcome (their name and the tour) lands on Home, where the welcome
+  // tour modal opens over it (SOT, page 31) — the tour itself, not a separate page, is the welcome
   const firstRun = status === "signed-in" && !!me && !me.user.onboarded_at;
-  useEffect(() => { if (firstRun) router.replace("/welcome"); }, [firstRun, router]);
+  useEffect(() => { if (firstRun && window.location.pathname !== "/dashboard") router.replace("/dashboard"); }, [firstRun, router]);
 
-  if (firstRun) return <p className="mt-16 text-center text-sm text-muted" role="status" aria-live="polite">Opening your welcome...</p>;
   if (status !== "signed-in") {
     return <p className="mt-16 text-center text-sm text-muted" role="status" aria-live="polite">{status === "loading" ? "Loading your workspace..." : "Redirecting to sign in..."}</p>;
   }

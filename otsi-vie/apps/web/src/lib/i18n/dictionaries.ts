@@ -90,6 +90,23 @@ export interface Dictionary {
     sampleSlotEmptyBody: string;
     noThumb: string;
     openReel: string;
+    tokSpendableNow: string;
+    tokSpendableTier: string;
+    tokTierFree: string;
+    tokTierPro: string;
+    tokTierEnterprise: string;
+    tokTotalBalance: string;
+    tokExpiredUnwritten: string;
+    tokLowBalance: string;
+    tokLastMovements: string;
+    tokLedgerFailed: string;
+    tokNoMovements: string;
+    tokOpenWallet: string;
+    tokUpdatedAgo: string;
+    tokJobReel: string;
+    tokJobReport: string;
+    tokJobExport: string;
+    tokJobAi: string;
   };
   nav: {
     home: string;
@@ -4976,7 +4993,49 @@ export interface Dictionary {
       tacticalModelsNotYet: string;
       linkVideoFirst: string;
       reelBuilderArrow: string;
-      noPlaybackYetReason: string;
+            noPlaybackYetReason: string;
+      inferredConfirm: string;
+      playerA: string;
+      playerB: string;
+      viewPassNetworks: string;
+      viewHeatZones: string;
+      viewPressingDefence: string;
+      viewOffBallRuns: string;
+      viewComparePlayers: string;
+      viewsLabel: string;
+      teamShape: string;
+      teamShapeNeeds: string;
+      needPitchCalibration: string;
+      needTracking: string;
+      needLineups: string;
+      needRequired: string;
+      needDone: string;
+      teamShapeSub: string;
+      teamSegLabel: string;
+      teamHome: string;
+      teamAway: string;
+      teamBoth: string;
+      periodLabel: string;
+      periodMatch: string;
+      periodFirst: string;
+      periodSecond: string;
+      windowLabel: string;
+      layersLabel: string;
+      layerAvgPositions: string;
+      layerTeamLines: string;
+      layerWidthDepth: string;
+      layerShirtNumbers: string;
+      shapeMetrics: string;
+      teamWidth: string;
+      teamDepth: string;
+      defLineHeightFull: string;
+      compactness: string;
+      compareTwoPlayers: string;
+      compareConfirmedOnly: string;
+      addToReport: string;
+      exportImage: string;
+      noTacticalData: string;
+      noTacticalDataWhy: string;
     };
     workspace: {
       aTeam: string;
@@ -5708,6 +5767,7 @@ export interface Dictionary {
       isPlayerInBlueBox: string;
       shirtColourDiffers: string;
       heatmapsLabel: string;
+      openAnalysis: string;
     };
     admin: {
       accessRequired: string;
@@ -6670,6 +6730,22 @@ export interface Dictionary {
       signInUseCode: string;
       signInInvitedBy: string;
       signInAcceptInvite: string;
+      tourTitle: string;
+      tourIntro: string;
+      tourDisplayName: string;
+      tourNameExample: string;
+      tourNameHint: string;
+      tourStepContext: string;
+      tourStepUpload: string;
+      tourStepIdentity: string;
+      tourStepReels: string;
+      tourStepEvidence: string;
+      tourContextBody: string;
+      tourUploadBody: string;
+      tourIdentityBody: string;
+      tourReelsBody: string;
+      tourEvidenceBody: string;
+      tourClose: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -6776,6 +6852,23 @@ export const en: Dictionary = {
     sampleSlotEmptyBody: "There is no reel to play here.",
     noThumb: "No frame available for this match",
     openReel: "Open in Reel Builder",
+    tokSpendableNow: "Spendable now",
+    tokSpendableTier: "Spendable now · {a}",
+    tokTierFree: "Free tier",
+    tokTierPro: "Pro tier",
+    tokTierEnterprise: "Enterprise tier",
+    tokTotalBalance: "Total balance",
+    tokExpiredUnwritten: "Expired, not yet written off",
+    tokLowBalance: "Low balance: add tokens before the next run.",
+    tokLastMovements: "Last movements",
+    tokLedgerFailed: "The ledger could not be read.",
+    tokNoMovements: "No movements yet.",
+    tokOpenWallet: "Open Wallet",
+    tokUpdatedAgo: "Updated {a} s ago",
+    tokJobReel: "Reel render",
+    tokJobReport: "Player report",
+    tokJobExport: "Export pack",
+    tokJobAi: "AI analysis",
   },
   nav: {
     home: "Home",
@@ -11673,7 +11766,49 @@ export const en: Dictionary = {
       tacticalModelsNotYet: "Tactical models are {a}.",
       linkVideoFirst: "Link this video to a match first (Upload or Analysis page)",
       reelBuilderArrow: "Reel Builder →",
-      noPlaybackYetReason: "No playback yet: {a}",
+            noPlaybackYetReason: "No playback yet: {a}",
+      inferredConfirm: "Inferred (Confirm?)",
+      playerA: "Player A",
+      playerB: "Player B",
+      viewPassNetworks: "Pass networks",
+      viewHeatZones: "Heat zones",
+      viewPressingDefence: "Pressing & defence",
+      viewOffBallRuns: "Off-ball runs",
+      viewComparePlayers: "Compare two players",
+      viewsLabel: "Views",
+      teamShape: "Team shape",
+      teamShapeNeeds: "Team shape needs",
+      needPitchCalibration: "Pitch calibration",
+      needTracking: "Tracking",
+      needLineups: "Lineups",
+      needRequired: "Required",
+      needDone: "Done",
+      teamShapeSub: "Average positions in and out of possession",
+      teamSegLabel: "Team",
+      teamHome: "Home",
+      teamAway: "Away",
+      teamBoth: "Both",
+      periodLabel: "Period",
+      periodMatch: "Match",
+      periodFirst: "1st",
+      periodSecond: "2nd",
+      windowLabel: "Window",
+      layersLabel: "Layers",
+      layerAvgPositions: "Average positions",
+      layerTeamLines: "Team lines",
+      layerWidthDepth: "Width & depth",
+      layerShirtNumbers: "Shirt numbers",
+      shapeMetrics: "Shape metrics",
+      teamWidth: "Team width",
+      teamDepth: "Team depth",
+      defLineHeightFull: "Defensive line height",
+      compactness: "Compactness",
+      compareTwoPlayers: "Compare two players",
+      compareConfirmedOnly: "Confirmed players only.",
+      addToReport: "Add to report",
+      exportImage: "Export image",
+      noTacticalData: "No tactical data yet",
+      noTacticalDataWhy: "Needs pitch calibration and confirmed lineups.",
     },
     workspace: {
       aTeam: "A team",
@@ -12405,6 +12540,7 @@ export const en: Dictionary = {
       isPlayerInBlueBox: "Is the player in the blue box {a}?",
       shirtColourDiffers: "His shirt colour differs from {a}'s other tracks: check it is him.",
       heatmapsLabel: "Heatmaps",
+      openAnalysis: "Open Analysis",
     },
     admin: {
       accessRequired: "Administrator Access Required",
@@ -13367,6 +13503,22 @@ export const en: Dictionary = {
       signInUseCode: "Use the 6-digit code instead",
       signInInvitedBy: "Invited by your organisation?",
       signInAcceptInvite: "Accept your invite",
+      tourTitle: "Welcome tour",
+      tourIntro: "A two-minute walk through the main parts of the app. First, how should your team see your name?",
+      tourDisplayName: "Display name",
+      tourNameExample: "e.g. your first name",
+      tourNameHint: "Shown to your team, in the audit log and on links you share.",
+      tourStepContext: "Work context",
+      tourStepUpload: "Upload & processing",
+      tourStepIdentity: "Confirming identity",
+      tourStepReels: "Reels & reports",
+      tourStepEvidence: "Evidence labels",
+      tourContextBody: "Pick a project, a match and a player at the top of the screen. Everything in the app — the numbers, the reels, the reports — follows that context.",
+      tourUploadBody: "Drop a match video in (MP4 or MOV) and the engine analyses it. Jobs show their progress in the Jobs Center, and tokens are charged as the video is analysed.",
+      tourIdentityBody: "The engine tracks every player, but a person confirms who each one is. Only confirmed players get an OTSI PIN and appear in reels and reports.",
+      tourReelsBody: "Build a highlight reel from the moments the engine measured, or a player report from the same numbers. Nothing is filled in that was not measured.",
+      tourEvidenceBody: "Every number carries a label: Confirmed means checked by a person, Detected means measured by the engine, Inferred means derived from other measurements, and Not measured means no measurement exists. Unmeasured values are never filled in.",
+      tourClose: "Close tour",
     },
   },
   webauthn: {
@@ -13469,6 +13621,23 @@ export const ru: DeepPartial<Dictionary> = {
     sampleSlotEmptyBody: "Здесь нечего воспроизводить.",
     noThumb: "Нет кадра для этого матча",
     openReel: "Открыть в сборщике нарезок",
+    tokSpendableNow: "Доступно сейчас",
+    tokSpendableTier: "Доступно сейчас · {a}",
+    tokTierFree: "Бесплатный тариф",
+    tokTierPro: "Тариф Pro",
+    tokTierEnterprise: "Корпоративный тариф",
+    tokTotalBalance: "Общий баланс",
+    tokExpiredUnwritten: "Истекшие, ещё не списанные",
+    tokLowBalance: "Низкий баланс: пополните токены перед следующим запуском.",
+    tokLastMovements: "Последние движения",
+    tokLedgerFailed: "Не удалось прочитать журнал.",
+    tokNoMovements: "Пока нет движений.",
+    tokOpenWallet: "Открыть кошелёк",
+    tokUpdatedAgo: "Обновлено {a} с назад",
+    tokJobReel: "Рендер нарезки",
+    tokJobReport: "Отчёт по игроку",
+    tokJobExport: "Пакет экспорта",
+    tokJobAi: "ИИ-анализ",
   },
   nav: {
     home: "Главная",
@@ -18366,7 +18535,49 @@ export const ru: DeepPartial<Dictionary> = {
       tacticalModelsNotYet: "Тактические модели — {a}.",
       linkVideoFirst: "Сначала привяжите это видео к матчу (страница «Загрузка» или «Анализ»)",
       reelBuilderArrow: "Конструктор роликов →",
-      noPlaybackYetReason: "Пока нет воспроизведения: {a}",
+            noPlaybackYetReason: "Пока нет воспроизведения: {a}",
+      inferredConfirm: "Выведено (подтвердить?)",
+      playerA: "Игрок A",
+      playerB: "Игрок B",
+      viewPassNetworks: "Сети передач",
+      viewHeatZones: "Тепловые зоны",
+      viewPressingDefence: "Прессинг и оборона",
+      viewOffBallRuns: "Рывки без мяча",
+      viewComparePlayers: "Сравнить двух игроков",
+      viewsLabel: "Виды",
+      teamShape: "Форма команды",
+      teamShapeNeeds: "Для формы команды нужно",
+      needPitchCalibration: "Калибровка поля",
+      needTracking: "Трекинг",
+      needLineups: "Составы",
+      needRequired: "Требуется",
+      needDone: "Готово",
+      teamShapeSub: "Средние позиции с мячом и без мяча",
+      teamSegLabel: "Команда",
+      teamHome: "Дома",
+      teamAway: "В гостях",
+      teamBoth: "Обе",
+      periodLabel: "Период",
+      periodMatch: "Матч",
+      periodFirst: "1-й",
+      periodSecond: "2-й",
+      windowLabel: "Окно",
+      layersLabel: "Слои",
+      layerAvgPositions: "Средние позиции",
+      layerTeamLines: "Линии команды",
+      layerWidthDepth: "Ширина и глубина",
+      layerShirtNumbers: "Номера на форме",
+      shapeMetrics: "Метрики формы",
+      teamWidth: "Ширина команды",
+      teamDepth: "Глубина команды",
+      defLineHeightFull: "Высота линии обороны",
+      compactness: "Компактность",
+      compareTwoPlayers: "Сравнить двух игроков",
+      compareConfirmedOnly: "Только подтверждённые игроки.",
+      addToReport: "Добавить в отчёт",
+      exportImage: "Экспорт изображения",
+      noTacticalData: "Тактических данных пока нет",
+      noTacticalDataWhy: "Нужны калибровка поля и подтверждённые составы.",
     },
     workspace: {
       aTeam: "Команда",
@@ -19098,6 +19309,7 @@ export const ru: DeepPartial<Dictionary> = {
       isPlayerInBlueBox: "Игрок в синей рамке — {a}?",
       shirtColourDiffers: "Цвет его формы отличается от других треков {a}: проверьте, что это он.",
       heatmapsLabel: "Тепловые карты",
+      openAnalysis: "Открыть анализ",
     },
     admin: {
       accessRequired: "Требуется доступ администратора",
@@ -20060,6 +20272,22 @@ export const ru: DeepPartial<Dictionary> = {
       signInUseCode: "Использовать 6-значный код",
       signInInvitedBy: "Вас пригласила ваша организация?",
       signInAcceptInvite: "Принять приглашение",
+      tourTitle: "Приветственный тур",
+      tourIntro: "Двухминутная прогулка по основным частям приложения. Сначала: как ваша команда должна видеть ваше имя?",
+      tourDisplayName: "Отображаемое имя",
+      tourNameExample: "например, ваше имя",
+      tourNameHint: "Показывается вашей команде, в журнале аудита и в ссылках, которыми вы делитесь.",
+      tourStepContext: "Рабочий контекст",
+      tourStepUpload: "Загрузка и обработка",
+      tourStepIdentity: "Подтверждение личности",
+      tourStepReels: "Нарезки и отчёты",
+      tourStepEvidence: "Метки доказательств",
+      tourContextBody: "Выберите проект, матч и игрока вверху экрана. Всё в приложении — цифры, нарезки, отчёты — следует этому контексту.",
+      tourUploadBody: "Загрузите видео матча (MP4 или MOV), и движок его проанализирует. Задания показывают прогресс в Центре заданий, а токены списываются по мере анализа видео.",
+      tourIdentityBody: "Движок отслеживает каждого игрока, но человек подтверждает, кто есть кто. Только подтверждённые игроки получают OTSI PIN и попадают в нарезки и отчёты.",
+      tourReelsBody: "Соберите нарезку лучших моментов из того, что измерил движок, или отчёт по игроку из тех же цифр. Ничего не заполняется, если это не было измерено.",
+      tourEvidenceBody: "У каждой цифры есть метка: «Подтверждено» — проверено человеком, «Обнаружено» — измерено движком, «Выведено» — получено из других измерений, «Не измерено» — измерения нет. Неизмеренные значения никогда не заполняются.",
+      tourClose: "Закрыть тур",
     },
   },
   webauthn: {
@@ -20162,6 +20390,23 @@ export const es: DeepPartial<Dictionary> = {
     sampleSlotEmptyBody: "Aquí no hay ningún resumen para reproducir.",
     noThumb: "No hay fotograma para este partido",
     openReel: "Abrir en el creador de resúmenes",
+    tokSpendableNow: "Disponible ahora",
+    tokSpendableTier: "Disponible ahora · {a}",
+    tokTierFree: "Plan gratuito",
+    tokTierPro: "Plan Pro",
+    tokTierEnterprise: "Plan Empresa",
+    tokTotalBalance: "Saldo total",
+    tokExpiredUnwritten: "Caducados, aún no dados de baja",
+    tokLowBalance: "Saldo bajo: añade tokens antes de la próxima ejecución.",
+    tokLastMovements: "Últimos movimientos",
+    tokLedgerFailed: "No se pudo leer el libro.",
+    tokNoMovements: "Aún no hay movimientos.",
+    tokOpenWallet: "Abrir la cartera",
+    tokUpdatedAgo: "Actualizado hace {a} s",
+    tokJobReel: "Render de reel",
+    tokJobReport: "Informe de jugador",
+    tokJobExport: "Paquete de exportación",
+    tokJobAi: "Análisis de IA",
   },
   nav: {
     home: "Inicio",
@@ -25059,7 +25304,49 @@ export const es: DeepPartial<Dictionary> = {
       tacticalModelsNotYet: "Los modelos tácticos están {a}.",
       linkVideoFirst: "Vincula primero este vídeo a un partido (página de Subida o Análisis)",
       reelBuilderArrow: "Creador de reels →",
-      noPlaybackYetReason: "Aún no hay reproducción: {a}",
+            noPlaybackYetReason: "Aún no hay reproducción: {a}",
+      inferredConfirm: "Inferido (¿confirmar?)",
+      playerA: "Jugador A",
+      playerB: "Jugador B",
+      viewPassNetworks: "Redes de pases",
+      viewHeatZones: "Zonas de calor",
+      viewPressingDefence: "Presión y defensa",
+      viewOffBallRuns: "Carreras sin balón",
+      viewComparePlayers: "Comparar dos jugadores",
+      viewsLabel: "Vistas",
+      teamShape: "Forma del equipo",
+      teamShapeNeeds: "La forma del equipo necesita",
+      needPitchCalibration: "Calibración del campo",
+      needTracking: "Seguimiento",
+      needLineups: "Alineaciones",
+      needRequired: "Requerido",
+      needDone: "Listo",
+      teamShapeSub: "Posiciones medias con y sin balón",
+      teamSegLabel: "Equipo",
+      teamHome: "Local",
+      teamAway: "Visitante",
+      teamBoth: "Ambos",
+      periodLabel: "Periodo",
+      periodMatch: "Partido",
+      periodFirst: "1.ª",
+      periodSecond: "2.ª",
+      windowLabel: "Ventana",
+      layersLabel: "Capas",
+      layerAvgPositions: "Posiciones medias",
+      layerTeamLines: "Líneas del equipo",
+      layerWidthDepth: "Anchura y profundidad",
+      layerShirtNumbers: "Números de camiseta",
+      shapeMetrics: "Métricas de forma",
+      teamWidth: "Anchura del equipo",
+      teamDepth: "Profundidad del equipo",
+      defLineHeightFull: "Altura de la línea defensiva",
+      compactness: "Compacidad",
+      compareTwoPlayers: "Comparar dos jugadores",
+      compareConfirmedOnly: "Solo jugadores confirmados.",
+      addToReport: "Añadir al informe",
+      exportImage: "Exportar imagen",
+      noTacticalData: "Aún no hay datos tácticos",
+      noTacticalDataWhy: "Necesita calibración del campo y alineaciones confirmadas.",
     },
     workspace: {
       aTeam: "Un equipo",
@@ -25791,6 +26078,7 @@ export const es: DeepPartial<Dictionary> = {
       isPlayerInBlueBox: "¿El jugador del recuadro azul es {a}?",
       shirtColourDiffers: "El color de su camiseta difiere del de los otros seguimientos de {a}: comprueba que sea él.",
       heatmapsLabel: "Mapas de calor",
+      openAnalysis: "Abrir análisis",
     },
     admin: {
       accessRequired: "Se requiere acceso de administrador",
@@ -26753,6 +27041,22 @@ export const es: DeepPartial<Dictionary> = {
       signInUseCode: "Usar el código de 6 dígitos",
       signInInvitedBy: "¿Te invitó tu organización?",
       signInAcceptInvite: "Acepta tu invitación",
+      tourTitle: "Recorrido de bienvenida",
+      tourIntro: "Un recorrido de dos minutos por las partes principales de la aplicación. Primero: ¿cómo debe ver tu equipo tu nombre?",
+      tourDisplayName: "Nombre visible",
+      tourNameExample: "p. ej., tu nombre",
+      tourNameHint: "Se muestra a tu equipo, en el registro de auditoría y en los enlaces que compartes.",
+      tourStepContext: "Contexto de trabajo",
+      tourStepUpload: "Carga y procesamiento",
+      tourStepIdentity: "Confirmación de identidad",
+      tourStepReels: "Reels e informes",
+      tourStepEvidence: "Etiquetas de evidencia",
+      tourContextBody: "Elige un proyecto, un partido y un jugador en la parte superior de la pantalla. Todo en la aplicación —los números, los reels, los informes— sigue ese contexto.",
+      tourUploadBody: "Suelta un vídeo de partido (MP4 o MOV) y el motor lo analiza. Los trabajos muestran su progreso en el Centro de trabajos, y los tokens se cobran mientras se analiza el vídeo.",
+      tourIdentityBody: "El motor sigue a cada jugador, pero una persona confirma quién es cada uno. Solo los jugadores confirmados obtienen un PIN OTSI y aparecen en reels e informes.",
+      tourReelsBody: "Crea un reel de momentos destacados a partir de los momentos que midió el motor, o un informe de jugador con los mismos números. Nada se rellena si no se midió.",
+      tourEvidenceBody: "Cada número lleva una etiqueta: Confirmado significa revisado por una persona, Detectado significa medido por el motor, Inferido significa derivado de otras mediciones, y No medido significa que no existe medición. Los valores no medidos nunca se rellenan.",
+      tourClose: "Cerrar recorrido",
     },
   },
   webauthn: {
@@ -26855,6 +27159,23 @@ export const de: DeepPartial<Dictionary> = {
     sampleSlotEmptyBody: "Hier gibt es keinen Clip zum Abspielen.",
     noThumb: "Kein Bild für dieses Spiel verfügbar",
     openReel: "Im Clip-Builder öffnen",
+    tokSpendableNow: "Jetzt verfügbar",
+    tokSpendableTier: "Jetzt verfügbar · {a}",
+    tokTierFree: "Kostenloser Tarif",
+    tokTierPro: "Pro-Tarif",
+    tokTierEnterprise: "Enterprise-Tarif",
+    tokTotalBalance: "Gesamtguthaben",
+    tokExpiredUnwritten: "Abgelaufen, noch nicht abgeschrieben",
+    tokLowBalance: "Niedriger Kontostand: Tokens vor dem nächsten Lauf aufladen.",
+    tokLastMovements: "Letzte Bewegungen",
+    tokLedgerFailed: "Das Journal konnte nicht gelesen werden.",
+    tokNoMovements: "Noch keine Bewegungen.",
+    tokOpenWallet: "Wallet öffnen",
+    tokUpdatedAgo: "Vor {a} s aktualisiert",
+    tokJobReel: "Reel-Render",
+    tokJobReport: "Spielerbericht",
+    tokJobExport: "Exportpaket",
+    tokJobAi: "KI-Analyse",
   },
   nav: {
     home: "Start",
@@ -31752,7 +32073,49 @@ export const de: DeepPartial<Dictionary> = {
       tacticalModelsNotYet: "Die taktischen Modelle sind {a}.",
       linkVideoFirst: "Ordne dieses Video zuerst einem Spiel zu (Seite Hochladen oder Analyse)",
       reelBuilderArrow: "Reel-Builder →",
-      noPlaybackYetReason: "Noch keine Wiedergabe: {a}",
+            noPlaybackYetReason: "Noch keine Wiedergabe: {a}",
+      inferredConfirm: "Abgeleitet (bestätigen?)",
+      playerA: "Spieler A",
+      playerB: "Spieler B",
+      viewPassNetworks: "Passnetze",
+      viewHeatZones: "Heat-Zonen",
+      viewPressingDefence: "Pressing & Abwehr",
+      viewOffBallRuns: "Läufe ohne Ball",
+      viewComparePlayers: "Zwei Spieler vergleichen",
+      viewsLabel: "Ansichten",
+      teamShape: "Teamform",
+      teamShapeNeeds: "Teamform braucht",
+      needPitchCalibration: "Spielfeldkalibrierung",
+      needTracking: "Tracking",
+      needLineups: "Aufstellungen",
+      needRequired: "Erforderlich",
+      needDone: "Fertig",
+      teamShapeSub: "Durchschnittspositionen mit und ohne Ball",
+      teamSegLabel: "Team",
+      teamHome: "Heim",
+      teamAway: "Auswärts",
+      teamBoth: "Beide",
+      periodLabel: "Zeitraum",
+      periodMatch: "Spiel",
+      periodFirst: "1. HZ",
+      periodSecond: "2. HZ",
+      windowLabel: "Fenster",
+      layersLabel: "Ebenen",
+      layerAvgPositions: "Durchschnittspositionen",
+      layerTeamLines: "Teamlinien",
+      layerWidthDepth: "Breite & Tiefe",
+      layerShirtNumbers: "Trikotnummern",
+      shapeMetrics: "Formmetriken",
+      teamWidth: "Teambreite",
+      teamDepth: "Teamtiefe",
+      defLineHeightFull: "Höhe der Abwehrlinie",
+      compactness: "Kompaktheit",
+      compareTwoPlayers: "Zwei Spieler vergleichen",
+      compareConfirmedOnly: "Nur bestätigte Spieler.",
+      addToReport: "Zum Bericht hinzufügen",
+      exportImage: "Bild exportieren",
+      noTacticalData: "Noch keine taktischen Daten",
+      noTacticalDataWhy: "Braucht Spielfeldkalibrierung und bestätigte Aufstellungen.",
     },
     workspace: {
       aTeam: "Ein Team",
@@ -32484,6 +32847,7 @@ export const de: DeepPartial<Dictionary> = {
       isPlayerInBlueBox: "Ist der Spieler im blauen Rahmen {a}?",
       shirtColourDiffers: "Seine Trikotfarbe unterscheidet sich von den anderen Tracks von {a}: Prüfe, ob er es ist.",
       heatmapsLabel: "Heatmaps",
+      openAnalysis: "Analyse öffnen",
     },
     admin: {
       accessRequired: "Administratorzugriff erforderlich",
@@ -33446,6 +33810,22 @@ export const de: DeepPartial<Dictionary> = {
       signInUseCode: "Stattdessen den 6-stelligen Code verwenden",
       signInInvitedBy: "Von deiner Organisation eingeladen?",
       signInAcceptInvite: "Einladung annehmen",
+      tourTitle: "Willkommenstour",
+      tourIntro: "Ein zweiminütiger Rundgang durch die wichtigsten Teile der App. Zuerst: Wie soll Ihr Team Ihren Namen sehen?",
+      tourDisplayName: "Anzeigename",
+      tourNameExample: "z. B. Ihr Vorname",
+      tourNameHint: "Wird Ihrem Team, im Audit-Protokoll und in Links, die Sie teilen, angezeigt.",
+      tourStepContext: "Arbeitskontext",
+      tourStepUpload: "Upload & Verarbeitung",
+      tourStepIdentity: "Identität bestätigen",
+      tourStepReels: "Reels & Berichte",
+      tourStepEvidence: "Nachweis-Labels",
+      tourContextBody: "Wählen Sie oben auf dem Bildschirm ein Projekt, ein Spiel und einen Spieler. Alles in der App — die Zahlen, die Reels, die Berichte — folgt diesem Kontext.",
+      tourUploadBody: "Laden Sie ein Spielvideo hoch (MP4 oder MOV) und die Engine analysiert es. Jobs zeigen ihren Fortschritt im Job-Center, und Tokens werden berechnet, während das Video analysiert wird.",
+      tourIdentityBody: "Die Engine verfolgt jeden Spieler, aber eine Person bestätigt, wer wer ist. Nur bestätigte Spieler erhalten eine OTSI-PIN und erscheinen in Reels und Berichten.",
+      tourReelsBody: "Erstellen Sie ein Highlight-Reel aus den Momenten, die die Engine gemessen hat, oder einen Spielerbericht aus denselben Zahlen. Nichts wird ausgefüllt, was nicht gemessen wurde.",
+      tourEvidenceBody: "Jede Zahl trägt ein Label: Bestätigt heißt von einer Person geprüft, Erkannt heißt von der Engine gemessen, Abgeleitet heißt aus anderen Messungen abgeleitet, und Nicht gemessen heißt, es gibt keine Messung. Nicht gemessene Werte werden nie ausgefüllt.",
+      tourClose: "Tour schließen",
     },
   },
   webauthn: {
@@ -33548,6 +33928,23 @@ export const fr: DeepPartial<Dictionary> = {
     sampleSlotEmptyBody: "Il n’y a aucun montage à lire ici.",
     noThumb: "Aucune image disponible pour ce match",
     openReel: "Ouvrir dans le créateur de montage",
+    tokSpendableNow: "Disponible maintenant",
+    tokSpendableTier: "Disponible maintenant · {a}",
+    tokTierFree: "Offre gratuite",
+    tokTierPro: "Offre Pro",
+    tokTierEnterprise: "Offre Entreprise",
+    tokTotalBalance: "Solde total",
+    tokExpiredUnwritten: "Expirés, pas encore sortis",
+    tokLowBalance: "Solde faible : ajoutez des tokens avant la prochaine exécution.",
+    tokLastMovements: "Derniers mouvements",
+    tokLedgerFailed: "Impossible de lire le journal.",
+    tokNoMovements: "Aucun mouvement pour l'instant.",
+    tokOpenWallet: "Ouvrir le portefeuille",
+    tokUpdatedAgo: "Mis à jour il y a {a} s",
+    tokJobReel: "Rendu de reel",
+    tokJobReport: "Rapport joueur",
+    tokJobExport: "Pack d'export",
+    tokJobAi: "Analyse IA",
   },
   nav: {
     home: "Accueil",
@@ -38445,7 +38842,49 @@ export const fr: DeepPartial<Dictionary> = {
       tacticalModelsNotYet: "Les modèles tactiques sont {a}.",
       linkVideoFirst: "Liez d’abord cette vidéo à un match (page Envoi ou Analyse)",
       reelBuilderArrow: "Créateur de reels →",
-      noPlaybackYetReason: "Pas encore de lecture : {a}",
+            noPlaybackYetReason: "Pas encore de lecture : {a}",
+      inferredConfirm: "Déduit (confirmer ?)",
+      playerA: "Joueur A",
+      playerB: "Joueur B",
+      viewPassNetworks: "Réseaux de passes",
+      viewHeatZones: "Zones de chaleur",
+      viewPressingDefence: "Pressing et défense",
+      viewOffBallRuns: "Courses sans ballon",
+      viewComparePlayers: "Comparer deux joueurs",
+      viewsLabel: "Vues",
+      teamShape: "Forme de l'équipe",
+      teamShapeNeeds: "La forme d'équipe a besoin de",
+      needPitchCalibration: "Calibration du terrain",
+      needTracking: "Suivi",
+      needLineups: "Compositions",
+      needRequired: "Requis",
+      needDone: "Fait",
+      teamShapeSub: "Positions moyennes avec et sans ballon",
+      teamSegLabel: "Équipe",
+      teamHome: "Domicile",
+      teamAway: "Extérieur",
+      teamBoth: "Les deux",
+      periodLabel: "Période",
+      periodMatch: "Match",
+      periodFirst: "1re",
+      periodSecond: "2e",
+      windowLabel: "Fenêtre",
+      layersLabel: "Calques",
+      layerAvgPositions: "Positions moyennes",
+      layerTeamLines: "Lignes de l'équipe",
+      layerWidthDepth: "Largeur et profondeur",
+      layerShirtNumbers: "Numéros de maillot",
+      shapeMetrics: "Métriques de forme",
+      teamWidth: "Largeur de l'équipe",
+      teamDepth: "Profondeur de l'équipe",
+      defLineHeightFull: "Hauteur de la ligne défensive",
+      compactness: "Compacité",
+      compareTwoPlayers: "Comparer deux joueurs",
+      compareConfirmedOnly: "Joueurs confirmés uniquement.",
+      addToReport: "Ajouter au rapport",
+      exportImage: "Exporter l'image",
+      noTacticalData: "Pas encore de données tactiques",
+      noTacticalDataWhy: "Nécessite une calibration du terrain et des compositions confirmées.",
     },
     workspace: {
       aTeam: "Une équipe",
@@ -39177,6 +39616,7 @@ export const fr: DeepPartial<Dictionary> = {
       isPlayerInBlueBox: "Le joueur dans le cadre bleu est-il {a} ?",
       shirtColourDiffers: "La couleur de son maillot diffère de celle des autres suivis de {a} : vérifiez que c’est bien lui.",
       heatmapsLabel: "Cartes de chaleur",
+      openAnalysis: "Ouvrir l’analyse",
     },
     admin: {
       accessRequired: "Accès administrateur requis",
@@ -40139,6 +40579,22 @@ export const fr: DeepPartial<Dictionary> = {
       signInUseCode: "Utiliser le code à 6 chiffres à la place",
       signInInvitedBy: "Invité par votre organisation ?",
       signInAcceptInvite: "Accepter votre invitation",
+      tourTitle: "Visite de bienvenue",
+      tourIntro: "Une visite de deux minutes des parties principales de l'application. D'abord : comment votre équipe doit-elle voir votre nom ?",
+      tourDisplayName: "Nom affiché",
+      tourNameExample: "p. ex. votre prénom",
+      tourNameHint: "Affiché à votre équipe, dans le journal d'audit et sur les liens que vous partagez.",
+      tourStepContext: "Contexte de travail",
+      tourStepUpload: "Envoi et traitement",
+      tourStepIdentity: "Confirmation d'identité",
+      tourStepReels: "Reels et rapports",
+      tourStepEvidence: "Étiquettes de preuve",
+      tourContextBody: "Choisissez un projet, un match et un joueur en haut de l'écran. Tout dans l'application — les chiffres, les reels, les rapports — suit ce contexte.",
+      tourUploadBody: "Déposez une vidéo de match (MP4 ou MOV) et le moteur l'analyse. Les tâches montrent leur progression dans le Centre des tâches, et les tokens sont débités pendant l'analyse de la vidéo.",
+      tourIdentityBody: "Le moteur suit chaque joueur, mais une personne confirme qui est qui. Seuls les joueurs confirmés obtiennent un PIN OTSI et apparaissent dans les reels et les rapports.",
+      tourReelsBody: "Créez un reel des meilleurs moments à partir des moments mesurés par le moteur, ou un rapport joueur à partir des mêmes chiffres. Rien n'est rempli si cela n'a pas été mesuré.",
+      tourEvidenceBody: "Chaque chiffre porte une étiquette : Confirmé signifie vérifié par une personne, Détecté signifie mesuré par le moteur, Déduit signifie dérivé d'autres mesures, et Non mesuré signifie qu'aucune mesure n'existe. Les valeurs non mesurées ne sont jamais remplies.",
+      tourClose: "Fermer la visite",
     },
   },
   webauthn: {
@@ -40241,7 +40697,24 @@ export const pt: DeepPartial<Dictionary> = {
     "sampleSlotEmptyTitle": "Nenhum vídeo neste espaço",
     "sampleSlotEmptyBody": "Não há vídeo para reproduzir aqui.",
     "noThumb": "Nenhum quadro disponível para esta partida",
-    "openReel": "Abrir no criador de vídeos"
+    "openReel": "Abrir no criador de vídeos",
+    "tokSpendableNow": "Disponível agora",
+    "tokSpendableTier": "Disponível agora · {a}",
+    "tokTierFree": "Plano gratuito",
+    "tokTierPro": "Plano Pro",
+    "tokTierEnterprise": "Plano Empresa",
+    "tokTotalBalance": "Saldo total",
+    "tokExpiredUnwritten": "Expirados, ainda não baixados",
+    "tokLowBalance": "Saldo baixo: adicione tokens antes da próxima execução.",
+    "tokLastMovements": "Últimos movimentos",
+    "tokLedgerFailed": "Não foi possível ler o extrato.",
+    "tokNoMovements": "Ainda não há movimentos.",
+    "tokOpenWallet": "Abrir a carteira",
+    "tokUpdatedAgo": "Atualizado há {a} s",
+    "tokJobReel": "Renderização de reel",
+    "tokJobReport": "Relatório de jogador",
+    "tokJobExport": "Pacote de exportação",
+    "tokJobAi": "Análise de IA",
   },
   "nav": {
     "home": "Início",
@@ -45148,7 +45621,49 @@ export const pt: DeepPartial<Dictionary> = {
       "tacticalModelsNotYet": "Os modelos táticos estão {a}.",
       "linkVideoFirst": "Vincule primeiro este vídeo a uma partida (página Enviar ou Análise)",
       "reelBuilderArrow": "Criador de Reels →",
-      "noPlaybackYetReason": "Ainda sem reprodução: {a}"
+            "noPlaybackYetReason": "Ainda sem reprodução: {a}",
+      "inferredConfirm": "Inferido (confirmar?)",
+      "playerA": "Jogador A",
+      "playerB": "Jogador B",
+      "viewPassNetworks": "Redes de passes",
+      "viewHeatZones": "Zonas de calor",
+      "viewPressingDefence": "Pressão e defesa",
+      "viewOffBallRuns": "Corridas sem bola",
+      "viewComparePlayers": "Comparar dois jogadores",
+      "viewsLabel": "Visualizações",
+      "teamShape": "Formação da equipa",
+      "teamShapeNeeds": "A forma da equipa precisa de",
+      "needPitchCalibration": "Calibração do campo",
+      "needTracking": "Rastreio",
+      "needLineups": "Escalações",
+      "needRequired": "Obrigatório",
+      "needDone": "Feito",
+      "teamShapeSub": "Posições médias com e sem bola",
+      "teamSegLabel": "Equipa",
+      "teamHome": "Casa",
+      "teamAway": "Fora",
+      "teamBoth": "Ambas",
+      "periodLabel": "Período",
+      "periodMatch": "Jogo",
+      "periodFirst": "1.ª",
+      "periodSecond": "2.ª",
+      "windowLabel": "Janela",
+      "layersLabel": "Camadas",
+      "layerAvgPositions": "Posições médias",
+      "layerTeamLines": "Linhas da equipa",
+      "layerWidthDepth": "Largura e profundidade",
+      "layerShirtNumbers": "Números de camisola",
+      "shapeMetrics": "Métricas de forma",
+      "teamWidth": "Largura da equipa",
+      "teamDepth": "Profundidade da equipa",
+      "defLineHeightFull": "Altura da linha defensiva",
+      "compactness": "Compacidade",
+      "compareTwoPlayers": "Comparar dois jogadores",
+      "compareConfirmedOnly": "Apenas jogadores confirmados.",
+      "addToReport": "Adicionar ao relatório",
+      "exportImage": "Exportar imagem",
+      "noTacticalData": "Ainda não há dados táticos",
+      "noTacticalDataWhy": "Precisa de calibração do campo e escalações confirmadas.",
     },
     "workspace": {
       "aTeam": "Uma equipe",
@@ -45879,7 +46394,8 @@ export const pt: DeepPartial<Dictionary> = {
       "looksAlikeSuffix": " · {a} semelhante",
       "isPlayerInBlueBox": "O jogador na caixa azul é {a}?",
       "shirtColourDiffers": "A cor da camisa dele é diferente das outras trilhas de {a}: verifique se é ele.",
-      "heatmapsLabel": "Mapas de calor"
+      "heatmapsLabel": "Mapas de calor",
+      "openAnalysis": "Abrir análise",
     },
     "admin": {
       "accessRequired": "Acesso de administrador necessário",
@@ -46842,6 +47358,22 @@ export const pt: DeepPartial<Dictionary> = {
       "signInUseCode": "Usar o código de 6 dígitos",
       "signInInvitedBy": "Convidado pela sua organização?",
       "signInAcceptInvite": "Aceitar seu convite",
+      "tourTitle": "Tour de boas-vindas",
+      "tourIntro": "Um passeio de dois minutos pelas principais partes da aplicação. Primeiro: como deve a sua equipa ver o seu nome?",
+      "tourDisplayName": "Nome apresentado",
+      "tourNameExample": "p. ex., o seu primeiro nome",
+      "tourNameHint": "Mostrado à sua equipa, no registo de auditoria e nos links que partilha.",
+      "tourStepContext": "Contexto de trabalho",
+      "tourStepUpload": "Carregamento e processamento",
+      "tourStepIdentity": "Confirmação de identidade",
+      "tourStepReels": "Reels e relatórios",
+      "tourStepEvidence": "Rótulos de evidência",
+      "tourContextBody": "Escolha um projeto, um jogo e um jogador no topo do ecrã. Tudo na aplicação — os números, os reels, os relatórios — segue esse contexto.",
+      "tourUploadBody": "Largue um vídeo de jogo (MP4 ou MOV) e o motor analisa-o. Os trabalhos mostram o seu progresso no Centro de trabalhos, e os tokens são cobrados à medida que o vídeo é analisado.",
+      "tourIdentityBody": "O motor segue cada jogador, mas uma pessoa confirma quem é quem. Apenas os jogadores confirmados recebem um PIN OTSI e aparecem nos reels e relatórios.",
+      "tourReelsBody": "Crie um reel de destaques a partir dos momentos que o motor mediu, ou um relatório de jogador a partir dos mesmos números. Nada é preenchido se não foi medido.",
+      "tourEvidenceBody": "Cada número tem um rótulo: Confirmado significa verificado por uma pessoa, Detetado significa medido pelo motor, Inferido significa derivado de outras medições, e Não medido significa que não existe medição. Os valores não medidos nunca são preenchidos.",
+      "tourClose": "Fechar tour",
     }
   },
   "webauthn": {

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { RequireSession } from "@/components/auth/RequireSession";
+import { WelcomeTour } from "@/components/auth/Onboarding";
 import { AccuracyBanner } from "@/components/evidence/AccuracyBanner";
 import { AdvancedGuard } from "@/components/shell/AdvancedGuard";
 import { AppMain } from "@/components/shell/AppMain";
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <RequireSession><AdvancedGuard>{children}</AdvancedGuard></RequireSession>
               </AppMain>
               <StatusBar />
+              <WelcomeTour />
             </div>
           </div>
         </UiModeProvider>

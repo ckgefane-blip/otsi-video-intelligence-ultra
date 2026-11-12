@@ -132,7 +132,7 @@ describe("shared link recipient view (Page 26)", () => {
     fireEvent.change(screen.getByLabelText(/Comment at/), { target: { value: "Good run" } });
     fireEvent.click(screen.getByRole("button", { name: "Post comment" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    const [, postCall] = fetchMock.mock.calls;
+    const postCall = fetchMock.mock.calls[1]!;
     expect(postCall[0]).toContain("/comments");
     expect(JSON.parse(String(postCall[1].body))).toMatchObject({ name: "Scout", body: "Good run", at_s: 0 });
     await waitFor(() => expect(screen.getByText("Good run")).toBeInTheDocument());
@@ -177,7 +177,7 @@ describe("sign-in page (Page 27)", () => {
     const panel = screen.getByRole("heading", { name: "Enter your verification code" }).closest("section") as HTMLElement;
     const boxes = within(panel).getAllByRole("textbox");
     expect(boxes).toHaveLength(6);
-    "123456".split("").forEach((d, i) => fireEvent.change(boxes[i], { target: { value: d } }));
+    "123456".split("").forEach((d, i) => fireEvent.change(boxes[i]!, { target: { value: d } }));
     expect(screen.getByRole("button", { name: "Verify" })).not.toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     await waitFor(() => expect(signInWithCode).toHaveBeenCalledWith("tok123", "123456"));

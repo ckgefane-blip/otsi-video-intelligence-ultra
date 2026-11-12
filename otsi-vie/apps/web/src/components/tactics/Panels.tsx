@@ -74,7 +74,7 @@ const teamOpts = (m: Match | null, d: Dictionary): Opt<string>[] => [["none", d.
     : [["link", d.body.tactics.homeAwayTeam, d.body.tactics.linkVideoFirstLower] as Opt<string>])];
 const range = (d: Dictionary): Opt<string>[] => [["none", d.body.tactics.timeRangeLower], ["full", d.body.tactics.fullMatchLower], ["h1", d.body.workspace.firstHalfLower, d.body.tactics.matchPeriodsNotRecorded], ["h2", d.body.workspace.secondHalfLower, d.body.tactics.matchPeriodsNotRecorded]];
 
-function useTeamShape(runId: string | null, groups: number[], key: unknown): TeamShape | null | "loading" {
+export function useTeamShape(runId: string | null, groups: number[], key: unknown): TeamShape | null | "loading" {
   const [v, setV] = useState<TeamShape | null | "loading">(null);
   const g = groups.join(",");
   useEffect(() => {
@@ -89,7 +89,7 @@ function useTeamShape(runId: string | null, groups: number[], key: unknown): Tea
 }
 
 /** where players stand around the team's centre, drawn over the pitch picture centred on the centre spot (the window is SHAPE_SPAN_M) */
-function ShapePicture({ shape }: { shape: TeamShape }) {
+export function ShapePicture({ shape }: { shape: TeamShape }) {
   const max = Math.max(0, ...shape.density);
   const [sx, sy] = SHAPE_SPAN_M;
   return (
@@ -108,7 +108,7 @@ function ShapePicture({ shape }: { shape: TeamShape }) {
 
 const ofStat = (st: { mean: number } | null, unit: string, digits = 0) => (st ? `${st.mean.toFixed(digits)} ${unit}` : "—");
 
-function useFormations(videoId: string | null, period: string, key: unknown): FormationsAnalysis | null | "loading" {
+export function useFormations(videoId: string | null, period: string, key: unknown): FormationsAnalysis | null | "loading" {
   const [data, setData] = useState<FormationsAnalysis | null | "loading">(null);
   useEffect(() => {
     setData(null);
@@ -289,78 +289,99 @@ export function TeamHeat({ runId, side, calKey }: { runId: string | null; side: 
   return <p className="grid aspect-[105/68] w-full place-items-center rounded-md border border-line bg-[#1d5a2e] text-center text-sm text-[#cfe3d8]">{why}</p>;
 }
 
-export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey = 0, videoId = null, onSeek }: { focus: string | null; match: Match | null; runId?: string | null; kits?: RunTeams | null; calKey?: unknown; videoId?: string | null; onSeek?: (us: number) => void }) {
+/** pass networks (p05-s05): who passes to whom — not measured yet; the pitch and the pass-width legend stay, with "Not measured" */
+export function PassNetworkPanel({ focus, match }: { focus: string | null; match: Match | null }) {
+  const { t: dict } = useLocale();
+  return (
+    <Panel id="p05-s05" title={dict.body.workspace.passNetworkMode} info={`${dict.body.tactics.whoPassesToWhom} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s05"}>
+      <div className="flex flex-wrap gap-2">
+        <FlowSel label={dict.body.tactics.passNetworkTeam} value="none" options={teamOpts(match, dict)} />
+        <FlowSel label={dict.body.tactics.passNetworkTimeRange} value="none" options={range(dict)} />
+      </div>
+      <FlowPitch><NotMeasuredFlow /></FlowPitch>
+      <div data-spec-summary aria-label={dict.body.tactics.legendPassWidth} className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
+        <span className="font-normal">{dict.body.processing.eventPasses}</span>
+        {([["1-3", 2], ["4-6", 4], ["7-10", 6], ["10+", 9]] as const).map(([l, w]) => (
+          <span key={l} className="flex items-center gap-2"><i className="inline-block w-10 rounded" style={{ height: w, background: l === "10+" ? "#dbe8ff" : "#1a8cff" }} />{l}</span>
+        ))}
+        <span className="flex items-center gap-2"><i className="inline-block h-[3px] w-10 bg-[#1a8cff]" />{dict.body.tactics.successful}</span>
+        <span className="flex items-center gap-2"><i className="inline-block h-0 w-10 border-t-[3px] border-dashed border-[#ff3a3a]" />{dict.body.tactics.unsuccessful}</span>
+      </div>
+    </Panel>
+  );
+}
+
+/** possession and heat zones (p05-s06): measured — where each side's players were, from calibrated pitch positions only */
+export function HeatZonesPanel({ focus, runId = null, kits = null, match, calKey = 0 }: { focus: string | null; runId?: string | null; kits?: RunTeams | null; match: Match | null; calKey?: unknown }) {
   const { t: dict } = useLocale();
   const sides = heatSides(kits, match, dict);
   return (
+    <Panel id="p05-s06" title={dict.body.tactics.possessionHeatZones} focus={focus === "p05-s06"}>
+      <div className="grid grid-cols-2 gap-4">
+        {([0, 1] as const).map((i) => (
+          <div key={i} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam))}>
+            <div className="mb-1 flex items-center gap-2">
+              <span aria-hidden className="h-5 w-5 rounded-full" style={{ background: sides[i]?.colour ? `#${sides[i]!.colour!.replace(/^#/, "")}` : i ? "#e8d9a0" : "#7ab6ff" }} />
+              <span className="truncate text-sm font-normal">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</span>
+            </div>
+            <TeamHeat runId={runId} side={sides[i]} calKey={calKey} />
+            <p className="mt-1 text-sm text-[#cfdcf0]">{dict.body.tactics.possessionLabel} <span className="t-metric text-primary">—</span></p>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/** off-ball runs (p05-s08): runs without the ball — not measured yet; the run-type legend and the four "Not measured" counts stay */
+export function OffBallRunsPanel({ focus, match }: { focus: string | null; match: Match | null }) {
+  const { t: dict } = useLocale();
+  return (
+    <Panel id="p05-s08" title={dict.body.tactics.offBallRuns} info={`${dict.body.tactics.runsWithoutBall} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s08"}>
+      <div className="flex flex-wrap gap-2">
+        <FlowSel label={dict.body.tactics.offBallPlayer} value="none"
+          options={[["none", dict.body.tactics.selectPlayerOption], ...(match?.roster.length ? match.roster.map((r): Opt<string> => [r.player_id, `${r.jersey_number !== null ? `${r.jersey_number} · ` : ""}${r.display_name}`])
+            : [["roster", dict.body.tactics.matchPlayersOption, match ? dict.body.tactics.addRosterAnalysis : dict.body.tactics.linkVideoFirstLower] as Opt<string>])]} />
+        <FlowSel label={dict.body.tactics.offBallTimeRange} value="none" options={range(dict)} />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-2">
+          <FlowPitch><NotMeasuredFlow /></FlowPitch>
+          <div className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
+            {([[dict.body.tactics.offBallRun, "#19d3ff", "- - -"], [dict.body.tactics.leadingRun, "#ffb21a", "- - →"], [dict.body.tactics.supportingRun, "#dbe8ff", "- - -"]] as const).map(([l, c, g]) => (
+              <span key={l}><span style={{ color: c }}>{g}</span> {l}</span>
+            ))}
+            <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full border-2 border-white" />{dict.body.tactics.runStart}</span>
+            <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full bg-white" />{dict.body.tactics.runEnd}</span>
+          </div>
+        </div>
+        <dl className="m-0 flex flex-col gap-2 text-sm">
+          {([
+            [dict.body.tactics.totalOffBallRuns, dict.body.tactics.notMeasuredOffBallRuns],
+            [dict.body.tactics.progressiveRuns, dict.body.tactics.notMeasuredProgressiveRuns],
+            [dict.body.tactics.runsIntoBox, dict.body.tactics.notMeasuredRunsIntoBox],
+            [dict.body.tactics.avgRunDistance, dict.body.tactics.notMeasuredAvgRunDistance],
+          ] as const).map(([l, why]) => (
+            <div key={l} title={why} data-offball-metric={l} className="flex items-center justify-between gap-2">
+              <dt className="text-[#cfdcf0]">{l}</dt><dd className="font-normal">—</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Panel>
+  );
+}
+
+/** the full set, in flow (Desktop UI Drop 2): pass networks and heat zones side by side, pressing, off-ball runs */
+export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey = 0, videoId = null, onSeek }: { focus: string | null; match: Match | null; runId?: string | null; kits?: RunTeams | null; calKey?: unknown; videoId?: string | null; onSeek?: (us: number) => void }) {
+  return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel id="p05-s05" title={dict.body.workspace.passNetworkMode} info={`${dict.body.tactics.whoPassesToWhom} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s05"}>
-          <div className="flex flex-wrap gap-2">
-            <FlowSel label={dict.body.tactics.passNetworkTeam} value="none" options={teamOpts(match, dict)} />
-            <FlowSel label={dict.body.tactics.passNetworkTimeRange} value="none" options={range(dict)} />
-          </div>
-          <FlowPitch><NotMeasuredFlow /></FlowPitch>
-          <div data-spec-summary aria-label={dict.body.tactics.legendPassWidth} className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
-            <span className="font-normal">{dict.body.processing.eventPasses}</span>
-            {([["1-3", 2], ["4-6", 4], ["7-10", 6], ["10+", 9]] as const).map(([l, w]) => (
-              <span key={l} className="flex items-center gap-2"><i className="inline-block w-10 rounded" style={{ height: w, background: l === "10+" ? "#dbe8ff" : "#1a8cff" }} />{l}</span>
-            ))}
-            <span className="flex items-center gap-2"><i className="inline-block h-[3px] w-10 bg-[#1a8cff]" />{dict.body.tactics.successful}</span>
-            <span className="flex items-center gap-2"><i className="inline-block h-0 w-10 border-t-[3px] border-dashed border-[#ff3a3a]" />{dict.body.tactics.unsuccessful}</span>
-          </div>
-        </Panel>
-
-        <Panel id="p05-s06" title={dict.body.tactics.possessionHeatZones} focus={focus === "p05-s06"}>
-          <div className="grid grid-cols-2 gap-4">
-            {([0, 1] as const).map((i) => (
-              <div key={i} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam))}>
-                <div className="mb-1 flex items-center gap-2">
-                  <span aria-hidden className="h-5 w-5 rounded-full" style={{ background: sides[i]?.colour ? `#${sides[i]!.colour!.replace(/^#/, "")}` : i ? "#e8d9a0" : "#7ab6ff" }} />
-                  <span className="truncate text-sm font-normal">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</span>
-                </div>
-                <TeamHeat runId={runId} side={sides[i]} calKey={calKey} />
-                <p className="mt-1 text-sm text-[#cfdcf0]">{dict.body.tactics.possessionLabel} <span className="t-metric text-primary">—</span></p>
-              </div>
-            ))}
-          </div>
-        </Panel>
+        <PassNetworkPanel focus={focus} match={match} />
+        <HeatZonesPanel focus={focus} runId={runId} kits={kits} match={match} calKey={calKey} />
       </div>
-
       <PressingPanel videoId={videoId} focus={focus === "p05-s07"} match={match} onSeek={onSeek} />
-
-      <Panel id="p05-s08" title={dict.body.tactics.offBallRuns} info={`${dict.body.tactics.runsWithoutBall} ${dict.body.tactics.needsPitchTeamEvents}`} focus={focus === "p05-s08"}>
-        <div className="flex flex-wrap gap-2">
-          <FlowSel label={dict.body.tactics.offBallPlayer} value="none"
-            options={[["none", dict.body.tactics.selectPlayerOption], ...(match?.roster.length ? match.roster.map((r): Opt<string> => [r.player_id, `${r.jersey_number !== null ? `${r.jersey_number} · ` : ""}${r.display_name}`])
-              : [["roster", dict.body.tactics.matchPlayersOption, match ? dict.body.tactics.addRosterAnalysis : dict.body.tactics.linkVideoFirstLower] as Opt<string>])]} />
-          <FlowSel label={dict.body.tactics.offBallTimeRange} value="none" options={range(dict)} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-2">
-            <FlowPitch><NotMeasuredFlow /></FlowPitch>
-            <div className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
-              {([[dict.body.tactics.offBallRun, "#19d3ff", "- - -"], [dict.body.tactics.leadingRun, "#ffb21a", "- - →"], [dict.body.tactics.supportingRun, "#dbe8ff", "- - -"]] as const).map(([l, c, g]) => (
-                <span key={l}><span style={{ color: c }}>{g}</span> {l}</span>
-              ))}
-              <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full border-2 border-white" />{dict.body.tactics.runStart}</span>
-              <span><span aria-hidden className="mr-1 inline-block h-3 w-3 rounded-full bg-white" />{dict.body.tactics.runEnd}</span>
-            </div>
-          </div>
-          <dl className="m-0 flex flex-col gap-2 text-sm">
-            {([
-              [dict.body.tactics.totalOffBallRuns, dict.body.tactics.notMeasuredOffBallRuns],
-              [dict.body.tactics.progressiveRuns, dict.body.tactics.notMeasuredProgressiveRuns],
-              [dict.body.tactics.runsIntoBox, dict.body.tactics.notMeasuredRunsIntoBox],
-              [dict.body.tactics.avgRunDistance, dict.body.tactics.notMeasuredAvgRunDistance],
-            ] as const).map(([l, why]) => (
-              <div key={l} title={why} data-offball-metric={l} className="flex items-center justify-between gap-2">
-                <dt className="text-[#cfdcf0]">{l}</dt><dd className="font-normal">—</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </Panel>
+      <OffBallRunsPanel focus={focus} match={match} />
     </>
   );
 }

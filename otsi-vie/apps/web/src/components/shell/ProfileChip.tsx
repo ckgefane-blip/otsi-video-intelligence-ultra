@@ -5,6 +5,7 @@ import type { Me } from "@otsi-vie/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { REPLAY_TOUR_EVENT } from "@/components/auth/Onboarding";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { useUiMode } from "@/lib/uiMode";
 import { InterfaceModeSwitch } from "./InterfaceModeSwitch";
@@ -161,10 +162,12 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
               <Wallet className="h-4 w-4" /> {t.body.shell.tokenWallet}
             </button>
           </Dialog.Close>
-          <button type="button" data-welcome-replay onClick={() => router.push("/welcome")}
-            className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
-            {t.body.shell.welcomeTour}
-          </button>
+          <Dialog.Close asChild>
+            <button type="button" data-welcome-replay onClick={() => window.dispatchEvent(new Event(REPLAY_TOUR_EVENT))}
+              className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
+              {t.body.shell.welcomeTour}
+            </button>
+          </Dialog.Close>
           <button type="button" onClick={() => void signOut().then(() => router.replace("/login"))}
             className="mt-3 flex w-full items-center gap-2 rounded-ctl border border-line px-3 py-2 text-sm hover:border-primary/60">
             <LogOut className="h-4 w-4" /> {t.common.signOut}
