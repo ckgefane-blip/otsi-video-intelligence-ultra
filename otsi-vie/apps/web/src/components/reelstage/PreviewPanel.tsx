@@ -229,27 +229,25 @@ export function PreviewPanel() {
       )}
       {reel && src?.kind === "source" && <div className="mt-2"><CoverageBar path={path} clip={clip} lock={look.lock} /></div>}
 
-      {!reel && (
+      {/* the empty / loading states live in the preview's own empty title above — showing them again here duplicated the sentence
+          (and the trailing "." made it ".."). Below the preview only the things the title cannot show: a retry when the read failed,
+          and the reels to open when there are any. */}
+      {!reel && listFailed && (
         <div className="mt-2">
-          {listFailed ? (
-            <p className="t-body">{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} className="text-primary underline">{dict.common.retry}</button></p>
-          ) : list === null ? (
-            <p className="t-small">{dict.body.reelstage.previewLoadingReels}</p>
-          ) : list.length === 0 ? (
-            <p className="t-body">{dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel)}.</p>
-          ) : (
-            <>
-              <p className="t-panel mb-1">{dict.body.reels.openReel}</p>
-              <ul aria-label={dict.pages.reels.title} className="max-h-44 space-y-1 overflow-y-auto t-body">
-                {list.map((x) => (
-                  <li key={x.id}>
-                    <Link href={`/reels/${x.id}`} className="text-primary underline">{x.name}</Link>
-                    <span className="t-small"> · {(x.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(x.clips.length))} · {renderWord(x.latest_render?.state, dict.body.reels)}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+          <p className="t-body">{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => loadList()} className="text-primary underline">{dict.common.retry}</button></p>
+        </div>
+      )}
+      {!reel && list !== null && list.length > 0 && (
+        <div className="mt-2">
+          <p className="t-panel mb-1">{dict.body.reels.openReel}</p>
+          <ul aria-label={dict.pages.reels.title} className="max-h-44 space-y-1 overflow-y-auto t-body">
+            {list.map((x) => (
+              <li key={x.id}>
+                <Link href={`/reels/${x.id}`} className="text-primary underline">{x.name}</Link>
+                <span className="t-small"> · {(x.clips.length === 1 ? dict.body.reels.reelListClipsOne : dict.body.reels.reelListClipsMany).replace("{a}", String(x.clips.length))} · {renderWord(x.latest_render?.state, dict.body.reels)}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>

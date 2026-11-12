@@ -196,13 +196,13 @@ export function Inspector() {
       </section>
 
       <section id="p06-spotlight" aria-label={dict.body.reels.spotlightControls} data-section="p06-s09" className={`vie-panel space-y-2 p-3 ${border("p06-spotlight")}`}>
-        <div className="flex items-center gap-2">
-          <h2 className="t-section">{dict.body.reels.spotlightControls}</h2>
-          {/* B.16 (ADR-092): built-in starting looks; any slider change makes it "Custom" */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="t-section min-w-0 flex-1 truncate">{dict.body.reels.spotlightControls}</h2>
+          {/* the preset select is capped so it cannot run past the panel edge; the row wraps instead of overflowing */}
           <select aria-label={dict.body.reelstage.spotlightPresetAria} data-spotlight-preset={presetOf(set) ?? "custom"} value={presetOf(set) ?? ""} disabled={!canEdit}
             title={presetWords[presetOf(set) ?? ""]?.[1] ?? dict.body.reelstage.presetCustomNote}
             onChange={(e) => { const p = SPOTLIGHT_PRESETS.find((x) => x.key === e.target.value); if (p) setDraft({ ...set, ...p.look }); }}
-            className={`${FIELD} ml-auto w-auto shrink-0`}>
+            className="ml-auto min-w-0 max-w-28 shrink-0 truncate rounded-ctl border border-line2 bg-canvas px-2 py-1.5 t-body">
             <option value="" disabled>{dict.body.reelstage.presetCustom}</option>
             {SPOTLIGHT_PRESETS.map((p) => <option key={p.key} value={p.key}>{presetWords[p.key]?.[0] ?? p.name}</option>)}
           </select>

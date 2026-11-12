@@ -67,7 +67,7 @@ function ReelSettingsSidebar() {
     ["C", d.rbTierC, "|rgb(var(--ink2))"],
   ];
   return (
-    <aside className="side" aria-label={d.rbSettings}>
+    <aside className="side" aria-label={d.rbSettings} style={{ flex: "0 0 300px", maxWidth: 300, overflowY: "auto" }}>
       <div className="ph" style={{ minHeight: 44 }}><h2 className="h3">{d.rbSettings}</h2><span className="chip mono">{d.rbRule}</span></div>
       <div className="sect" style={{ gap: 8 }}>
         <span className="eb">{d.rbMomentsFrom}</span>
@@ -420,7 +420,7 @@ function Sections({ r }: { r: ReelState | null }) {
   }, [r]);
   const msg = note ?? r?.msg ?? (r?.error ? { ok: false, text: r.error } : null);
   return (
-    <div className="flex min-h-0 flex-1" data-page="reels">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-x-hidden" data-page="reels">
       <StageProvider value={value}>
         <ReelSettingsSidebar />
         <main className="content" style={{ padding: 12, gap: 10 }}>

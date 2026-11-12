@@ -129,12 +129,18 @@ describe("Reel Builder (SOT)", () => {
     });
     render(<ReelStage />);
     // the SOT's three columns are there even with nothing loaded (like Filmora/DaVinci): the settings sidebar,
-    // the preview, and the Clip inspector — with the empty state inside the preview (title + the line below it),
-    // not a bare "No reels yet" page
+    // the preview, and the Clip inspector — with the empty state inside the preview ONLY (it used to show twice,
+    // the second copy ending ".."), not a bare "No reels yet" page
     expect(await screen.findByText("Reel settings")).toBeInTheDocument();
     expect(screen.getByText("No clip selected")).toBeInTheDocument();
-    expect(screen.getAllByText(/No reel yet/)).toHaveLength(2);
+    expect(screen.getAllByText(/No reel yet/)).toHaveLength(1);
+    expect(screen.queryByText(/No reel yet.*\.\./)).toBeNull();
     expect(screen.queryByText("No reels yet.")).toBeNull();
+    // the Build reel button is in the sidebar footer even with no reel (disabled until one is opened), not missing
+    const build = screen.getByRole("button", { name: /Build reel/ });
+    expect(build).toBeInTheDocument();
+    expect(build).toBeDisabled();
+    expect(build).toHaveTextContent("10 tokens");
   });
 
   it("without a reel id it opens the first reel on its own", async () => {
