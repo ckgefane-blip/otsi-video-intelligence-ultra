@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE — Starting</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app" style="--ac: {{accent}}; align-items: center; justify-content: center; position: relative; overflow: hidden">
+<svg viewBox="0 0 680 440" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 1100px; height: auto; transform: translate(-50%, -50%); opacity: .3">
+<g fill="none" stroke="#1F2A25" stroke-width="1.2"><rect x="10" y="10" width="660" height="420" rx="4"/><rect x="10" y="118" width="108" height="204"/><rect x="562" y="118" width="108" height="204"/></g>
+</svg>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%; max-width: 420px; padding: 32px; text-align: center">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 18px"><h1 style="margin: 0"><img src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI" style="height: 84px; width: auto; display: block"></h1><span class="eb" style="letter-spacing: .26em; color: var(--tx2)">Video Intelligence Engine</span></div>
+<div style="width: 100%; display: flex; flex-direction: column; gap: 12px">
+<div style="height: 3px; border-radius: 2px; background: var(--p2); overflow: hidden"><div style="width: 38%; height: 100%; background: var(--ac); border-radius: 2px"></div></div>
+<div style="display: flex; justify-content: space-between" class="sm"><span class="sub">Starting the engine…</span><span class="mono mu">v[—]</span></div>
+</div>
+<ul style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left" class="sm">
+<li style="display: flex; gap: 10px; align-items: center"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--ac)"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span class="sub">Local workspace opened</span></li>
+<li style="display: flex; gap: 10px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--blue); border-right-color: transparent"></span><span style="color: var(--tx)">Loading analysis models</span></li>
+<li style="display: flex; gap: 10px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ln2)"></span><span class="mu">Checking licence</span></li>
+</ul>
+</div>
+<p class="sm mu" style="position: absolute; bottom: 24px; left: 0; right: 0; text-align: center">Video work runs on this computer · offline grace period applies when the server can’t be reached</p>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

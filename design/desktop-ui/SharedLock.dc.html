@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI — Protected link</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app" style="--ac: {{accent}}; align-items: center; justify-content: center; padding: 32px">
+<form class="panel" aria-labelledby="pl" style="width: 100%; max-width: 400px; padding: 32px; display: flex; flex-direction: column; gap: 18px; background: var(--p1)">
+<img src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI" style="height: 30px; width: auto; align-self: flex-start">
+<div style="display: flex; flex-direction: column; gap: 6px"><h1 id="pl" class="h1">This link is protected</h1><p class="sub sm"><span class="slot" style="color: var(--tx)">[Organisation]</span> shared a Scouting Pack with you. Enter the password they gave you to open it.</p></div>
+<div class="field"><label class="lab" for="lp">Password</label><div style="position: relative"><input id="lp" class="in" type="password" style="height: 42px; padding-right: 64px"><button type="button" class="btn sm gh" style="position: absolute; right: 4px; top: 6px; height: 30px" aria-label="Show password">Show</button></div></div>
+<button class="btn pri lg w" type="submit">Open</button>
+<p class="sm mu" style="text-align: center">Link expires <span class="slot">[date]</span></p>
+</form>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

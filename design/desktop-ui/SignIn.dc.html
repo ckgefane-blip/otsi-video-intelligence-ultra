@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE — Sign in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app" style="--ac: {{accent}}; flex-direction: row; flex-wrap: wrap">
+<div style="flex: 1 1 520px; position: relative; overflow: hidden; background: var(--p0); border-right: 1px solid var(--ln); display: flex; flex-direction: column; justify-content: space-between; padding: 40px 48px; min-height: 360px">
+
+<div style="display: flex; flex-direction: column; gap: 40px">
+<div style="position: relative; display: flex; align-items: center; gap: 16px"><img src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI" style="height: 36px; width: auto; display: block"><span style="width: 1px; height: 26px; background: var(--ln2)"></span><span class="eb" style="letter-spacing: .18em; color: var(--tx2)">Video Intelligence Engine</span></div>
+<div style="position: relative; display: flex; flex-direction: column; gap: 6px; max-width: 420px">
+<h1 class="h1">Prove what a player did on the pitch.</h1>
+<p class="sub">Every player tracked under one OTSI PIN. Every number measured by the engine — and where it was not measured, the software says so.</p>
+</div>
+</div>
+<svg viewBox="0 0 680 440" aria-hidden="true" style="display: block; width: 100%; max-width: 560px; height: auto; opacity: .7">
+<g fill="none" stroke="#1F2A25" stroke-width="1.5"><rect x="10" y="10" width="660" height="420" rx="4"/><path d="M340 10v420"/><circle cx="340" cy="220" r="62"/><rect x="10" y="118" width="108" height="204"/><rect x="562" y="118" width="108" height="204"/><rect x="10" y="168" width="38" height="104"/><rect x="632" y="168" width="38" height="104"/></g>
+<g fill="none" stroke="var(--ac)" stroke-width="1.5" opacity=".55"><rect x="252" y="150" width="26" height="54" rx="2"/><rect x="392" y="236" width="26" height="54" rx="2"/><rect x="470" y="128" width="24" height="50" rx="2" stroke-dasharray="4 3"/></g>
+</svg>
+<div style="position: relative; display: flex; flex-wrap: wrap; gap: 22px" class="sm mu">
+<span style="display: inline-flex; gap: 8px; align-items: center"><span class="led ok"></span>Video work stays on this computer</span>
+<span class="mono">v[—]</span>
+</div>
+</div>
+
+<main style="flex: 1 1 560px; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 40px 32px; gap: 28px; flex-wrap: wrap">
+<form style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 18px" aria-labelledby="si">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="eb">Welcome back</span><h2 id="si" class="h1">Sign in</h2></div>
+<div class="field"><label class="lab" for="e">Email</label><input id="e" class="in" type="email" autocomplete="email" placeholder="you@club.com" style="height: 40px"></div>
+<div class="field"><div style="display: flex; justify-content: space-between"><label class="lab" for="p">Password</label><a class="sm" href="#">Forgot password?</a></div>
+<div style="position: relative"><input id="p" class="in" type="password" autocomplete="current-password" style="height: 40px; padding-right: 64px"><button type="button" class="btn sm gh" style="position: absolute; right: 4px; top: 5px; height: 30px" aria-label="Show password">Show</button></div></div>
+<button class="btn pri lg w" type="submit">Sign in</button>
+<div style="display: flex; align-items: center; gap: 12px" class="sm mu"><span class="div" style="flex: 1"></span>or<span class="div" style="flex: 1"></span></div>
+<button class="btn lg w" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="10" r="4"/><path d="M11 12.5l9 0M17 12.5v3M20 12.5v2"/></svg>Sign in with a passkey<span class="mu sm" style="margin-left: 4px">Windows Hello</span></button>
+<p class="sm mu" style="text-align: center">Invited by your organisation? <a href="#">Accept your invite</a></p>
+</form>
+
+<section class="panel" aria-labelledby="ts" style="width: 100%; max-width: 340px; padding: 22px; display: flex; flex-direction: column; gap: 16px; background: var(--p0)">
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="eb">Next step · when two-step is on</span></div>
+<h2 id="ts" class="h2">Enter your verification code</h2>
+<p class="sm sub">Open your authenticator app and enter the 6-digit code.</p>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px" role="group" aria-label="6-digit code">
+<input class="in mono" aria-label="Digit 1" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+<input class="in mono" aria-label="Digit 2" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+<input class="in mono" aria-label="Digit 3" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+<input class="in mono" aria-label="Digit 4" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+<input class="in mono" aria-label="Digit 5" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+<input class="in mono" aria-label="Digit 6" maxlength="1" style="height: 48px; text-align: center; font-size: 14px; font-weight: 600; padding: 0">
+</div>
+<button class="btn pri w" type="button">Verify</button>
+<a class="sm" href="#" style="text-align: center">Use a recovery code instead</a>
+</section>
+</main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

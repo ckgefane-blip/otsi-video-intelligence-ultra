@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE — Admin</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app shell" style="--ac: {{accent}}">
+<aside class="rail" aria-label="Main navigation">
+<a class="rh" href="Main.dc.html" aria-label="OTSI VIE home"><img class="lf" src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI"><img class="lm" src="/_blob/97258124caf69f1cee6c4c1eb1b46404" alt="OTSI"><span class="wm2">VIE</span></a>
+<nav class="rn" aria-label="Pages">
+<span class="rsec">Workspace</span>
+<a class="ri" href="Main.dc.html" title="Home"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg><span class="rl">Home</span></a>
+<a class="ri" href="Upload.dc.html" title="Media"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg><span class="rl">Media</span></a>
+<a class="ri" href="Processing.dc.html" title="Processing"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span class="rl">Processing</span></a>
+<a class="ri" href="Analysis.dc.html" title="Analysis"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span class="rl">Analysis</span></a>
+<a class="ri" href="Tactical.dc.html" title="Tactical"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.5"/></svg><span class="rl">Tactical</span></a>
+<a class="ri" href="Players.dc.html" title="Players"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.6a3.5 3.5 0 0 1 0 6.8M21 20c0-2.6-1.6-4.8-4-5.6"/></svg><span class="rl">Players</span></a>
+<a class="ri" href="Report.dc.html" title="Reports"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg><span class="rl">Reports</span></a>
+<a class="ri" href="Reels.dc.html" title="Reels"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg><span class="rl">Reels</span></a>
+<a class="ri" href="Studio.dc.html" title="Clip Studio"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/></svg><span class="rl">Clip Studio</span></a>
+<a class="ri" href="Library.dc.html" title="Library"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span class="rl">Library</span></a>
+<a class="ri" href="Export.dc.html" title="Export"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg><span class="rl">Export</span></a>
+</nav>
+<div class="rf">
+<a class="ri" href="Preferences.dc.html" title="Settings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="rl">Settings</span></a>
+<a class="ri on" href="Admin.dc.html" aria-current="page" title="Admin"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span class="rl">Admin</span></a>
+<button class="rt" type="button" aria-label="Collapse navigation" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M15 8l-4 4 4 4M11 12h9"/></svg><span class="rl">Collapse</span><span class="rl kbd" style="margin-left: auto">Ctrl B</span></button>
+</div>
+</aside>
+<div class="main">
+<header class="top">
+<nav class="ctx" aria-label="Work context">
+<button class="ctxb" type="button"><span class="k">Project</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Match</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Player</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+</nav>
+<a class="search" href="Palette.dc.html"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg><span class="grow">Search players, matches, actions</span><span class="kbd">Ctrl K</span></a>
+<a class="tok" href="Wallet.dc.html" aria-label="Tokens: 10. Live balance, opens the Wallet" data-token-counter="10"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></svg><b>10</b><span>tokens</span></a>
+<div class="theme" role="group" aria-label="Appearance"><button type="button" aria-pressed="true" aria-label="Dark mode" onclick="document.documentElement.removeAttribute('data-theme');this.setAttribute('aria-pressed','true');this.nextElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button><button type="button" aria-pressed="false" aria-label="Light mode" onclick="document.documentElement.setAttribute('data-theme','light');this.setAttribute('aria-pressed','true');this.previousElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button></div>
+<a class="ib" href="JobsCenter.dc.html" aria-label="Jobs Center, 0 active"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></a>
+<button class="ib" type="button" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+<a class="ib" href="Shortcuts.dc.html" aria-label="Keyboard shortcuts (?)"><span style="font: 600 14px/1 Inter, sans-serif">?</span></a>
+<button class="av" type="button" aria-label="Account"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></button>
+</header>
+<div class="body">
+<nav class="side" aria-label="Settings" style="flex: 0 0 248px; max-width: 248px; padding: 14px 10px; gap: 2px">
+<span class="eb" style="padding: 6px 10px 8px">Settings</span>
+<a class="lr" href="Preferences.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Preferences</a>
+<a class="lr" href="Team.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Team</a>
+<a class="lr" href="Security.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Security</a>
+<a class="lr" href="Wallet.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Token Wallet</a>
+<span class="eb" style="padding: 18px 10px 8px">Admin Console</span>
+<a class="lr" href="Admin.dc.html" aria-current="page" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Platform Health</a>
+<a class="lr" href="AdminModels.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Models &amp; AI</a>
+<a class="lr" href="AdminRelease.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Release Control</a>
+<a class="lr" href="Team.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Organization</a>
+<a class="lr" href="AdminCompliance.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Security &amp; Compliance</a>
+<a class="lr" href="Wallet.dc.html" style="border: 0; border-radius: 6px; min-height: 34px; color: var(--tx2)">Billing &amp; Usage</a>
+<div style="margin-top: auto; padding: 12px 10px 4px; display: flex; flex-direction: column; gap: 8px"><span class="eb">Interface</span><div class="seg f" role="group" aria-label="Interface mode"><button type="button" data-mode="guided">Guided</button><button type="button" class="on" data-mode="advanced">Advanced</button></div><span class="hint">Both modes are free.</span></div>
+</nav>
+<main class="content" style="padding: 18px 28px; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="eb">Admin Console</span><h1 class="h1">Platform Health</h1></div>
+<div style="display: flex; gap: 8px"><button class="btn sm" type="button">Pause all queues</button><a class="btn sm" href="AdminCompliance.dc.html#audit">Audit log</a></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+<div class="panel" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Review inbox</span><span class="metric">1</span></div>
+<div class="panel" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Jobs running</span><span class="metric">0</span></div>
+<div class="panel" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Licence</span><span class="h3" style="line-height: 28px; color: var(--amber)">Not verified</span></div>
+<a id="release" href="AdminRelease.dc.html" class="panel" style="color: inherit; text-decoration: none; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Release Control</span><span class="h3" style="line-height: 28px; color: var(--tx2)">Engine accuracy: Not measured</span><span class="sm mu">Release gates G05–G07 must pass before any engine figure is called measured.</span></a>
+<a id="models" href="AdminModels.dc.html" class="panel" style="color: inherit; text-decoration: none; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Models &amp; AI</span><span class="h3" style="line-height: 28px; color: var(--tx2)">No models registered</span></a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; flex: 1">
+<section class="panel" aria-labelledby="cc" style="display: flex; flex-direction: column">
+<div class="ph"><h2 id="cc" class="h3">Concurrency</h2><span class="mu xs">How many run at once</span></div>
+<div class="pb" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 500">Analyses</span><span style="display: flex; gap: 10px; align-items: center"><span class="mono mu">Not set</span><button class="btn sm" type="button">Pause</button></span></div><div style="position: relative; height: 14px; display: flex; align-items: center"><span style="flex: 1; height: 3px; border-radius: 2px; background: var(--p3)"></span><span style="position: absolute; left: 30%; width: 14px; height: 14px; border-radius: 50%; background: var(--tx); border: 3px solid var(--ac)"></span></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 500">Renders</span><span style="display: flex; gap: 10px; align-items: center"><span class="mono mu">Not set</span><button class="btn sm" type="button">Pause</button></span></div><div style="position: relative; height: 14px; display: flex; align-items: center"><span style="flex: 1; height: 3px; border-radius: 2px; background: var(--p3)"></span><span style="position: absolute; left: 45%; width: 14px; height: 14px; border-radius: 50%; background: var(--tx); border: 3px solid var(--ac)"></span></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 500">Ingests</span><span style="display: flex; gap: 10px; align-items: center"><span class="mono mu">Not set</span><button class="btn sm" type="button">Pause</button></span></div><div style="position: relative; height: 14px; display: flex; align-items: center"><span style="flex: 1; height: 3px; border-radius: 2px; background: var(--p3)"></span><span style="position: absolute; left: 60%; width: 14px; height: 14px; border-radius: 50%; background: var(--tx); border: 3px solid var(--ac)"></span></div></div>
+</div>
+</section>
+<section class="panel" aria-labelledby="ri" style="display: flex; flex-direction: column">
+<div class="ph"><h2 id="ri" class="h3">Review inbox</h2><span class="chip ev ev-i">1 item</span></div>
+<div class="lr" style="min-height: 64px; gap: 12px; align-items: center">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">Approve 1 team sheet</span><span class="sm mu">Nart v Ercakhu – round 2</span></span>
+<button class="btn sm" type="button">Reject…</button><button class="btn sm pri" type="button">Approve</button>
+</div>
+<p class="hint" style="padding: 10px 14px">Each decision is recorded with a reason in the audit log.</p>
+</section>
+</div>
+</main>
+</div>
+
+<footer class="statusbar">
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st"><span class="led warn"></span>Licence: <b>Not verified</b></span>
+<span class="st"><span class="led warn"></span>Engine accuracy: <b>Not measured</b></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st">Free tier · <b>2 GB</b> per video</span>
+<span class="st">Tokens <b class="mono">10</b></span>
+<span class="st">Advanced interface</span>
+</div>
+</footer>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

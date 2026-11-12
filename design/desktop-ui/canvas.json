@@ -1,0 +1,347 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T19:12:00Z"
+  },
+  "title": "OTSI Video Intelligence Engine — Desktop UI",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Home — first run",
+      "expand": "fill"
+    },
+    "Upload.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Media — upload & ingest",
+      "expand": "fill"
+    },
+    "Processing.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Processing — jobs & log",
+      "expand": "fill"
+    },
+    "Analysis.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Analysis — identity review",
+      "expand": "fill"
+    },
+    "Players.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Players — profile editor",
+      "expand": "fill"
+    },
+    "Report.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Player Report",
+      "expand": "fill"
+    },
+    "Reels.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Reel Builder",
+      "expand": "fill"
+    },
+    "Export.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Export & Scouting Pack",
+      "expand": "fill"
+    },
+    "SignIn.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Sign in + two-step",
+      "expand": "fill"
+    },
+    "Wallet.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings — Token Wallet",
+      "expand": "fill"
+    },
+    "ProfileIntro.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1600,
+      "h": 900,
+      "title": "Player Profile Intro (16:9)"
+    },
+    "Palette.dc.html": {
+      "x": 4720,
+      "y": 5280,
+      "w": 720,
+      "h": 520,
+      "title": "Command palette (Ctrl/Cmd+K)"
+    },
+    "Splash.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Splash — engine starting",
+      "expand": "fill"
+    },
+    "Setup.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "First run — owner setup",
+      "expand": "fill"
+    },
+    "Tour.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Welcome tour",
+      "expand": "fill"
+    },
+    "Studio.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Clip Studio",
+      "expand": "fill"
+    },
+    "Invite.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Accept invite",
+      "expand": "fill"
+    },
+    "Tactical.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Tactical — pitch views",
+      "expand": "fill"
+    },
+    "Library.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Library",
+      "expand": "fill"
+    },
+    "Preferences.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings — Preferences",
+      "expand": "fill"
+    },
+    "Team.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings — Team",
+      "expand": "fill"
+    },
+    "Security.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings — Security",
+      "expand": "fill"
+    },
+    "Admin.dc.html": {
+      "x": 7600,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Admin Console — Platform Health",
+      "expand": "fill"
+    },
+    "SharedLink.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Shared link — recipient view",
+      "expand": "fill"
+    },
+    "SharedLock.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Shared link — password gate",
+      "expand": "fill"
+    },
+    "JobsCenter.dc.html": {
+      "x": 5520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Jobs Center (drawer)",
+      "expand": "fill"
+    },
+    "Shortcuts.dc.html": {
+      "x": 7040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Keyboard shortcuts (?)",
+      "expand": "fill"
+    },
+    "TokenCounter.dc.html": {
+      "h": 520,
+      "title": "Token counter, open (live)",
+      "w": 720,
+      "x": 8560,
+      "y": 5280
+    },
+    "AdminModels.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "Admin — Models & AI",
+      "w": 1440,
+      "x": 9120,
+      "y": 3960
+    },
+    "AdminRelease.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "Admin — Release Control",
+      "w": 1440,
+      "x": 10640,
+      "y": 3960
+    },
+    "AdminCompliance.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "Admin — Security & Compliance",
+      "w": 1440,
+      "x": 12160,
+      "y": 3960
+    }
+  },
+  "order": [
+    "Splash.dc.html",
+    "Setup.dc.html",
+    "SignIn.dc.html",
+    "Invite.dc.html",
+    "Tour.dc.html",
+    "Main.dc.html",
+    "Upload.dc.html",
+    "Processing.dc.html",
+    "Analysis.dc.html",
+    "Tactical.dc.html",
+    "Players.dc.html",
+    "Report.dc.html",
+    "Reels.dc.html",
+    "Studio.dc.html",
+    "Export.dc.html",
+    "Library.dc.html",
+    "Preferences.dc.html",
+    "Team.dc.html",
+    "Security.dc.html",
+    "Wallet.dc.html",
+    "Admin.dc.html",
+    "AdminModels.dc.html",
+    "AdminRelease.dc.html",
+    "AdminCompliance.dc.html",
+    "SharedLink.dc.html",
+    "SharedLock.dc.html",
+    "ProfileIntro.dc.html",
+    "Palette.dc.html",
+    "JobsCenter.dc.html",
+    "Shortcuts.dc.html",
+    "TokenCounter.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": 1020,
+      "text": "Workflow — upload, process, analyse, tactical",
+      "kind": "title1",
+      "maxW": 8000
+    },
+    "t2": {
+      "x": 0,
+      "y": 2340,
+      "text": "Players, reports, reels, studio and export",
+      "kind": "title1",
+      "maxW": 8000
+    },
+    "t3": {
+      "x": 0,
+      "y": 3660,
+      "text": "Library, settings and admin",
+      "kind": "title1",
+      "maxW": 8000
+    },
+    "sys": {
+      "x": -560,
+      "y": 0,
+      "w": 440,
+      "text": "System — Graphite Studio v2\n\nGround #0A0B0D, panels #14171B / #1A1E23, hairlines #252A31. Accent teal #2BD4B0. Light theme: same layout on light surfaces; switch in the top bar.\n\nType (system UI font: Segoe UI on Windows; weights 400/500/600, like Resolve and Filmora): page title 16/24 600 · section 14/20 500 · panel 13/20 500 · body 13/20 400 · small 12/18 muted · label 13/20 400 muted, sentence case · table header 12/16 400 muted, no caps · button 13/20 400 (primary 500) · metric 20/28 500 tabular · timecode 13/16 400 tabular.\n\nTop bar: context · search · live token counter (spendable, from GET /v1/wallet; 5 s while jobs run) · light/dark switch · Jobs Center · notifications · shortcuts · account.\n\nNav: left rail 240px, collapses to 64px icons (Ctrl/Cmd+B), choice remembered. Guided hides Tactical, Clip Studio, Admin.\n\nReal data only. Honest states: Licence Not verified · Engine accuracy Not measured · Models: none registered.",
+      "fill": "gray",
+      "size": "s"
+    },
+    "t0": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Getting in — splash, setup, sign-in, invite, tour",
+      "x": 0,
+      "y": -300
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 8600,
+      "text": "Sharing, intro, palette, jobs and shortcuts",
+      "x": 0,
+      "y": 4980
+    }
+  },
+  "designSystems": [],
+  "attachments": {},
+  "noteOrder": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "sys"
+  ]
+}

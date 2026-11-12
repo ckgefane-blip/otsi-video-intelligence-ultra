@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE — Player Report</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app shell" style="--ac: {{accent}}">
+<aside class="rail" aria-label="Main navigation">
+<a class="rh" href="Main.dc.html" aria-label="OTSI VIE home"><img class="lf" src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI"><img class="lm" src="/_blob/97258124caf69f1cee6c4c1eb1b46404" alt="OTSI"><span class="wm2">VIE</span></a>
+<nav class="rn" aria-label="Pages">
+<span class="rsec">Workspace</span>
+<a class="ri" href="Main.dc.html" title="Home"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg><span class="rl">Home</span></a>
+<a class="ri" href="Upload.dc.html" title="Media"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg><span class="rl">Media</span></a>
+<a class="ri" href="Processing.dc.html" title="Processing"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span class="rl">Processing</span></a>
+<a class="ri" href="Analysis.dc.html" title="Analysis"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span class="rl">Analysis</span></a>
+<a class="ri" href="Tactical.dc.html" title="Tactical"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.5"/></svg><span class="rl">Tactical</span></a>
+<a class="ri" href="Players.dc.html" title="Players"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.6a3.5 3.5 0 0 1 0 6.8M21 20c0-2.6-1.6-4.8-4-5.6"/></svg><span class="rl">Players</span></a>
+<a class="ri on" href="Report.dc.html" aria-current="page" title="Reports"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg><span class="rl">Reports</span></a>
+<a class="ri" href="Reels.dc.html" title="Reels"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg><span class="rl">Reels</span></a>
+<a class="ri" href="Studio.dc.html" title="Clip Studio"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/></svg><span class="rl">Clip Studio</span></a>
+<a class="ri" href="Library.dc.html" title="Library"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span class="rl">Library</span></a>
+<a class="ri" href="Export.dc.html" title="Export"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg><span class="rl">Export</span></a>
+</nav>
+<div class="rf">
+<a class="ri" href="Preferences.dc.html" title="Settings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="rl">Settings</span></a>
+<a class="ri" href="Admin.dc.html" title="Admin"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span class="rl">Admin</span></a>
+<button class="rt" type="button" aria-label="Collapse navigation" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M15 8l-4 4 4 4M11 12h9"/></svg><span class="rl">Collapse</span><span class="rl kbd" style="margin-left: auto">Ctrl B</span></button>
+</div>
+</aside>
+<div class="main">
+<header class="top">
+<nav class="ctx" aria-label="Work context">
+<button class="ctxb" type="button"><span class="k">Project</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Match</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Player</span><span class="v">Chinazom Godwin</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+</nav>
+<a class="search" href="Palette.dc.html"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg><span class="grow">Search players, matches, actions</span><span class="kbd">Ctrl K</span></a>
+<a class="tok" href="Wallet.dc.html" aria-label="Tokens: 10. Live balance, opens the Wallet" data-token-counter="10"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></svg><b>10</b><span>tokens</span></a>
+<div class="theme" role="group" aria-label="Appearance"><button type="button" aria-pressed="true" aria-label="Dark mode" onclick="document.documentElement.removeAttribute('data-theme');this.setAttribute('aria-pressed','true');this.nextElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button><button type="button" aria-pressed="false" aria-label="Light mode" onclick="document.documentElement.setAttribute('data-theme','light');this.setAttribute('aria-pressed','true');this.previousElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button></div>
+<a class="ib" href="JobsCenter.dc.html" aria-label="Jobs Center, 0 active"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></a>
+<button class="ib" type="button" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+<a class="ib" href="Shortcuts.dc.html" aria-label="Keyboard shortcuts (?)"><span style="font: 600 14px/1 Inter, sans-serif">?</span></a>
+<button class="av" type="button" aria-label="Account"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></button>
+</header>
+<div class="body" style="flex-direction: column; flex-wrap: nowrap">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 28px 10px; background: var(--p0)">
+<div style="width: 44px; height: 44px; border-radius: 10px; background: var(--p2); border: 1px solid var(--ln2); display: grid; place-items: center; color: var(--mu)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><h1 class="h1">Chinazom Godwin</h1><span class="chip mono" style="color: var(--ac); border-color: rgba(43,212,176,.38)">OTSI-[PIN]</span><span class="chip ev ev-c">Identity confirmed</span></div>
+<div class="sm mu">#4 · DM · FC Ercakhu · Nigeria · 2 videos analysed</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<a class="btn sm" href="Players.dc.html">Edit profile</a>
+<button class="btn sm" type="button">Add to dossier</button>
+<button class="btn sm" type="button">Share link</button>
+<button class="btn sm pri" type="button">Create report · 10 tokens</button>
+</div>
+</div>
+<div class="tabs" role="tablist" style="padding: 0 20px; background: var(--p0)">
+<button class="tab on" type="button" role="tab" aria-selected="true">Overview</button><button class="tab" type="button" role="tab" aria-selected="false">Attacking</button><button class="tab" type="button" role="tab" aria-selected="false">Passing</button><button class="tab" type="button" role="tab" aria-selected="false">Defensive</button><button class="tab" type="button" role="tab" aria-selected="false">Heatmaps</button><button class="tab" type="button" role="tab" aria-selected="false">Events</button><button class="tab" type="button" role="tab" aria-selected="false">Compare</button><button class="tab" type="button" role="tab" aria-selected="false">Scouting</button><button class="tab" type="button" role="tab" aria-selected="false">Clips</button><button class="tab" type="button" role="tab" aria-selected="false">Notes &amp; tags</button>
+</div>
+
+<div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 28px; align-items: stretch; overflow: auto">
+<div style="flex: 2 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px">
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">On camera</span><span class="metric">9 min</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Events</span><span class="metric">20</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Confirmed tracks</span><span class="metric">57</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Evidence coverage</span><span class="metric">69%</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Goals</span><span class="metric">0</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Assists</span><span class="metric">0</span></div>
+<div class="panel" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span class="lab">Recent form</span><span class="nm" style="line-height: 28px">Not measured</span></div>
+</div>
+<div style="flex: 1; display: flex; flex-wrap: wrap; gap: 14px; min-height: 0">
+<section class="panel" aria-labelledby="hm" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column">
+<div class="ph"><h2 id="hm" class="h3">Heatmap</h2><div class="seg" role="group" aria-label="Period"><button type="button" class="on">Match</button><button type="button">1st</button><button type="button">2nd</button></div></div>
+<div style="flex: 1; padding: 14px; display: flex; align-items: center; justify-content: center">
+<div style="position: relative; width: 100%; max-width: 420px; aspect-ratio: 105/68">
+<svg viewBox="0 0 105 68" role="img" aria-label="Pitch, heatmap not measured" style="position: absolute; inset: 0; width: 100%; height: 100%"><rect x=".5" y=".5" width="104" height="67" rx="1" fill="#0E1512" stroke="#2A3A31" stroke-width=".5"/><path d="M52.5 .5v67" stroke="#2A3A31" stroke-width=".5"/><circle cx="52.5" cy="34" r="9.15" fill="none" stroke="#2A3A31" stroke-width=".5"/><rect x=".5" y="13.85" width="16.5" height="40.3" fill="none" stroke="#2A3A31" stroke-width=".5"/><rect x="88" y="13.85" width="16.5" height="40.3" fill="none" stroke="#2A3A31" stroke-width=".5"/></svg>
+<span class="chip ev ev-n" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--p0)">Not measured</span>
+</div>
+</div>
+</section>
+<section class="panel" aria-labelledby="et" style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column">
+<div class="ph"><h2 id="et" class="h3">Events</h2><span class="sm mu"><span class="mono">20</span> across 2 videos</span></div>
+<div class="empty" style="flex: 1">
+<span class="ei"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+<h3>20 events recorded</h3>
+<p>Open the footage in Analysis to review each event at its moment in the video.</p>
+<a class="btn sm" href="Analysis.dc.html">Open in Analysis</a>
+</div>
+<div style="padding: 10px 12px; border-top: 1px solid var(--ln)"><a class="btn sm w" href="Reels.dc.html">Build reel from best moments</a></div>
+</section>
+</div>
+</div>
+
+<aside style="flex: 1 1 320px; max-width: 400px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<section class="panel" aria-labelledby="ai">
+<div class="ph"><h2 id="ai" class="h3">AI Analyst brief</h2><span class="chip">Not generated</span></div>
+<div class="pb" style="display: flex; flex-direction: column; gap: 10px">
+<ol style="display: flex; gap: 6px; align-items: center" aria-label="Brief status">
+<li class="chip" style="color: var(--tx); border-color: #4A525D">1 Draft</li><li class="mu" aria-hidden="true">—</li><li class="chip">2 Reviewed</li><li class="mu" aria-hidden="true">—</li><li class="chip">3 Published</li>
+</ol>
+<p class="sm mu">Written only from this player’s measured data. Anything not measured stays out of the brief.</p>
+<label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer"><span class="cb" aria-hidden="true"></span><span class="sm">I have consent to generate a brief for this player.</span></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px"><button class="btn pri" type="button" disabled>Generate brief</button><button class="btn" type="button" disabled>Publish brief</button></div>
+<p class="hint">Publish becomes available after the draft is reviewed. Only a published brief is ever shared or included in a Scouting Pack.</p>
+</div>
+</section>
+<section class="panel" aria-labelledby="cl">
+<div class="ph"><h2 id="cl" class="h3">Clips</h2><a class="sm" href="Reels.dc.html">Reel Builder</a></div>
+<div style="padding: 12px 14px; display: flex; flex-direction: column"><span class="h3">1 reel generated</span><span class="sm mu">Open it in the Reel Builder to see its clips.</span></div>
+</section>
+<section class="panel" aria-labelledby="nt" style="flex: 1; display: flex; flex-direction: column">
+<div class="ph"><h2 id="nt" class="h3">Notes &amp; tags</h2><span class="sm mu">Private to your organisation</span></div>
+<div class="pb" style="flex: 1; display: flex; flex-direction: column; gap: 10px">
+<label for="nn" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Notes</label>
+<textarea id="nn" class="in" style="flex: 1; min-height: 60px" placeholder="Add a note about this player"></textarea>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><button class="chip" type="button" style="cursor: pointer; border-style: dashed">+ Add tag</button></div>
+</div>
+</section>
+</aside>
+</div>
+</div>
+
+<footer class="statusbar">
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st"><span class="led warn"></span>Licence: <b>Not verified</b></span>
+<span class="st"><span class="led warn"></span>Engine accuracy: <b>Not measured</b></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st">Free tier · <b>2 GB</b> per video</span>
+<span class="st">Tokens <b class="mono">10</b></span>
+<span class="st">Advanced interface</span>
+</div>
+</footer>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

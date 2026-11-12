@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI — Shared Scouting Pack</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app" style="--ac: {{accent}}">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; min-height: 60px; padding: 10px 28px; background: var(--p0); border-bottom: 1px solid var(--ln)">
+<img src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI" style="height: 26px; width: auto; display: block">
+<span style="width: 1px; height: 22px; background: var(--ln2)"></span>
+<span class="sm sub">Shared with you by <span class="slot" style="color: var(--tx)">[Organisation]</span></span>
+<span style="flex: 1"></span>
+<span class="chip">Link expires <span class="slot">[date]</span></span>
+<button class="btn pri" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg>Download</button>
+</header>
+<div class="body">
+<main class="content" style="padding: 24px 28px; gap: 16px; align-items: center">
+<div style="width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 6px"><span class="eb">Scouting Pack</span><h1 class="h1"><span class="slot" style="color: var(--tx)">[reel name]</span></h1><span class="sm mu">Chinazom Godwin · #4 · DM · FC Ercakhu</span></div>
+<div style="width: 100%; max-width: 900px"><div class="vpw" style="width: 100%; display: flex; flex-direction: column">
+<div class="vp" data-player="p1">
+<div class="vpe">
+<span style="width: 48px; height: 48px; border-radius: 12px; border: 1px dashed var(--ln2); display: grid; place-items: center; color: var(--mu)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4-2.5z"/></svg></span>
+<span class="h3">No verified playable footage was supplied</span>
+<span class="sm mu" style="max-width: 380px">Open the match file from this computer to play it here. The tracking overlay draws only from this file’s confirmed tracks.</span>
+<div style="display: flex; gap: 8px"><button class="btn" type="button" data-act="play"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play</button><button class="btn pri" type="button" data-act="open"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>Open local footage</button></div>
+</div>
+</div>
+<div class="vpc">
+<button class="ib" type="button" data-act="toggle" aria-label="Play"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+<button class="ib" type="button" data-act="back" aria-label="Back one second"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M18 6l-8 6 8 6z"/></svg></button>
+<button class="ib" type="button" data-act="fwd" aria-label="Forward one second"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 6l8 6-8 6z"/></svg></button>
+<span class="tc" data-tc style="min-width: 96px">00:00 / --:--</span>
+<label class="sr" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)" for="seek-p1">Seek</label>
+<input id="seek-p1" class="vps" type="range" min="0" max="1000" value="0" step="1" data-act="seek" disabled>
+<label style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)" for="spd-p1">Playback speed</label>
+<select id="spd-p1" data-act="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+<button class="ib" type="button" data-act="fs" aria-label="Fullscreen"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+</div>
+</div>
+<div style="width: 100%; max-width: 900px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div class="panel" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--ac)"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16"/></svg><span style="flex: 1"><span style="display: block; font-weight: 500">Highlight reel</span><span class="sm mu">MP4</span></span><button class="ib" type="button" aria-label="Download reel" style="width: 30px; height: 30px"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg></button></div>
+<div class="panel" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--blue)"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg><span style="flex: 1"><span style="display: block; font-weight: 500">Player report</span><span class="sm mu">Not included</span></span></div>
+<div class="panel" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--amber)"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span style="flex: 1"><span style="display: block; font-weight: 500">AI Analyst brief</span><span class="sm mu">Not included · only published briefs are shared</span></span></div>
+</div>
+</main>
+<aside class="insp" aria-label="Comments" style="flex: 0 0 360px; max-width: 360px">
+<div class="ph" style="min-height: 48px"><h2 class="h3">Comments</h2><span class="mu xs mono">0</span></div>
+<div class="empty" style="flex: 1">
+<span class="ei"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></span>
+<h3>No comments yet</h3>
+<p>Pause on a moment and leave a comment. It’s pinned to that exact time in the reel.</p>
+</div>
+<div style="padding: 14px; border-top: 1px solid var(--ln); display: flex; flex-direction: column; gap: 10px; background: var(--p0)">
+<div class="field"><label class="lab" for="cn">Your name</label><input id="cn" class="in" placeholder="Shown with your comment"></div>
+<div class="field"><label class="lab" for="cm">Comment at <span class="mono" style="color: var(--ac)">00:00</span></label><textarea id="cm" class="in" rows="3" placeholder="What did you notice here?"></textarea></div>
+<button class="btn pri" type="button">Post comment</button>
+</div>
+</aside>
+</div>
+<footer style="padding: 12px 28px; border-top: 1px solid var(--ln); background: var(--p0)" class="sm mu">Every figure in this pack was measured by OTSI VIE. Anything not measured is labelled “Not measured”.</footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>

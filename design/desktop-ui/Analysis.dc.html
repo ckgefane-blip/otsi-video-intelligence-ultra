@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OTSI VIE — Analysis</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/04e05cf4b2ff346391fc47b3fe73677f">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app shell rc" style="--ac: {{accent}}">
+<aside class="rail" aria-label="Main navigation">
+<a class="rh" href="Main.dc.html" aria-label="OTSI VIE home"><img class="lf" src="/_blob/ae7643a80ad9f1598abc300668e6cbc8" alt="OTSI"><img class="lm" src="/_blob/97258124caf69f1cee6c4c1eb1b46404" alt="OTSI"><span class="wm2">VIE</span></a>
+<nav class="rn" aria-label="Pages">
+<span class="rsec">Workspace</span>
+<a class="ri" href="Main.dc.html" title="Home"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg><span class="rl">Home</span></a>
+<a class="ri" href="Upload.dc.html" title="Media"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg><span class="rl">Media</span></a>
+<a class="ri" href="Processing.dc.html" title="Processing"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span class="rl">Processing</span></a>
+<a class="ri on" href="Analysis.dc.html" aria-current="page" title="Analysis"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span class="rl">Analysis</span></a>
+<a class="ri" href="Tactical.dc.html" title="Tactical"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.5"/></svg><span class="rl">Tactical</span></a>
+<a class="ri" href="Players.dc.html" title="Players"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.6a3.5 3.5 0 0 1 0 6.8M21 20c0-2.6-1.6-4.8-4-5.6"/></svg><span class="rl">Players</span></a>
+<a class="ri" href="Report.dc.html" title="Reports"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg><span class="rl">Reports</span></a>
+<a class="ri" href="Reels.dc.html" title="Reels"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg><span class="rl">Reels</span></a>
+<a class="ri" href="Studio.dc.html" title="Clip Studio"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/></svg><span class="rl">Clip Studio</span></a>
+<a class="ri" href="Library.dc.html" title="Library"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span class="rl">Library</span></a>
+<a class="ri" href="Export.dc.html" title="Export"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg><span class="rl">Export</span></a>
+</nav>
+<div class="rf">
+<a class="ri" href="Preferences.dc.html" title="Settings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="rl">Settings</span></a>
+<a class="ri" href="Admin.dc.html" title="Admin"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span class="rl">Admin</span></a>
+<button class="rt" type="button" aria-label="Expand navigation" aria-expanded="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M15 8l-4 4 4 4M11 12h9"/></svg><span class="rl">Collapse</span><span class="rl kbd" style="margin-left: auto">Ctrl B</span></button>
+</div>
+</aside>
+<div class="main">
+<header class="top">
+<nav class="ctx" aria-label="Work context">
+<button class="ctxb" type="button"><span class="k">Project</span><span class="v none">None</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Match</span><span class="v">Nart v Ercakhu – round 2</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="sep" aria-hidden="true">/</span>
+<button class="ctxb" type="button"><span class="k">Player</span><span class="v">Chinazom Godwin</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+</nav>
+<a class="search" href="Palette.dc.html"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg><span class="grow">Search players, matches, actions</span><span class="kbd">Ctrl K</span></a>
+<a class="tok" href="Wallet.dc.html" aria-label="Tokens: 10. Live balance, opens the Wallet" data-token-counter="10"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></svg><b>10</b><span>tokens</span></a>
+<div class="theme" role="group" aria-label="Appearance"><button type="button" aria-pressed="true" aria-label="Dark mode" onclick="document.documentElement.removeAttribute('data-theme');this.setAttribute('aria-pressed','true');this.nextElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button><button type="button" aria-pressed="false" aria-label="Light mode" onclick="document.documentElement.setAttribute('data-theme','light');this.setAttribute('aria-pressed','true');this.previousElementSibling.setAttribute('aria-pressed','false')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button></div>
+<a class="ib" href="JobsCenter.dc.html" aria-label="Jobs Center, 0 active"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></a>
+<button class="ib" type="button" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+<a class="ib" href="Shortcuts.dc.html" aria-label="Keyboard shortcuts (?)"><span style="font: 600 14px/1 Inter, sans-serif">?</span></a>
+<button class="av" type="button" aria-label="Account"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></button>
+</header>
+<div class="body">
+<aside class="side" aria-label="Analysis panel" style="flex: 0 0 272px; max-width: 272px; overflow: auto">
+<div class="ph" style="min-height: 44px"><h2 class="h3">Identities</h2><span class="sm mu">1 confirmed</span></div>
+<div class="lr sel" style="gap: 10px; min-height: 52px">
+<span style="width: 3px; height: 28px; border-radius: 2px; background: var(--ac)"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 500">Chinazom Godwin</span><span class="sm mu">#4 · DM · FC Ercakhu</span></span>
+<span class="chip ev ev-c">Confirmed</span>
+</div>
+<div class="lr" style="min-height: 40px"><span class="sm mu">Other tracked people appear here once the engine proposes them.</span></div>
+<div class="sect" data-overlays style="gap: 2px; padding: 10px 14px">
+<span class="eb">Visual overlays</span>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Player Boxes</span><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Player Boxes" data-ov="boxes"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Player IDs</span><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Player IDs" data-ov="ids"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Player Tracks</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Player Tracks" data-ov="tracks"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Team Shapes</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Team Shapes" data-ov="shapes"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Ball Tracking</span><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Ball Tracking" data-ov="ball"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Pass Arrows</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Pass Arrows" data-ov="passes"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Heatmaps (Live)</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Heatmaps (Live)" data-ov="heat"></button></div>
+<div class="lr" style="padding: 0; border: 0; min-height: 29px"><span style="flex: 1">Offside Line</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Offside Line" data-ov="offside"></button></div>
+</div>
+
+<div class="sect" style="border-bottom: 0; margin-top: auto">
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="sm" style="font-weight: 500">Team sheet</span><span class="chip ev ev-i">Awaiting approval</span></div>
+<a class="btn sm w" href="Admin.dc.html">Review team sheet &amp; lineups</a>
+</div>
+</aside>
+
+<main class="content" style="padding: 10px 12px; gap: 8px; background: var(--bg)">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between">
+<div class="seg" role="group" aria-label="Tool"><button type="button" class="on">Select</button><button type="button">Identify</button><button type="button">Mark ball</button><button type="button">Marker</button><button type="button">Calibrate pitch</button></div>
+<span class="sm mu">Nart v Ercakhu – round 2 · <span class="mono">78</span> events</span>
+</div>
+<div style="display: flex; justify-content: center"><div style="width: 100%; max-width: 860px"><div class="vpw" style="width: 100%; display: flex; flex-direction: column">
+<div class="vp" data-player="p1">
+<div class="vpe">
+<span style="width: 48px; height: 48px; border-radius: 12px; border: 1px dashed var(--ln2); display: grid; place-items: center; color: var(--mu)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4-2.5z"/></svg></span>
+<span class="h3">No verified playable footage was supplied</span>
+<span class="sm mu" style="max-width: 380px">Open the match file from this computer to play it here. The tracking overlay draws only from this file’s confirmed tracks.</span>
+<div style="display: flex; gap: 8px"><button class="btn" type="button" data-act="play"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play</button><button class="btn pri" type="button" data-act="open"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>Open local footage</button></div>
+</div>
+</div>
+<div class="vpc">
+<button class="ib" type="button" data-act="toggle" aria-label="Play"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+<button class="ib" type="button" data-act="back" aria-label="Back one second"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M18 6l-8 6 8 6z"/></svg></button>
+<button class="ib" type="button" data-act="fwd" aria-label="Forward one second"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 6l8 6-8 6z"/></svg></button>
+<span class="tc" data-tc style="min-width: 96px">00:00 / --:--</span>
+<label class="sr" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)" for="seek-p1">Seek</label>
+<input id="seek-p1" class="vps" type="range" min="0" max="1000" value="0" step="1" data-act="seek" disabled>
+<label style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)" for="spd-p1">Playback speed</label>
+<select id="spd-p1" data-act="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+<button class="ib" type="button" data-act="fs" aria-label="Fullscreen"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+</div>
+</div></div>
+
+<section class="panel" aria-label="Event timeline" style="flex: 1; min-height: 150px; display: flex; flex-direction: column; overflow: hidden">
+<div style="display: grid; grid-template-columns: 112px minmax(0, 1fr); border-bottom: 1px solid var(--ln); height: 30px; align-items: center">
+<span class="eb" style="padding-left: 12px">Timeline</span>
+<div class="ruler" style="padding: 0 10px"><span>0'</span><span>15'</span><span>30'</span><span>45'</span><span>60'</span><span>75'</span><span>90'</span></div>
+</div>
+<div style="display: grid; grid-template-columns: 112px minmax(0, 1fr); border-bottom: 1px solid var(--p2); align-items: center; min-height: 44px">
+<span class="sm" style="padding-left: 12px; color: var(--tx2)">Events · <span class="mono">78</span></span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px">
+<span class="chip">Passes <b class="mono" style="font-weight: 500; color: var(--tx)">13</b></span>
+<span class="chip">Shots <b class="mono" style="font-weight: 500; color: var(--tx)">0</b></span>
+<span class="chip">Ball won <b class="mono" style="font-weight: 500; color: var(--tx)">8</b></span>
+<span class="chip">Pressures <b class="mono" style="font-weight: 500; color: var(--tx)">6</b></span>
+<span class="chip">Set pieces <b class="mono" style="font-weight: 500; color: var(--tx)">51</b></span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 112px minmax(0, 1fr); border-bottom: 1px solid var(--p2); align-items: center; flex: 1"><span class="sm" style="padding-left: 12px; color: var(--tx2)">Ball</span><span class="nm" style="padding-left: 10px">Not measured</span></div>
+<div style="display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; flex: 1"><span class="sm" style="padding-left: 12px; color: var(--tx2)">Markers</span><span class="nm" style="padding-left: 10px">Press <span class="kbd">M</span> to add a marker</span></div>
+</section>
+</main>
+
+<aside class="insp" aria-label="Selected player" style="flex: 0 0 300px; max-width: 300px">
+<div class="ph" style="min-height: 44px"><h2 class="h3">Chinazom Godwin</h2><span class="chip ev ev-c">Confirmed</span></div>
+<div class="sect">
+<div style="display: flex; gap: 12px; align-items: center">
+<div style="width: 48px; height: 60px; border-radius: 6px; background: var(--p2); border: 1px solid var(--ln2); display: grid; place-items: center; color: var(--mu)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+<div style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">#4 · DM</span><span class="sm mu">FC Ercakhu · Nigeria</span><span class="sm mono" style="color: var(--ac)">OTSI-[PIN]</span></div>
+</div>
+<button class="btn pri w" type="button" disabled><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Identity confirmed</button>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px"><button class="btn sm" type="button">Correct…<span class="kbd">E</span></button><button class="btn sm dan" type="button">Reject<span class="kbd">X</span></button></div>
+</div>
+<div class="sect">
+<span class="eb">Evidence</span>
+<dl class="kv">
+<dt>Confirmed tracks</dt><dd class="mono">57</dd>
+<dt>Videos</dt><dd class="mono">2</dd>
+<dt>Time on camera</dt><dd class="mono">9 min</dd>
+<dt>Events</dt><dd class="mono">20</dd>
+<dt>Evidence coverage</dt><dd class="mono">69%</dd>
+</dl>
+</div>
+<div class="sect" style="border-bottom: 0">
+<span class="eb">Look-alikes</span>
+<p class="sm mu">No look-alikes to resolve for this player.</p>
+<a class="btn sm" href="Report.dc.html">Open player report</a>
+</div>
+</aside>
+</div>
+
+<footer class="statusbar">
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st"><span class="led warn"></span>Licence: <b>Not verified</b></span>
+<span class="st"><span class="led warn"></span>Engine accuracy: <b>Not measured</b></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 18px">
+<span class="st">Free tier · <b>2 GB</b> per video</span>
+<span class="st">Tokens <b class="mono">10</b></span>
+<span class="st">Advanced interface</span>
+</div>
+</footer>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"var(--ac)","options":["var(--ac)","#4F9DFF","#F2A93B","#B8E04A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? 'var(--ac)' };
+  }
+}
+</script>
+</body>
+</html>
