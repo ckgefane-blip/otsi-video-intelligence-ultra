@@ -173,7 +173,7 @@ export function PreviewPanel() {
     [reel, path, clip, look.lock, src?.kind, message, dict]);
 
   const emptyTitle = !reel
-    ? (listFailed ? dict.body.reels.reelsNotLoaded : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? dict.body.reelstage.noReelYet : dict.body.reels.openReel)
+    ? (listFailed ? dict.body.reels.reelsNotLoaded : list === null ? dict.body.reelstage.previewLoadingReels : list.length === 0 ? dict.body.reelstage.noReelYet.replace("{a}", dict.body.workspace.createHighlightReel) : dict.body.reels.openReel)
     : (message ?? dict.body.reelstage.previewNoSrc);
 
   return (

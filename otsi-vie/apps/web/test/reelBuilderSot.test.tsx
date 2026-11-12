@@ -121,4 +121,25 @@ describe("Reel Builder (SOT)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Build reel/ }));
     await waitFor(() => expect(screen.getByRole("dialog", { name: "Render this reel?" })).toBeInTheDocument());
   });
+
+  it("without a reel the same page shows the full builder with the empty state, not a bare list", async () => {
+    api.mockImplementation((url: string) => {
+      if (url === "/v1/reels") return Promise.resolve([]);
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<ReelStage />);
+    // the SOT's three columns are there even with nothing loaded (like Filmora/DaVinci): the settings sidebar,
+    // the preview, and the Clip inspector — with the empty state inside the preview (title + the line below it),
+    // not a bare "No reels yet" page
+    expect(await screen.findByText("Reel settings")).toBeInTheDocument();
+    expect(screen.getByText("No clip selected")).toBeInTheDocument();
+    expect(screen.getAllByText(/No reel yet/)).toHaveLength(2);
+    expect(screen.queryByText("No reels yet.")).toBeNull();
+  });
+
+  it("without a reel id it opens the first reel on its own", async () => {
+    mockApi();
+    render(<ReelStage />);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith(`/reels/${reel.id}`));
+  });
 });
