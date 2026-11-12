@@ -64,13 +64,13 @@ export function PropertiesDialog({ s, track, open, onOpenChange }: { s: Shared; 
   const go = (us: number) => { ws?.seek(us); onOpenChange(false); };
   const pick = (trackId: string, us: number) => { ws?.select(trackId); ws?.seek(us); onOpenChange(false); };
   const Time = ({ us }: { us: number }) => <button type="button" className="font-mono text-[#9fd0ff] underline-offset-2 hover:underline" onClick={() => go(us)}>{clock(us)}</button>;
-  const H = ({ children }: { children: React.ReactNode }) => <h3 className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wide text-muted">{children}</h3>;
+  const H = ({ children }: { children: React.ReactNode }) => <h3 className="mb-1 mt-4 text-xs font-normal uppercase tracking-wide text-muted">{children}</h3>;
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="properties" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(760px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.propertiesTrack.replace("{a}", String(track.track_number))}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.workspace.propertiesTrack.replace("{a}", String(track.track_number))}</Dialog.Title>
           <Dialog.Description className="text-xs text-muted">{dict.body.workspace.everythingRecorded}</Dialog.Description>
 
           <H>{dict.body.workspace.trackLabel}</H>
@@ -85,7 +85,7 @@ export function PropertiesDialog({ s, track, open, onOpenChange }: { s: Shared; 
             <>
               <H>{dict.body.upload.identity}</H>
               <div data-props="identity" className="rounded-ctl border border-line/60 p-2.5">
-                <p className="font-semibold" data-props-who>{who.title}</p>
+                <p className="font-normal" data-props-who>{who.title}</p>
                 {who.detail && <p className="text-xs text-muted">{who.detail}</p>}
                 {current?.reason && <p className="mt-1 text-xs">{dict.body.workspace.whyWithReason.replace("{a}", current.reason)}</p>}
               </div>
@@ -103,7 +103,7 @@ export function PropertiesDialog({ s, track, open, onOpenChange }: { s: Shared; 
 
               <H>{dict.body.aiAnalyst.evidence}</H>
               <div data-props="evidence" className="space-y-1">
-                <p>Shirt number: {d.jersey ? (d.jersey.decision ? (d.jersey.decision.state === "CONFIRMED" ? <span className="font-semibold">{dict.body.workspace.shirtConfirmedByPerson.replace("{a}", String(d.jersey.decision.number))}</span> : dict.body.workspace.unreadablePerson)
+                <p>Shirt number: {d.jersey ? (d.jersey.decision ? (d.jersey.decision.state === "CONFIRMED" ? <span className="font-normal">{dict.body.workspace.shirtConfirmedByPerson.replace("{a}", String(d.jersey.decision.number))}</span> : dict.body.workspace.unreadablePerson)
                   : d.jersey.number ? <>{d.jersey.number} <span className="text-xs text-muted">{(d.jersey.frames.length === 1 ? dict.body.workspace.readOnFramesOne : dict.body.workspace.readOnFramesMany).replace("{a}", String(d.jersey.frames.length)).replace("{b}", d.jersey.confidence?.toFixed(2) ?? "—")}</span></> : dict.body.workspace.notReadShirt)
                   : "—"}</p>
                 {d.candidates && d.candidates.candidates.length > 0 ? (

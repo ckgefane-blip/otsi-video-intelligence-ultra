@@ -85,7 +85,7 @@ export function WhoQueue({ r, reel, open, onOpenChange }: { r: ReelState; reel: 
                 <div className="flex items-center gap-2">
                   <TrackThumb trackId={cur.other.track_id} has={cur.other.has_thumbnail} size={48} />
                   <div className="min-w-0 flex-1 t-small">
-                    <p className="font-medium">{d.trackWord.replace("{a}", String(cur.other.track_number))} · {mmss(cur.other.first_pts_us)}–{mmss(cur.other.last_pts_us)}</p>
+                    <p className="font-normal">{d.trackWord.replace("{a}", String(cur.other.track_number))} · {mmss(cur.other.first_pts_us)}–{mmss(cur.other.last_pts_us)}</p>
                     <p className="text-muted">{d.whoLooks.replace("{a}", String(Math.round(cur.similarity * 100)))}{cur.resembles > 1 ? d.whoResembles.replace("{a}", String(cur.resembles)) : ""}{d.whoToCheck.replace("{a}", String(queue.length))}</p>
                   </div>
                   <button type="button" onClick={show} disabled={!url} className="rounded-ctl border border-line px-2 py-1 t-small disabled:opacity-50">{d.whoShow}</button>
@@ -101,7 +101,7 @@ export function WhoQueue({ r, reel, open, onOpenChange }: { r: ReelState; reel: 
           {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-xs ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
           <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
             <Link href={`/analysis?video=${reel.video_id}${player ? `&find=${player.player_id}` : ""}`} className="mr-auto text-xs text-[#33a8ff]">{d.whoOpenAnalysis}</Link>
-            {added > 0 && <button type="button" data-who-take-in onClick={takeIn} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{(added === 1 ? d.whoTakeInOne : d.whoTakeInMany).replace("{a}", String(added))}</button>}
+            {added > 0 && <button type="button" data-who-take-in onClick={takeIn} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{(added === 1 ? d.whoTakeInOne : d.whoTakeInMany).replace("{a}", String(added))}</button>}
             <button type="button" onClick={() => onOpenChange(false)} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.close}</button>
           </div>
         </Dialog.Content>

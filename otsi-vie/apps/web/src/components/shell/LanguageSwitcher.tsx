@@ -17,7 +17,7 @@ export function LanguageSwitcher() {
   const { locale, setLocale, t } = useLocale();
   return (
     <fieldset className="mt-3" data-language-switch={locale}>
-      <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{t.shell.language}</legend>
+      <legend className="text-xs font-normal uppercase tracking-wide text-muted">{t.shell.language}</legend>
       <div role="radiogroup" aria-label={t.shell.language} className="mt-1 grid grid-cols-2 gap-1">
         {SUPPORTED_LOCALES.map((code: Locale) => (
           <button
@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
               locale === code ? "border-primary bg-primary/15" : "border-line hover:border-primary/60"
             }`}
           >
-            <span className="block font-medium">{LOCALE_NAMES[code]}</span>
+            <span className="block font-normal">{LOCALE_NAMES[code]}</span>
             <span className="block text-[11px] text-muted">{code.toUpperCase()}</span>
           </button>
         ))}

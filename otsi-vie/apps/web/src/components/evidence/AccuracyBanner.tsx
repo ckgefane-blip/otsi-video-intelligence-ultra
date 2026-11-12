@@ -19,9 +19,9 @@ export function AccuracyBanner() {
   return (
     <div role="note" aria-label="Accuracy not yet measured" data-accuracy-banner
       className="flex items-center gap-3 border-b border-[#5a4410] bg-[#2a1f08] px-4 py-1.5 text-xs text-[#ffd98a]">
-      <span aria-hidden className="font-semibold">!</span>
+      <span aria-hidden className="font-normal">!</span>
       <span className="flex-1">
-        <span className="font-semibold">Accuracy not yet measured.</span> Every number and box is what the engine recorded on this footage; how often it is right on football
+        <span className="font-normal">Accuracy not yet measured.</span> Every number and box is what the engine recorded on this footage; how often it is right on football
         has not been measured yet ({open.map((g) => `${g.name} ${g.id}`).join(", ")} open). Check what matters before you rely on it.
       </span>
       <span className="hidden gap-1 md:flex" title={open.map((g) => `${g.id} ${g.name}: ${g.what}`).join("\n")}>

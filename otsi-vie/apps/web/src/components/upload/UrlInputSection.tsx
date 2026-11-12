@@ -74,7 +74,7 @@ export function UrlInputSection() {
         {showProvider && provider && (
           <div data-provider={provider.id} data-provider-status={provider.status}
             className={`rounded-ctl border p-2 text-xs ${provider.status === "unsupported" ? "border-danger/40 bg-danger/10" : "border-line bg-raised/40"}`}>
-            <p className="font-semibold">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
+            <p className="font-normal">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
             <p className="mt-0.5 text-muted">{provider.status === "unsupported" ? `${provider.reason} ${provider.alternative}` : provider.method}</p>
             {provider.status === "needs_authorization" && (
               <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" minLength={8} placeholder={d.yourAccessToken.replace("{name}", provider.name)}
@@ -90,7 +90,7 @@ export function UrlInputSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.whichLinksWork}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.whichLinksWork}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{d.onlyVideoRights}</Dialog.Description>
             <ul aria-label={d.linkSupport} className="grid gap-1 text-xs">
               {IMPORT_PROVIDERS.map((p) => (
@@ -98,7 +98,7 @@ export function UrlInputSection() {
                   <span className={`shrink-0 rounded px-1.5 ${p.status === "supported" ? "bg-ok/15 text-ok" : p.status === "needs_authorization" ? "bg-amber/15 text-amber" : "bg-danger/15 text-danger"}`}>
                     {p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerWithToken : d.providerNotPossibleShort}
                   </span>
-                  <span><span className="font-medium">{p.name}</span> <span className="text-muted">{p.status === "unsupported" ? p.alternative : p.method}</span></span>
+                  <span><span className="font-normal">{p.name}</span> <span className="text-muted">{p.status === "unsupported" ? p.alternative : p.method}</span></span>
                 </li>
               ))}
             </ul>

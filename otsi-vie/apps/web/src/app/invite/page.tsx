@@ -23,8 +23,8 @@ const roleLabel = (t: { body: { settings: Record<string, string> } }, r: string)
 const inviteLine = (t: { body: { auth: { inviteLine: string } } }, inviter: string, email: string, role: string) =>
   t.body.auth.inviteLine.split(/(\{[abc]\})/g).map((part, i) => {
     if (part === "{a}") return <span key={i}>{inviter}</span>;
-    if (part === "{b}") return <strong key={i} className="font-semibold text-ink">{email}</strong>;
-    if (part === "{c}") return <strong key={i} className="font-semibold text-ink">{role}</strong>;
+    if (part === "{b}") return <strong key={i} className="font-normal text-ink">{email}</strong>;
+    if (part === "{c}") return <strong key={i} className="font-normal text-ink">{role}</strong>;
     return <span key={i}>{part}</span>;
   });
 

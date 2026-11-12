@@ -48,7 +48,7 @@ export function UploadHeaderSection() {
           const on = mode === m;
           return (
             <button key={m} type="button" role="tab" aria-selected={on} onClick={() => setMode(m)}
-              className={`rounded-ctl px-3 py-1.5 text-sm font-semibold ${on ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>
+              className={`rounded-ctl px-3 py-1.5 text-sm font-normal ${on ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>
               {LABEL[m]}
             </button>
           );
@@ -59,15 +59,15 @@ export function UploadHeaderSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.bringingFootageIn}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.bringingFootageIn}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{d.whatEachSourceDoes}</Dialog.Description>
             <ul className="mb-3 space-y-2">
-              {SOURCE_MODES.map((m) => <li key={m.mode}><span className="font-semibold">{LABEL[m.mode]}:</span> <span className="text-muted">{NOTE[m.mode]}</span></li>)}
+              {SOURCE_MODES.map((m) => <li key={m.mode}><span className="font-normal">{LABEL[m.mode]}:</span> <span className="text-muted">{NOTE[m.mode]}</span></li>)}
             </ul>
-            <p className="mb-1 font-semibold">{d.linksCanBeImported}</p>
+            <p className="mb-1 font-normal">{d.linksCanBeImported}</p>
             <ul className="space-y-1 text-xs" aria-label={d.linkSupportHelp}>
               {IMPORT_PROVIDERS.map((p) => (
-                <li key={p.id}><span className="font-medium">{p.name}</span>: <span className="text-muted">{p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerNeedsToken : d.providerNotPossible.replace("{alternative}", p.alternative ?? "")}</span></li>
+                <li key={p.id}><span className="font-normal">{p.name}</span>: <span className="text-muted">{p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerNeedsToken : d.providerNotPossible.replace("{alternative}", p.alternative ?? "")}</span></li>
               ))}
             </ul>
             <p className="mt-3 text-xs text-muted">{d.everyFileChecksummed}</p>

@@ -16,7 +16,7 @@ import type { ReelState } from "@/components/reels/ReelBuilder";
 const LENGTHS = [30, 60, 90, 120, 180];
 const ASPECTS = ["16:9", "9:16", "1:1", "4:5"] as const;
 const secs = (us: number, d: Dictionary["body"]["reelstage"]) => { const s = Math.round(us / 1e6); return s >= 60 ? (s % 60 ? d.draftDurMinSec.replace("{a}", String(Math.floor(s / 60))).replace("{b}", String(s % 60)) : d.draftDurMin.replace("{a}", String(Math.floor(s / 60)))) : d.draftDurSec.replace("{a}", String(s)); };
-const chip = (on: boolean) => `rounded-ctl border px-2.5 py-1 text-xs ${on ? "border-primary bg-primary/20 font-semibold" : "border-line"}`;
+const chip = (on: boolean) => `rounded-ctl border px-2.5 py-1 text-xs ${on ? "border-primary bg-primary/20 font-normal" : "border-line"}`;
 
 export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; open: boolean; onOpenChange(o: boolean): void }) {
   const { t: dict } = useLocale();
@@ -75,7 +75,7 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
             <div className="grid gap-3" data-draft-done={done.key}>
               <p>{d.draftDone.replace("{a}", done.title).replace("{b}", String(done.clips.length)).replace("{c}", secs(done.duration_us, d))}</p>
               <div className="flex gap-2">
-                <Link href={`/studio?reel=${reel.id}`} data-edit-in-studio className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{d.draftEditStudio}</Link>
+                <Link href={`/studio?reel=${reel.id}`} data-edit-in-studio className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{d.draftEditStudio}</Link>
                 <button type="button" onClick={() => onOpenChange(false)} className="rounded-ctl border border-line px-3 py-1.5">{d.draftStay}</button>
               </div>
             </div>
@@ -103,7 +103,7 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
                   {res.candidates.map((c) => (
                     <li key={c.key} data-draft={c.key} className="rounded-ctl border border-line p-3">
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="font-semibold">{c.title}{c.key === best ? <span className="ml-2 rounded bg-primary/25 px-1.5 py-0.5 text-xs font-semibold">{d.draftMostAction}</span> : null}</span>
+                        <span className="font-normal">{c.title}{c.key === best ? <span className="ml-2 rounded bg-primary/25 px-1.5 py-0.5 text-xs font-normal">{d.draftMostAction}</span> : null}</span>
                         <span className="text-xs text-muted">{secs(c.duration_us, d)}</span>
                       </div>
                       <p className="mb-2 text-xs text-muted">{c.why}</p>
@@ -116,7 +116,7 @@ export function DraftDialog({ r, open, onOpenChange }: { r: ReelState | null; op
                       </div>
                       <div className="flex items-center gap-2">
                         <button type="button" data-use-draft={c.key} disabled={busy || !r?.canEdit} onClick={() => void use(c)}
-                          className={`rounded-ctl px-3 py-1 text-xs font-semibold text-white disabled:opacity-50 ${sure === c.key ? "bg-[#a33]" : "bg-primary"}`}>
+                          className={`rounded-ctl px-3 py-1 text-xs font-normal text-white disabled:opacity-50 ${sure === c.key ? "bg-[#a33]" : "bg-primary"}`}>
                           {sure === c.key ? d.draftReplace.replace("{a}", String(reel?.clips.length)) : d.draftUse}</button>
                         {sure === c.key && <button type="button" onClick={() => setSure(null)} className="rounded-ctl border border-line px-3 py-1 text-xs">{d.draftKeep}</button>}
                         {!r?.canEdit && <span className="text-xs text-muted">{d.draftCannotEdit}</span>}

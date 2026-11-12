@@ -91,7 +91,7 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
         <Dialog.Overlay className="fixed inset-0 z-50" />
         <Dialog.Content className="fixed right-4 z-50 w-72 rounded-card border border-line bg-panel p-3 shadow-2xl"
           style={{ top: "calc(max(0.5px, 100vw / 2560) * 104)" }}>
-          <Dialog.Title className="text-sm font-semibold">{me.user.display_name}</Dialog.Title>
+          <Dialog.Title className="text-sm font-normal">{me.user.display_name}</Dialog.Title>
           <Dialog.Description className="text-xs text-muted">{me.user.email}</Dialog.Description>
           {photo && (
             <button type="button" disabled={photoBusy} data-photo-remove onClick={() => {
@@ -103,12 +103,12 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
           {photoMsg && <p role={photoMsg.ok ? "status" : "alert"} className={`mt-1 text-xs ${photoMsg.ok ? "text-ok" : "text-danger"}`}>{photoMsg.text}</p>}
           {ui.page && (
             <fieldset className="mt-3" data-ui-mode-switch={ui.mode}>
-              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{t.body.shell.pageHowMuch.replace("{a}", pageName(t, ui.page))}</legend>
+              <legend className="text-xs font-normal uppercase tracking-wide text-muted">{t.body.shell.pageHowMuch.replace("{a}", pageName(t, ui.page))}</legend>
               <div role="radiogroup" aria-label={t.body.shell.guidedOrProAria.replace("{a}", pageName(t, ui.page))} className="mt-1 grid grid-cols-2 gap-1">
                 {([["GUIDED", t.body.shell.modeGuided, t.body.shell.guidedDesc], ["PRO", t.body.shell.modePro, t.body.shell.proDesc]] as const).map(([m, l, d]) => (
                   <button key={m} type="button" role="radio" aria-checked={ui.mode === m} disabled={ui.saving} data-ui-mode-option={m} onClick={() => void ui.setMode(m)}
                     className={`rounded-ctl border px-2 py-1.5 text-left text-sm ${ui.mode === m ? "border-primary bg-primary/15" : "border-line hover:border-primary/60"}`}>
-                    <span className="block font-medium">{l}</span><span className="block text-[11px] text-muted">{d}</span>
+                    <span className="block font-normal">{l}</span><span className="block text-[11px] text-muted">{d}</span>
                   </button>
                 ))}
               </div>
@@ -122,7 +122,7 @@ export function ProfileChip({ styles }: { styles: Record<string, string> }) {
           <LanguageSwitcher />
           {me.memberships.length > 0 && (
             <fieldset className="mt-3">
-              <legend className="text-xs font-semibold uppercase tracking-wide text-muted">{t.body.shell.orgLegend}</legend>
+              <legend className="text-xs font-normal uppercase tracking-wide text-muted">{t.body.shell.orgLegend}</legend>
               {me.memberships.map((m) => (
                 <label key={m.organization_id} className="mt-1 flex cursor-pointer items-center gap-2 rounded-ctl px-2 py-1.5 text-sm hover:bg-raised/60">
                   <input type="radio" name="organization" checked={m.organization_id === organization?.organization_id}

@@ -91,7 +91,7 @@ export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Stu
             className={`vie-btn vie-btn-sm ${st.layout === l ? "border-primary bg-[#0f4f9a] text-white" : ""}`}>{layoutText[l].label}</button>
         ))}
         <button type="button" aria-label={dict.body.studio.keyboardShortcuts} data-shortcuts onClick={openKeymap} title={dict.body.studio.keyboardShortcutsTitle}
-          className="vie-btn vie-btn-sm font-semibold">?</button>
+          className="vie-btn vie-btn-sm font-normal">?</button>
         <button type="button" aria-label={dict.body.studio.historyReel} data-history-open disabled={!reel} onClick={() => setHist(true)} title={dict.body.studio.historyTitle}
           className="vie-btn vie-btn-sm disabled:opacity-50">{dict.body.reels.history}{r?.history?.entries.length ? ` (${r.history.entries.length})` : ""}</button>
       </div>
@@ -147,7 +147,7 @@ export function StudioHeader({ r, st, ui, note }: { r: ReelState | null; st: Stu
                 className="mb-3 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-ink" />
               <div className="flex justify-end gap-2">
                 <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.common.save}</button>
+                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.common.save}</button>
               </div>
             </form>
           </Dialog.Content>

@@ -31,7 +31,7 @@ export function SourceModeTabs() {
             role="tab"
             aria-selected={mode === current}
             onClick={() => router.replace(`${pathname}?mode=${mode}`, { scroll: false })}
-            className={`flex items-center justify-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium ${
+            className={`flex items-center justify-center gap-2 border-b-2 px-3 py-2.5 text-sm font-normal ${
               mode === current ? "border-primary bg-primary/10 text-primary" : "border-transparent text-ink/85 hover:bg-raised/60"
             }`}
           >

@@ -42,7 +42,7 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="export-preflight" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(600px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Export {outs.length} file{outs.length === 1 ? "" : "s"}?</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Export {outs.length} file{outs.length === 1 ? "" : "s"}?</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{preset.name}. Check before rendering; each file renders in turn.</Dialog.Description>
           <ul className="mb-3 space-y-1" data-preflight-outputs>
             {outs.map((o) => (
@@ -76,7 +76,7 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
           <div className="flex justify-end gap-2">
             <Dialog.Close className="rounded border border-line px-3 py-1.5">Cancel</Dialog.Close>
             <button type="button" data-start-export disabled={!pf || blocked || toStart === 0} onClick={onStart}
-              className="rounded bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-40">
+              className="rounded bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-40">
               {blocked ? "Fix the blocked items first" : toStart === 0 ? "Every file is rendering" : `Start ${toStart} file${toStart === 1 ? "" : "s"}`}
             </button>
           </div>

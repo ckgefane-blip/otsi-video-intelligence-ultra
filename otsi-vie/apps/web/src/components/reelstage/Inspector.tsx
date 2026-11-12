@@ -85,7 +85,7 @@ function LogoPicker({ kind, onPick, onClose }: { kind: BrandAssetKind; onPick: (
             <li key={a.id}><button type="button" data-pick-logo={a.id} disabled={!a.rights_ok} onClick={() => onPick(a.id)}
               className="t-body flex w-full items-center gap-3 rounded-ctl border border-[#1e90ff]/60 bg-[#0b2a52] px-3 py-2 text-left hover:bg-[#0d3a6e] disabled:opacity-50">
               <LogoImg id={a.id} size={40} />
-              <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{dict.body.reelstage.logoUse.replace("{a}", a.name)}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate font-normal">{dict.body.reelstage.logoUse.replace("{a}", a.name)}</span>
                 <span className="block truncate t-small">{a.rights_ok ? dict.body.reelstage.logoRights.replace("{a}", a.rights_holder) : dict.body.reelstage.logoRightsNotOk}</span></span>
             </button></li>))}
           </ul>)}
@@ -186,7 +186,7 @@ export function Inspector() {
         <div role="tablist" aria-label={dict.body.reelstage.inspectorAria} className="flex">
           {TABS.map(([l, target], i) => (
             <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => jump(target)}
-              className={`flex-1 border-b-2 px-2 py-2 text-center t-body ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted"}`}>
+              className={`flex-1 border-b-2 px-2 py-2 text-center t-body ${tab === i ? "border-primary font-normal text-primary" : "border-transparent text-muted"}`}>
               {tabNames[i] ?? l}
             </button>
           ))}

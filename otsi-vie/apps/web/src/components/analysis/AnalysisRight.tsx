@@ -63,12 +63,12 @@ function EventsTab({ s }: { s: Shared }) {
               <span aria-hidden className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ background: k.color }} />
               <span className="w-14 shrink-0 text-[#9fb3cc]">{clock(m.at)}</span>
               <span className="min-w-0 flex-1">
-                <span className="font-semibold">{k.noun[0]!.toUpperCase() + k.noun.slice(1)}</span>
+                <span className="font-normal">{k.noun[0]!.toUpperCase() + k.noun.slice(1)}</span>
                 {who.length > 0 && <span className="text-[#cfdcf0]"> · {who.join(" → ")}</span>}
                 {m.detail && <span className="block text-xs text-muted">{m.detail}</span>}
               </span>
               {dec && (
-                <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
+                <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-normal"
                   style={{ background: dec === "CONFIRM" ? "rgba(34,197,94,0.2)" : dec === "EDIT" ? "rgba(59,130,246,0.2)" : "rgba(245,158,11,0.2)",
                     color: dec === "CONFIRM" ? "#22c55e" : dec === "EDIT" ? "#60a5fa" : "#fbbf24" }}>{dec}</span>
               )}
@@ -105,14 +105,14 @@ function ClipsTab({ s }: { s: Shared }) {
     <div role="list" aria-label={dict.body.workspace.metricClips} data-clips={String(reels!.reduce((n, r) => n + r.clips.length, 0))} className="flex flex-col">
       {reels!.filter((r) => r.clips.length).map((r) => (
         <div key={r.id}>
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm font-semibold">
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm font-normal">
             <span className="min-w-0 truncate">{r.name} · {r.clips.length} clips</span>
             <Link href={`/reels/${r.id}`} className="shrink-0 font-normal text-primary">{dict.body.analysis.openInReelBuilder}</Link>
           </div>
           {r.clips.map((c, i) => (
             <button key={c.id} type="button" role="listitem" data-clip={c.id}
               className="flex w-full items-center gap-2 border-b border-line/60 px-3 py-1.5 text-left text-sm hover:bg-white/5" onClick={() => ws?.seek(c.in_pts_us)}>
-              <span className="w-8 shrink-0 font-semibold text-primary">{i + 1}</span>
+              <span className="w-8 shrink-0 font-normal text-primary">{i + 1}</span>
               <span className="w-[130px] shrink-0 text-[#9fb3cc]">{clock(c.in_pts_us)}–{clock(c.out_pts_us)}</span>
               <span className="min-w-0 truncate">{c.label ?? dict.body.workspace.metricClip} <span className="text-muted">· {Math.round(clipOutputUs(c) / 1e6)} s</span></span>
             </button>
@@ -141,7 +141,7 @@ function Players({ s }: { s: Shared }) {
       <div role="tablist" aria-label={dict.body.workspace.rightPanel} className="flex flex-wrap gap-1 border-b border-line px-2 pt-1">
         {[`${dict.body.analysis.players} (${finished ? (ws?.tracks ? all.length : "…") : "—"})`, dict.body.workspace.metricEvents, dict.body.workspace.metricClips].map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
-            className={`border-b-2 px-2 py-2 text-sm ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
+            className={`border-b-2 px-2 py-2 text-sm ${tab === i ? "border-primary font-normal text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
         ))}
       </div>
       {tab === 0 && (
@@ -159,7 +159,7 @@ function Players({ s }: { s: Shared }) {
               return (
                 <button key={n} type="button" role="radio" aria-checked={on} aria-disabled={!usable} title={usable ? undefined : reason} disabled={!usable}
                   onClick={() => setTeam(a0 ? "all" : club!)}
-                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm disabled:opacity-70 ${on ? "border-primary bg-primary/10 font-semibold text-primary" : "border-line"}`}>
+                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm disabled:opacity-70 ${on ? "border-primary bg-primary/10 font-normal text-primary" : "border-line"}`}>
                   {!a0 && <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n === dict.body.workspace.metricHome ? "#7ab6ff" : "#e8d9a0" }} />}
                   {n} <span className="rounded bg-[#12294a] px-1.5 text-xs">{c}</span>
                 </button>
@@ -178,8 +178,8 @@ function Players({ s }: { s: Shared }) {
                   <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs text-white ${on ? "border-[#1a8cff] bg-[#1a8cff]" : "border-[#4a6a96]"}`}>{on ? "✓" : ""}</span>
                   <span className="w-4 shrink-0 text-sm">—</span>
                   <Thumb track={t} w={40} h={44} style={{ borderRadius: "50%" }} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium" title={t.label}>{t.label.split(" · ")[0]}</span>
-                  <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold" style={{ background: a?.club_id ? "#1580ff" : "#12294a" }}
+                  <span className="min-w-0 flex-1 truncate text-sm font-normal" title={t.label}>{t.label.split(" · ")[0]}</span>
+                  <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-normal" style={{ background: a?.club_id ? "#1580ff" : "#12294a" }}
                     title={a ? (a.club_name ?? dict.body.processing.notATeam) : dict.body.workspace.teamNotAssignedYet}>{a?.club_id ? code(a.club_name) : "—"}</span>
                   <span className="w-9 shrink-0 text-right text-sm tabular-nums">{t.mean_confidence?.toFixed(2) ?? "—"}</span>
                   <span aria-hidden className="relative hidden h-4 w-8 shrink-0 sm:block">
@@ -257,7 +257,7 @@ function Inspector({ s }: { s: Shared }) {
             className="relative shrink-0 overflow-hidden rounded-md disabled:opacity-70" aria-label={dict.body.workspace.propertiesAboutTrack}>
             {t ? <Thumb track={t} w={110} h={128} style={{ borderRadius: 6 }} />
               : <span aria-hidden className="block h-[128px] w-[110px] rounded-md bg-gradient-to-br from-[#5a6f8c] to-[#2a4a78]" />}
-            {t && <span data-props-open className="absolute inset-x-0 bottom-0 flex h-6 items-center justify-center bg-black/80 text-xs font-semibold text-[#cfe3ff]">{dict.body.workspace.propertiesInfo}</span>}
+            {t && <span data-props-open className="absolute inset-x-0 bottom-0 flex h-6 items-center justify-center bg-black/80 text-xs font-normal text-[#cfe3ff]">{dict.body.workspace.propertiesInfo}</span>}
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ function Inspector({ s }: { s: Shared }) {
               <h2 className="min-w-0 flex-1 truncate t-panel">{t ? t.label.split(" · ")[0] : dict.body.workspace.noPlayerSelected}</h2>
               {ws?.video && t && !isBall && (
                 <button type="button" data-identify onClick={() => setIdentifying(true)} title={player ? dict.body.workspace.identityOfPlayer.replace("{a}", player.display_name) : dict.body.workspace.sayWhoPlayerIs}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${player ? "bg-[#0a2a55] text-[#8fc4ff]" : "bg-primary text-white"}`}>
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-normal ${player ? "bg-[#0a2a55] text-[#8fc4ff]" : "bg-primary text-white"}`}>
                   {player ? dict.body.upload.identity : dict.body.workspace.identifyArrow}</button>
               )}
               <button type="button" aria-label={dict.body.workspace.clearSelection} disabled={!t} onClick={() => ws?.select(null)} className="vie-ib shrink-0 disabled:opacity-50">✕</button>
@@ -310,7 +310,7 @@ function Inspector({ s }: { s: Shared }) {
             <div className="flex rounded border border-line bg-[#0a1d38] text-xs">
               <button type="button" disabled title={notBuilt("season statistics")} aria-label={dict.body.workspace.metricSeason}
                 className="flex-1 rounded-l px-2 py-1.5 text-muted disabled:opacity-60">Season</button>
-              <button type="button" aria-pressed={!season} onClick={() => setSeason(false)} className="flex-1 rounded-r bg-[#0d4aa0] px-2 py-1.5 font-semibold">Match</button>
+              <button type="button" aria-pressed={!season} onClick={() => setSeason(false)} className="flex-1 rounded-r bg-[#0d4aa0] px-2 py-1.5 font-normal">Match</button>
             </div>
             {([
               [dict.body.workspace.metricTouches, dict.body.workspace.notMeasuredTouches],
@@ -320,7 +320,7 @@ function Inspector({ s }: { s: Shared }) {
               [dict.body.workspace.metricProgressivePasses, "Not measured: requires calibrated pitch coordinates for pass start and reception (>= 30m in defensive 1/3, >= 15m in middle 1/3, >= 10m into box)."],
             ] as const).map(([l, reason]) => (
               <div key={l} title={reason} data-unconfirmed-metric={l} className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-muted">{l}</span><span className="font-semibold">—</span>
+                <span className="text-muted">{l}</span><span className="font-normal">—</span>
               </div>
             ))}
           </div>
@@ -330,7 +330,7 @@ function Inspector({ s }: { s: Shared }) {
         <div data-create-reel>
           <button type="button" disabled={busy || (!player && (!t || isBall))} onClick={player ? createReel : t && !isBall ? () => setIdentifying(true) : undefined}
             title={player ? dict.body.workspace.createHighlightReel : !t ? dict.body.workspace.selectPlayerFirst : isBall ? dict.body.workspace.selectPlayerNotBall : dict.body.workspace.createHighlightReel}
-            className={`flex w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm font-semibold ${player ? "border-[#1f8cff] bg-[#0a4aa8] text-white" : "border-[#1f5a9c] bg-[#0a2a55] text-[#33a8ff]"} disabled:opacity-80`}>
+            className={`flex w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm font-normal ${player ? "border-[#1f8cff] bg-[#0a4aa8] text-white" : "border-[#1f5a9c] bg-[#0a2a55] text-[#33a8ff]"} disabled:opacity-80`}>
             {dict.body.analysis.createReel}
           </button>
           <p className={`mt-1 truncate text-center text-xs ${err ? "text-[#ff8a8a]" : "text-muted"}`}>

@@ -82,7 +82,7 @@ export function RecentMatches() {
               aria-label={`${title(m)}, ${subtitle(m)}: open in the Analysis workspace`}>
               <Thumb m={m} />
               <span className="min-w-0 flex-1">
-                <span className="t-body block truncate font-medium">{title(m)}</span>
+                <span className="t-body block truncate font-normal">{title(m)}</span>
                 <span className="t-small block truncate text-muted">{subtitle(m)}</span>
               </span>
               {score(m) && <span className="t-metric text-[15px]">{score(m)}</span>}

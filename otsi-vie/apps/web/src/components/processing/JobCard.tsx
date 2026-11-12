@@ -52,32 +52,32 @@ export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | 
   let action: React.ReactNode;
   if (!p) {
     action = hasVideos
-      ? <button type="button" onClick={onPick} className="text-sm font-semibold text-primary" data-action="choose">{d.chooseVideoProcess}</button>
-      : <Link href="/upload" className="text-sm font-semibold text-primary" data-action="upload">{d.uploadToBegin}</Link>;
+      ? <button type="button" onClick={onPick} className="text-sm font-normal text-primary" data-action="choose">{d.chooseVideoProcess}</button>
+      : <Link href="/upload" className="text-sm font-normal text-primary" data-action="upload">{d.uploadToBegin}</Link>;
   } else if (!video) {
     action = null;
   } else if (video.state !== "INGESTED") {
     action = <p className="text-sm text-muted">{d.notVerifiedYet.replace("{state}", video.state.toLowerCase())}</p>;
   } else if (isActive(run)) {
     action = p.canRun
-      ? <button type="button" disabled={busy} onClick={cancel} className="text-sm font-semibold text-primary disabled:opacity-50" data-action="cancel">{up.cancelAnalysis}</button>
+      ? <button type="button" disabled={busy} onClick={cancel} className="text-sm font-normal text-primary disabled:opacity-50" data-action="cancel">{up.cancelAnalysis}</button>
       : <p className="text-sm text-muted">{d.analysisInProgress}</p>;
   } else if (run?.status === "SUCCEEDED") {
     action = (
       <span className="flex gap-3">
-        <Link href={`/videos/${video.id}/analyze`} className="text-sm font-semibold text-primary" data-action="open">{d.openWorkspace}</Link>
-        {p.canRun && <button type="button" onClick={onRun} className="text-sm font-semibold text-primary" data-action="rerun">{d.rerun}</button>}
+        <Link href={`/videos/${video.id}/analyze`} className="text-sm font-normal text-primary" data-action="open">{d.openWorkspace}</Link>
+        {p.canRun && <button type="button" onClick={onRun} className="text-sm font-normal text-primary" data-action="rerun">{d.rerun}</button>}
       </span>
     );
   } else {
     action = p.canRun
-      ? <button type="button" onClick={onRun} className="text-sm font-semibold text-primary" data-action="start">{run ? d.analyseAgain : d.startAnalysis}</button>
+      ? <button type="button" onClick={onRun} className="text-sm font-normal text-primary" data-action="start">{run ? d.analyseAgain : d.startAnalysis}</button>
       : <p className="text-sm text-muted">{d.viewAnalysesOnly}</p>;
   }
 
   return (
     <section aria-label={d.jobCardAria} data-section="p03-s01" data-run-status={run?.status ?? "NONE"}>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{d.heroEyebrow}</p>
+      <p className="text-xs font-normal uppercase tracking-[0.14em] text-primary">{d.heroEyebrow}</p>
       <h1 className="t-page mt-0.5">{d.heroTitle}</h1>
       <p className="mt-0.5 text-sm text-muted">{d.heroSubtitle}</p>
 
@@ -91,12 +91,12 @@ export function JobCard({ p, hasVideos, onPick, onRun }: { p: ProcessingState | 
           {msg && <p className="mt-1 text-sm text-danger">{msg}</p>}
         </div>
         <div className="w-full sm:w-64">
-          <span className="inline-flex rounded-ctl px-2.5 py-1 text-sm font-semibold" data-status={status} style={pillTone}>{status}</span>
+          <span className="inline-flex rounded-ctl px-2.5 py-1 text-sm font-normal" data-status={status} style={pillTone}>{status}</span>
           <div className="mt-2 flex items-center gap-2">
             <span className="h-2 flex-1 overflow-hidden rounded bg-line/60">
               <i className="block h-full rounded bg-primary" style={{ width: `${progress ?? 0}%` }} />
             </span>
-            <span className="text-sm font-semibold">{pct(progress)}</span>
+            <span className="text-sm font-normal">{pct(progress)}</span>
           </div>
         </div>
       </div>

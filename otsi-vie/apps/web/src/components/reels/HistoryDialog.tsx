@@ -43,9 +43,9 @@ export function HistoryDialog({ r, open, onOpenChange }: { r: ReelState | null; 
           </Dialog.Description>
           <div className="mb-3 flex flex-wrap gap-2">
             <button type="button" data-history-undo disabled={!can || !h?.can_undo} onClick={() => r?.undo()}
-              className="rounded-ctl border border-line px-3 py-1.5 font-semibold disabled:opacity-40">{h?.undo_label ? d.historyUndoBtn.replace("{a}", h.undo_label) : d.historyNothingUndo}</button>
+              className="rounded-ctl border border-line px-3 py-1.5 font-normal disabled:opacity-40">{h?.undo_label ? d.historyUndoBtn.replace("{a}", h.undo_label) : d.historyNothingUndo}</button>
             <button type="button" data-history-redo disabled={!can || !h?.can_redo} onClick={() => r?.redo()}
-              className="rounded-ctl border border-line px-3 py-1.5 font-semibold disabled:opacity-40">{h?.redo_label ? d.historyRedoBtn.replace("{a}", h.redo_label) : d.historyNothingRedo}</button>
+              className="rounded-ctl border border-line px-3 py-1.5 font-normal disabled:opacity-40">{h?.redo_label ? d.historyRedoBtn.replace("{a}", h.redo_label) : d.historyNothingRedo}</button>
           </div>
           {!h ? <p className="text-xs text-muted">{d.historyReading}</p> : h.entries.length === 0 ? (
             <p className="text-xs text-muted" data-history-empty>{d.historyEmpty}</p>

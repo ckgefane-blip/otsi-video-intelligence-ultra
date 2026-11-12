@@ -8,14 +8,14 @@ function StateChip({ state }: { state: SectionState }) {
   if (state.kind === "static") return null;
   if (state.kind === "owner") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-amber/50 bg-amber/10 px-2 py-0.5 text-[11px] font-medium text-amber">
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber/50 bg-amber/10 px-2 py-0.5 text-[11px] font-normal text-amber">
         <Paintbrush className="h-3 w-3" /> Owner asset needed
       </span>
     );
   }
   if (state.kind === "planned") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] font-medium text-muted">
+      <span className="inline-flex items-center gap-1 rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] font-normal text-muted">
         <CircleDashed className="h-3 w-3" /> Not connected · Block {String(state.block).padStart(2, "0")}
       </span>
     );
@@ -57,7 +57,7 @@ export function SectionCard({ pageId, section, state, area, heading, untitled = 
         </div>
       )}
       <div className={untitled ? "sr-only" : "flex flex-wrap items-center justify-between gap-2"}>
-        <h2 id={`${id}-title`} className="flex items-center gap-2 text-[15px] font-semibold">
+        <h2 id={`${id}-title`} className="flex items-center gap-2 text-[15px] font-normal">
           <span aria-hidden className="h-4 w-[3px] rounded-full bg-primary" />
           {section.title}
         </h2>

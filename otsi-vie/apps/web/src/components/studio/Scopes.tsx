@@ -301,7 +301,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
               type="button"
               data-scope-channel={ch}
               aria-pressed={channel === ch}
-              className={`rounded px-2 py-0.5 font-medium ${
+              className={`rounded px-2 py-0.5 font-normal ${
                 channel === ch ? "bg-[#1e90ff] text-white" : "bg-[#0b2447] text-[#8ea3bf]"
               }`}
               onClick={() => setChannel(ch)}

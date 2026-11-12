@@ -18,7 +18,7 @@ import { HeatPitch } from "@/components/workspace/HeatPitch";
 /** the small provenance mark every user-entered field carries */
 export function UserEntered() {
   const { t: dict } = useLocale();
-  return <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 align-middle text-xs font-semibold text-amber-300">{dict.body.reels.enteredByUser}</span>;
+  return <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 align-middle text-xs font-normal text-amber-300">{dict.body.reels.enteredByUser}</span>;
 }
 
 const field = "t-body";
@@ -82,13 +82,13 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
     <div data-profile-intro="" className="overflow-hidden rounded-card border border-line bg-panel text-ink">
       <div className="aspect-video w-full overflow-y-auto">
         <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line/70 px-4 py-2">
-          <span className="t-small font-semibold tracking-wide text-muted">{dict.body.reels.introBreadcrumb}</span>
+          <span className="t-small font-normal tracking-wide text-muted">{dict.body.reels.introBreadcrumb}</span>
           {intro.verified ? (
-            <span role="status" className="rounded-full border border-ok/60 bg-ok/15 px-3 py-1 text-xs font-semibold text-ok" title={intro.verified_rule}>
+            <span role="status" className="rounded-full border border-ok/60 bg-ok/15 px-3 py-1 text-xs font-normal text-ok" title={intro.verified_rule}>
               {dict.body.reels.verifiedBadge}
             </span>
           ) : (
-            <span role="status" className="rounded-full border border-amber-500/60 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300" title={intro.verified_rule}>
+            <span role="status" className="rounded-full border border-amber-500/60 bg-amber-500/15 px-3 py-1 text-xs font-normal text-amber-300" title={intro.verified_rule}>
               {dict.body.reels.unconfirmedBadge}
             </span>
           )}
@@ -105,7 +105,7 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
               ) : (
                 <div className="flex h-full w-full items-center justify-center t-body text-muted">{dict.body.reels.noPhoto}</div>
               )}
-              <span className="absolute left-2 top-2 rounded-full bg-ok/90 px-2 py-0.5 text-xs font-semibold text-white">{dict.body.reels.targetPlayerBadge}</span>
+              <span className="absolute left-2 top-2 rounded-full bg-ok/90 px-2 py-0.5 text-xs font-normal text-white">{dict.body.reels.targetPlayerBadge}</span>
               {d?.photo_url && <span className="absolute bottom-2 left-2"><UserEntered /></span>}
             </div>
             <p className="mt-1.5 t-small text-muted">{p.nationality?.name ?? dict.body.reels.nationalityNotEntered}</p>
@@ -118,7 +118,7 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
             <p className="t-body text-muted">{position ?? dict.body.reels.positionNotEntered}</p>
             <dl className="mt-3 space-y-2 t-body">
               <div><dt className={label}>OTSI PIN</dt>
-                <dd className="font-semibold text-ok">{intro.player.canonical_otsi_id ?? <span className="font-normal text-muted">{dict.body.reels.pinUnconfirmed}</span>}</dd></div>
+                <dd className="font-normal text-ok">{intro.player.canonical_otsi_id ?? <span className="font-normal text-muted">{dict.body.reels.pinUnconfirmed}</span>}</dd></div>
               <div><dt className={label}>{dict.body.reels.currentClub}</dt>
                 <dd className={field}>{club ?? <span className={notMeasured}>{dict.body.reels.notEntered}</span>}{club && !clubFromRoster && <UserEntered />}</dd></div>
               <div><dt className={label}>{dict.body.players.nationality}</dt>
@@ -165,7 +165,7 @@ export function PlayerProfileIntroView({ intro, onContinue }: { intro: PlayerPro
             <h3 className="mb-1 t-panel">{dict.body.reels.recentForm}</h3>
             {intro.recent_form.ratings ? (
               <div className="flex gap-1.5">{intro.recent_form.ratings.map((r, i) => (
-                <span key={i} className="flex h-10 w-10 items-center justify-center rounded-full border border-ok/60 t-body font-semibold tabular-nums">{r.toFixed(1)}</span>
+                <span key={i} className="flex h-10 w-10 items-center justify-center rounded-full border border-ok/60 t-body font-normal tabular-nums">{r.toFixed(1)}</span>
               ))}</div>
             ) : (
               <p className={notMeasured}>{dict.body.reports.notMeasured}</p>

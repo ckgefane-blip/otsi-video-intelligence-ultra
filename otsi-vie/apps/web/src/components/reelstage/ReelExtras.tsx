@@ -44,7 +44,7 @@ function Switch({ on, label, note, onFlip }: { on: boolean; label: string; note:
     <button type="button" role="switch" aria-checked={on} onClick={onFlip} className="flex items-start gap-3 rounded-ctl border border-[#12335f] p-3 text-left">
       <span className={`mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 ${on ? "bg-[#1e90ff]" : "bg-[#17406f]"}`}>
         <span className={`h-4 w-4 rounded-full bg-white transition-transform ${on ? "translate-x-4" : ""}`} /></span>
-      <span><span className="block t-body font-semibold">{label}</span><span className="block text-xs text-[#8ea3bf]">{note}</span></span>
+      <span><span className="block t-body font-normal">{label}</span><span className="block text-xs text-[#8ea3bf]">{note}</span></span>
     </button>
   );
 }
@@ -80,7 +80,7 @@ export function ReelExtras({ settings, onChange, onClose }: { settings: Spotligh
   return (
     <div role="dialog" aria-modal="true" aria-label={dict.body.reelstage.extrasAria} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="flex max-h-[90vh] w-[min(600px,94vw)] flex-col gap-3 overflow-y-auto rounded-xl border border-[#1e90ff] bg-[#071a33] p-4 text-[#e3eefb]" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between"><h2 className="t-panel font-semibold">{dict.body.reelstage.extrasAria}</h2>
+        <div className="flex items-center justify-between"><h2 className="t-panel font-normal">{dict.body.reelstage.extrasAria}</h2>
           <button type="button" aria-label={dict.common.close} onClick={onClose} className="px-2 t-panel">✕</button></div>
         <Switch on={settings.event_tags} label={dict.body.reelstage.eventTags} onFlip={() => onChange({ ...settings, event_tags: !settings.event_tags })}
           note={dict.body.reelstage.eventTagsNote} />
@@ -89,25 +89,25 @@ export function ReelExtras({ settings, onChange, onClose }: { settings: Spotligh
         <Switch on={settings.profile_intro} label={dict.body.reels.profileIntroLabel} onFlip={() => onChange({ ...settings, profile_intro: !settings.profile_intro })}
           note={dict.body.reelstage.profileIntroNote2} />
         <div className="flex flex-col gap-1 rounded-ctl border border-[#12335f] p-3 t-body">
-          <p><span className="font-semibold">{dict.body.reelstage.introLabel}</span> {nameOf(settings.intro_id)} {settings.intro_id && <button type="button" onClick={() => pick("intro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">{dict.body.reelstage.noIntro}</button>}</p>
-          <p><span className="font-semibold">{dict.body.reelstage.outroLabel}</span> {nameOf(settings.outro_id)} {settings.outro_id && <button type="button" onClick={() => pick("outro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">{dict.body.reelstage.noOutro}</button>}</p>
+          <p><span className="font-normal">{dict.body.reelstage.introLabel}</span> {nameOf(settings.intro_id)} {settings.intro_id && <button type="button" onClick={() => pick("intro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">{dict.body.reelstage.noIntro}</button>}</p>
+          <p><span className="font-normal">{dict.body.reelstage.outroLabel}</span> {nameOf(settings.outro_id)} {settings.outro_id && <button type="button" onClick={() => pick("outro_id", null)} className="ml-2 text-xs text-[#33a8ff] underline">{dict.body.reelstage.noOutro}</button>}</p>
         </div>
         {list === null ? <p className="t-body text-[#8ea3bf]">{dict.common.loading}</p> : list.length > 0 && (
           <ul className="flex flex-col gap-2">{list.map((v) => (
             <li key={v.id} className={`flex flex-col gap-1 rounded-ctl border px-3 py-2 ${v.id === settings.intro_id || v.id === settings.outro_id ? "border-ok bg-ok/10" : "border-[#1e90ff]/60 bg-[#0b2a52]"}`}>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="min-w-0 flex-1"><span className="block truncate t-body font-semibold">{v.name}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate t-body font-normal">{v.name}</span>
                   <span className="block truncate text-xs text-[#8ea3bf]">{v.rights_ok ? dict.body.reelstage.logoRights.replace("{a}", v.rights_holder) : dict.body.reelstage.logoRightsNotOk}</span></span>
                 <button type="button" data-use-intro={v.id} disabled={!v.rights_ok || v.id === settings.intro_id} onClick={() => pick("intro_id", v.id)}
-                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 t-body font-semibold disabled:opacity-50">{v.id === settings.intro_id ? dict.body.reelstage.introCheck : dict.body.reelstage.useAsIntro}</button>
+                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 t-body font-normal disabled:opacity-50">{v.id === settings.intro_id ? dict.body.reelstage.introCheck : dict.body.reelstage.useAsIntro}</button>
                 <button type="button" data-use-outro={v.id} disabled={!v.rights_ok || v.id === settings.outro_id} onClick={() => pick("outro_id", v.id)}
-                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 t-body font-semibold disabled:opacity-50">{v.id === settings.outro_id ? dict.body.reelstage.outroCheck : dict.body.reelstage.useAsOutro}</button>
+                  className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-1 t-body font-normal disabled:opacity-50">{v.id === settings.outro_id ? dict.body.reelstage.outroCheck : dict.body.reelstage.useAsOutro}</button>
               </div>
               <Watch id={v.id} />
             </li>))}
           </ul>)}
         <div className="flex flex-col gap-2 rounded-ctl border border-[#12335f] p-3">
-          <p className="t-body font-semibold">{dict.body.reelstage.uploadVideoTitle}</p>
+          <p className="t-body font-normal">{dict.body.reelstage.uploadVideoTitle}</p>
           <input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm" aria-label={dict.body.reelstage.videoFileAria} onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="t-body" />
           {fileErr && <p className="text-xs text-[#ff8a8a]">{fileErr}</p>}
           <input className={field} placeholder={dict.body.reelstage.videoNamePlaceholder} aria-label={dict.body.reelstage.videoNameAria} value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
@@ -119,10 +119,10 @@ export function ReelExtras({ settings, onChange, onClose }: { settings: Spotligh
             <span>{dict.body.reelstage.videoConfirm}</span></label>
           {err && <p className="text-xs text-[#ff8a8a]">{err}</p>}
           <button type="button" data-upload-video="" disabled={!ready} onClick={() => void upload()}
-            className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 t-body font-semibold hover:bg-ok/25 disabled:opacity-50">{busy ? dict.body.reelstage.logoUploading : dict.body.reelstage.uploadBtn}</button>
+            className="rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 t-body font-normal hover:bg-ok/25 disabled:opacity-50">{busy ? dict.body.reelstage.logoUploading : dict.body.reelstage.uploadBtn}</button>
           <p className="text-xs text-[#8ea3bf]">{dict.body.reelstage.videoFormatNote.replace("{a}", String(VIDEO_MAX_S))}</p>
         </div>
-        <button type="button" onClick={onClose} className="self-end rounded-ctl border border-[#1e90ff] px-4 py-1.5 t-body font-semibold">{dict.body.upload.done}</button>
+        <button type="button" onClick={onClose} className="self-end rounded-ctl border border-[#1e90ff] px-4 py-1.5 t-body font-normal">{dict.body.upload.done}</button>
         <p className="text-xs text-[#8ea3bf]">{dict.body.reelstage.saveReminder}</p>
       </div>
     </div>

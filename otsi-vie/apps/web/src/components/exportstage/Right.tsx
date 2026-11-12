@@ -76,7 +76,7 @@ export function Right() {
         <div role="tablist" aria-label="Export workspace" className="flex flex-wrap gap-1">
           {TABS.map(([l, Icon], i) => (
             <button key={l} type="button" role="tab" aria-label={l} aria-pressed={e.tab === i} onClick={() => e.jump(i)}
-              className={`flex items-center gap-1.5 rounded-md border-b-2 px-3 py-2 text-sm ${e.tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-ink hover:bg-raised"}`}>
+              className={`flex items-center gap-1.5 rounded-md border-b-2 px-3 py-2 text-sm ${e.tab === i ? "border-primary font-normal text-primary" : "border-transparent text-ink hover:bg-raised"}`}>
               <Icon className="h-4 w-4" aria-hidden />{l}
             </button>
           ))}
@@ -129,7 +129,7 @@ export function Right() {
                   <button key={a} type="button" role="radio" aria-checked={on} aria-label={`Aspect ratio ${a}`}
                     onClick={() => (canEdit ? setAspect(a) : setNote(reel ? "You cannot edit this reel" : "Open a reel first"))}
                     className={`rounded-md border px-1 py-2 text-center ${on ? "border-primary bg-raised" : "border-line bg-transparent hover:bg-raised"}`}>
-                    <span className={`block text-sm font-semibold ${on ? "text-primary" : ""}`}>{a}</span>
+                    <span className={`block text-sm font-normal ${on ? "text-primary" : ""}`}>{a}</span>
                     <span className={`block text-xs ${on ? "text-primary" : "text-muted"}`}>{d}</span>
                   </button>
                 );
@@ -270,7 +270,7 @@ function Queue({ rows }: { rows: Reel[] }) {
               <Film className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{r.name}</span>
+              <span className="block truncate text-sm font-normal">{r.name}</span>
               <span className={`block truncate text-xs ${j.state === "FAILED" ? "text-danger" : "text-muted"}`}>
                 {j.state === "SUCCEEDED" ? "Rendered" : j.state === "FAILED" ? `Failed: ${j.failure_code ?? ""}` : j.state === "QUEUED" ? "Waiting for the worker" : `Rendering ${j.progress != null ? Math.round(j.progress) + "%" : ""}`}
               </span>
@@ -310,11 +310,11 @@ export function ExportFooter() {
           const done = st === 4 ? i !== 2 || (!!o.bundle && !o.making) : st > i, now = st === i || (st === 4 && i === 2 && o.making);
           return (
             <li key={l} data-stage={l} className="flex items-start gap-2 rounded-md border border-line/60 bg-raised/40 p-2">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${done ? "bg-ok text-white" : now ? "bg-primary text-white" : "border border-line bg-panel text-muted"}`} aria-hidden>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-normal ${done ? "bg-ok text-white" : now ? "bg-primary text-white" : "border border-line bg-panel text-muted"}`} aria-hidden>
                 {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{l}</span>
+                <span className="block truncate text-sm font-normal">{l}</span>
                 <span className={`block truncate text-xs ${r?.state === "FAILED" && now ? "text-danger" : "text-muted"}`}>{say(i)}</span>
               </span>
             </li>
@@ -329,7 +329,7 @@ export function ExportFooter() {
           {ready ? <Check className="h-4 w-4" /> : null}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{!ready ? "Delivery not ready" : last ? "Delivered" : "Ready to deliver"}</span>
+          <span className="block text-sm font-normal">{!ready ? "Delivery not ready" : last ? "Delivered" : "Ready to deliver"}</span>
           <span className="block truncate text-sm text-primary">
             {ready ? `${res?.width ?? "—"}×${res?.height ?? "—"} · ${res?.duration_s ?? "—"} s${last?.link ? ` · link opened ${last.link.opened}×` : ""}` : r?.state === "FAILED" ? "The render failed." : r ? "Rendering…" : "Nothing has been rendered yet."}
           </span>
@@ -403,10 +403,10 @@ function Branding() {
           onClick={() => (can ? master() : setNote(why))} />
       </div>
       <label className="flex items-center gap-2 rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-xs font-semibold" aria-hidden>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-xs font-normal" aria-hidden>
           {b.logo ? b.logo.name.slice(0, 1).toUpperCase() : "—"}
         </span>
-        <span className="min-w-0 flex-1 truncate font-semibold">{b.logo ? b.logo.name : b.logos.length ? "No logo chosen" : "No logo uploaded"}</span>
+        <span className="min-w-0 flex-1 truncate font-normal">{b.logo ? b.logo.name : b.logos.length ? "No logo chosen" : "No logo uploaded"}</span>
         <select aria-label="Brand logo" value={b.logo?.id ?? ""} disabled={!can} onChange={(ev) => chooseLogo(ev.target.value)}
           className="rounded border border-line bg-raised px-1 py-1 text-sm disabled:opacity-60">
           <option value="">No logo</option>
@@ -440,7 +440,7 @@ function Branding() {
           className="vie-btn vie-btn-sm">Edit</button>
         <p className="min-w-0 flex-1 text-sm">
           <span className="text-muted">The next render draws: </span>
-          <span className="font-semibold">{summary}</span>
+          <span className="font-normal">{summary}</span>
         </p>
       </div>
       {note && <p role="status" className="text-xs text-muted">{note}</p>}
@@ -462,7 +462,7 @@ function Team() {
             <>
               {m.slice(0, 3).map((x) => (
                 <span key={x.user_id} title={`${x.display_name} · ${ROLE[x.role] ?? x.role}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-primary bg-raised text-sm font-semibold">{x.display_name.trim().slice(0, 1).toUpperCase() || "?"}</span>
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-primary bg-raised text-sm font-normal">{x.display_name.trim().slice(0, 1).toUpperCase() || "?"}</span>
               ))}
               {m.length > 3 && <span title={m.slice(3).map((x) => x.display_name).join(", ")} className="text-sm text-ink">+{m.length - 3}</span>}
             </>

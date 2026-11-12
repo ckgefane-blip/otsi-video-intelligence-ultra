@@ -41,7 +41,7 @@ function ReelPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
               <li key={r.id}>
                 <button type="button" onClick={() => { onOpenChange(false); router.replace(`/studio?reel=${r.id}`); }}
                   className="flex w-full justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
-                  <span className="min-w-0 truncate font-medium">{r.name}</span>
+                  <span className="min-w-0 truncate font-normal">{r.name}</span>
                   <span className="shrink-0 t-small">{r.player?.display_name ?? "—"} · {r.clips.length} clips</span>
                 </button>
               </li>

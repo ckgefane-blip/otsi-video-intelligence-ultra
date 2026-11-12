@@ -42,18 +42,18 @@ function MatchCard({ video, match, tracks, finished, onPick }: { video: Video | 
         <p className="t-small">{sub}</p>
         <div className="flex items-center gap-3">
           <span aria-hidden className="h-5 w-5 shrink-0 rounded-full bg-[#7ab6ff]" />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{match?.home?.name ?? dict.body.workspace.homeTeam}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-normal">{match?.home?.name ?? dict.body.workspace.homeTeam}</span>
           <span className="t-metric">{score(match?.home_score)}</span>
         </div>
         <div className="flex items-center gap-3">
           <span aria-hidden className="h-5 w-5 shrink-0 rounded-full bg-[#e8d9a0]" />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{match?.away?.name ?? dict.body.workspace.awayTeam}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-normal">{match?.away?.name ?? dict.body.workspace.awayTeam}</span>
           <span className="t-metric">{score(match?.away_score)}</span>
         </div>
         <div className="flex items-start gap-2 rounded-md border border-[#1f8a5a] bg-[#0a2a2a] p-2">
           <span aria-hidden className="mt-0.5 h-8 w-8 shrink-0 rounded bg-[#2a4a78]" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#cfe0f5]">{finished ? dict.body.workspace.trackingAvailable : dict.body.workspace.noAnalysisAvailable}</p>
+            <p className="text-sm font-normal text-[#cfe0f5]">{finished ? dict.body.workspace.trackingAvailable : dict.body.workspace.noAnalysisAvailable}</p>
             <p className="t-small">{finished ? dict.body.analysis.peopleBallTracks.replace("{a}", String(people)).replace("{b}", String(balls)) : dict.body.workspace.trackingDataModels}</p>
             <p className="t-small">{finished ? dict.body.tactics.tacticalModelsNotYet.replace("{a}", NOT_YET) : dict.body.tactics.appearAfterProcessing}</p>
           </div>
@@ -72,7 +72,7 @@ function Radio({ label, selected, count, reason, onSelect }: { label: string; se
       className={`flex h-11 items-center gap-3 rounded-md px-2 ${selected ? "border border-primary bg-[#0d3a78]" : "border border-transparent"} ${onSelect && !selected ? "cursor-pointer" : off ? "cursor-not-allowed" : ""}`}>
       <span aria-hidden className={`h-5 w-5 shrink-0 rounded-full border-2 ${selected ? "border-primary bg-primary" : "border-[#7fa4d4]"} ${off ? "opacity-60" : ""}`} />
       <span className={`min-w-0 flex-1 truncate text-sm ${off ? "text-muted" : "text-[#cfdcf0]"}`}>{label}</span>
-      {count !== undefined && <span className="rounded border border-[#4a6a96] px-2 py-0.5 text-sm font-semibold">{count}</span>}
+      {count !== undefined && <span className="rounded border border-[#4a6a96] px-2 py-0.5 text-sm font-normal">{count}</span>}
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function TacticsHeader({ video, match, tracks, finished, side, setSide, o
         <div role="tablist" aria-label={dict.body.workspace.sidebar} className="flex flex-wrap gap-1 border-b border-line px-2 py-1">
           {SIDE.map((l, i) => (
             <button key={l} type="button" role="tab" aria-selected={side === i} onClick={() => setSide(i)}
-              className={`border-b-2 px-2 py-2 text-sm ${side === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
+              className={`border-b-2 px-2 py-2 text-sm ${side === i ? "border-primary font-normal text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
           ))}
         </div>
         <div className="flex flex-col gap-3 p-3">
@@ -206,7 +206,7 @@ export function TacticsTitleBar({ match, teams, team, setTeam, tab, setTab }: {
       <div role="tablist" aria-label={dict.body.tactics.tacticalViews} className="flex gap-1 overflow-x-auto border-b border-line">
         {tabs.map(([n, target], i) => (
           <button key={n} type="button" role="tab" aria-selected={tab === i} aria-controls={target} onClick={() => setTab(i)}
-            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted hover:text-ink"}`}>{n}</button>
+            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${tab === i ? "border-primary font-normal text-primary" : "border-transparent text-muted hover:text-ink"}`}>{n}</button>
         ))}
       </div>
     </div>

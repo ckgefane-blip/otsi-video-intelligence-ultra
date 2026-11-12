@@ -157,7 +157,7 @@ export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="snapshot" className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[min(860px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.snapshotLabel}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.workspace.snapshotLabel}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {dict.body.workspace.snapshotDesc.replace("{a}", clock(at))}
           </Dialog.Description>
@@ -169,7 +169,7 @@ export function SnapshotDialog({ ws, open, onOpenChange }: { ws: WorkspaceState 
               {box("caption", dict.body.workspace.captionVideoTime)}
               <div className="sm:col-span-2">
                 <button type="button" data-snap-make disabled={busy || !vid} onClick={() => void make()}
-                  className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-semibold disabled:opacity-40">{busy ? dict.body.workspace.asking : dict.body.workspace.makeSnapshotAt.replace("{a}", clock(at))}</button>
+                  className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-normal disabled:opacity-40">{busy ? dict.body.workspace.asking : dict.body.workspace.makeSnapshotAt.replace("{a}", clock(at))}</button>
               </div>
             </div>
           ) : <p className="mb-3 text-xs text-muted">{dict.body.workspace.roleSnapshots}</p>}

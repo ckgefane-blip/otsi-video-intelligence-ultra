@@ -80,7 +80,7 @@ const KPI_EVIDENCE: Record<string, EvidenceLevel> = {
 
 function RailInner({ r }: { r: Report }) {
   const { t: dict } = useLocale();
-  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-medium leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
+  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   return (
     <aside aria-label="Report sections" data-section="p08-s02" className="w-full shrink-0 lg:w-60">
@@ -168,7 +168,7 @@ function HeroInner({ r }: { r: Report }) {
         <div className="w-full rounded-ctl border border-line bg-canvas/60 p-3 sm:w-72" title={dict.body.reports.identityEvidenceTip}>
           <div className="flex items-center justify-between gap-2">
             <h2 className="t-panel">{dict.body.reports.identityEvidence}</h2>
-            <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${confirmed ? "bg-ok/20 text-ok" : "bg-raised text-muted"}`}>{confirmed ? dict.body.reports.confirmedShort : dict.body.reports.unverifiedShort}</span>
+            <span className={`rounded px-1.5 py-0.5 text-xs font-normal ${confirmed ? "bg-ok/20 text-ok" : "bg-raised text-muted"}`}>{confirmed ? dict.body.reports.confirmedShort : dict.body.reports.unverifiedShort}</span>
           </div>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative grid h-[104px] w-[104px] shrink-0 place-items-center rounded-full" style={{ background: cov != null ? `conic-gradient(#1e90ff ${cov * 100}%,#0a2a52 0)` : "#0a2a52" }}>
@@ -194,13 +194,13 @@ function HeroInner({ r }: { r: Report }) {
         </div>
         {!a || (!a.role && !a.summary && !a.traits.length) ? (
           <div className="mt-2">
-            <p className="font-semibold">{dict.body.reports.roleNotAssessed}</p>
+            <p className="font-normal">{dict.body.reports.roleNotAssessed}</p>
             <p className="mt-1 t-body text-muted">{r.assessment?.unpublished_changes && r.can.assess ? dict.body.reports.draftWritten : dict.body.reports.analystSummaryHere}</p>
             <p className="mt-2 t-body text-muted">{dict.body.reports.noTraits}</p>
           </div>
         ) : (
           <div data-role-published title={dict.body.reports.analystOpinionPublished.replace("{a}", r.assessment!.published_by_name ?? "")}>
-            <p className="mt-2 truncate t-section font-semibold">{a.role || dict.body.reports.roleNotGiven}</p>
+            <p className="mt-2 truncate t-section font-normal">{a.role || dict.body.reports.roleNotGiven}</p>
             <p className="mt-1 whitespace-pre-wrap t-body text-muted">{a.summary}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {a.traits.map((t) => <span key={t} className="rounded-full border border-primary/50 px-2 py-0.5 text-xs">{t}</span>)}

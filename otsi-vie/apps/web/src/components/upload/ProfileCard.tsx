@@ -79,7 +79,7 @@ export function ProfileCard({ y: _y }: { y?: number } = {}) {
               className={`flex w-full items-start gap-2.5 rounded-ctl border px-2.5 py-2 text-left ${on ? "border-primary bg-primary/5" : "border-line/70"}`}>
               <span aria-hidden className={`mt-1 h-4 w-4 flex-none rounded-full border-2 ${on ? "border-primary bg-primary" : "border-muted"}`} />
               <span className="min-w-0">
-                <span className={`block text-sm ${on ? "font-semibold" : ""}`}>{label}</span>
+                <span className={`block text-sm ${on ? "font-normal" : ""}`}>{label}</span>
                 <span className="block text-xs text-muted">{why}</span>
               </span>
             </button>
@@ -161,7 +161,7 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
   const shown: AnalysisProfile | null = used ?? (a?.status === "SUCCEEDED" ? a.recommended_profile : null);
   return (
     <div data-this-video aria-live="polite">
-      <p className="truncate text-sm font-semibold" title={name}>{name}</p>
+      <p className="truncate text-sm font-normal" title={name}>{name}</p>
       {opt && (
         <p className="t-small mt-1" data-auto-profile={used ?? ""}>
           {opt.analysis?.outcome === "STARTED" ? <>{d.analysedWith} <b className="text-ink">{profileLabel(used, d)}</b>{opt.analysis.detail ? `. ${opt.analysis.detail}` : ""}</>
@@ -185,7 +185,7 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
         {a?.status === "FAILED" && <p className="t-small text-amber">{d.checkFailed}{a.failure_code ? ` (${a.failure_code})` : ""}.</p>}
         {a?.status === "SUCCEEDED" && (
           <>
-            <p className="t-small text-ink2">{d.checkRecommends} <span className="font-semibold">{profileLabel(a.recommended_profile, d)}</span>
+            <p className="t-small text-ink2">{d.checkRecommends} <span className="font-normal">{profileLabel(a.recommended_profile, d)}</span>
               {a.issues.length === 0 ? d.recommendSuffixNone : d.recommendSuffixSome}</p>
             {a.issues.length > 0 && (
               <ul className="t-small mt-0.5 list-disc pl-4" aria-label={d.whyLabel}>

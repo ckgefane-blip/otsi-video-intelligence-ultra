@@ -34,7 +34,7 @@ export function ReportDesigner({ playerId, design, onDesign, onGate }: { playerI
   };
   return (
     <section aria-label={dict.body.reports.designAria} className="grid gap-2" data-report-designer>
-      <h3 className="font-semibold">{dict.body.reports.designTitle}</h3>
+      <h3 className="font-normal">{dict.body.reports.designTitle}</h3>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
         {REPORT_SECTIONS.map((s) => (
           <label key={s} className="flex items-center gap-1"><input type="checkbox" data-section-pick={s} checked={design.sections.includes(s)} onChange={() => flip(s)} />{SECTION_LABEL(dict)[s]}</label>

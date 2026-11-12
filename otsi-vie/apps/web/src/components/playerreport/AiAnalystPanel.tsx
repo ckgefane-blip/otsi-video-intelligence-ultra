@@ -34,7 +34,7 @@ function ConfidenceBadge({ confidence, dict }: { confidence: string; dict: Retur
     : dict.body.aiAnalyst.notEnoughData;
   const style = CONFIDENCE_STYLE[confidence] ?? CONFIDENCE_STYLE.NOT_ENOUGH_DATA!;
   return (
-    <span style={style} className="shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold">{label}</span>
+    <span style={style} className="shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-normal">{label}</span>
   );
 }
 
@@ -105,7 +105,7 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
   return (
     <section id="p08-analyst" aria-label="AI Analyst" data-section="p08-s13" className="vie-panel p-4">
       <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
-        <h2 className="t-section font-semibold">{dict.body.aiAnalyst.title}</h2>
+        <h2 className="t-section font-normal">{dict.body.aiAnalyst.title}</h2>
         {a && (
           <span className={`t-panel ${a.status === "PUBLISHED" ? "text-ok" : "text-amber"}`}>
             {a.status === "PUBLISHED" ? dict.body.aiAnalyst.published : dict.body.aiAnalyst.draft}

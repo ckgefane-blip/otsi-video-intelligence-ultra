@@ -126,7 +126,7 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
         </div>
         {a && (
           <p className="flex flex-wrap gap-1.5">
-            <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-white">{kindLabel(a.kind, dict)}</span>
+            <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-normal text-white">{kindLabel(a.kind, dict)}</span>
             <span className="rounded-md border border-line bg-raised px-2 py-0.5 text-xs">{statusLabel(a.status, dict)}</span>
           </p>
         )}
@@ -183,7 +183,7 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
 
       <section aria-label={dict.body.library.selAccessSection} data-section="p09-s10" className="flex flex-col gap-2 border-t border-line pt-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">{dict.body.library.selCollaborators} {a?.project ? <span className="ml-1 rounded-md border border-line bg-raised px-1.5 text-xs">{a.project.collaborators.length}</span> : null}</h2>
+          <h2 className="text-sm font-normal">{dict.body.library.selCollaborators} {a?.project ? <span className="ml-1 rounded-md border border-line bg-raised px-1.5 text-xs">{a.project.collaborators.length}</span> : null}</h2>
           <button type="button" data-manage-access onClick={() => (!a ? flash(pickFirst) : !a.project ? flash(a.kind === "Folder" ? dict.body.library.selFolderAccess : dict.body.library.selMatchAccess) : setAccess(true))}
             className="text-sm text-primary hover:underline disabled:opacity-60">{dict.body.library.manageAccess}</button>
         </div>
@@ -191,7 +191,7 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
           <ul aria-label={dict.body.library.selPeopleAria} className="flex flex-wrap items-center gap-1.5">
             {a.project.collaborators.slice(0, 6).map((m) => (
               <li key={m.user_id} title={`${m.display_name} · ${permName(m.permission, dict)}`} aria-label={`${m.display_name}, ${permName(m.permission, dict)}`}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-normal text-white">
                 {m.display_name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
               </li>
             ))}
@@ -206,14 +206,14 @@ export const SelectedItem = memo(function SelectedItem({ a, match, onClose, relo
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{dict.body.library.rename}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{dict.body.library.rename}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{a?.kind === "Folder" ? dict.body.library.selRenameFolder : a?.kind === "Project" ? dict.body.library.selRenameProject : a?.kind === "Video" ? dict.body.library.selRenameVideo : dict.body.library.selRenameReel}</Dialog.Description>
             <form onSubmit={(e) => { e.preventDefault(); void rename(); }}>
               <input value={name} onChange={(e) => setName(e.target.value)} required minLength={a?.kind === "Project" ? 2 : 1} maxLength={200} aria-label={dict.body.library.selNameAria}
                 className="mb-3 w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-ink" />
               <div className="flex justify-end gap-2">
                 <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.common.save}</button>
+                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.common.save}</button>
               </div>
             </form>
           </Dialog.Content>

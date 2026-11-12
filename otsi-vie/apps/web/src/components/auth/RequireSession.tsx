@@ -26,7 +26,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
   if (!organization) {
     return (
       <div className="mx-auto mt-16 max-w-lg rounded-card border border-line bg-panel p-6" role="alert">
-        <h1 className="text-xl font-semibold">No organization</h1>
+        <h1 className="text-xl font-normal">No organization</h1>
         <p className="mt-2 text-sm text-muted">Your account is not an active member of any organization. Ask an owner of your organization to invite you.</p>
       </div>
     );

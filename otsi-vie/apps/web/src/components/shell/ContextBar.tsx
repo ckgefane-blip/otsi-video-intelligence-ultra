@@ -23,7 +23,7 @@ function Chip({ label, value, empty, open, onClick, testId, changeTitle }: { lab
     <button type="button" aria-haspopup="menu" aria-expanded={open} data-context-chip={testId} onClick={onClick} title={changeTitle}
       className={`flex h-8 max-w-[34ch] items-center gap-2 truncate rounded-md border px-2.5 text-left text-[13px] ${open ? "border-line2 bg-raised" : "border-transparent hover:border-line hover:bg-raised"}`}>
       <span className="t-th">{label}</span>
-      <span className={`truncate font-medium ${value ? "text-ink" : "font-normal text-muted"}`}>{value ?? empty}</span>
+      <span className={`truncate font-normal ${value ? "text-ink" : "font-normal text-muted"}`}>{value ?? empty}</span>
       <span aria-hidden className="text-muted">▾</span>
     </button>
   );

@@ -90,7 +90,7 @@ export function JobTable({ list, reload }: { list: JobList | null; reload: () =>
           <thead>
             <tr className="t-th sticky top-0 bg-panel text-left">
               {[d.jobHeader, d.stateHeader, d.progressHeader, d.stepHeader, d.machineHeader, d.startedHeader, d.durationHeader, d.estimateHeader, d.priorityHeader, ""].map((h, i) => (
-                <th key={i} scope="col" className="px-2.5 py-1.5 font-semibold">{h}</th>
+                <th key={i} scope="col" className="px-2.5 py-1.5 font-normal">{h}</th>
               ))}
             </tr>
           </thead>

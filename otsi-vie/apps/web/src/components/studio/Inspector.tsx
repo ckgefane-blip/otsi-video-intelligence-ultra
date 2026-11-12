@@ -100,7 +100,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
       <div role="tablist" aria-label={dict.body.studio.inspectorAria} className="flex gap-1 border-b border-line">
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
-            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted"}`}>{l}</button>
+            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-normal text-primary" : "border-transparent text-muted"}`}>{l}</button>
         ))}
       </div>
 
@@ -120,7 +120,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
                       <span className="t-tc w-[70px] shrink-0 text-muted">{tc(i.at)}</span>
                       <span className="min-w-0 flex-1">{i.label}{i.his && reel?.player ? ` · ${reel.player.display_name}` : ""}</span>
                       <span title={i.evidence === "INFERRED" ? dict.body.studio.workedOut : dict.body.studio.seenByEngine}
-                        className="rounded px-1.5 py-0.5 text-xs font-semibold"
+                        className="rounded px-1.5 py-0.5 text-xs font-normal"
                         style={{ background: i.evidence === "INFERRED" ? "#3a2a08" : "#08311f", color: i.evidence === "INFERRED" ? "#ffc66d" : "#3ee6a8" }}>
                         {i.evidence === "INFERRED" ? dict.body.tactics.inferredLabel : dict.body.studio.detectedBadge}
                       </span>

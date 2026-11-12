@@ -122,7 +122,7 @@ export function TeamSettings() {
               <tbody>
                 {team.members.map((m) => (
                   <tr key={m.user_id} className="border-t border-line" data-member={m.email}>
-                    <td className="py-2 pr-3 font-medium">{m.display_name}{m.is_you && <span className="ml-2 text-xs text-muted">{t.body.settings.you}</span>}</td>
+                    <td className="py-2 pr-3 font-normal">{m.display_name}{m.is_you && <span className="ml-2 text-xs text-muted">{t.body.settings.you}</span>}</td>
                     <td className="py-2 pr-3 text-muted">{m.email}</td>
                     <td className="py-2 pr-3">
                       {canManage(m) ? (
@@ -163,7 +163,7 @@ export function TeamSettings() {
           <ul className="divide-y divide-line" data-invitations>
             {team.invitations.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center gap-3 py-2" data-invitation={i.email}>
-                <span className="flex-1 font-medium">{i.email}</span>
+                <span className="flex-1 font-normal">{i.email}</span>
                 <span>{roleLabel(t, i.role)}</span>
                 <span className="text-xs text-muted">{t.body.settings.invitedBy.replace("{a}", i.invited_by).replace("{b}", i.state === "EXPIRED" ? t.body.settings.expired.replace("{a}", day(i.expires_at)) : t.body.settings.until.replace("{a}", day(i.expires_at)))}</span>
                 {(i.role !== "OWNER" || myRole === "OWNER") && (
@@ -181,7 +181,7 @@ export function TeamSettings() {
         <div className="vie-ph"><h2 id="roles-h" className="t-section">{t.body.settings.rolesTitle}</h2></div>
         <div className="p-4">
         <dl className="grid gap-2 sm:grid-cols-2">
-          {ROLES.map((r) => <div key={r}><dt className="font-semibold">{roleLabel(t, r)}</dt><dd className="text-muted">{ROLE_SUMMARY[r]}</dd></div>)}
+          {ROLES.map((r) => <div key={r}><dt className="font-normal">{roleLabel(t, r)}</dt><dd className="text-muted">{ROLE_SUMMARY[r]}</dd></div>)}
         </dl>
         </div>
       </section>

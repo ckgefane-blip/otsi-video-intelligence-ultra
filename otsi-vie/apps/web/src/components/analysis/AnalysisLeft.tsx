@@ -65,7 +65,7 @@ function RetrackButton({ s }: { s: Shared }) {
     <div data-retrack className="flex flex-col gap-2">
       <TeamsAtKickoff run={ws.run} seedUs={seedUs} onTeach={() => { ws.videoRef.current?.pause(); setSeedUs(Math.round((ws.videoRef.current?.currentTime ?? 0) * 1_000_000)); }} onClear={() => setSeedUs(null)} disabled={busy || !!live} />
       <button type="button" disabled={busy || !!live} onClick={start}
-        className="rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-2 text-sm font-semibold text-[#33a8ff] disabled:opacity-50">{dict.body.workspace.trackAgainCurrent}</button>
+        className="rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-2 text-sm font-normal text-[#33a8ff] disabled:opacity-50">{dict.body.workspace.trackAgainCurrent}</button>
       <span className="text-xs text-muted">{dict.body.workspace.usesSavedDetections}</span>
       {live && (
         <div role="status" className="flex flex-col gap-1">
@@ -78,7 +78,7 @@ function RetrackButton({ s }: { s: Shared }) {
       )}
       {run?.status === "SUCCEEDED" && (
         <button type="button" data-retrack-done onClick={() => window.location.reload()}
-          className="rounded-md border-2 border-[#2ee86a] bg-[#0a3a1c] px-3 py-2 text-sm font-semibold text-[#2ee86a]">{dict.body.workspace.finishedClickTracking}</button>
+          className="rounded-md border-2 border-[#2ee86a] bg-[#0a3a1c] px-3 py-2 text-sm font-normal text-[#2ee86a]">{dict.body.workspace.finishedClickTracking}</button>
       )}
       {run && (run.status === "FAILED" || run.status === "CANCELLED") && <span role="alert" className="text-xs text-[#ff8a8a]">{run.failure_detail ?? dict.body.workspace.didNotFinish}</span>}
       {msg && <span role="alert" className="text-xs text-[#ff8a8a]">{msg}</span>}
@@ -96,7 +96,7 @@ function TeamsAtKickoff({ run, seedUs, onTeach, onClear, disabled }: { run: Anal
   const own = seedUs === null && seen && seen.pts_us === taught;
   return (
     <div data-teams-kickoff className="flex flex-col gap-2">
-      <span className="text-sm font-semibold text-[#cfe0f5]">{dict.body.workspace.teamsFromKickoff}</span>
+      <span className="text-sm font-normal text-[#cfe0f5]">{dict.body.workspace.teamsFromKickoff}</span>
       {taught === null && <span className="text-xs text-muted">{dict.body.workspace.kickoffPauseHint}</span>}
       {found && !found.ok && <span role="alert" className="text-xs text-[#ff8a8a]">{found.reason ?? dict.body.workspace.kickoffNotFound}</span>}
       {taught !== null && <span className="text-xs" style={{ color: seedUs !== null ? "#33a8ff" : "#2ee86a" }}>{seedUs !== null ? dict.body.workspace.teachFromMoment.replace("{a}", formatDuration(seedUs)) : found ? dict.body.workspace.kickoffFoundAt.replace("{a}", formatDuration(taught)) : dict.body.workspace.taughtFrom.replace("{a}", formatDuration(taught))}</span>}
@@ -104,7 +104,7 @@ function TeamsAtKickoff({ run, seedUs, onTeach, onClear, disabled }: { run: Anal
       {own && seen && !seen.ok && <span role="alert" className="text-xs text-[#ff8a8a]">{seen.reason ?? dict.body.workspace.teamsNotRead}</span>}
       <div className="flex gap-2">
         <button type="button" onClick={onTeach} disabled={disabled}
-          className="flex-1 rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-2 text-sm font-semibold text-[#33a8ff] disabled:opacity-50">{dict.body.workspace.useMomentKickoff}</button>
+          className="flex-1 rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-2 text-sm font-normal text-[#33a8ff] disabled:opacity-50">{dict.body.workspace.useMomentKickoff}</button>
         {seedUs !== null && <button type="button" onClick={onClear} className="text-sm text-muted">{dict.body.studio.undo}</button>}
       </div>
     </div>
@@ -128,16 +128,16 @@ function MatchCard({ s }: { s: Shared }) {
         <button type="button" onClick={s.onPick} aria-label={dict.body.workspace.chooseMatchVideo} className="vie-ib" title={dict.body.workspace.chooseMatchVideo}>··· ⌄</button>
       </div>
       <div className="flex flex-col gap-2 p-3 text-sm">
-        <p className="truncate font-semibold">{title}</p>
+        <p className="truncate font-normal">{title}</p>
         <p className="truncate text-xs text-muted">{sub}</p>
         <div className="flex items-center gap-2">
           <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-[#7ab6ff]" />
-          <span className="min-w-0 flex-1 truncate font-semibold">{match?.home?.name ?? dict.body.workspace.homeTeam}</span>
+          <span className="min-w-0 flex-1 truncate font-normal">{match?.home?.name ?? dict.body.workspace.homeTeam}</span>
           <span className="t-metric">{score(match?.home_score)}</span>
         </div>
         <div className="flex items-center gap-2">
           <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-[#e8d9a0]" />
-          <span className="min-w-0 flex-1 truncate font-semibold">{match?.away?.name ?? dict.body.workspace.awayTeam}</span>
+          <span className="min-w-0 flex-1 truncate font-normal">{match?.away?.name ?? dict.body.workspace.awayTeam}</span>
           <span className="t-metric">{score(match?.away_score)}</span>
         </div>
         <button type="button" disabled={!match || !ws?.canWrite} title={match ? (match.home_score === null ? dict.body.workspace.setFinalScore : dict.body.workspace.changeFinalScore) : dict.body.workspace.linkVideoToMatchFirst}
@@ -157,7 +157,7 @@ function MatchCard({ s }: { s: Shared }) {
           </Dialog.Root>
         )}
         <div className="rounded-md border border-[#1f8a5a] bg-[#0a2a2a] p-2 text-xs">
-          <p className="font-semibold text-[#cfe0f5]">{finished ? dict.body.workspace.trackingAvailable : dict.body.workspace.noAnalysisAvailable}</p>
+          <p className="font-normal text-[#cfe0f5]">{finished ? dict.body.workspace.trackingAvailable : dict.body.workspace.noAnalysisAvailable}</p>
           <p className="text-muted">{reading ? dict.body.workspace.readingTracks : finished ? dict.body.workspace.peopleBallTracksCard.replace("{a}", String(people)).replace("{b}", String(balls)) : dict.body.workspace.trackingDataModels}</p>
           <p className="text-muted">{finished ? (ws?.events.data?.ball_track_id ? dict.body.workspace.eventsFoundSummary.replace("{a}", String(ws.events.data.passes.length)).replace("{b}", String(ws.events.data.changes.length)).replace("{c}", String(ws.events.data.shots.length)).replace("{d}", String(ws.events.data.pressures.length)) : dict.body.workspace.eventsFoundBall) : dict.body.workspace.appearAfterProcessing}</p>
         </div>
@@ -237,7 +237,7 @@ function TimeRange({ s }: { s: Shared }) {
       {state && <p className={`text-xs ${per?.data?.state === "CONFIRMED" && !per.dirty ? "text-[#2ee86a]" : "text-[#ffd400]"}`} data-periods-state>{state}</p>}
       {ws?.canWrite && per?.data && per.data.state !== "NONE" && (per.dirty || per.data.state === "PROPOSED") && (
         <button type="button" onClick={() => void per.confirm().then(setErr)}
-          className="self-start rounded-md border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-white">{dict.body.workspace.confirmMatchTime}</button>
+          className="self-start rounded-md border border-primary bg-primary px-3 py-1.5 text-xs font-normal text-white">{dict.body.workspace.confirmMatchTime}</button>
       )}
       {err && <p className="text-xs text-[#ff8a8a]">{err}</p>}
     </div>
@@ -255,9 +255,9 @@ function MetricsTab({ s }: { s: Shared }) {
       <p className="text-muted">{eventsLine(ws.events.data, dict)}</p>
       <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs">
         {(Object.keys(marks) as (keyof typeof marks)[]).map((k) => (
-          <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="text-right font-semibold">{marks[k].length}</dd></div>
+          <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="text-right font-normal">{marks[k].length}</dd></div>
         ))}
-        <div className="contents"><dt className="font-semibold">{dict.body.analysis.allEvents}</dt><dd className="text-right font-semibold">{all.length}</dd></div>
+        <div className="contents"><dt className="font-normal">{dict.body.analysis.allEvents}</dt><dd className="text-right font-normal">{all.length}</dd></div>
       </dl>
     </div>
   );
@@ -284,7 +284,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
         <div role="tablist" aria-label={dict.body.workspace.sidebar} className="flex flex-wrap gap-1 border-b border-line px-2 pt-1">
           {SIDE.map((l, i) => (
             <button key={l} type="button" role="tab" aria-selected={side === i} onClick={() => setSide(i)}
-              className={`border-b-2 px-2 py-2 text-sm ${side === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
+              className={`border-b-2 px-2 py-2 text-sm ${side === i ? "border-primary font-normal text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
           ))}
         </div>
         <div className="flex flex-col gap-4 p-3">
@@ -324,7 +324,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
       </section>
       <section aria-label={dict.body.workspace.createAnalysisClipLower} data-section="p04-s03">
         <button type="button" disabled title={notBuilt(dict.body.workspace.analysisClipFromView)} aria-label={dict.body.workspace.createAnalysisClip}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-3 text-sm font-semibold text-[#33a8ff] disabled:opacity-75">
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-[#1f5a9c] bg-[#0a2a55] px-3 py-3 text-sm font-normal text-[#33a8ff] disabled:opacity-75">
           ✂ {dict.body.workspace.createAnalysisClip}
         </button>
       </section>

@@ -74,16 +74,16 @@ dialog[data-player-full]::backdrop { background: #000; }
    page title 16/24 600 · section 14/20 600 · panel 13/20 600 · body 13/20 · small 12/18 muted · label 12/16 500 muted ·
    table header 12/16 600 caps .06em · button 13/20 600 · metric 20/28 600 tabular · timecode 12/16 500 tabular
    --------------------------------------------------------------------------------------------------------------------------- */
-.t-page { font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: -0.005em; }
-.t-section { font-size: 14px; line-height: 20px; font-weight: 600; }
-.t-panel { font-size: 13px; line-height: 20px; font-weight: 600; }
-.t-body { font-size: 13px; line-height: 20px; font-weight: 400; }
-.t-small { font-size: 12px; line-height: 18px; font-weight: 400; color: rgb(var(--muted)); }
-.t-label { font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--muted)); }
-.t-th { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--muted)); }
-.t-button { font-size: 13px; line-height: 20px; font-weight: 600; }
-.t-metric { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.t-tc { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.t-page { font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: -0.005em; }
+.t-section { font-size: 13px; line-height: 18px; font-weight: 400; }
+.t-panel { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-body { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-small { font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
+.t-label { font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
+.t-th { font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--muted)); }
+.t-button { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-metric { font-size: 18px; line-height: 24px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.t-tc { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .t-mono { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
 
 /* text on the accent is dark (contrast), whatever older markup asked for */
@@ -98,7 +98,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
 .vie-ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 14px; border-bottom: 1px solid rgb(var(--line)); }
 .vie-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px;
-  border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-weight: 600; font-family: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
+  border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 12px; line-height: 18px; font-weight: 400; font-family: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
 .vie-btn:hover { background: rgb(var(--line)); }
 .vie-btn[disabled] { opacity: .45; cursor: not-allowed; }
 .vie-btn-pri { background: rgb(var(--primary)); border-color: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
@@ -107,7 +107,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-btn-lg { height: 44px; padding: 0 20px; }
 .vie-ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; border: 1px solid transparent; background: transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
 .vie-ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
-.vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--ink2)); white-space: nowrap; }
+.vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--ink2)); white-space: nowrap; }
 .vie-sw { width: 32px; height: 18px; flex: none; border-radius: 999px; background: rgb(var(--line)); border: 1px solid rgb(var(--line2)); position: relative; cursor: pointer; padding: 0; }
 .vie-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
 .vie-sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }

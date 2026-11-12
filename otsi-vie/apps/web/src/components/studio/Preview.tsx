@@ -398,7 +398,7 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
     : path.points.length === 0 ? (reel.targets.length ? dict.body.studio.noSpotlightFound : dict.body.studio.noSpotlightPlayer)
     : dict.body.studio.liveSpotlight;
   const markNote = m ? (mk ? dict.body.studio.markedSeconds.replace("{a}", ((mk.out_pts_us - mk.in_pts_us) / 1e6).toFixed(1)) : dict.body.studio.ioMark) : null;
-  const chipCls = "rounded-full border px-3 py-1 text-xs font-semibold";
+  const chipCls = "rounded-full border px-3 py-1 text-xs font-normal";
 
   return (
     <section aria-label={dict.body.studio.videoPreviewCompositor} data-section="p07-s03" data-playing={playing ? "yes" : "no"}

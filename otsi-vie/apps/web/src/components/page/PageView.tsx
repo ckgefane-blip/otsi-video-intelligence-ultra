@@ -60,7 +60,7 @@ function MatchRail() {
       style={{ gridArea: "rail" }}
       className="flex min-w-0 flex-col gap-2 rounded-card border border-line/80 bg-panel/85 p-4"
     >
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold"><span aria-hidden className="h-4 w-[3px] rounded-full bg-primary" />Match</h2>
+      <h2 className="flex items-center gap-2 text-[15px] font-normal"><span aria-hidden className="h-4 w-[3px] rounded-full bg-primary" />Match</h2>
       <p className="text-sm text-muted">No match selected. The match rail (context, overlays, team and time filters) is shared with the Analysis Workspace and is built in Blocks 04 and 06.</p>
     </aside>
   );

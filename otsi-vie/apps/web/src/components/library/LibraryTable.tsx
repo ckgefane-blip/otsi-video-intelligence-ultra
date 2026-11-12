@@ -71,10 +71,10 @@ export const LibraryTable = memo(function LibraryTable({ rows, all, facts, check
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-line text-left text-muted">
-            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold"><input type="checkbox" aria-label={dict.body.library.selectAllAria} checked={allOn} onChange={() => setChecked(allOn ? new Set() : new Set(rows.map((a) => a.key)))} /></th>
-            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold" aria-label={dict.body.library.tableLockedAria}><span aria-hidden>🔒</span></th>
-            <th className="sticky top-0 bg-panel px-2 py-2 font-semibold">{dict.body.library.colThumbTitle}</th>
-            {[dict.body.library.tableHeadTitle, dict.body.library.tableHeadType, dict.body.library.tableHeadRights, dict.body.library.tableHeadEvidence, dict.body.library.tableHeadProfile, dict.body.library.tableHeadDevice, dict.body.library.tableHeadUpdated, dict.body.library.tableHeadStatus].map((h) => <th key={h} className="sticky top-0 whitespace-nowrap bg-panel px-2 py-2 font-semibold">{h}</th>)}
+            <th className="sticky top-0 bg-panel px-2 py-2 font-normal"><input type="checkbox" aria-label={dict.body.library.selectAllAria} checked={allOn} onChange={() => setChecked(allOn ? new Set() : new Set(rows.map((a) => a.key)))} /></th>
+            <th className="sticky top-0 bg-panel px-2 py-2 font-normal" aria-label={dict.body.library.tableLockedAria}><span aria-hidden>🔒</span></th>
+            <th className="sticky top-0 bg-panel px-2 py-2 font-normal">{dict.body.library.colThumbTitle}</th>
+            {[dict.body.library.tableHeadTitle, dict.body.library.tableHeadType, dict.body.library.tableHeadRights, dict.body.library.tableHeadEvidence, dict.body.library.tableHeadProfile, dict.body.library.tableHeadDevice, dict.body.library.tableHeadUpdated, dict.body.library.tableHeadStatus].map((h) => <th key={h} className="sticky top-0 whitespace-nowrap bg-panel px-2 py-2 font-normal">{h}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -85,7 +85,7 @@ export const LibraryTable = memo(function LibraryTable({ rows, all, facts, check
                 <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={dict.body.library.rowSelect.replace("{a}", a.title)} checked={checked.has(a.key)} onChange={() => toggle(a.key)} /></td>
                 <td className="px-2 py-2">{r.locked ? <span role="img" aria-label={dict.body.library.tableLockedLabel.replace("{a}", r.locked)} title={r.locked}>🔒</span> : ""}</td>
                 <td className="px-2 py-2"><AssetThumb a={a} className="h-[40px] w-[72px]" /></td>
-                <td className="max-w-[380px] px-2 py-2" title={a.title}><span className="font-semibold">{a.title}</span><br /><span className="text-xs text-muted">{a.sub}</span></td>
+                <td className="max-w-[380px] px-2 py-2" title={a.title}><span className="font-normal">{a.title}</span><br /><span className="text-xs text-muted">{a.sub}</span></td>
                 <td className="whitespace-nowrap px-2 py-2">{kindLabel(a.kind, dict)}</td>
                 <td className="max-w-[260px] truncate px-2 py-2" title={r.locked ?? r.rights}>{r.rights}</td>
                 <td className="max-w-[260px] truncate px-2 py-2">{r.evidence}</td>

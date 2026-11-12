@@ -53,7 +53,7 @@ const minors = (d?: UploadDict): [GuardianConsent, string][] => [
 function Choice({ label, on, disabled, onClick, data }: { label: string; on: boolean; disabled?: boolean; onClick(): void; data: string }) {
   return (
     <button type="button" role="radio" aria-checked={on} disabled={disabled} onClick={onClick} data-choice={data}
-      className={`rounded-ctl border px-3 py-1 text-sm ${on ? "border-primary bg-primary/20 font-semibold" : "border-line hover:border-primary/60"} disabled:opacity-40`}>{label}</button>
+      className={`rounded-ctl border px-3 py-1 text-sm ${on ? "border-primary bg-primary/20 font-normal" : "border-line hover:border-primary/60"} disabled:opacity-40`}>{label}</button>
   );
 }
 
@@ -71,7 +71,7 @@ function RightsForm({ initial, analysisAsked, submitLabel, busy, onSubmit, onCan
         const off = key === "download" && draft.share !== true;
         return (
           <fieldset key={key} data-question={key} className={off ? "opacity-60" : ""}>
-            <legend className="font-medium">{q}</legend>
+            <legend className="font-normal">{q}</legend>
             <p className="mb-1 text-xs text-muted">{hint}</p>
             <div role="radiogroup" aria-label={q} className="flex gap-2">
               <Choice label={d.yes} data="yes" on={draft[key] === true} disabled={off} onClick={() => set({ [key]: true })} />
@@ -81,7 +81,7 @@ function RightsForm({ initial, analysisAsked, submitLabel, busy, onSubmit, onCan
         );
       })}
       <fieldset data-question="guardian_consent">
-        <legend className="font-medium">{d.qMinors}</legend>
+        <legend className="font-normal">{d.qMinors}</legend>
         <div role="radiogroup" aria-label={d.qMinors} className="mt-1 flex flex-wrap gap-2">
           {minors(d).map(([k, label]) => <Choice key={k} label={label} data={k} on={draft.guardian_consent === k} onClick={() => set({ guardian_consent: k })} />)}
         </div>
@@ -94,7 +94,7 @@ function RightsForm({ initial, analysisAsked, submitLabel, busy, onSubmit, onCan
       </label>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</button>
-        <button type="submit" disabled={!done || busy} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? d.saving : submitLabel}</button>
+        <button type="submit" disabled={!done || busy} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">{busy ? d.saving : submitLabel}</button>
       </div>
     </form>
   );
@@ -109,7 +109,7 @@ function Shell({ open, onOpenChange, title, children }: { open: boolean; onOpenC
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="rights">
-          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{title}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{d.rightsRecordedDesc}</Dialog.Description>
           {children}
         </Dialog.Content>

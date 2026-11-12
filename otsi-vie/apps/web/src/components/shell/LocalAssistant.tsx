@@ -67,12 +67,12 @@ export function LocalAssistant({ navigate }: { navigate: (href: string) => void 
 
   return (
     <div className="max-h-[65vh] space-y-3 overflow-auto px-2 py-3" data-local-assistant>
-      <h2 className="text-sm font-semibold">{t.body.shell.assistantTitle}</h2>
+      <h2 className="text-sm font-normal">{t.body.shell.assistantTitle}</h2>
       <p className="text-xs text-muted">{t.body.shell.assistantDesc}</p>
       <div className="grid gap-2 sm:grid-cols-3" aria-label={t.body.shell.assistantGuidesAria}>
         {ASSISTANT_GUIDES.map((guide) => (
           <div key={guide.title} className="space-y-1 rounded-ctl border border-line bg-raised p-2">
-            <h3 className="text-sm font-medium">{guide.title}</h3>
+            <h3 className="text-sm font-normal">{guide.title}</h3>
             <p className="text-xs text-muted">{guide.instructions}</p>
             <button type="button" className={button} aria-label={t.body.shell.assistantUseCommandAria.replace("{a}", guide.title)} disabled={busy} onClick={() => changeCommand(guide.command)}>
               {t.body.shell.assistantUseCommand}
@@ -88,7 +88,7 @@ export function LocalAssistant({ navigate }: { navigate: (href: string) => void 
       </form>
       {plan && (
         <div className="space-y-2 rounded-ctl border border-line p-2" aria-label={t.body.shell.assistantPlanTitle}>
-          <h3 className="text-sm font-semibold">{t.body.shell.assistantPlanTitle}</h3>
+          <h3 className="text-sm font-normal">{t.body.shell.assistantPlanTitle}</h3>
           <ol className="list-decimal pl-5 text-sm"><li>{assistantStepLabel(plan.step)}</li></ol>
           <p className="text-xs text-muted">{t.body.shell.assistantPlanValid}</p>
           <div className="flex gap-2">

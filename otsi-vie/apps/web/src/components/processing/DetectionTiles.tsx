@@ -137,7 +137,7 @@ export function DetectionTiles({ run, finishedRunId, tracks, videoId, events, to
                 {([["#1e90ff", d.eventPasses, events.passes.length], ["#ff2a2a", d.eventShots, events.shots.length], ["#ffc41a", d.eventBallWon, events.changes.length], ["#ff8a1a", d.eventPressures, events.pressures.length],
                   ["#d63aff", d.eventSetPieces, events.set_pieces.length]] as const).map(([c, l, n]) => (
                   <span key={l} data-event-count={l} className="flex items-center gap-1.5 whitespace-nowrap">
-                    <i className="h-3 w-3 shrink-0 rounded-full" style={{ background: c }} aria-hidden /><span className="font-semibold">{n}</span> {l}
+                    <i className="h-3 w-3 shrink-0 rounded-full" style={{ background: c }} aria-hidden /><span className="font-normal">{n}</span> {l}
                   </span>
                 ))}
               </div>

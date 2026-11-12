@@ -68,7 +68,7 @@ export function NotificationBell({ styles }: { styles: Styles }) {
         <Dialog.Content className="fixed right-4 z-50 flex max-h-[75vh] w-[30rem] max-w-[calc(100vw-2rem)] flex-col rounded-card border border-line bg-panel p-3 shadow-2xl"
           style={{ top: "calc(max(0.5px, 100vw / 2560) * 104)" }} data-notification-list>
           <div className="flex items-baseline justify-between gap-2">
-            <Dialog.Title className="text-sm font-semibold">{t.body.shell.notifTitle}</Dialog.Title>
+            <Dialog.Title className="text-sm font-normal">{t.body.shell.notifTitle}</Dialog.Title>
             <Dialog.Description className="text-xs text-muted">{list ? t.body.shell.notifDesc.replace("{a}", String(list.window_days)) : failed ? t.body.shell.notifDescFailed : t.body.shell.notifDescReading}</Dialog.Description>
           </div>
           <div className="mt-2 flex-1 overflow-y-auto pr-1">
@@ -89,9 +89,9 @@ function Row({ n, close }: { n: Notification; close: () => void }) {
   return (
     <Link href={n.href} onClick={close} className="flex items-start gap-2 rounded-ctl border-b border-line/60 px-1 py-2 last:border-0 hover:bg-raised/50"
       data-notification={n.kind} data-unread={n.unread ? "1" : "0"}>
-      <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-semibold" style={{ color, border: `1.5px solid ${color}` }} aria-hidden>{icon}</span>
+      <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-normal" style={{ color, border: `1.5px solid ${color}` }} aria-hidden>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm">{n.unread && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan align-middle" aria-label={t.body.shell.notifNew} />}<span className="font-semibold">{n.title}</span></span>
+        <span className="block truncate text-sm">{n.unread && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan align-middle" aria-label={t.body.shell.notifNew} />}<span className="font-normal">{n.title}</span></span>
         {n.detail && <span className="block truncate text-xs text-muted">{n.detail}</span>}
       </span>
       <span className="flex-none text-xs text-muted">{ago(n.at, Date.now(), agoTemplates(t))}</span>

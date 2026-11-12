@@ -40,7 +40,7 @@ export function NewBinDialog({ open, onOpenChange, onSaved }: { open: boolean; o
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content className={shell} data-new-bin>
-          <Dialog.Title className="text-base font-semibold">{dict.body.library.newSmartBin}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.library.newSmartBin}</Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted">{dict.body.library.binDesc}</Dialog.Description>
           <label className="mt-3 block text-sm">{dict.body.library.binSearchLabel}
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.body.library.binSearchPlaceholder} aria-label={dict.body.library.binSearchAria} maxLength={80}
@@ -55,7 +55,7 @@ export function NewBinDialog({ open, onOpenChange, onSaved }: { open: boolean; o
           <div className="mt-4 flex justify-end gap-2">
             <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5 text-sm">{dict.common.cancel}</Dialog.Close>
             <button type="button" disabled={busy || !name.trim() || q.trim().length < 2} onClick={() => void save()}
-              className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{dict.body.library.binSave}</button>
+              className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-normal text-white disabled:opacity-50">{dict.body.library.binSave}</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -77,14 +77,14 @@ export function BinDialog({ bin, onOpenChange, onDeleted }: { bin: SmartBin | nu
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content className={shell} data-bin-items>
-          <Dialog.Title className="text-base font-semibold">{bin?.name}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{bin?.name}</Dialog.Title>
           <Dialog.Description className="mt-1 font-mono text-xs text-muted">{bin?.q}</Dialog.Description>
           <ul className="mt-3 max-h-[55vh] overflow-auto">
             {hits.map((h, i) => (
               <li key={`${h.kind}-${h.id}`}>
                 {(i === 0 || hits[i - 1]!.kind !== h.kind) && <p className="t-th px-2 pb-1 pt-2">{GROUP(dict)[h.kind]}</p>}
                 <Link href={hitHref(h)} onClick={() => onOpenChange(false)} className="flex items-baseline justify-between gap-3 rounded-ctl px-2 py-1.5 hover:bg-primary/15">
-                  <span className="min-w-0 truncate text-sm font-medium">{h.title}</span>
+                  <span className="min-w-0 truncate text-sm font-normal">{h.title}</span>
                   {h.detail && <span className="max-w-[55%] shrink-0 truncate text-xs text-muted">{h.detail}</span>}
                 </Link>
               </li>

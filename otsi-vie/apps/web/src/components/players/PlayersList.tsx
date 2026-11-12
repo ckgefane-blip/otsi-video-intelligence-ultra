@@ -167,10 +167,10 @@ function Row({ e, countries, focus, onSaved }: { e: PlayerListEntry; countries: 
           <span className="block t-small">{dict.body.players.position}</span>
           {e.profile.position && (
             e.profile.role_confirmed ? (
-              <span className="rounded bg-ok/20 px-1 py-0.5 text-xs font-semibold text-ok" title={e.profile.role_confirmed_by_name ? dict.body.players.confirmedBy.replace("{a}", e.profile.role_confirmed_by_name) : dict.body.players.confirmedByAnalyst}>{dict.body.players.confirmed}</span>
+              <span className="rounded bg-ok/20 px-1 py-0.5 text-xs font-normal text-ok" title={e.profile.role_confirmed_by_name ? dict.body.players.confirmedBy.replace("{a}", e.profile.role_confirmed_by_name) : dict.body.players.confirmedByAnalyst}>{dict.body.players.confirmed}</span>
             ) : (
               <div className="flex items-center gap-1">
-                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-xs font-semibold text-amber-400">{dict.body.players.provisional}</span>
+                <span className="rounded bg-amber-500/20 px-1 py-0.5 text-xs font-normal text-amber-400">{dict.body.players.provisional}</span>
                 {can && <button type="button" onClick={() => void confirmRole()} className="text-xs text-primary hover:underline">{dict.body.players.confirm}</button>}
               </div>
             )

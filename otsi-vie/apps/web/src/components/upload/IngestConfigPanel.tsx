@@ -101,7 +101,7 @@ export function IngestConfigPanel() {
         <div role="tablist" aria-label={d.ingestOptions} className="flex gap-1">
           {TABS.map((l, i) => (
             <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
-              className={`rounded-ctl px-2.5 py-1 text-sm font-semibold ${tab === i ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>{l}</button>
+              className={`rounded-ctl px-2.5 py-1 text-sm font-normal ${tab === i ? "bg-primary text-white" : "text-ink2 hover:bg-raised hover:text-ink"}`}>{l}</button>
           ))}
         </div>
       </div>

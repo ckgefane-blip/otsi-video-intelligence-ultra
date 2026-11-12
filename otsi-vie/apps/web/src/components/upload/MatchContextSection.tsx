@@ -96,7 +96,7 @@ export function MatchContextSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.newMatch}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.newMatch}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{d.newMatchDesc.replace("{name}", selected?.title ?? selected?.original_filename ?? d.thisUpload)}</Dialog.Description>
             {selected && (
               <MatchLinker key={selected.id} videoId={selected.id} matchId={selected.match_id} canWrite={canWrite}

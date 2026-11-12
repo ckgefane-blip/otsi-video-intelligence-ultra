@@ -90,7 +90,7 @@ export function JobTray({ styles }: { styles: Styles }) {
           <div className="mt-2 flex-1 overflow-y-auto pr-1">
             {list && list.jobs.length === 0 && <p className="py-6 text-center text-sm text-muted">{t.body.shell.jobsEmpty}</p>}
             {active.map((j) => <Row key={j.id} j={j} busy={busy === j.id} act={act} close={() => setOpen(false)} />)}
-            {done.length > 0 && <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">{t.body.shell.jobsFinished}</p>}
+            {done.length > 0 && <p className="mt-3 text-xs font-normal uppercase tracking-wide text-muted">{t.body.shell.jobsFinished}</p>}
             {done.map((j) => <Row key={j.id} j={j} busy={busy === j.id} act={act} close={() => setOpen(false)} />)}
           </div>
           <p className="mt-2 text-[11px] text-muted">{t.body.shell.jobsFooter}</p>
@@ -109,7 +109,7 @@ function Row({ j, busy, act, close }: { j: Job; busy: boolean; close: () => void
     <div className="border-b border-line/60 py-2 last:border-0" data-job={j.kind} data-job-state={j.state}>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 flex-none rounded-full" style={{ background: STATE_COLOR[j.state] }} aria-hidden />
-        <span className="flex-1 truncate text-sm"><span className="font-semibold">{j.kind_label}</span>{j.subject_title ? ` · ${j.subject_title}` : ""}</span>
+        <span className="flex-1 truncate text-sm"><span className="font-normal">{j.kind_label}</span>{j.subject_title ? ` · ${j.subject_title}` : ""}</span>
         <span className="flex-none text-xs" style={{ color: STATE_COLOR[j.state] }}>{jobStateLabel(t, j.state)}{j.state === "RUNNING" ? ` ${Math.round(j.progress)}%` : ""}</span>
       </div>
       {j.state === "RUNNING" && (

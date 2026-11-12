@@ -24,7 +24,7 @@ export function ReportPreviewDialog({ reelId, kind, onClose }: { reelId: string;
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="report-preview" data-kind={kind ?? ""} className="fixed left-1/2 top-1/2 z-50 flex h-[90vh] w-[min(900px,96vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Preview: {kind ? BUNDLE_ITEM_NAMES[kind][0] : ""}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Preview: {kind ? BUNDLE_ITEM_NAMES[kind][0] : ""}</Dialog.Title>
           <Dialog.Description className="mb-2 text-xs text-muted">
             Built now from what the engine recorded{doc ? ` (${new Date(doc.generated_at).toLocaleTimeString()})` : ""}. Nothing is saved; the file made later shows the records as they are then.
           </Dialog.Description>

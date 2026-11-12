@@ -39,7 +39,7 @@ export function evidenceLines(e: MediaInfo["evidence"]): string[] {
 function Rows({ title, rows }: { title: string; rows: [string, ReactNode][] }) {
   return (
     <section aria-label={title} className="mb-3">
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{title}</h3>
+      <h3 className="mb-1 text-xs font-normal uppercase tracking-wide text-muted">{title}</h3>
       <dl className="grid grid-cols-[minmax(8rem,auto),1fr] gap-x-3 gap-y-0.5">
         {rows.map(([k, v]) => (<div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="min-w-0 break-words">{v}</dd></div>))}
       </dl>
@@ -64,12 +64,12 @@ export function MediaInfoBody({ info }: { info: MediaInfo }) {
         ["Time base", s.time_base ? `${s.time_base.num}/${s.time_base.den}` : NOT_MEASURED], ["Rotation", s.rotation_degrees === null ? NOT_MEASURED : `${s.rotation_degrees}°`],
       ]} />
       <section aria-label="Ingest checks" className="mb-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Ingest checks</h3>
+        <h3 className="mb-1 text-xs font-normal uppercase tracking-wide text-muted">Ingest checks</h3>
         <ol className="space-y-0.5">
           {info.checks.map((c) => (
             <li key={c.key} data-check={c.key} data-check-status={c.status} className="flex gap-2">
-              <span aria-hidden className={`w-4 shrink-0 text-center font-semibold ${MARK[c.status][1]}`}>{MARK[c.status][0]}</span>
-              <span><span className="font-medium">{MEDIA_CHECK_LABELS[c.key]}</span> <span className="sr-only">{STATUS_WORD[c.status]}</span>
+              <span aria-hidden className={`w-4 shrink-0 text-center font-normal ${MARK[c.status][1]}`}>{MARK[c.status][0]}</span>
+              <span><span className="font-normal">{MEDIA_CHECK_LABELS[c.key]}</span> <span className="sr-only">{STATUS_WORD[c.status]}</span>
                 {c.detail ? <span className="text-muted">: {c.detail}</span> : c.status === "PENDING" ? <span className="text-muted">: waiting</span> : null}</span>
             </li>
           ))}
@@ -81,7 +81,7 @@ export function MediaInfoBody({ info }: { info: MediaInfo }) {
         ["Thumbnail", info.copies.thumbnail ? "yes" : "none"],
       ]} />
       <section aria-label="Evidence so far">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Evidence so far</h3>
+        <h3 className="mb-1 text-xs font-normal uppercase tracking-wide text-muted">Evidence so far</h3>
         <ul className="list-disc space-y-0.5 pl-5">{evidenceLines(info.evidence).map((l) => <li key={l}>{l}</li>)}</ul>
       </section>
     </div>
@@ -105,10 +105,10 @@ export function MediaInfoDialog({ videoId, name, open, onOpenChange }: { videoId
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="media-info">
-          <Dialog.Title className="text-base font-semibold">Media Info · {name}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Media Info · {name}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">What was recorded about this file: measured by the ingest checks, never typed. &quot;—&quot; means not measured.</Dialog.Description>
           {err ? <p role="alert" className="text-danger">{err}</p> : info ? <MediaInfoBody info={info} /> : <p role="status" className="text-muted">Reading…</p>}
-          <div className="mt-3 flex justify-end"><Dialog.Close className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">Close</Dialog.Close></div>
+          <div className="mt-3 flex justify-end"><Dialog.Close className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">Close</Dialog.Close></div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -41,7 +41,7 @@ export function AccessDialog({ projectId, projectName, open, onOpenChange, onCha
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content data-access-dialog className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.library.manageAccess}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.library.manageAccess}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {dict.body.library.accessDesc.replace("{a}", projectName)}
           </Dialog.Description>
@@ -51,7 +51,7 @@ export function AccessDialog({ projectId, projectName, open, onOpenChange, onCha
           {view && (
             <>
               <fieldset className="mb-3 space-y-1" disabled={!manage}>
-                <legend className="mb-1 font-medium">{dict.body.library.accessWhoCanSee}</legend>
+                <legend className="mb-1 font-normal">{dict.body.library.accessWhoCanSee}</legend>
                 {([["ORGANIZATION", dict.body.library.accessEveryone], ["RESTRICTED", dict.body.library.accessRestricted]] as const).map(([v, l]) => (
                   <label key={v} className="flex items-center gap-2">
                     <input type="radio" name="access" value={v} checked={view.access === v}
@@ -61,7 +61,7 @@ export function AccessDialog({ projectId, projectName, open, onOpenChange, onCha
                 ))}
                 {!view.can_manage && <p className="text-xs text-muted">{dict.body.library.accessOnlyManager}</p>}
               </fieldset>
-              <h3 className="mb-1 font-medium">{dict.body.library.accessPeopleOn.replace("{a}", String(view.people.length))}</h3>
+              <h3 className="mb-1 font-normal">{dict.body.library.accessPeopleOn.replace("{a}", String(view.people.length))}</h3>
               {view.people.length === 0 && <p className="mb-2 text-muted">{dict.body.library.accessNobody}</p>}
               <ul aria-label={dict.body.library.accessPeopleAria} className="mb-3 divide-y divide-line rounded-ctl border border-line">
                 {view.people.map((x) => (
@@ -90,7 +90,7 @@ export function AccessDialog({ projectId, projectName, open, onOpenChange, onCha
                   <select aria-label={dict.body.library.accessPermForNew} value={perm} onChange={(e) => setPerm(e.target.value as ProjectPermission)} className="rounded-ctl border border-line bg-[#041022] px-1 py-1">
                     {PERMS.map((p) => <option key={p} value={p}>{permName(p, dict)}</option>)}
                   </select>
-                  <button type="button" disabled={!pick || busy} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50"
+                  <button type="button" disabled={!pick || busy} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50"
                     onClick={() => { const id = pick; setPick(""); void run(() => api<ProjectAccessView>(`${base}/people/${id}`, { method: "PUT", json: { permission: perm } })); }}>{dict.body.library.accessAdd}</button>
                 </div>
               )}

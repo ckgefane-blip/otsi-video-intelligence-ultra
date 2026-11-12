@@ -215,7 +215,7 @@ function LowerInner({ r }: { r: Report }) {
           <div role="radiogroup" aria-label={dict.body.reports.heatModeAria} className="mt-2 flex flex-wrap gap-1">
             {([dict.body.reports.heatmap, dict.body.reports.heatModeTouches, dict.body.reports.heatModeTerritory] as const).map((l, i) => (
               <button key={l} type="button" role="radio" aria-checked={mode === i} onClick={() => setMode(i)}
-                className={`rounded-ctl px-2.5 py-1 text-xs font-semibold ${mode === i ? "bg-primary text-white" : "border border-line text-muted hover:text-ink"}`}>{l}</button>
+                className={`rounded-ctl px-2.5 py-1 text-xs font-normal ${mode === i ? "bg-primary text-white" : "border border-line text-muted hover:text-ink"}`}>{l}</button>
             ))}
           </div>
           <div className="relative mt-3">
@@ -291,7 +291,7 @@ function LowerInner({ r }: { r: Report }) {
                 <div key={m.key} data-compare={m.label} title={cmp ? (m.group_n === 1 ? dict.body.reports.cmpTitleOne : dict.body.reports.cmpTitleMany).replace("{a}", mLabel).replace("{b}", fmt(m.player, m.unit)).replace("{c}", fmt(m.group_mean, m.unit)).replace("{d}", String(m.group_n)) : undefined}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 t-body">
                   <span className="truncate text-muted">{mLabel}</span>
-                  <span className="text-right font-semibold text-primary">{fmt(m.player, m.unit === "km/h" ? "" : m.unit)}</span>
+                  <span className="text-right font-normal text-primary">{fmt(m.player, m.unit === "km/h" ? "" : m.unit)}</span>
                   <span className="h-3 overflow-hidden rounded bg-[#122b4d]"><span className="block h-3 rounded bg-primary" style={{ width: `${bar(m.player, 100)}%` }} /></span>
                   <span className="flex items-center gap-2"><span className="h-3 w-[72px] overflow-hidden rounded bg-[#122b4d]"><span className="block h-3 rounded bg-[#4d6482]" style={{ width: `${bar(m.group_mean, 100)}%` }} /></span><span className="text-muted">{fmt(m.group_mean, "")}</span></span>
                 </div>

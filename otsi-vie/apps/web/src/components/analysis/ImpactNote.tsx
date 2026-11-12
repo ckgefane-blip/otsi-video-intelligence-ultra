@@ -31,7 +31,7 @@ export function ImpactNote({ trackIds, state, playerId, className = "" }: { trac
   if (!text) return null;
   return (
     <p role="note" data-identity-impact className={`rounded-ctl border border-[#f5b82e]/60 bg-[#f5b82e]/10 px-2.5 py-1.5 text-xs text-[#ffe6a8] ${className}`}>
-      <span className="font-semibold">{dict.body.analysis.beforeYouSave}</span> {text}
+      <span className="font-normal">{dict.body.analysis.beforeYouSave}</span> {text}
     </p>
   );
 }

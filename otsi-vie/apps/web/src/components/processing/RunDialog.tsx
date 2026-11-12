@@ -45,7 +45,7 @@ export function RunDialog({ p, open, onOpenChange }: { p: ProcessingState; open:
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(560px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="run-analysis">
-          <Dialog.Title className="text-base font-semibold">{run ? d.analyseAgainPlain : d.startAnalysisPlain}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{run ? d.analyseAgainPlain : d.startAnalysisPlain}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{video?.title ?? video?.original_filename ?? d.videoFallback}</Dialog.Description>
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); submit(); }}>
             <FootageCheck assessment={assessment} />
@@ -57,7 +57,7 @@ export function RunDialog({ p, open, onOpenChange }: { p: ProcessingState; open:
                   <label key={k} data-profile={k} className={`flex cursor-pointer items-start gap-2 rounded-ctl border px-2.5 py-2 ${chosen === k ? "border-primary bg-primary/5" : "border-line/70"}`}>
                     <input type="radio" name="profile" value={k} checked={chosen === k} onChange={() => setProfile(k)} className="mt-1" aria-label={PROFILES[k].label} />
                     <span className="min-w-0 flex-1">
-                      <span className="font-medium">{PROFILES[k].label}</span>
+                      <span className="font-normal">{PROFILES[k].label}</span>
                       {assessment?.recommended_profile === k && <span className="ml-2 rounded bg-ok/15 px-1.5 py-0.5 text-[11px] text-ok">{d.recommendedBadge}</span>}
                       <span className="block text-xs text-muted">{PROFILES[k].summary} {d.fpsPasses.replace("{fps}", String(PROFILES[k].sample_fps)).replace("{passes}", String(e?.passes_per_frame ?? "?"))}</span>
                       <span className="block text-xs text-muted" data-estimate={k}>{e?.seconds != null ? d.estimateAbout.replace("{est}", formatEstimate(e.seconds, d)).replace("{gb}", (e.peak_memory_mb! / 1024).toFixed(1)) : d.estimateAfterCheck}</span>
@@ -75,7 +75,7 @@ export function RunDialog({ p, open, onOpenChange }: { p: ProcessingState; open:
               </label>
               <div className="flex gap-2">
                 <Dialog.Close className="rounded-ctl border border-line px-3 py-2 hover:border-primary/60">{dict.common.close}</Dialog.Close>
-                <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">
+                <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-normal text-white disabled:opacity-50">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {run ? d.analyseAgainPlain : d.startAnalysisPlain}
                 </button>
               </div>
@@ -100,7 +100,7 @@ function FootageCheck({ assessment }: { assessment: QualityAssessment | null }) 
   const m = assessment.metrics as { people?: { measured?: boolean; median_height_px?: number; people_per_frame?: number } } | null;
   return (
     <div className="space-y-1 rounded-ctl border border-line/70 p-2 text-xs" data-assessment="SUCCEEDED">
-      <p className="font-semibold">{d.footageCheck}</p>
+      <p className="font-normal">{d.footageCheck}</p>
       {m?.people?.measured && <p className="text-muted">{d.playersAbout.replace("{px}", String(Math.round(m.people.median_height_px ?? 0))).replace("{n}", (m.people.people_per_frame ?? 0).toFixed(1))}</p>}
       {assessment.issues.length === 0 ? <p className="text-ok">{d.noProblemFound}</p> : (
         <ul className="space-y-0.5" aria-label={d.footageCheck}>

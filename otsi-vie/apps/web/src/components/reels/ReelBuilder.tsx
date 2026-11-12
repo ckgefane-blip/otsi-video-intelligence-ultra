@@ -129,7 +129,7 @@ export function ReelSteps() {
   ];
   return (
     <div className="space-y-2">
-      <p className="t-body"><span className="font-semibold" data-reel-name>{reel.name}</span> <span className="text-muted">· {reel.video_id
+      <p className="t-body"><span className="font-normal" data-reel-name>{reel.name}</span> <span className="text-muted">· {reel.video_id
         ? <Link className="text-primary underline" href={`/videos/${reel.video_id}/analyze`}>{dict.body.reels.sourceVideoLink}</Link>
         : dict.body.reels.sourceAllMatches}</span></p>
       <ol aria-label={dict.body.reelstage.stepsAria} className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-5 min-[1100px]:grid-cols-1">
@@ -138,7 +138,7 @@ export function ReelSteps() {
             className={`flex min-w-0 items-start gap-2 rounded-ctl border px-2.5 py-2 t-body ${done ? "border-ok/40 bg-ok/5" : "border-line/70 bg-raised/40"}`}>
             {done ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" /> : <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-muted" />}
             <span className="min-w-0">
-              <span className="block font-medium leading-tight">{i + 1}. {n}</span>
+              <span className="block font-normal leading-tight">{i + 1}. {n}</span>
               <span className="mt-0.5 block break-words t-small leading-snug text-muted">{note}</span>
             </span>
           </li>
@@ -168,7 +168,7 @@ export function AspectPresets() {
       {(["16:9", "9:16", "1:1", "4:5"] as const).map((a) => (
         <button key={a} type="button" role="radio" aria-checked={reel.aspect === a} disabled={!canEdit || busy}
           onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, aspect: a } }))}
-          className={`min-w-0 rounded-ctl border px-1.5 py-2 text-center t-body font-medium ${reel.aspect === a ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
+          className={`min-w-0 rounded-ctl border px-1.5 py-2 text-center t-body font-normal ${reel.aspect === a ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
           {a} <span className="mt-0.5 block t-small font-normal leading-tight text-muted">{a === "16:9" ? dict.body.reels.aspectBroadcast : a === "9:16" ? dict.body.reels.aspectStories : a === "4:5" ? dict.body.reels.aspectFeed : dict.body.reels.aspectSquare}</span>
         </button>
       ))}
@@ -237,7 +237,7 @@ export function ReelTargets() {
   return (
     <div className="space-y-2 t-body">
       {reel.player ? (
-        <p data-reel-player><span className="font-semibold">{reel.player.display_name}</span>{" "}
+        <p data-reel-player><span className="font-normal">{reel.player.display_name}</span>{" "}
           <span className="text-muted">· {reel.player.canonical_otsi_id ?? dict.body.reels.targetProvisional}</span></p>
       ) : <p className="text-muted">{dict.body.reels.targetNoPlayer}</p>}
       <p className="t-small text-muted">{dict.body.reels.targetSpotlightFollows}</p>
@@ -317,7 +317,7 @@ export function MomentCarousel() {
       <ul aria-label={dict.body.studio.suggestedMoments} className="flex gap-2 overflow-x-auto pb-1">
         {moments.map((m) => (
           <li key={m.in_pts_us} data-moment={m.in_pts_us} className="flex w-48 shrink-0 flex-col rounded-ctl border border-line/70 bg-raised/40 p-2 t-small">
-            <p className="font-medium">{sec(m.in_pts_us, dict.body.reelstage.durationSec)} – {sec(m.out_pts_us, dict.body.reelstage.durationSec)}</p>
+            <p className="font-normal">{sec(m.in_pts_us, dict.body.reelstage.durationSec)} – {sec(m.out_pts_us, dict.body.reelstage.durationSec)}</p>
             <p className="mb-1.5 text-muted">{m.label} · {dict.body.reelstage.trackWord.replace("{a}", m.track_numbers.join(", "))}</p>
             <button type="button" disabled={!canEdit || busy || m.in_reel}
               onClick={() => run(() => api<Reel>(`/v1/reels/${reel.id}/clips`, { method: "POST", json: { in_pts_us: m.in_pts_us, out_pts_us: m.out_pts_us, origin: "SUGGESTED", label: m.label } }), dict.body.reels.clipAdded)}
@@ -363,11 +363,11 @@ export function CrossMatchMomentCarousel() {
   const item = (m: CrossMatchCandidate, tier: string | null, reason: string, key: string, notSelectedReason: string | null, inReel: boolean) => (
     <li key={key} data-cross-moment={m.in_pts_us} data-tier={tier ?? ""} data-not-selected={notSelectedReason ?? undefined}
       className="flex w-64 shrink-0 flex-col rounded-ctl border border-line/70 bg-raised/40 p-2 t-small">
-      <p className="flex items-center gap-1.5 font-medium">
+      <p className="flex items-center gap-1.5 font-normal">
         {tier && <span style={{ color: TIER_COLOUR[tier] ?? "#cfe0f5" }}>{dict.body.reels.crossTier.replace("{a}", tier)}</span>}
         {notSelectedReason && <span className="text-muted">{dict.body.reels.crossLeftOut.replace("{a}", notSelectedReason)}</span>}
       </p>
-      <p className="font-medium">{m.label}</p>
+      <p className="font-normal">{m.label}</p>
       <p className="mb-1.5 text-muted">{detail(m, reason)}</p>
       <span className="mt-auto flex flex-wrap gap-1">
         {notSelectedReason === "rejected for this reel"
@@ -408,7 +408,7 @@ export function CrossMatchMomentCarousel() {
       )}
       {crossMatch.not_selected.length > 0 && (
         <>
-          <p className="pt-1 t-small font-medium text-muted">{dict.body.reels.crossLeftOutHeading}</p>
+          <p className="pt-1 t-small font-normal text-muted">{dict.body.reels.crossLeftOutHeading}</p>
           <ul aria-label={dict.body.reels.crossLeftOutAria} className="flex gap-2 overflow-x-auto pb-1">
             {crossMatch.not_selected.map(({ candidate: m, reason }) => item(m, null, m.sequence_label ?? m.label, `${m.video_id}:${m.in_pts_us}:out`, reason, clipOf(m) !== null))}
           </ul>
@@ -460,20 +460,20 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
           <option value="300">{dict.body.reels.sourceAll300}</option>
         </select>
         <button type="button" disabled={mode !== "ALL_MATCHES" || !canEdit || busy || creating} onClick={() => void create()}
-          className="shrink-0 rounded-ctl bg-primary px-3 py-1.5 t-body font-semibold text-white disabled:opacity-50">{dict.body.reels.createBtn}</button>
+          className="shrink-0 rounded-ctl bg-primary px-3 py-1.5 t-body font-normal text-white disabled:opacity-50">{dict.body.reels.createBtn}</button>
         {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
   }
   const radio = (m: "MATCH" | "ALL_MATCHES", label: string) => (
     <button key={m} type="button" role="radio" aria-checked={mode === m} disabled={busy || creating} onClick={() => setMode(m)}
-      className={`rounded-ctl border px-2.5 py-1.5 t-body font-medium ${mode === m ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
+      className={`rounded-ctl border px-2.5 py-1.5 t-body font-normal ${mode === m ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
       {label}
     </button>
   );
   return (
     <div className="space-y-2 t-body" data-reel-source="MATCH">
-      <p className="font-medium">{dict.body.reels.sourceWhich}</p>
+      <p className="font-normal">{dict.body.reels.sourceWhich}</p>
       <div role="radiogroup" aria-label={dict.body.reels.sourceWhichAria} className="flex gap-1.5">
         {radio("MATCH", dict.body.reels.sourceThisMatch)}{radio("ALL_MATCHES", dict.body.reels.sourceAllMatches)}
       </div>
@@ -482,14 +482,14 @@ export function ReelSourceChoice({ compact }: { compact?: boolean } = {}) {
           <div role="radiogroup" aria-label={dict.body.reels.sourceLengthAria} className="flex gap-1.5">
             {([90, 180, 300] as const).map((s) => (
               <button key={s} type="button" role="radio" aria-checked={lengthS === s} disabled={busy || creating} onClick={() => setLengthS(s)}
-                className={`rounded-ctl border px-2.5 py-1.5 t-body font-medium ${lengthS === s ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
+                className={`rounded-ctl border px-2.5 py-1.5 t-body font-normal ${lengthS === s ? "border-primary bg-primary/10 text-primary" : "border-line hover:border-primary/50"}`}>
                 {s === 90 ? dict.body.reels.len90s : s === 180 ? dict.body.reels.len3min : dict.body.reels.len5min}
               </button>
             ))}
           </div>
           <p className="t-small text-muted">{dict.body.reels.sourceOneReel.replace("{a}", player.display_name).replace("{b}", lengthS === 90 ? dict.body.reels.sourceUpTo90 : lengthS === 180 ? dict.body.reels.sourceUpTo180 : dict.body.reels.sourceUpTo300)}</p>
           <button type="button" disabled={!canEdit || busy || creating} onClick={() => void create()}
-            className="inline-flex items-center gap-1 rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">
+            className="inline-flex items-center gap-1 rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{dict.body.reels.sourceCreate}
           </button>
           {err && <p role="alert" className="text-xs text-danger">{err}</p>}
@@ -522,7 +522,7 @@ export function ClipTimeline() {
           const e = edit[c.id] ?? { a: (c.in_pts_us / 1e6).toFixed(1), b: (c.out_pts_us / 1e6).toFixed(1) };
           return (
             <li key={c.id} data-clip={i} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-ctl border px-2 py-1.5 ${selectedClip === c.id ? "border-primary bg-primary/5" : "border-line/60"}`}>
-              <button type="button" onClick={() => setSelectedClip(selectedClip === c.id ? null : c.id)} className="w-16 text-left font-medium underline-offset-2 hover:underline">{i + 1}. {sec(clipOutputUs(c), dict.body.reelstage.durationSec)}</button>
+              <button type="button" onClick={() => setSelectedClip(selectedClip === c.id ? null : c.id)} className="w-16 text-left font-normal underline-offset-2 hover:underline">{i + 1}. {sec(clipOutputUs(c), dict.body.reelstage.durationSec)}</button>
               <label className="flex items-center gap-1">{dict.body.reels.clipInLabel} <input value={e.a} disabled={!canEdit} aria-label={dict.body.reels.clipInAria.replace("{a}", String(i + 1))} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, a: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
               <label className="flex items-center gap-1">{dict.body.reels.clipOutLabel} <input value={e.b} disabled={!canEdit} aria-label={dict.body.reels.clipOutAria.replace("{a}", String(i + 1))} onChange={(x) => setEdit({ ...edit, [c.id]: { ...e, b: x.target.value } })} className="w-14 rounded border border-line bg-canvas px-1" /></label>
               {canEdit && (
@@ -568,12 +568,12 @@ export function RenderPanel() {
           </select></label>
         <button type="button" disabled={!canEdit || busy || !!active || reel.clips.length === 0 || reel.stale}
           onClick={() => run(async () => { await api(`/v1/reels/${reel.id}/renders`, { method: "POST", json: { codec, bitrate_mbps: 8 }, headers: { "idempotency-key": `render-${reel.id}-${reel.version}-${codec}-${Date.now()}` } }); }, dict.body.reels.renderStarted)}
-          className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">
+          className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-normal text-white disabled:opacity-50">
           {active ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{dict.body.reels.renderReelBtn}
         </button>
       </div>
       {active && <p role="status" className="flex items-center gap-2 text-xs"><Loader2 className="h-3.5 w-3.5 animate-spin text-cyan" />{r.stage_message ?? dict.body.reels.renderWaiting} {r.progress !== null ? `(${Math.round(r.progress)} %)` : ""}</p>}
-      {r?.state === "FAILED" && <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-xs text-danger"><span className="font-semibold">{r.failure_code}</span>: {r.failure_detail}</p>}
+      {r?.state === "FAILED" && <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-xs text-danger"><span className="font-normal">{r.failure_code}</span>: {r.failure_detail}</p>}
       {r?.state === "SUCCEEDED" && res && (
         <div className="space-y-1 t-small" data-render-result>
           <p>{dict.body.reels.renderResultLine.replace("{a}", String(res.width)).replace("{b}", String(res.height)).replace("{c}", dict.body.reelstage.durationSec.replace("{a}", String(res.duration_s))).replace("{d}", String(res.frames)).replace("{e}", res.encoder ?? "").replace("{f}", dict.body.reelstage.durationSec.replace("{a}", String(res.seconds)))}</p>
@@ -601,7 +601,17 @@ export function ReelList() {
   useEffect(() => { void load(); }, [load]);
   if (failed && !reels) return <p className="t-body text-muted">{dict.body.reels.reelsNotLoaded} <button type="button" onClick={() => void load()} className="text-primary underline">{dict.common.retry}</button></p>;
   if (!reels) return <p className="t-body text-muted">{dict.body.reels.reelListLoading}</p>;
-  if (reels.length === 0) return <p className="t-body text-muted">{dict.body.reels.reelListEmpty.replace("{a}", dict.body.workspace.createHighlightReel)}</p>;
+  if (reels.length === 0) return (
+    <div className="space-y-3">
+      <h1 className="t-page">{dict.pages.reels.title}</h1>
+      <p className="t-small">{dict.pages.reels.subtitle}</p>
+      <p className="t-body text-muted">{dict.body.reels.reelListEmpty.replace("{a}", dict.body.workspace.createHighlightReel)}</p>
+      <div className="flex gap-2">
+        <Link href="/upload?mode=file" className="vie-btn vie-btn-pri">{dict.body.home.uploadVideo}</Link>
+        <Link href="/analysis" className="vie-btn">{dict.pages.analysis.title}</Link>
+      </div>
+    </div>
+  );
   return (
     <div className="space-y-2">
       <h1 className="t-page">{dict.pages.reels.title}</h1>

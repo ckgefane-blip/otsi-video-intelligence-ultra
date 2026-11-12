@@ -99,7 +99,7 @@ export function AppRail() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-medium leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
+  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   const settingsActive = /^\/settings(\/|$)/.test(path) && !/^\/settings\/admin/.test(path);
   const adminActive = /^\/settings\/admin(\/|$)/.test(path);
@@ -111,7 +111,7 @@ export function AppRail() {
         className={`flex h-12 items-center gap-2.5 border-b border-line ${collapsed ? "justify-center" : "px-4"}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={collapsed ? "/brand/otsi-mark.png" : "/brand/otsi-logo.png"} alt="OTSI" className={collapsed ? "h-6 w-auto" : "h-[22px] w-auto"} draggable={false} />
-        {!collapsed && <span className="text-xs font-semibold tracking-[0.14em] text-muted">VIE</span>}
+        {!collapsed && <span className="text-xs font-normal tracking-[0.14em] text-muted">VIE</span>}
       </Link>
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
         {!collapsed && <span className="t-th px-2.5 pb-1.5 pt-3">{t.desktop.navWorkspace}</span>}

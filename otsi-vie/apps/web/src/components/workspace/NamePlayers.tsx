@@ -89,10 +89,10 @@ export function NamePlayersDialog({ open, onOpenChange, player }: { open: boolea
         <Dialog.Content data-dialog="name-players" className="fixed left-1/2 top-1/2 z-50 max-h-[94vh] w-[min(1200px,98vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-base font-semibold">{dict.body.workspace.namePlayers}</Dialog.Title>
+              <Dialog.Title className="text-base font-normal">{dict.body.workspace.namePlayers}</Dialog.Title>
               <Dialog.Description className="text-xs text-muted">{dict.body.workspace.namePlayersDesc}</Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-semibold text-white">{dict.body.upload.done}</Dialog.Close>
+            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-normal text-white">{dict.body.upload.done}</Dialog.Close>
           </div>
           <div role="tablist" className="mb-3 flex gap-2">
             {tabs.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-ctl border px-3 py-1 ${tab === k ? "border-primary text-primary" : "border-line text-muted"}`}>{l}</button>)}
@@ -140,7 +140,7 @@ export function NamePlayersDialog({ open, onOpenChange, player }: { open: boolea
                   </tbody>
                 </table>
               )}
-              <button type="button" disabled={busy !== null || ticked.size === 0} onClick={() => void acceptNumbers()} className="rounded-ctl bg-primary px-4 py-2 font-semibold text-white disabled:opacity-50">
+              <button type="button" disabled={busy !== null || ticked.size === 0} onClick={() => void acceptNumbers()} className="rounded-ctl bg-primary px-4 py-2 font-normal text-white disabled:opacity-50">
                 {dict.body.workspace.acceptTicked.replace("{a}", String([...ticked].filter((id) => props.proposals.some((x) => x.track_id === id && x.player)).length))}</button>
             </div>
           )}
@@ -217,7 +217,7 @@ function PlayerAlikes({ name, trackId, named, startOpen, onChanged }: { name: st
   return (
     <div className="rounded border border-line/60 p-2" data-player-alikes={name}>
       <button type="button" onClick={() => setOpenRow((o) => !o)} className="flex w-full items-center justify-between text-left">
-        <span className="font-medium">{name}</span><span className="text-xs text-muted">{(named === 1 ? dict.body.workspace.namedTracksOne : dict.body.workspace.namedTracksMany).replace("{a}", String(named))} · {openRow ? dict.body.workspace.hideLabel : dict.body.workspace.findOtherTracks}</span>
+        <span className="font-normal">{name}</span><span className="text-xs text-muted">{(named === 1 ? dict.body.workspace.namedTracksOne : dict.body.workspace.namedTracksMany).replace("{a}", String(named))} · {openRow ? dict.body.workspace.hideLabel : dict.body.workspace.findOtherTracks}</span>
       </button>
       {openRow && (!data ? <p className="text-xs text-muted">{dict.common.loading}</p> : data.items.length === 0 ? <p className="text-xs text-muted">{dict.body.workspace.noMoreLookalikesNamed.replace("{a}", String(data.seeds))}</p> : (
         <div className="mt-2 space-y-2">
@@ -234,15 +234,15 @@ function PlayerAlikes({ name, trackId, named, startOpen, onChanged }: { name: st
                   <button type="button" onClick={() => show(o)} className="w-full rounded-ctl border border-line px-1 py-0.5 text-primary">{dict.body.analysis.showBtn}</button>
                   <div className="flex w-full gap-1">
                     <button type="button" aria-pressed={v === "him"} aria-label={dict.body.workspace.trackIsName.replace("{a}", String(o.track_number)).replace("{b}", name)} onClick={() => mark(o.track_id, "him")}
-                      className={`flex-1 rounded-ctl px-1 py-0.5 font-semibold ${v === "him" ? "bg-ok text-black" : "border border-ok/60 text-ok"}`}>{dict.body.workspace.himLabel}</button>
+                      className={`flex-1 rounded-ctl px-1 py-0.5 font-normal ${v === "him" ? "bg-ok text-black" : "border border-ok/60 text-ok"}`}>{dict.body.workspace.himLabel}</button>
                     <button type="button" aria-pressed={v === "not"} aria-label={dict.body.workspace.trackIsNotName.replace("{a}", String(o.track_number)).replace("{b}", name)} onClick={() => mark(o.track_id, "not")}
-                      className={`flex-1 rounded-ctl px-1 py-0.5 font-semibold ${v === "not" ? "bg-danger text-white" : "border border-danger/60 text-danger"}`}>{dict.body.analysis.notHim}</button>
+                      className={`flex-1 rounded-ctl px-1 py-0.5 font-normal ${v === "not" ? "bg-danger text-white" : "border border-danger/60 text-danger"}`}>{dict.body.analysis.notHim}</button>
                   </div>
                 </div>
               );
             })}
           </div>
-          <button type="button" disabled={busy || say.size === 0} onClick={() => void save()} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">
+          <button type="button" disabled={busy || say.size === 0} onClick={() => void save()} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">
             {busy ? dict.body.workspace.saving : dict.body.workspace.saveVerdicts.replace("{a}", String(yes.length)).replace("{b}", String(no.length))}</button>
         </div>
       ))}

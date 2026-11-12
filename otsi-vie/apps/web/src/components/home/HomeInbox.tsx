@@ -40,7 +40,7 @@ export function NextActionBar() {
     <Link href={n.href} data-cta="next-action" data-next-kind={n.kind}
       className="flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-3 py-2 hover:border-primary">
       <ArrowRight className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-      <span className="t-body truncate font-medium">{n.label}{n.detail ? <span className="font-normal text-muted">{` · ${n.detail}`}</span> : null}</span>
+      <span className="t-body truncate font-normal">{n.label}{n.detail ? <span className="font-normal text-muted">{` · ${n.detail}`}</span> : null}</span>
     </Link>
   );
 }
@@ -74,7 +74,7 @@ function ReviewInbox({ inbox }: { inbox: HomeInbox }) {
               <Link href={it.href} data-inbox={it.kind} className="flex items-center gap-2.5 rounded px-2 py-2 hover:bg-raised">
                 <Icon className={`h-4 w-4 shrink-0 ${tone}`} aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="t-body block truncate font-medium">{it.title}</span>
+                  <span className="t-body block truncate font-normal">{it.title}</span>
                   <span className="t-small block truncate text-muted">{it.detail ?? ""}</span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-primary" aria-hidden />
@@ -112,7 +112,7 @@ function ActiveJobs() {
           const card = (
             <>
               <span className="flex items-center justify-between gap-2">
-                <span className="t-body truncate font-medium">{j.kind_label}</span>
+                <span className="t-body truncate font-normal">{j.kind_label}</span>
                 <span className="t-small shrink-0" style={{ color: STATE_COLOR[j.state] }}>{jobStateLabel(t, j.state)}</span>
               </span>
               <span className="t-small block truncate text-ink2">{j.subject_title ?? "—"}</span>

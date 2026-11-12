@@ -108,13 +108,13 @@ function MarkerDialog({ s, open, onOpenChange, markers, setMarkers }: { s: Share
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="markers" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(620px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.markersNotes}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.workspace.markersNotes}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.workspace.notePinned}</Dialog.Description>
           {ws?.canWrite ? (
             <form className="mb-3 space-y-2" onSubmit={(e) => { e.preventDefault(); if (vid && body.trim()) void go(() => api<VideoMarker[]>(`/v1/videos/${vid}/markers`, { method: "POST", json: { at_pts_us: at, body: body.trim() } })).then((ok) => ok && setBody("")); }}>
               <label className="block text-xs text-muted" htmlFor="marker-body">{dict.body.workspace.noteAtPlayhead.replace("{a}", clock(at))}</label>
               <textarea id="marker-body" data-marker-body value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} rows={2} className="w-full rounded-ctl border border-line bg-raised p-2" />
-              <button type="submit" data-marker-add disabled={busy || !body.trim()} className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-semibold disabled:opacity-40">{dict.body.workspace.pinAt.replace("{a}", clock(at))}</button>
+              <button type="submit" data-marker-add disabled={busy || !body.trim()} className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-normal disabled:opacity-40">{dict.body.workspace.pinAt.replace("{a}", clock(at))}</button>
             </form>
           ) : <p className="mb-3 text-xs text-muted">{dict.body.workspace.roleReadMarkers}</p>}
           {err && <p className="mb-2 text-xs text-[#ff8a8a]" role="alert">{err}</p>}

@@ -107,7 +107,7 @@ export function InterchangeDialog({ reel, presetId, canWrite = true, open, onOpe
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="interchange" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(680px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Timeline interchange (.otio, .otsi-reel &amp; Archive bundle)</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Timeline interchange (.otio, .otsi-reel &amp; Archive bundle)</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             Export this reel as an OpenTimelineIO timeline (<code>.otio</code>) for non-linear editors, as a portable <code>.otsi-reel</code> manifest carrying the engine&apos;s evidence flags, or pack a rights-checked Archive bundle (<code>otsi-archive/v1</code>) with <code>manifest.json</code> and <code>audit-extract.json</code>.
           </Dialog.Description>
@@ -118,31 +118,31 @@ export function InterchangeDialog({ reel, presetId, canWrite = true, open, onOpe
           ) : (
             <>
               <div data-interchange-summary className="mb-3 rounded border border-line bg-raised p-2.5 text-xs">
-                <div className="font-semibold">{data.manifest.reel.name} · v{data.manifest.reel.version} · {data.manifest.reel.aspect}</div>
+                <div className="font-normal">{data.manifest.reel.name} · v{data.manifest.reel.version} · {data.manifest.reel.aspect}</div>
                 <div className="text-muted">
                   {data.manifest.clips.length} clip{data.manifest.clips.length === 1 ? "" : "s"} · {(data.manifest.reel.duration_us / 1e6).toFixed(1)} s · {data.manifest.targets.length} followed track{data.manifest.targets.length === 1 ? "" : "s"} · {totalEvents} engine-inferred event{totalEvents === 1 ? "" : "s"} · Preset: {data.manifest.preset.name}
                 </div>
               </div>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Evidence flags carried in the export</h3>
+              <h3 className="mb-1.5 text-xs font-normal uppercase tracking-wide text-muted">Evidence flags carried in the export</h3>
               <ul data-interchange-evidence className="mb-3 space-y-1 text-xs">
                 {lines.map((l) => (
                   <li key={l.key} data-evidence-flag={l.key} data-tone={l.tone} className="flex justify-between gap-3 rounded border border-line/60 px-2.5 py-1">
-                    <span className="font-medium">{l.label}</span>
+                    <span className="font-normal">{l.label}</span>
                     <span style={{ color: l.tone === "ok" ? "#3ee6a8" : "#f5b82e" }}>{l.value}</span>
                   </li>
                 ))}
               </ul>
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
                 <button type="button" data-view-manifest onClick={() => setView("manifest")}
-                  className={`rounded border px-2.5 py-1 ${view === "manifest" ? "border-[#1e90ff] bg-[#08213f] font-semibold text-white" : "border-line text-muted"}`}>
+                  className={`rounded border px-2.5 py-1 ${view === "manifest" ? "border-[#1e90ff] bg-[#08213f] font-normal text-white" : "border-line text-muted"}`}>
                   .otsi-reel ({data.manifest.schema})
                 </button>
                 <button type="button" data-view-otio onClick={() => setView("otio")}
-                  className={`rounded border px-2.5 py-1 ${view === "otio" ? "border-[#1e90ff] bg-[#08213f] font-semibold text-white" : "border-line text-muted"}`}>
+                  className={`rounded border px-2.5 py-1 ${view === "otio" ? "border-[#1e90ff] bg-[#08213f] font-normal text-white" : "border-line text-muted"}`}>
                   OpenTimelineIO ({data.otio.OTIO_SCHEMA})
                 </button>
                 <button type="button" data-view-archive onClick={() => setView("archive")}
-                  className={`rounded border px-2.5 py-1 ${view === "archive" ? "border-[#1e90ff] bg-[#08213f] font-semibold text-white" : "border-line text-muted"}`}>
+                  className={`rounded border px-2.5 py-1 ${view === "archive" ? "border-[#1e90ff] bg-[#08213f] font-normal text-white" : "border-line text-muted"}`}>
                   Archive bundle (otsi-archive/v1)
                 </button>
               </div>
@@ -162,11 +162,11 @@ export function InterchangeDialog({ reel, presetId, canWrite = true, open, onOpe
             {data && view !== "archive" && (
               <>
                 <button type="button" data-download-otio onClick={() => saveJson(`${data.filename_base}.otio`, data.otio)}
-                  className="rounded border border-[#1e90ff] bg-[#08213f] px-3 py-1.5 font-semibold text-[#33a8ff]">
+                  className="rounded border border-[#1e90ff] bg-[#08213f] px-3 py-1.5 font-normal text-[#33a8ff]">
                   Save {data.filename_base}.otio
                 </button>
                 <button type="button" data-download-manifest onClick={() => saveJson(`${data.filename_base}.otsi-reel`, data.manifest)}
-                  className="rounded bg-primary px-3 py-1.5 font-semibold text-white">
+                  className="rounded bg-primary px-3 py-1.5 font-normal text-white">
                   Save {data.filename_base}.otsi-reel
                 </button>
               </>

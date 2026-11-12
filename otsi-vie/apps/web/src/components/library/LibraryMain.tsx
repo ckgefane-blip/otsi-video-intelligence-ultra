@@ -49,7 +49,7 @@ function Collaborators({ a }: { a: Asset }) {
     <span className="flex w-24 items-center justify-center gap-1" title={people(a, dict)} data-collaborators={String(c.length)} data-access={a.project.access}>
       {locked && <Lock className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />}
       {c.slice(0, 3).map((m) => (
-        <span key={m.user_id} title={m.display_name} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line bg-primary text-xs font-semibold text-white">{initials(m.display_name)}</span>
+        <span key={m.user_id} title={m.display_name} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line bg-primary text-xs font-normal text-white">{initials(m.display_name)}</span>
       ))}
       {c.length > 3 && <span className="text-xs text-ink">+{c.length - 3}</span>}
       {!c.length && <span className="text-xs text-muted">{locked ? dict.body.library.ownersAdmins : dict.body.library.everyone}</span>}
@@ -125,7 +125,7 @@ function DeleteDialog({ target, close, done }: { target: DeleteTarget | null; cl
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(500px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.library.deleteTitle.replace("{a}", target?.noun ?? "").replace("{b}", target?.title ?? "")}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.library.deleteTitle.replace("{a}", target?.noun ?? "").replace("{b}", target?.title ?? "")}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {folder ? dict.body.library.deleteFolderDesc : dict.body.library.deleteDesc}
           </Dialog.Description>
@@ -133,7 +133,7 @@ function DeleteDialog({ target, close, done }: { target: DeleteTarget | null; cl
           {pre && folder && <p className="mb-3">{pre.kept_items === 1 ? dict.body.library.deleteFolderKeptOne : pre.kept_items ? dict.body.library.deleteFolderKeptMany.replace("{a}", String(pre.kept_items)) : dict.body.library.deleteFolderEmpty}</p>}
           {pre && lines.length > 0 && (
             <div className="mb-3">
-              <p className="mb-1 font-semibold">{dict.body.library.deleteGoesWith}</p>
+              <p className="mb-1 font-normal">{dict.body.library.deleteGoesWith}</p>
               <ul className="list-disc space-y-0.5 pl-5">{lines.map((l) => <li key={l}>{l}</li>)}</ul>
             </div>
           )}
@@ -146,7 +146,7 @@ function DeleteDialog({ target, close, done }: { target: DeleteTarget | null; cl
           <div className="flex justify-end gap-2">
             <Dialog.Close disabled={busy} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
             <button type="button" disabled={!pre || !!pre.blocked || busy} onClick={() => void go()}
-              className="rounded-ctl px-3 py-1.5 font-semibold text-white disabled:opacity-40" style={{ background: "#c23a4e" }}>
+              className="rounded-ctl px-3 py-1.5 font-normal text-white disabled:opacity-40" style={{ background: "#c23a4e" }}>
               {busy ? dict.body.library.deleteDeleting : folder ? dict.body.library.deleteFolderBtn : pre?.renders ? dict.body.library.deleteMoveWithRenders : dict.body.library.deleteMoveToTrash}</button>
           </div>
         </Dialog.Content>
@@ -193,7 +193,7 @@ function MoveDialog({ target, folders, close, done }: { target: MoveTarget | nul
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(480px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{target?.more?.length ? dict.body.library.moveTitleMany.replace("{a}", String(target.more.length + 1)) : <>{dict.body.library.moveTitleOne.replace("{a}", target?.title ?? "")}</>}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{target?.more?.length ? dict.body.library.moveTitleMany.replace("{a}", String(target.more.length + 1)) : <>{dict.body.library.moveTitleOne.replace("{a}", target?.title ?? "")}</>}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.library.moveDesc}</Dialog.Description>
           <label className="mb-2 block">
             <span className="mb-1 block text-xs text-muted">{dict.body.library.moveFolderLabel}</span>
@@ -210,7 +210,7 @@ function MoveDialog({ target, folders, close, done }: { target: MoveTarget | nul
           {err && <p role="alert" className="mb-2 text-danger">{err}</p>}
           <div className="flex justify-end gap-2">
             <Dialog.Close disabled={busy} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-            <button type="button" disabled={busy} onClick={() => void go()} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-40">
+            <button type="button" disabled={busy} onClick={() => void go()} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-40">
               {busy ? dict.body.library.moveMoving : dict.body.library.moveMoveBtn}</button>
           </div>
         </Dialog.Content>
@@ -245,7 +245,7 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(640px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.library.trash}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.library.trash}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.library.trashDesc}</Dialog.Description>
           {err && <p role="alert" className="mb-2 text-danger">{err}</p>}
           {!rows && !err && <p className="text-muted">{dict.common.loading}</p>}
@@ -255,12 +255,12 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
               {rows.map((t) => (
                 <li key={t.id} data-trash={t.kind} className="flex items-center gap-3 rounded-ctl border border-line px-3 py-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{t.title} <span className="font-normal text-muted">· {KIND_LABEL(dict)[t.kind]}</span></p>
+                    <p className="truncate font-normal">{t.title} <span className="font-normal text-muted">· {KIND_LABEL(dict)[t.kind]}</span></p>
                     <p className="truncate text-xs text-muted">
                       {dict.body.library.trashDeleted.replace("{a}", new Date(t.deleted_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })).replace("{b}", t.deleted_by ? dict.body.library.trashDeletedBy.replace("{a}", t.deleted_by) : "")}
                       {withText(t) ? dict.body.library.trashWith.replace("{a}", withText(t)) : ""}
                       {t.days_remaining !== undefined && t.days_remaining !== null ? (
-                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium tabular-nums ${t.days_remaining === 0 ? "bg-amber/20 text-amber font-semibold" : "bg-panel border border-line text-muted"}`}>
+                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs font-normal tabular-nums ${t.days_remaining === 0 ? "bg-amber/20 text-amber font-normal" : "bg-panel border border-line text-muted"}`}>
                           · {t.days_remaining === 0 ? dict.body.library.trashEligiblePurge : dict.body.library.trashDaysLeft.replace("{a}", String(t.days_remaining))}
                         </span>
                       ) : null}
@@ -269,7 +269,7 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
                   </div>
                   <button type="button" disabled={!canWrite || !!t.blocked || busy !== null} onClick={() => void restore(t)}
                     title={!canWrite ? dict.body.library.trashRoleNoRestore : t.blocked ?? dict.body.library.trashRestore}
-                    className="shrink-0 rounded-ctl border border-line px-3 py-1.5 font-semibold disabled:opacity-40">{busy === t.id ? dict.body.library.trashRestoring : dict.body.library.trashRestore}</button>
+                    className="shrink-0 rounded-ctl border border-line px-3 py-1.5 font-normal disabled:opacity-40">{busy === t.id ? dict.body.library.trashRestoring : dict.body.library.trashRestore}</button>
                 </li>
               ))}
             </ul>
@@ -291,7 +291,7 @@ function TrashDialog({ open, close, canWrite, changed }: { open: boolean; close:
                     }
                     setBusy(null);
                   }}
-                  className="rounded-ctl border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 disabled:opacity-40"
+                  className="rounded-ctl border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-normal text-danger hover:bg-danger/20 disabled:opacity-40"
                 >
                   {busy === "purge" ? dict.body.library.trashPurging : dict.body.library.trashPurgeExpired}
                 </button>
@@ -319,7 +319,7 @@ function NewFolderDialog({ open, close, done }: { open: boolean; close: () => vo
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.library.newFolder}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.library.newFolder}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.library.newFolderDesc}</Dialog.Description>
           <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) void go(); else setErr(dict.body.library.newFolderNameNeeded); }} className="space-y-2">
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={255} placeholder={dict.body.library.newFolderName} aria-label={dict.body.library.newFolderName} autoFocus
@@ -327,7 +327,7 @@ function NewFolderDialog({ open, close, done }: { open: boolean; close: () => vo
             {err && <p role="alert" className="text-danger">{err}</p>}
             <div className="flex justify-end gap-2">
               <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-              <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.body.library.createFolder}</button>
+              <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.body.library.createFolder}</button>
             </div>
           </form>
         </Dialog.Content>
@@ -389,20 +389,20 @@ const AssetRow = memo(function AssetRow({ a, sel, on, canWrite, folder, folders,
           </span>
         ) : <AssetThumb a={a} />}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{a.title}</span>
+          <span className="block truncate text-sm font-normal">{a.title}</span>
           <span className="block truncate text-xs text-muted">{a.sub}{!folder && a.folderId ? dict.body.library.rowInFolder.replace("{a}", folders.find((x) => x.id === a.folderId)?.name ?? dict.body.library.aFolder) : ""}</span>
         </span>
       </button>
-      <span className="rounded-md border px-2 py-1 text-xs font-semibold" style={{ background: ty[0], borderColor: ty[1], color: ty[2] }}>{kindLabel(a.kind, dict)}</span>
+      <span className="rounded-md border px-2 py-1 text-xs font-normal" style={{ background: ty[0], borderColor: ty[1], color: ty[2] }}>{kindLabel(a.kind, dict)}</span>
       {a.player ? (
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white" title={a.player}>{initials(a.player)}</span>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-normal text-white" title={a.player}>{initials(a.player)}</span>
       ) : <span className="w-8 text-center text-sm text-muted">—</span>}
       <Collaborators a={a} />
       <span className="w-24 shrink-0 text-xs text-muted">
         <span className="block">{a.updated ? new Date(a.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
         <span className="block">{a.updated ? new Date(a.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
       </span>
-      <span className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold" style={{ background: st[0], borderColor: st[1], color: st[2] }}>
+      <span className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-normal" style={{ background: st[0], borderColor: st[1], color: st[2] }}>
         <Check className="h-3 w-3" aria-hidden />{statusLabel(a.status, dict)}
       </span>
       <ActionsMenu label={dict.body.library.moreFor.replace("{a}", a.title)} items={items} />
@@ -482,12 +482,12 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
     <div className="flex min-w-0 flex-col gap-4">
       <section aria-label={dict.body.library.headerAria} data-section="p09-s01" className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-base font-semibold">{dict.body.library.headerTitle}</h1>
+          <h1 className="text-base font-normal">{dict.body.library.headerTitle}</h1>
           {openFolder ? (
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               <button type="button" onClick={() => setFolder(null)} className="text-primary hover:underline">{dict.body.library.allAssets}</button>
               <span className="text-muted">›</span>
-              <span data-open-folder={openFolder.id} className="font-semibold text-amber">{dict.body.library.openFolderCrumb.replace("{a}", openFolder.name)}</span>
+              <span data-open-folder={openFolder.id} className="font-normal text-amber">{dict.body.library.openFolderCrumb.replace("{a}", openFolder.name)}</span>
               <span className="text-muted">· {openFolder.item_count === 1 ? dict.body.library.openFolderItemsOne : dict.body.library.openFolderItemsMany.replace("{a}", String(openFolder.item_count))}</span>
             </p>
           ) : (
@@ -523,7 +523,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
             const on = tab === i, n = counts[i]!;
             return (
               <button key={label} type="button" role="tab" aria-selected={on} aria-label={dict.body.library.tabCountAria.replace("{a}", label).replace("{b}", String(n))} onClick={() => setTab(i)}
-                className={`flex items-center gap-1.5 rounded-t-md border-b-2 px-3 py-2 text-sm ${on ? "border-primary font-semibold text-primary" : "border-transparent text-ink hover:bg-raised"}`}>
+                className={`flex items-center gap-1.5 rounded-t-md border-b-2 px-3 py-2 text-sm ${on ? "border-primary font-normal text-primary" : "border-transparent text-ink hover:bg-raised"}`}>
                 <Icon className="h-4 w-4" aria-hidden />
                 <span>{label}</span>
                 {i !== 6 && <span className="rounded-md border border-line bg-raised px-1.5 text-xs text-muted">{n}</span>}
@@ -587,7 +587,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
           <LibraryTable rows={rows} all={all} facts={facts} checked={checked} setChecked={setChecked} selected={selected} onRow={onRow} />
         ) : (
           <div className="flex flex-col gap-1 p-2">
-            <div className="flex flex-wrap items-center gap-3 px-1 py-1 text-xs font-semibold text-muted">
+            <div className="flex flex-wrap items-center gap-3 px-1 py-1 text-xs font-normal text-muted">
               <button type="button" role="checkbox" aria-checked={allChecked} aria-label={dict.body.library.selectAllAria}
                 onClick={() => !rows.length ? say(dict.body.library.sayNoRows) : setChecked(allChecked ? new Set() : new Set(rows.map((a) => a.key)))}
                 className={`flex h-5 w-5 items-center justify-center rounded border ${allChecked ? "border-primary bg-primary text-white" : "border-line bg-transparent"}`}>
@@ -639,7 +639,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{dict.body.library.newProjectTitle}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{dict.body.library.newProjectTitle}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.library.newProjectDesc}</Dialog.Description>
             <form onSubmit={(e) => { e.preventDefault(); void create(); }} className="space-y-2">
               <input value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={255} placeholder={dict.body.library.newProjectName} aria-label={dict.body.library.newProjectName}
@@ -649,7 +649,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
               {err && <p role="alert" className="text-danger">{err}</p>}
               <div className="flex justify-end gap-2">
                 <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.body.library.newProjectCreate}</button>
+                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.body.library.newProjectCreate}</button>
               </div>
             </form>
           </Dialog.Content>

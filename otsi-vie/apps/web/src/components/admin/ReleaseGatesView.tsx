@@ -56,7 +56,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded bg-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
+              <span className="rounded bg-primary/20 px-2.5 py-0.5 text-xs font-normal text-primary uppercase tracking-wide">
                 {t.body.admin.gatesPolicy}
               </span>
               <span className="text-xs text-muted">
@@ -91,7 +91,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
           <div className="mt-5 flex items-start gap-3 rounded-ctl border border-amber/20 bg-amber/10 p-4 text-xs text-amber">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber mt-0.5" />
             <div>
-              <span className="font-semibold text-amber">{t.body.admin.gatesInProgress}</span> {t.body.admin.gatesInProgressBody}
+              <span className="font-normal text-amber">{t.body.admin.gatesInProgress}</span> {t.body.admin.gatesInProgressBody}
             </div>
           </div>
         )}
@@ -102,7 +102,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
         <button
           type="button"
           onClick={() => setSelectedCategory("ALL")}
-          className={`rounded-ctl px-3 py-1.5 text-xs font-semibold transition ${
+          className={`rounded-ctl px-3 py-1.5 text-xs font-normal transition ${
             selectedCategory === "ALL"
               ? "bg-primary"
               : "border border-line bg-panel text-muted hover:text-ink"
@@ -118,7 +118,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`flex items-center gap-1.5 rounded-ctl px-3 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-ctl px-3 py-1.5 text-xs font-normal transition ${
                 selectedCategory === cat
                   ? "bg-primary"
                   : "border border-line bg-panel text-muted hover:text-ink"
@@ -160,17 +160,17 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
                   </div>
 
                   {isPassed ? (
-                    <span className="flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2.5 py-0.5 text-xs font-semibold text-ok">
+                    <span className="flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2.5 py-0.5 text-xs font-normal text-ok">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       {t.body.admin.gatePassed}
                     </span>
                   ) : isMeasuring ? (
-                    <span className="flex items-center gap-1 rounded-full border border-amber/30 bg-amber/10 px-2.5 py-0.5 text-xs font-semibold text-amber">
+                    <span className="flex items-center gap-1 rounded-full border border-amber/30 bg-amber/10 px-2.5 py-0.5 text-xs font-normal text-amber">
                       <Clock className="h-3.5 w-3.5" />
                       {t.body.admin.gateMeasuring}
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 rounded-full border border-line bg-line/20 px-2.5 py-0.5 text-xs font-semibold text-muted">
+                    <span className="flex items-center gap-1 rounded-full border border-line bg-line/20 px-2.5 py-0.5 text-xs font-normal text-muted">
                       {gate.status}
                     </span>
                   )}
@@ -182,16 +182,16 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
                 <div className="mt-4 space-y-2 border-t border-line/60 pt-3 text-xs">
                   <div>
-                    <span className="font-medium text-muted">{t.body.admin.gateEvidence}</span>
+                    <span className="font-normal text-muted">{t.body.admin.gateEvidence}</span>
                     <span className="text-ink2">{gate.evidence_required}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-muted">{t.body.admin.gateRule}</span>
+                    <span className="font-normal text-muted">{t.body.admin.gateRule}</span>
                     <span className="text-ink2">{gate.release_rule}</span>
                   </div>
                   {gate.evidence_reference && (
                     <div>
-                      <span className="font-medium text-muted">{t.body.admin.gateRef}</span>
+                      <span className="font-normal text-muted">{t.body.admin.gateRef}</span>
                       <span className="font-mono text-cyan">{gate.evidence_reference}</span>
                     </div>
                   )}
@@ -200,7 +200,7 @@ export function ReleaseGatesView({ report }: ReleaseGatesViewProps) {
 
               {gate.notes && (
                 <div className="mt-4 rounded border border-line/40 bg-raised p-2 text-xs text-muted">
-                  <span className="font-semibold text-muted">{t.body.admin.gateNote}</span>
+                  <span className="font-normal text-muted">{t.body.admin.gateNote}</span>
                   {gate.notes}
                 </div>
               )}

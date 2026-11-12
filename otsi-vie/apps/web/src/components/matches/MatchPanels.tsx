@@ -35,7 +35,7 @@ function ClubPicker({ label, value, onChange, exclude }: { label: string; value:
   }, [q, value]);
   if (value) {
     return (
-      <p className="flex items-center justify-between gap-2 text-sm"><span><span className="text-xs text-muted">{label}: </span><span className="font-medium" data-club={label}>{value.name}</span></span>
+      <p className="flex items-center justify-between gap-2 text-sm"><span><span className="text-xs text-muted">{label}: </span><span className="font-normal" data-club={label}>{value.name}</span></span>
         <button type="button" className={small} onClick={() => { onChange(null); setQ(""); }}>{dict.body.matches.changeBtn}</button></p>
     );
   }
@@ -94,7 +94,7 @@ export function MatchLinker({ videoId, matchId, canWrite, onLinked, refreshKey =
       {matchId && !match && <p className="text-xs text-muted">{dict.body.matches.loadingMatch}</p>}
       {match && mode === "view" && (
         <div data-linked-match={match.id}>
-          <p className="font-semibold">{matchTitle(match)}{match.home_score !== null && match.away_score !== null ? ` · ${match.home_score}–${match.away_score}` : ""}</p>
+          <p className="font-normal">{matchTitle(match)}{match.home_score !== null && match.away_score !== null ? ` · ${match.home_score}–${match.away_score}` : ""}</p>
           <p className="text-xs text-muted">{[match.competition, match.kickoff_at?.slice(0, 10), match.venue].filter(Boolean).join(" · ") || dict.body.matches.noCompetitionDate} · {dict.body.matches.rosterCount.replace("{a}", String(match.roster.length))}
             {match.roster.length > 0 && (match.roster.every((r) => r.verified) ? dict.body.matches.rosterVerified : dict.body.matches.rosterNotVerified)}</p>
         </div>
@@ -134,7 +134,7 @@ export function MatchLinker({ videoId, matchId, canWrite, onLinked, refreshKey =
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label={dict.body.matches.matchDateAria} className={input} />
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={busy || !home || !away} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{dict.body.matches.createAndLink}</button>
+            <button type="submit" disabled={busy || !home || !away} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-normal text-white disabled:opacity-50">{dict.body.matches.createAndLink}</button>
             <button type="button" className={small} onClick={() => setMode("view")}>{dict.common.cancel}</button>
           </div>
         </form>
@@ -163,15 +163,15 @@ export function ScoreForm({ match, onSaved, onCancel }: { match: Match; onSaved(
     <form className="space-y-2 text-sm" aria-label={dict.body.matches.scoreFormAria} data-score-form onSubmit={(e) => { e.preventDefault(); save(false); }}>
       <p className="text-xs text-muted">{dict.body.matches.scoreDesc}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-0 truncate font-medium">{match.home?.name ?? dict.body.matches.homeFallback}</span>
+        <span className="min-w-0 truncate font-normal">{match.home?.name ?? dict.body.matches.homeFallback}</span>
         <input inputMode="numeric" autoFocus value={score.home} onChange={(e) => setScore({ ...score, home: e.target.value.trim() })} aria-label={dict.body.matches.goalsAria.replace("{a}", match.home?.name ?? dict.body.matches.homeFallback)} className={`w-14 text-center ${input}`} />
         <span>–</span>
         <input inputMode="numeric" value={score.away} onChange={(e) => setScore({ ...score, away: e.target.value.trim() })} aria-label={dict.body.matches.goalsAria.replace("{a}", match.away?.name ?? dict.body.matches.awayFallback)} className={`w-14 text-center ${input}`} />
-        <span className="min-w-0 truncate font-medium">{match.away?.name ?? dict.body.matches.awayFallback}</span>
+        <span className="min-w-0 truncate font-normal">{match.away?.name ?? dict.body.matches.awayFallback}</span>
       </div>
       {bad && <p className="text-xs text-danger">{dict.body.matches.goalsError}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={busy || !ok(score.home) || !ok(score.away)} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{dict.body.matches.saveScore}</button>
+        <button type="submit" disabled={busy || !ok(score.home) || !ok(score.away)} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-normal text-white disabled:opacity-50">{dict.body.matches.saveScore}</button>
         {match.home_score !== null && <button type="button" className={small} disabled={busy} onClick={() => save(true)}>{dict.body.matches.clearScore}</button>}
         <button type="button" className={small} onClick={onCancel}>{dict.common.cancel}</button>
       </div>
@@ -204,7 +204,7 @@ export function DetailsForm({ match, onSaved, onCancel }: { match: Match; onSave
         <input value={f.venue} maxLength={255} onChange={(e) => setF({ ...f, venue: e.target.value })} placeholder={dict.body.matches.venueLabel} aria-label={dict.body.matches.venueLabel} className={`min-w-0 flex-1 ${input}`} />
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={busy} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{dict.body.matches.saveDetails}</button>
+        <button type="submit" disabled={busy} className="rounded-ctl bg-primary px-3 py-1.5 text-xs font-normal text-white disabled:opacity-50">{dict.body.matches.saveDetails}</button>
         <button type="button" className={small} onClick={onCancel}>{dict.common.cancel}</button>
       </div>
       {err && <p role="alert" className="text-xs text-danger">{err}</p>}
@@ -319,13 +319,13 @@ export function RosterPanel({ matchId, canWrite, canVerify, onChanged }: { match
           const entries = m.roster.filter((r) => r.club_id === club.id);
           return (
             <section key={club.id} aria-label={dict.body.matches.clubRosterAria.replace("{a}", club.name)} className="min-w-0 space-y-1.5">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">{club.name} · {dict.body.matches.startersSubs.replace("{a}", String(entries.filter((e) => e.role === "STARTER").length)).replace("{b}", String(entries.filter((e) => e.role === "SUBSTITUTE").length))}</h4>
+              <h4 className="text-xs font-normal uppercase tracking-wide text-muted">{club.name} · {dict.body.matches.startersSubs.replace("{a}", String(entries.filter((e) => e.role === "STARTER").length)).replace("{b}", String(entries.filter((e) => e.role === "SUBSTITUTE").length))}</h4>
               <ul className="space-y-1">
                 {entries.map((r) => (
                   <li key={r.player_id} data-roster-player={r.display_name} className="rounded border border-line/50 p-1.5 text-xs">
                     {editing === r.player_id ? (
                       <form className="space-y-1" onSubmit={(e) => { e.preventDefault(); void save(r.player_id, club.id, draft, reason.trim() || null).catch(() => undefined); }}>
-                        <p className="font-medium">{r.display_name}</p>
+                        <p className="font-normal">{r.display_name}</p>
                         <div className="flex flex-wrap items-center gap-1.5"><EntryFields d={draft} set={setDraft} /></div>
                         {needsReason(r) && <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={dict.body.matches.reasonPlaceholder} aria-label={dict.body.matches.reasonAria} className={`w-full ${input}`} />}
                         <div className="flex flex-wrap gap-1.5">
@@ -338,9 +338,9 @@ export function RosterPanel({ matchId, canWrite, canVerify, onChanged }: { match
                       </form>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="w-6 text-right font-semibold tabular-nums">{r.jersey_number ?? "–"}</span>
+                        <span className="w-6 text-right font-normal tabular-nums">{r.jersey_number ?? "–"}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{r.display_name}{r.captain ? " (C)" : ""}</span>
+                          <span className="block truncate font-normal">{r.display_name}{r.captain ? " (C)" : ""}</span>
                           <span className="block text-muted">{r.canonical_otsi_id ?? dict.body.matches.provisionalNoId} · {r.role === "STARTER" ? dict.body.matches.starterShort : dict.body.matches.substituteShort}{r.position ? ` · ${r.position}` : ""}</span>
                         </span>
                         {r.verified && <CheckCircle2 aria-label={dict.body.matches.verifiedAria} className="h-3.5 w-3.5 shrink-0 text-ok" />}

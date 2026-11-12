@@ -179,16 +179,16 @@ export function ShapePanels({ focus, runId = null, videoId = null, kits = null, 
           {sides.length ? (
             <FlowSel label={dict.body.tactics.teamForShape} value={String(sides.indexOf(side!))} onChange={setPick}
               options={sides.map((x, i) => [String(i), x.label] as Opt<string>)} />
-          ) : <span className="text-sm font-semibold">{dict.body.tactics.noTeamSelected}</span>}
+          ) : <span className="text-sm font-normal">{dict.body.tactics.noTeamSelected}</span>}
           {currentFormation && currentFormation.is_calibrated ? (
             <span className="flex items-center gap-2">
               <span className="t-section">{currentFormation.formation_display}</span>
               {currentFormation.state === "CONFIRMED" ? (
-                <span className="rounded bg-[rgba(16,185,129,0.18)] px-1.5 py-0.5 text-xs font-semibold text-[#10b981]"
+                <span className="rounded bg-[rgba(16,185,129,0.18)] px-1.5 py-0.5 text-xs font-normal text-[#10b981]"
                   title={currentFormation.decided_by_name ? dict.body.tactics.confirmedByName.replace("{a}", currentFormation.decided_by_name) : dict.body.tactics.confirmedByAnalyst}>{dict.body.tactics.confirmedCheck}</span>
               ) : (
                 <button type="button" onClick={() => void confirmFormation(currentFormation.formation)}
-                  className="rounded bg-[rgba(168,85,247,0.18)] px-1.5 py-0.5 text-xs font-semibold text-[#a855f7]"
+                  className="rounded bg-[rgba(168,85,247,0.18)] px-1.5 py-0.5 text-xs font-normal text-[#a855f7]"
                   title={dict.body.tactics.clickConfirmFormation}>Inferred (Confirm?)</button>
               )}
             </span>
@@ -214,7 +214,7 @@ export function ShapePanels({ focus, runId = null, videoId = null, kits = null, 
             <div key={l} title={why} data-metric={l} className="flex items-center gap-2 text-sm">
               <span className="w-[150px] shrink-0 text-[#cfdcf0]">{l}</span>
               <span className="h-2 flex-1 rounded bg-[#17304f]"><span className="block h-2 rounded bg-[#33a8ff]" style={{ width: frac != null ? `${Math.max(2, Math.min(100, frac * 100))}%` : 0 }} /></span>
-              <span className="w-16 shrink-0 text-right font-semibold">{v}</span>
+              <span className="w-16 shrink-0 text-right font-normal">{v}</span>
             </div>
           ))}
         </dl>
@@ -231,7 +231,7 @@ export function ShapePanels({ focus, runId = null, videoId = null, kits = null, 
         {([[dict.body.tactics.buildUpShape, currentFormation?.buildup_shape ?? "—", dict.body.tactics.inPossessionTitle], [dict.body.tactics.defensiveShape, currentFormation?.defensive_shape ?? "—", dict.body.tactics.outOfPossessionTitle]] as const).map(([l, shapeVal, phase]) => (
           <div key={l} className="flex items-center gap-2 text-sm">
             <span className="w-[150px] shrink-0 text-[#cfdcf0]">{l}</span>
-            <span title={currentFormation?.not_measured_reason ?? NM.phases ?? dict.body.tactics.needsCalibratedPositions} className="font-semibold">{shapeVal}</span>
+            <span title={currentFormation?.not_measured_reason ?? NM.phases ?? dict.body.tactics.needsCalibratedPositions} className="font-normal">{shapeVal}</span>
             <span aria-hidden className="inline-block h-3.5 w-3.5 rotate-45 bg-[#19e6a0]" />
             <span className="text-[#cfdcf0]">{phase}</span>
           </div>
@@ -302,7 +302,7 @@ export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey
           </div>
           <FlowPitch><NotMeasuredFlow /></FlowPitch>
           <div data-spec-summary aria-label={dict.body.tactics.legendPassWidth} className="flex flex-col gap-1 text-sm text-[#cfdcf0]">
-            <span className="font-semibold">{dict.body.processing.eventPasses}</span>
+            <span className="font-normal">{dict.body.processing.eventPasses}</span>
             {([["1-3", 2], ["4-6", 4], ["7-10", 6], ["10+", 9]] as const).map(([l, w]) => (
               <span key={l} className="flex items-center gap-2"><i className="inline-block w-10 rounded" style={{ height: w, background: l === "10+" ? "#dbe8ff" : "#1a8cff" }} />{l}</span>
             ))}
@@ -317,7 +317,7 @@ export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey
               <div key={i} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam))}>
                 <div className="mb-1 flex items-center gap-2">
                   <span aria-hidden className="h-5 w-5 rounded-full" style={{ background: sides[i]?.colour ? `#${sides[i]!.colour!.replace(/^#/, "")}` : i ? "#e8d9a0" : "#7ab6ff" }} />
-                  <span className="truncate text-sm font-semibold">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</span>
+                  <span className="truncate text-sm font-normal">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</span>
                 </div>
                 <TeamHeat runId={runId} side={sides[i]} calKey={calKey} />
                 <p className="mt-1 text-sm text-[#cfdcf0]">{dict.body.tactics.possessionLabel} <span className="t-metric text-primary">—</span></p>
@@ -355,7 +355,7 @@ export function AnalysisPanels({ focus, match, runId = null, kits = null, calKey
               [dict.body.tactics.avgRunDistance, dict.body.tactics.notMeasuredAvgRunDistance],
             ] as const).map(([l, why]) => (
               <div key={l} title={why} data-offball-metric={l} className="flex items-center justify-between gap-2">
-                <dt className="text-[#cfdcf0]">{l}</dt><dd className="font-semibold">—</dd>
+                <dt className="text-[#cfdcf0]">{l}</dt><dd className="font-normal">—</dd>
               </div>
             ))}
           </dl>

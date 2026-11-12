@@ -70,7 +70,7 @@ export function KeyboardMap() {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content data-keyboard-map
           className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[min(720px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{t.body.shell.keysTitle}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{t.body.shell.keysTitle}</Dialog.Title>
           <Dialog.Description className="mb-2 text-xs text-muted">{t.body.shell.keysDesc}</Dialog.Description>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} aria-label={t.body.shell.keysFindAria} placeholder={t.body.shell.keysFindPh}
             className="mb-3 h-9 rounded-ctl border border-line bg-canvas px-3 text-sm outline-none placeholder:text-muted" />
@@ -78,7 +78,7 @@ export function KeyboardMap() {
             {groups.length === 0 && <p className="py-4 text-center text-xs text-muted">{t.body.shell.keysNoMatch.replace("{a}", q.trim())}</p>}
             {groups.map((g) => (
               <section key={g.scope} className="mb-3" data-keymap-scope={g.scope} aria-label={scopeLabel(t, g.scope)}>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{scopeLabel(t, g.scope)}{g.here ? t.body.shell.keysThisPage : ""}</h3>
+                <h3 className="mb-1 text-xs font-normal uppercase tracking-wide text-muted">{scopeLabel(t, g.scope)}{g.here ? t.body.shell.keysThisPage : ""}</h3>
                 <table className="w-full"><tbody>
                   {g.rows.map((x) => (
                     <tr key={`${x.keys}-${x.does}`} className="border-t border-line/60">

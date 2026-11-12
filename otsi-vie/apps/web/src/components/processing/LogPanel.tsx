@@ -197,13 +197,13 @@ function Resources() {
       <div className="vie-ph">
         <h2 className="t-panel">{d.systemResources}</h2>
         <button type="button" disabled={!on} onClick={() => setOpen(true)} title={on ? d.detailsOfMeasurement : d.noWorkerReporting}
-          className="text-sm font-semibold text-primary disabled:opacity-50">{d.viewDetails}</button>
+          className="text-sm font-normal text-primary disabled:opacity-50">{d.viewDetails}</button>
       </div>
       <ul className="space-y-3 p-3">
         {meters.map(([label, p, big, foot]) => (
           <li key={label} role="group" aria-label={`${label}: ${big === "—" ? (on ? d.notMeasuredLower : d.notConnected) : big}, ${foot}`}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-sm font-semibold">{label}</span>
+              <span className="text-sm font-normal">{label}</span>
               <span className="t-metric">{big}</span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded bg-line/60">
@@ -217,7 +217,7 @@ function Resources() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.systemResources}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.systemResources}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{d.resourcesDesc}</Dialog.Description>
             {r && (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1">

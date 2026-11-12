@@ -207,7 +207,7 @@ export function WalletView() {
                 <tr key={e.id} className="border-t border-line">
                   <td className="py-1.5 pr-2 whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</td>
                   <td className="py-1.5 pr-2">{kindLabel(t)[e.kind]}</td>
-                  <td className={`py-1.5 pr-2 font-medium ${e.amount > 0 ? "text-ok" : "text-danger"}`}>{e.amount > 0 ? `+${e.amount}` : e.amount}</td>
+                  <td className={`py-1.5 pr-2 font-normal ${e.amount > 0 ? "text-ok" : "text-danger"}`}>{e.amount > 0 ? `+${e.amount}` : e.amount}</td>
                   <td className="py-1.5 pr-2">{e.balance_after}</td>
                   <td className="py-1.5">{[e.reason, e.invoice_ref ? t.body.wallet.invoice.replace("{a}", e.invoice_ref) : null].filter(Boolean).join(" · ") || "—"}</td>
                 </tr>

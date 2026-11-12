@@ -46,7 +46,7 @@ function ProjectDialog() {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(460px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="project">
-          <Dialog.Title className="text-base font-semibold">{d.projectForUploads}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{d.projectForUploads}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{active.length ? `${d.videosBelong} ${d.chooseOrCreate}` : d.videosBelongProject}</Dialog.Description>
           {active.length > 0 && (
             <label className="mb-3 block">
@@ -69,7 +69,7 @@ function ProjectDialog() {
             </form>
           ) : <p className="text-muted">{d.viewUploadsNoCreateProjects}</p>}
           {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
-          <div className="mt-3 flex justify-end"><Dialog.Close className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{d.done}</Dialog.Close></div>
+          <div className="mt-3 flex justify-end"><Dialog.Close className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{d.done}</Dialog.Close></div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -55,7 +55,7 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
               <li key={p.player_id}>
                 <button type="button" data-player={p.player_id} onClick={() => { onOpenChange(false); router.push(`/reports/players/${p.canonical_otsi_id ?? p.player_id}`); }}
                   className="flex w-full items-center justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
-                  <span className="min-w-0 truncate font-medium">{p.display_name}</span>
+                  <span className="min-w-0 truncate font-normal">{p.display_name}</span>
                   <span className="shrink-0 t-small" data-player-state={p.canonical_state}>{p.canonical_otsi_id ?? dict.body.reports.provisionalNoIdShort}{p.canonical_state === "RETIRED" ? dict.body.reports.retiredSuffix : ""}</span>
                 </button>
               </li>

@@ -47,11 +47,11 @@ export function ShirtNumberPanel({ track, canReview, seek, onChanged }: { track:
   const reads = ev.frames.filter((f) => f.number);
   return (
     <div className="space-y-1.5 rounded-ctl border border-line/70 p-2 text-sm" aria-label={dict.body.analysis.shirtNumber} data-jersey-state={ev.state}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.shirtNumber}</p>
+      <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.analysis.shirtNumber}</p>
       <p>
         {ev.decision ? (
-          <span data-jersey-decision={ev.decision.state}>{ev.decision.state === "CONFIRMED" ? <>{dict.body.analysis.noNumber}<span className="font-semibold">{ev.decision.number}</span>, {dict.body.analysis.confirmedByPerson}</> : dict.body.analysis.unreadableDecided}</span>
-        ) : ev.number ? <>{dict.body.analysis.noNumber}<span className="font-semibold">{ev.number}</span> · {STATE_TEXT[ev.state]}</> : STATE_TEXT[ev.state]}
+          <span data-jersey-decision={ev.decision.state}>{ev.decision.state === "CONFIRMED" ? <>{dict.body.analysis.noNumber}<span className="font-normal">{ev.decision.number}</span>, {dict.body.analysis.confirmedByPerson}</> : dict.body.analysis.unreadableDecided}</span>
+        ) : ev.number ? <>{dict.body.analysis.noNumber}<span className="font-normal">{ev.number}</span> · {STATE_TEXT[ev.state]}</> : STATE_TEXT[ev.state]}
       </p>
       <p className="text-xs text-muted">{ev.candidate_frames === 1 ? dict.body.analysis.framesExaminedOne.replace("{a}", String(ev.candidate_frames)) : dict.body.analysis.framesExaminedMany.replace("{a}", String(ev.candidate_frames))}{ev.side !== "UNKNOWN" ? ` ${dict.body.analysis.shirtSideOf.replace("{a}", ev.side === "BACK" ? dict.body.analysis.shirtBack : dict.body.analysis.shirtFront)}` : ""}
         {ev.confidence !== null ? ` ${dict.body.analysis.agreementPct.replace("{a}", (ev.confidence * 100).toFixed(0))}` : ""}{ev.alternatives.length ? ` ${dict.body.analysis.alsoRead.replace("{a}", ev.alternatives.map((a) => `${a.number} (${a.frames}×)`).join(", "))}` : ""}</p>
@@ -99,7 +99,7 @@ export function CandidatesPanel({ track, identity, canReview, refreshKey, onDeci
   };
   return (
     <div className="space-y-1.5 rounded-ctl border border-line/70 p-2 text-sm" aria-label={dict.body.analysis.identitySuggestions} data-candidates={c.candidates.length}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.whoCouldBe}</p>
+      <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.analysis.whoCouldBe}</p>
       <p className="text-xs text-muted">{c.team ? dict.body.analysis.teamAssigned.replace("{a}", c.team.name) : c.match_id ? dict.body.analysis.teamNotAssigned : dict.body.analysis.noMatchLinked}
         {c.shirt_number ? ` ${dict.body.analysis.shirtNoSource.replace("{a}", String(c.shirt_number.number)).replace("{b}", c.shirt_number.source.toLowerCase())}` : ""}</p>
       {c.candidates.length === 0 ? (
@@ -109,7 +109,7 @@ export function CandidatesPanel({ track, identity, canReview, refreshKey, onDeci
           {c.candidates.map((p) => (
             <li key={p.player_id} data-candidate={p.display_name} className="rounded border border-line/50 p-1.5 text-xs">
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate font-medium">{p.display_name} <span className="font-normal text-muted">· {p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span></span>
+                <span className="min-w-0 flex-1 truncate font-normal">{p.display_name} <span className="font-normal text-muted">· {p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span></span>
                 <span className="flex w-24 items-center gap-1" title={dict.body.analysis.evidenceStrength}>
                   <span className="h-1.5 flex-1 rounded bg-raised"><span className="block h-1.5 rounded bg-cyan" style={{ width: `${Math.round(p.strength * 100)}%` }} /></span>
                   <span className="tabular-nums text-muted">{p.strength.toFixed(2)}</span>

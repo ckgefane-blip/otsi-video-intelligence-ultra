@@ -74,16 +74,16 @@ export function AnalysisCentre({ s }: { s: Shared }) {
         <div role="tablist" aria-label={dict.body.workspace.analysisView} className="flex flex-wrap gap-1 border-b border-line">
           {MODES.map((l, i) => (
             <button key={l} type="button" role="tab" aria-selected={mode === i} onClick={() => setMode(i)}
-              className={`border-b-2 px-3 py-2 text-sm ${mode === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
+              className={`border-b-2 px-3 py-2 text-sm ${mode === i ? "border-primary font-normal text-primary" : "border-transparent text-muted hover:text-ink"}`}>{l}</button>
           ))}
         </div>
       </section>
 
       {match && (
         <div className="flex items-center gap-2 rounded-md border border-line bg-panel px-3 py-2 text-sm" data-score-hud>
-          <span className="font-semibold">{teamCode(match.home?.name, match.home?.short_name)}</span>
-          <span className="rounded bg-primary px-2 py-0.5 font-semibold text-white">{score(match.home_score)} – {score(match.away_score)}</span>
-          <span className="font-semibold">{teamCode(match.away?.name, match.away?.short_name)}</span>
+          <span className="font-normal">{teamCode(match.home?.name, match.home?.short_name)}</span>
+          <span className="rounded bg-primary px-2 py-0.5 font-normal text-white">{score(match.home_score)} – {score(match.away_score)}</span>
+          <span className="font-normal">{teamCode(match.away?.name, match.away?.short_name)}</span>
           <span className="ml-auto text-xs text-muted">{match.competition ?? ""}</span>
         </div>
       )}
@@ -120,7 +120,7 @@ function OpenInTactical({ s, mode }: { s: Shared; mode: number }) {
   const href = tacticsHref({ videoId, tab, timeUs: s.ws?.timeUs ?? null, trackId: s.ws?.selectedId ?? null });
   return (
     <Link href={href} data-open-tactical={tab} title={dict.body.workspace.openTacticalHint}
-      className="absolute right-3 top-3 z-10 rounded-md border border-primary bg-panel px-3 py-1.5 text-sm font-semibold text-primary">
+      className="absolute right-3 top-3 z-10 rounded-md border border-primary bg-panel px-3 py-1.5 text-sm font-normal text-primary">
       {dict.body.workspace.openInTactical} →
     </Link>
   );
@@ -154,7 +154,7 @@ function TacticalView({ s }: { s: Shared }) {
   return (
     <div className="flex flex-col">
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-        <span className="font-semibold">{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</span>
+        <span className="font-normal">{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</span>
         <span className="text-muted">{dict.body.workspace.placedCount.replace("{a}", String(placed.length))}</span>
         {placed.length > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.pitchPositionsCalibrated} />}
         <span className="ml-auto flex gap-3">
@@ -184,7 +184,7 @@ function HeatView({ s }: { s: Shared }) {
     return (
       <div className="flex flex-col">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-          <span className="font-semibold">{sel.label.split(" · ")[0]}</span>
+          <span className="font-normal">{sel.label.split(" · ")[0]}</span>
           <span className="text-muted">{zones ? measuredText(zones, dict) : loading ? dict.body.processing.reading : dict.body.workspace.noHeatZones}</span>
           {zones && zones.measured_s > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.timeInZones} />}
           <button type="button" onClick={() => ws.select(null)} className="ml-auto text-sm text-primary">{dict.body.workspace.showBothTeams}</button>
@@ -202,7 +202,7 @@ function HeatView({ s }: { s: Shared }) {
       <div className="grid gap-4 sm:grid-cols-2">
         {[0, 1].map((i) => (
           <div key={i} role="group" aria-label={dict.body.tactics.heatZonesPossession.replace("{a}", sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam))}>
-            <div className="mb-1 text-sm font-semibold">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</div>
+            <div className="mb-1 text-sm font-normal">{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</div>
             <TeamHeat runId={ws.run!.id} side={sides[i]} calKey={calKey} />
           </div>
         ))}

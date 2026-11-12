@@ -44,13 +44,13 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="preset-library" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.exports.exportPresets}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.exports.exportPresets}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">Choose a preset, or save which files you want as a new one.</Dialog.Description>
           <ul className="mb-4 space-y-1.5" data-preset-list>
             {presets.map((p) => (
               <li key={p.id} data-preset={p.id} data-scope={p.scope} className="flex items-start gap-2">
                 <button type="button" onClick={() => { choose(p.id); onOpenChange(false); }} className="flex-1 text-left">
-                  <span className="font-medium">{p.name}</span> <span className="rounded bg-raised px-1.5 text-xs text-muted">{SCOPE[p.scope]}</span>
+                  <span className="font-normal">{p.name}</span> <span className="rounded bg-raised px-1.5 text-xs text-muted">{SCOPE[p.scope]}</span>
                   <span className="block text-xs text-muted">{p.note || describeOutputs(p.spec.outputs)}{p.spec.loudness_lufs !== null ? ` · ${p.spec.loudness_lufs} LUFS` : ""}</span>
                 </button>
                 {p.can_delete && <button type="button" data-preset-delete={p.id} aria-label={`Delete the preset ${p.name}`} onClick={() => void remove(p)} className="rounded border border-line px-2">×</button>}
@@ -76,7 +76,7 @@ export function PresetLibrary({ presets, canAdmin, canSave, codec, bitrate, open
                 <label className="flex items-center gap-1"><input type="radio" name="scope" checked={scope === "PERSONAL"} onChange={() => setScope("PERSONAL")} />Just for me</label>
                 <label className="flex items-center gap-1" title={canAdmin ? undefined : "Only an owner or admin can share a preset with everyone"}>
                   <input type="radio" name="scope" disabled={!canAdmin} checked={scope === "ORGANIZATION"} onChange={() => setScope("ORGANIZATION")} />For the organization</label>
-                <button type="button" data-preset-save onClick={() => void save()} className="ml-auto rounded bg-primary px-3 py-1 font-semibold text-white">{dict.body.exports.savePreset}</button>
+                <button type="button" data-preset-save onClick={() => void save()} className="ml-auto rounded bg-primary px-3 py-1 font-normal text-white">{dict.body.exports.savePreset}</button>
               </div>
             </fieldset>
           ) : <p className="text-xs text-muted">Your role can choose presets, not save them.</p>}

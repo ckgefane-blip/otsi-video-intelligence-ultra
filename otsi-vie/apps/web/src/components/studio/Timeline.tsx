@@ -407,7 +407,7 @@ export function Timeline({ r, st, ui }: { r: ReelState | null; st: Studio; ui: U
                   })()}
                   <button type="button" data-lane-solo={i} aria-pressed={solo === i} onClick={() => setSolo(solo === i ? null : i)}
                     title={solo === i ? dict.body.studio.showEveryLane : `Solo: show the ${name} lane alone (the others dimmed)`}
-                    className={`t-body min-w-0 flex-1 truncate rounded px-1 py-1 text-left ${solo === i ? "bg-[#f5d02e] font-semibold text-[#06122a]" : ""}`}>{name}</button>
+                    className={`t-body min-w-0 flex-1 truncate rounded px-1 py-1 text-left ${solo === i ? "bg-[#f5d02e] font-normal text-[#06122a]" : ""}`}>{name}</button>
                   <span className="t-small flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-raised">{i === 0 ? st.items.length : i === 1 ? (st.reel?.transitions.length ?? 0) : lanes[i]!.length}</span>
                 </div>
                 <div ref={i === 0 ? lane : undefined}

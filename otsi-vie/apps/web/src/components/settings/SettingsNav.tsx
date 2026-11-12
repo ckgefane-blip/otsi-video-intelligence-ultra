@@ -30,7 +30,7 @@ export function SettingsNav({ current }: { current: SettingsNavCurrent }) {
     <nav aria-label={t.desktop.navSettings} data-settings-nav className="flex gap-1 overflow-x-auto border-b border-line">
       {entries.map((e) => (
         <Link key={e.id} href={e.href} aria-current={current === e.id ? "page" : undefined}
-          className={`whitespace-nowrap border-b-2 px-3 py-2 font-medium transition-colors ${
+          className={`whitespace-nowrap border-b-2 px-3 py-2 font-normal transition-colors ${
             current === e.id ? "border-primary text-primary" : "border-transparent text-muted hover:border-line hover:text-ink"
           }`}>
           {e.label}

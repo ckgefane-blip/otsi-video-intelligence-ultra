@@ -59,7 +59,7 @@ function EventCounts({ videoId, span, rangeLabel }: { videoId: string | null; sp
           className="flex h-9 items-center gap-2.5 border-b border-line/60 text-sm text-ink hover:text-primary">
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: KIND(dict)[k].color }} />
           <span className="flex-1">{KIND(dict)[k].plural}</span>
-          <span className={`font-semibold ${marks![k].length ? "text-white" : "text-muted"}`}>{marks![k].length}</span>
+          <span className={`font-normal ${marks![k].length ? "text-white" : "text-muted"}`}>{marks![k].length}</span>
         </Link>
       ))}
     </nav>
@@ -102,7 +102,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       className="flex gap-1 rounded-md border border-line bg-canvas p-0.5">
       {([[false, dict.body.analysis.match, dict.body.library.switcherMatchTitle], [true, dict.body.library.libraryBrowse, dict.body.library.switcherBrowseTitle]] as const).map(([b, l, t]) => (
         <button key={l} type="button" role="radio" aria-checked={browse === b} title={t} onClick={() => setBrowse(b)}
-          className={`h-7 rounded-md px-3 text-sm ${browse === b ? "bg-primary font-semibold text-white" : "text-ink hover:bg-raised"}`}>{l}</button>
+          className={`h-7 rounded-md px-3 text-sm ${browse === b ? "bg-primary font-normal text-white" : "text-ink hover:bg-raised"}`}>{l}</button>
       ))}
     </div>
   );
@@ -136,7 +136,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
         <div className="mt-2 flex flex-col gap-1.5">
           {([["home", match?.home?.name ?? dict.body.library.homeTeam, match?.home_score], ["away", match?.away?.name ?? dict.body.library.awayTeam, match?.away_score]] as const).map(([sideName, name, s]) => (
             <div key={sideName} className="flex items-center gap-2">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-raised text-sm font-semibold" aria-hidden>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-raised text-sm font-normal" aria-hidden>
                 {name.slice(0, 1).toUpperCase()}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm">{name}</span>
@@ -149,7 +149,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       <div className="flex items-start gap-2 rounded-md border border-line bg-raised p-2.5">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden />
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{analysed ? dict.body.library.analysisAvailable : dict.body.library.analysisUnavailable}</p>
+          <p className="text-sm font-normal">{analysed ? dict.body.library.analysisAvailable : dict.body.library.analysisUnavailable}</p>
           <p className="text-xs text-muted">{analysed ? dict.body.library.analysisOpen : dict.body.library.analysisProcessingLine1}</p>
           <p className="text-xs text-muted">{analysed ? dict.body.library.analysisEventsLine : dict.body.library.analysisProcessingLine2}</p>
         </div>
@@ -158,7 +158,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       <div role="tablist" aria-label={dict.body.library.panelTabsAria} className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={side === i} onClick={() => setSide(i)}
-            className={`border-b-2 px-2 py-1.5 text-sm ${side === i ? "border-primary font-semibold text-primary" : "border-transparent text-ink hover:bg-raised"}`}>{l}</button>
+            className={`border-b-2 px-2 py-1.5 text-sm ${side === i ? "border-primary font-normal text-primary" : "border-transparent text-ink hover:bg-raised"}`}>{l}</button>
         ))}
       </div>
 
@@ -167,7 +167,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
       {showFilters && (
         <div className="flex flex-col gap-4">
           <section>
-            <h3 className="mb-1.5 text-sm font-semibold">{dict.body.analysis.teamFilter}</h3>
+            <h3 className="mb-1.5 text-sm font-normal">{dict.body.analysis.teamFilter}</h3>
             <div role="radiogroup" aria-label={dict.body.library.teamFilterAria} className="flex flex-col gap-1">
               {teamRows.map(([t, l]) => {
                 const on = team === t;
@@ -185,7 +185,7 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
             </div>
           </section>
           <section>
-            <h3 className="mb-1.5 text-sm font-semibold">{dict.body.analysis.timeRange}</h3>
+            <h3 className="mb-1.5 text-sm font-normal">{dict.body.analysis.timeRange}</h3>
             <div role="radiogroup" aria-label={dict.body.library.timeRangeAria} data-range={range} className="flex flex-col gap-1">
               {(([["full", dict.body.library.rangeFull], ["h1", dict.body.library.rangeH1], ["h2", dict.body.library.rangeH2], ["custom", dict.body.library.rangeCustom]] as [TimeRange | "custom", string][])).map(([k, l]) => {
                 const on = k === range, off = k === "custom" || (k !== "full" && !halfOf(periods, k));
@@ -208,13 +208,13 @@ export const LeftPanel = memo(function LeftPanel({ match, analysed, side, setSid
 
       {side === 2 && (
         <section>
-          <h3 className="mb-1.5 text-sm font-semibold">{dict.body.library.events}</h3>
+          <h3 className="mb-1.5 text-sm font-normal">{dict.body.library.events}</h3>
           <EventCounts videoId={videoId} span={span} rangeLabel={rangeLabel} />
         </section>
       )}
       {side === 3 && (
         <section>
-          <h3 className="mb-1.5 text-sm font-semibold">{dict.body.library.panelAiTools}</h3>
+          <h3 className="mb-1.5 text-sm font-normal">{dict.body.library.panelAiTools}</h3>
           <nav aria-label={dict.body.library.openAssetAria} className="flex flex-col gap-2 text-sm">
             {videoId ? (
               <>

@@ -245,7 +245,7 @@ export function ProjectContext() {
       )}
       {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       <div className="border-t border-line/60 pt-2">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.match}</p>
+        <p className="mb-1 text-xs font-normal uppercase tracking-wide text-muted">{dict.body.analysis.match}</p>
         {selected
           ? <MatchLinker key={selected.id} videoId={selected.id} matchId={selected.match_id} canWrite={canWrite} onLinked={() => void reloadVideos()} />
           : <p className="text-xs text-muted">{d.selectUploadForMatch}</p>}
@@ -270,10 +270,10 @@ export function DropZone() {
         className={`flex flex-col items-center gap-3 rounded-card border-2 border-dashed px-4 py-8 text-center ${over ? "border-primary bg-primary/10" : "border-primary/50 bg-canvas/40"}`}
       >
         <UploadCloud className="h-12 w-12 text-primary" />
-        <p className="text-lg font-semibold">{d.dragDropMatch}</p>
+        <p className="text-lg font-normal">{d.dragDropMatch}</p>
         <p className="text-xs text-muted">{ACCEPTED_EXTENSIONS.map((e) => e.toUpperCase()).join(", ")} · {d.dropSubtitlePlain}</p>
         <button type="button" disabled={!projectId} onClick={() => input.current?.click()}
-          className="rounded-ctl bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-50">{d.browseFiles}</button>
+          className="rounded-ctl bg-primary px-5 py-2.5 font-normal text-white disabled:opacity-50">{d.browseFiles}</button>
         {!projectId && <p className="text-xs text-amber">{d.chooseProjectFirst}</p>}
         <input ref={input} type="file" accept={ACCEPT} multiple hidden aria-label={d.videoFilesLabel}
           onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }} />
@@ -286,7 +286,7 @@ export function DropZone() {
             return (
               <li key={t.id} className="rounded-ctl border border-line bg-raised/40 p-2 text-sm" data-transfer-state={t.state}>
                 <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate font-medium">{t.file.name}</span>
+                  <span className="min-w-0 flex-1 truncate font-normal">{t.file.name}</span>
                   <span className="text-xs text-muted">{formatBytes(t.file.size)}</span>
                   {t.state === "sending" && <button type="button" aria-label={d.pauseFile.replace("{name}", t.file.name)} onClick={() => pause(t.id)}><Pause className="h-4 w-4" /></button>}
                   {(t.state === "paused" || t.state === "error") && <button type="button" aria-label={d.resumeFile.replace("{name}", t.file.name)} onClick={() => resume(t.id)}><Play className="h-4 w-4" /></button>}
@@ -347,7 +347,7 @@ export function UrlImport() {
       {provider && url.length > 10 && (
         <div data-provider={provider.id} data-provider-status={provider.status}
           className={`rounded-ctl border p-2 text-xs ${provider.status === "unsupported" ? "border-danger/40 bg-danger/10" : "border-line bg-raised/40"}`}>
-          <p className="font-semibold">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
+          <p className="font-normal">{provider.name}: {provider.status === "supported" ? d.providerCanImport : provider.status === "needs_authorization" ? d.providerNeedsAuth : d.providerCannotImport}</p>
           <p className="mt-0.5 text-muted">{provider.status === "unsupported" ? `${provider.reason} ${provider.alternative}` : provider.method}</p>
           {provider.status === "needs_authorization" && (
             <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" required minLength={8}
@@ -365,7 +365,7 @@ export function UrlImport() {
               <span className={`shrink-0 rounded px-1.5 ${p.status === "supported" ? "bg-ok/15 text-ok" : p.status === "needs_authorization" ? "bg-amber/15 text-amber" : "bg-danger/15 text-danger"}`}>
                 {p.status === "supported" ? d.providerWorks : p.status === "needs_authorization" ? d.providerWithToken : d.providerNotPossibleShort}
               </span>
-              <span><span className="font-medium">{p.name}</span> <span className="text-muted">{p.status === "unsupported" ? p.alternative : p.method}</span></span>
+              <span><span className="font-normal">{p.name}</span> <span className="text-muted">{p.status === "unsupported" ? p.alternative : p.method}</span></span>
             </li>
           ))}
         </ul>
@@ -393,10 +393,10 @@ export function RecentUploads() {
             <button type="button" onClick={() => select(v.id)} aria-pressed={selected?.id === v.id}
               className={`flex w-full items-center gap-3 px-1 py-2 text-left hover:bg-raised/50 ${selected?.id === v.id ? "bg-primary/10" : ""}`}>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{v.title ?? v.original_filename}</span>
+                <span className="block truncate text-sm font-normal">{v.title ?? v.original_filename}</span>
                 <span className="block text-xs text-muted">{formatDuration(v.duration_us)} · {formatWhen(v.created_at)}</span>
               </span>
-              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${TONES[s.tone]}`} data-video-state={v.state}>{s.label}</span>
+              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-normal ${TONES[s.tone]}`} data-video-state={v.state}>{s.label}</span>
             </button>
           </li>
         );
@@ -431,11 +431,11 @@ export function SelectedVideo() {
   return (
     <div className="space-y-3 text-sm" data-selected-video={selected.id}>
       {thumb ? <img src={thumb} alt={d.frameFrom.replace("{name}", selected.title ?? d.theVideo)} className="w-full rounded-ctl border border-line" /> : null}
-      <p className="font-semibold">{selected.title ?? selected.original_filename}</p>
+      <p className="font-normal">{selected.title ?? selected.original_filename}</p>
       {(selected.state === "FAILED" || selected.state === "QUARANTINED") && (
         <p role="alert" className="flex gap-2 rounded-ctl border border-danger/40 bg-danger/10 p-2 text-danger">
           {selected.state === "QUARANTINED" ? <ShieldAlert className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
-          <span><span className="font-semibold">{selected.failure_code}</span>: {selected.failure_detail}</span>
+          <span><span className="font-normal">{selected.failure_code}</span>: {selected.failure_detail}</span>
         </p>
       )}
       <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
@@ -443,7 +443,7 @@ export function SelectedVideo() {
       </dl>
       {selected.state === "INGESTED" && (
         <p className="flex flex-wrap gap-2">
-          <Link href={`/videos/${selected.id}/processing`} className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-semibold text-white">{d.analyseThisVideo}</Link>
+          <Link href={`/videos/${selected.id}/processing`} className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-normal text-white">{d.analyseThisVideo}</Link>
           <Link href={`/videos/${selected.id}/analyze`} className="rounded-ctl border border-line px-3 py-1.5 text-sm hover:border-primary/60">{d.analysisWorkspace}</Link>
         </p>
       )}
@@ -474,7 +474,7 @@ export function PipelineStrip() {
     <ol aria-label={d.processingPipeline} className="grid grid-cols-2 gap-2 md:grid-cols-6">
       {stages.map((s) => (
         <li key={s.key} className="rounded-ctl border border-line/70 bg-raised/40 p-2" data-stage={s.key} data-stage-state={s.state}>
-          <span className="flex items-center gap-1.5 text-sm font-medium">{icon[s.state]} {s.name}</span>
+          <span className="flex items-center gap-1.5 text-sm font-normal">{icon[s.state]} {s.name}</span>
           <span className="mt-1 block text-xs text-muted">{s.note}</span>
         </li>
       ))}

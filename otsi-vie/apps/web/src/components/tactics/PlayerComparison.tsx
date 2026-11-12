@@ -39,7 +39,7 @@ function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: bo
                 <li key={r.player_id}>
                   <button type="button" onClick={() => { onChoose(r); onOpenChange(false); }}
                     className="flex w-full justify-between gap-2 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
-                    <span className="font-medium">{r.jersey_number !== null ? `${r.jersey_number} · ` : ""}{r.display_name}</span>
+                    <span className="font-normal">{r.jersey_number !== null ? `${r.jersey_number} · ` : ""}{r.display_name}</span>
                     <span className="text-xs text-muted">{r.position ? `${r.position}${r.verified ? " (confirmed)" : ""}` : "—"} · {r.club_id === match.home?.id ? match.home.name : match.away?.name ?? "—"}</span>
                   </button>
                 </li>
@@ -52,7 +52,7 @@ function PlayerSearch({ open, onOpenChange, onChoose, title, match }: { open: bo
               <li key={p.player_id}>
                 <button type="button" onClick={() => { onChoose(p); onOpenChange(false); }}
                   className="flex w-full justify-between gap-2 rounded-ctl border border-line/70 px-3 py-2 text-left hover:border-primary/60">
-                  <span className="font-medium">{p.display_name}</span><span className="text-xs text-muted">{p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span>
+                  <span className="font-normal">{p.display_name}</span><span className="text-xs text-muted">{p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span>
                 </button>
               </li>
             ))}
@@ -117,9 +117,9 @@ export function PlayerComparison({ focus, match }: { focus: boolean; match: Matc
           </div>
           {METRICS.map((l) => (
             <div key={l} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm">
-              <span className="font-semibold">—</span>
+              <span className="font-normal">—</span>
               <span className="text-center text-[#cfdcf0]">{l}</span>
-              <span className="text-right font-semibold">—</span>
+              <span className="text-right font-normal">—</span>
             </div>
           ))}
         </dl>

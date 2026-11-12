@@ -185,16 +185,16 @@ export function PressingPanel({
           </div>
           <dl className="m-0 flex flex-col gap-2" data-testid="pressing-metrics">
             <div title={ppdaReason} data-metric="PPDA" className="flex items-center justify-between gap-2">
-              <dt className="text-[#cfdcf0]">PPDA</dt><dd className="font-semibold">{ppdaText}</dd>
+              <dt className="text-[#cfdcf0]">PPDA</dt><dd className="font-normal">{ppdaText}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-[#cfdcf0]">{dict.body.tactics.highPressSuccess}</dt><dd className="font-semibold">{highPressText}</dd>
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.highPressSuccess}</dt><dd className="font-normal">{highPressText}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-[#cfdcf0]">{dict.body.tactics.finalThirdRegains}</dt><dd className="font-semibold">{finalThirdText}</dd>
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.finalThirdRegains}</dt><dd className="font-normal">{finalThirdText}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-[#cfdcf0]">{dict.body.tactics.avgPressHeight}</dt><dd className="font-semibold">{avgHeightText}</dd>
+              <dt className="text-[#cfdcf0]">{dict.body.tactics.avgPressHeight}</dt><dd className="font-normal">{avgHeightText}</dd>
             </div>
           </dl>
         </div>

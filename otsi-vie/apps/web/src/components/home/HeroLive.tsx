@@ -64,7 +64,7 @@ function Picture({ s, pic, shown, onReady }: { s: Shot; pic: Size; shown: boolea
             <div key={i} className="absolute" style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%`,
               border: `${b.me ? 2 : 1.5}px solid ${b.me ? "rgb(var(--primary))" : "rgb(var(--amber))"}`, background: b.me ? "rgb(var(--primary) / .08)" : undefined }}>
               {n !== null && (
-                <span className="absolute bottom-full left-1/2 mb-0.5 -translate-x-1/2 rounded-sm px-1 text-[11px] font-semibold leading-4"
+                <span className="absolute bottom-full left-1/2 mb-0.5 -translate-x-1/2 rounded-sm px-1 text-[11px] font-normal leading-4"
                   style={{ background: b.me ? "rgb(var(--primary))" : "rgb(var(--amber))", color: "rgb(var(--primary-ink))" }}>{n}</span>
               )}
             </div>

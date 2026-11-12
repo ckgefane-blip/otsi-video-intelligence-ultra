@@ -153,7 +153,7 @@ function MatchCard({ s }: { s: Shared }) {
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
             <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(460px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 shadow-2xl">
-              <Dialog.Title className="mb-2 text-base font-semibold">{dict.body.workspace.finalScore}</Dialog.Title>
+              <Dialog.Title className="mb-2 text-base font-normal">{dict.body.workspace.finalScore}</Dialog.Title>
               <Dialog.Description className="sr-only">{dict.body.workspace.enterGoals}</Dialog.Description>
               <ScoreForm match={match} onSaved={(m) => { s.setMatch(m); setScoring(false); }} onCancel={() => setScoring(false)} />
             </Dialog.Content>

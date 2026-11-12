@@ -157,10 +157,10 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
           <ul id="palette-results" role="listbox" aria-label={t.body.shell.paletteResultsAria} className="max-h-[60vh] overflow-auto py-1">
             {rows.map((r, i) => (
               <li key={r.key} className="contents">
-                {(i === 0 || rows[i - 1]!.group !== r.group) && <p role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{r.group}</p>}
+                {(i === 0 || rows[i - 1]!.group !== r.group) && <p role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-normal uppercase tracking-wide text-muted">{r.group}</p>}
                 <div id={`palette-${i}`} role="option" aria-selected={i === cursor} data-palette-row={r.key} onMouseEnter={() => setCursor(i)} onClick={() => go(r.href)}
                   className={`flex cursor-pointer items-baseline justify-between gap-3 rounded-ctl px-3 py-2 ${i === cursor ? "bg-primary/15" : ""}`}>
-                  <span className="min-w-0 truncate text-sm font-medium">{r.label}</span>
+                  <span className="min-w-0 truncate text-sm font-normal">{r.label}</span>
                   {r.hint && <span className={`shrink-0 truncate text-xs text-muted ${r.mono ? "font-mono" : ""} max-w-[55%]`}>{r.hint}</span>}
                 </div>
               </li>

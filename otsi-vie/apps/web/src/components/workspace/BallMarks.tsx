@@ -243,10 +243,10 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75" />
         <Dialog.Content data-dialog="ball-marks" onKeyDown={onKey} className="fixed left-1/2 top-1/2 z-50 max-h-[96vh] w-[min(1400px,98vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.markBallUnseen}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.workspace.markBallUnseen}</Dialog.Title>
           <Dialog.Description className="mb-2 text-xs text-muted">
-            <span className="font-semibold">{dict.body.workspace.nextUnseen}</span>{dict.body.workspace.jumpsNextFrame}<span className="font-semibold">N</span> {dict.body.workspace.whenNobodyCouldSee}
-            {dict.body.workspace.whereBlueRing} <span className="font-semibold">Enter</span>{dict.body.workspace.confirmsIt}
+            <span className="font-normal">{dict.body.workspace.nextUnseen}</span>{dict.body.workspace.jumpsNextFrame}<span className="font-normal">N</span> {dict.body.workspace.whenNobodyCouldSee}
+            {dict.body.workspace.whereBlueRing} <span className="font-normal">Enter</span>{dict.body.workspace.confirmsIt}
           </Dialog.Description>
           <canvas ref={setView} data-ball-canvas aria-label={dict.body.workspace.frameToMark} onMouseMove={(e) => setHover(pos(e))} onMouseLeave={() => setHover(null)}
             onClick={(e) => { if (!busy) { const p = pos(e); void save(true, p.x, p.y); } }}
@@ -261,7 +261,7 @@ export function BallMarkDialog({ open, onOpenChange, videoId, videoRef, stepUs, 
             {engine && !here && <button type="button" data-ball-confirm onClick={() => void save(true, engine.x, engine.y)} disabled={busy} className={btn}>{dict.body.workspace.engineIsRightEnter}</button>}
             {here && <button type="button" onClick={() => void remove()} disabled={busy} className={`${btn} text-danger`}>{dict.body.workspace.removeMark}</button>}
             <button type="button" data-ball-next-unknown onClick={jump} disabled={busy} className={btn}>{dict.body.workspace.nextUnseenArrow}</button>
-            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-semibold text-white">{dict.body.upload.done}</Dialog.Close>
+            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 font-normal text-white">{dict.body.upload.done}</Dialog.Close>
           </div>
           {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
         </Dialog.Content>

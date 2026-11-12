@@ -32,7 +32,7 @@ export function AssetThumb({ a, className = "h-[54px] w-[96px]" }: { a: Asset; c
       data-thumb={src ? "frame" : src === null ? "none" : "loading"}>
       {src ? <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
         : src === null ? <span title={t.desktop.noThumb} className="text-muted"><ImageOff className="h-4 w-4" aria-hidden /><span className="sr-only">{t.desktop.noThumb}</span></span> : null}
-      {dur && <span className="absolute bottom-0.5 right-0.5 rounded-sm bg-black/75 px-1 text-xs font-medium leading-4 text-white tabular-nums">{dur}</span>}
+      {dur && <span className="absolute bottom-0.5 right-0.5 rounded-sm bg-black/75 px-1 text-xs font-normal leading-4 text-white tabular-nums">{dur}</span>}
     </span>
   );
 }

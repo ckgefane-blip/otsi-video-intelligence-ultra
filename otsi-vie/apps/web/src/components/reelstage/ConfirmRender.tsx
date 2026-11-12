@@ -87,7 +87,7 @@ export function ConfirmRender({ reel, settings, codec, dirty, open, onOpenChange
           <p className="mb-3 text-xs" data-estimate>{failed ? dict.body.reelstage.estimateNone : estimateText(dict.body.reelstage, est)}</p>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => onOpenChange(false)} className="rounded-ctl border border-line px-3 py-1.5">{dict.body.reels.backToEditing}</button>
-            <button type="button" data-start-render onClick={() => { onOpenChange(false); onStart(); }} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.body.reels.startRender}</button>
+            <button type="button" data-start-render onClick={() => { onOpenChange(false); onStart(); }} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.body.reels.startRender}</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

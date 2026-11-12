@@ -270,7 +270,7 @@ export function AdminConsole() {
         <div className="flex items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
           <ShieldAlert className="h-6 w-6 shrink-0" />
           <div>
-            <h2 className="font-semibold">{t.body.admin.accessRequired}</h2>
+            <h2 className="font-normal">{t.body.admin.accessRequired}</h2>
             <p className="t-body opacity-90">
               {t.body.admin.accessOnly}
             </p>
@@ -298,7 +298,7 @@ export function AdminConsole() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="t-page">{t.body.admin.title}</h1>
-            <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-normal text-primary">
               v3 Phase D.3
             </span>
           </div>
@@ -339,7 +339,7 @@ export function AdminConsole() {
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-semibold">{alt.title}</div>
+                  <div className="font-normal">{alt.title}</div>
                   <div className="mt-0.5 opacity-90">{alt.message}</div>
                   {alt.suggested_action && (
                     <div className="mt-1 font-mono t-small opacity-80">
@@ -348,7 +348,7 @@ export function AdminConsole() {
                   )}
                 </div>
               </div>
-              <span className="rounded bg-canvas/60 px-2 py-0.5 font-mono text-xs font-semibold uppercase">
+              <span className="rounded bg-canvas/60 px-2 py-0.5 font-mono text-xs font-normal uppercase">
                 {({ INFO: t.body.admin.severityInfo, WARNING: t.body.admin.severityWarning, CRITICAL: t.body.admin.severityCritical } as Record<string, string>)[alt.severity] ?? alt.severity}
               </span>
             </div>
@@ -372,7 +372,7 @@ export function AdminConsole() {
             type="button"
             onClick={() => setActiveTab(id as Tab)}
             data-tab={id}
-            className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 font-medium transition-colors ${
+            className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 font-normal transition-colors ${
               activeTab === id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted hover:border-line hover:text-foreground"
@@ -464,17 +464,17 @@ export function AdminConsole() {
                 <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-4">
                   <div>
                     <div className="t-small">{t.body.admin.sysHost}</div>
-                    <div className="font-medium">{dashboard.system_resources.host ?? "localhost"}</div>
+                    <div className="font-normal">{dashboard.system_resources.host ?? "localhost"}</div>
                   </div>
                   <div>
                     <div className="t-small">{t.body.admin.sysCpu}</div>
-                    <div className="font-medium">
+                    <div className="font-normal">
                       {t.body.admin.sysCores.replace("{a}", String(dashboard.system_resources.cpu_count ?? "—")).replace("{b}", dashboard.system_resources.cpu_percent != null ? String(dashboard.system_resources.cpu_percent) : "—")}
                     </div>
                   </div>
                   <div>
                     <div className="t-small">{t.body.admin.sysMemory}</div>
-                    <div className="font-medium">
+                    <div className="font-normal">
                       {dashboard.system_resources.memory_used_bytes && dashboard.system_resources.memory_total_bytes
                         ? `${formatBytes(dashboard.system_resources.memory_used_bytes)} / ${formatBytes(dashboard.system_resources.memory_total_bytes)}`
                         : "—"}
@@ -482,7 +482,7 @@ export function AdminConsole() {
                   </div>
                   <div>
                     <div className="t-small">{t.body.admin.sysGpu}</div>
-                    <div className="font-medium">
+                    <div className="font-normal">
                       {dashboard.system_resources.gpu_name ?? t.body.admin.sysGpuFallback}
                     </div>
                   </div>
@@ -495,9 +495,9 @@ export function AdminConsole() {
                 <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
                   {dashboard.workers.map((group) => (
                     <div key={group.group_name} className="rounded-card border border-line bg-canvas p-3">
-                      <div className="flex items-center justify-between font-semibold">
+                      <div className="flex items-center justify-between font-normal">
                         <span>{group.group_name}</span>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-normal ${
                           group.active_workers > 0 ? "bg-ok/10 text-ok" : "bg-muted/20 text-muted"
                         }`}>
                           {t.body.admin.workerOnline.replace("{a}", String(group.active_workers))}
@@ -544,12 +544,12 @@ export function AdminConsole() {
                     {dashboard.members.map((m) => (
                       <tr key={m.user_id} className="hover:bg-raised/40">
                         <td className="py-3">
-                          <div className="font-medium">{m.display_name}</div>
+                          <div className="font-normal">{m.display_name}</div>
                           <div className="t-small">{m.email}</div>
                         </td>
                         <td className="py-3">
                           <span
-                            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
+                            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-normal ${
                               m.role === "OWNER"
                                 ? "bg-amber/10 text-amber border border-amber/30"
                                 : m.role === "ADMIN"
@@ -608,11 +608,11 @@ export function AdminConsole() {
                       return (
                         <tr key={mod.key} className="hover:bg-raised/40">
                           <td className="py-3">
-                            <div className="font-mono text-xs font-medium">{mod.key}</div>
+                            <div className="font-mono text-xs font-normal">{mod.key}</div>
                             <div className="t-small">{mod.source}</div>
                           </td>
                           <td className="py-3">
-                            <div className="text-xs font-medium">{mod.family}</div>
+                            <div className="text-xs font-normal">{mod.family}</div>
                             <div className="t-small capitalize">{mod.task}</div>
                           </td>
                           <td className="py-3 t-small">{mod.weights_license}</td>
@@ -622,11 +622,11 @@ export function AdminConsole() {
                           </td>
                           <td className="py-3">
                             {allVerified ? (
-                              <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
+                              <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-normal text-ok">
                                 <CheckCircle2 className="h-3 w-3" /> {t.body.admin.modelReady}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded bg-muted/20 px-2 py-0.5 text-xs font-medium text-muted">
+                              <span className="inline-flex items-center gap-1 rounded bg-muted/20 px-2 py-0.5 text-xs font-normal text-muted">
                                 <XCircle className="h-3 w-3" /> {t.body.admin.modelAbsent}
                               </span>
                             )}
@@ -655,7 +655,7 @@ export function AdminConsole() {
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
                       <span className="t-panel">{t.body.admin.concRender}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-normal text-primary">
                         {renderConcurrency}
                       </span>
                     </div>
@@ -680,7 +680,7 @@ export function AdminConsole() {
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
                       <span className="t-panel">{t.body.admin.concAnalysis}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-normal text-primary">
                         {analysisConcurrency}
                       </span>
                     </div>
@@ -705,7 +705,7 @@ export function AdminConsole() {
                   <div className="rounded-card border border-line bg-canvas p-4">
                     <div className="flex items-center justify-between">
                       <span className="t-panel">{t.body.admin.concIngest}</span>
-                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                      <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-normal text-primary">
                         {ingestConcurrency}
                       </span>
                     </div>
@@ -782,9 +782,9 @@ export function AdminConsole() {
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{group.group_name}</span>
+                          <span className="font-normal">{group.group_name}</span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            className={`rounded-full px-2 py-0.5 text-xs font-normal ${
                               group.active_workers > 0 ? "bg-ok/10 text-ok" : "bg-muted/20 text-muted"
                             }`}
                           >
@@ -796,11 +796,11 @@ export function AdminConsole() {
                       <div className="flex items-center gap-6">
                         <div>
                           <span className="t-small">{t.body.admin.workerRunning}</span>
-                          <div className="font-semibold">{group.running_jobs}</div>
+                          <div className="font-normal">{group.running_jobs}</div>
                         </div>
                         <div>
                           <span className="t-small">{t.body.admin.workerQueued}</span>
-                          <div className="font-semibold">{group.queued_jobs}</div>
+                          <div className="font-normal">{group.queued_jobs}</div>
                         </div>
                       </div>
                     </div>
@@ -822,7 +822,7 @@ export function AdminConsole() {
                 </p>
                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">{t.body.admin.retTrash}</label>
+                    <label className="text-xs font-normal text-muted">{t.body.admin.retTrash}</label>
                     <input
                       type="number"
                       min={0}
@@ -835,7 +835,7 @@ export function AdminConsole() {
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">{t.body.admin.retAudit}</label>
+                    <label className="text-xs font-normal text-muted">{t.body.admin.retAudit}</label>
                     <input
                       type="number"
                       min={30}
@@ -848,7 +848,7 @@ export function AdminConsole() {
                   </div>
 
                   <div className="rounded-card border border-line bg-canvas p-4">
-                    <label className="text-xs font-medium text-muted">{t.body.admin.retAutoPurge}</label>
+                    <label className="text-xs font-normal text-muted">{t.body.admin.retAutoPurge}</label>
                     <div className="mt-3 flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -865,7 +865,7 @@ export function AdminConsole() {
 
                   <div className="flex flex-col justify-between rounded-card border border-line bg-canvas p-4">
                     <div>
-                      <span className="text-xs font-medium text-muted">{t.body.admin.retMaintenance}</span>
+                      <span className="text-xs font-normal text-muted">{t.body.admin.retMaintenance}</span>
                       <p className="t-small mt-1">{t.body.admin.retMaintenanceDesc}</p>
                     </div>
                     <button
@@ -919,7 +919,7 @@ export function AdminConsole() {
                 <div className="mt-4 rounded-ctl border border-line bg-canvas p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div>
-                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprSubjectKind}</label>
+                      <label className="text-xs font-normal text-muted">{t.body.admin.gdprSubjectKind}</label>
                       <select
                         value={erasureSubjectKind}
                         onChange={(e) => setErasureSubjectKind(e.target.value as "PLAYER" | "USER")}
@@ -931,7 +931,7 @@ export function AdminConsole() {
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprSubjectUuid}</label>
+                      <label className="text-xs font-normal text-muted">{t.body.admin.gdprSubjectUuid}</label>
                       <input
                         type="text"
                         value={erasureSubjectId}
@@ -942,7 +942,7 @@ export function AdminConsole() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium text-muted">{t.body.admin.gdprAction}</label>
+                      <label className="text-xs font-normal text-muted">{t.body.admin.gdprAction}</label>
                       <button
                         type="button"
                         disabled={executingErasure || !erasureSubjectId.trim()}
@@ -955,7 +955,7 @@ export function AdminConsole() {
                   </div>
 
                   <div className="mt-3">
-                    <label className="text-xs font-medium text-muted">{t.body.admin.gdprReason}</label>
+                    <label className="text-xs font-normal text-muted">{t.body.admin.gdprReason}</label>
                     <input
                       type="text"
                       value={erasureReason}
@@ -974,7 +974,7 @@ export function AdminConsole() {
 
                 {/* Erasure Requests Audit List */}
                 <div className="mt-5">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                  <h3 className="mb-2 text-xs font-normal uppercase tracking-wider text-muted">
                     {t.body.admin.gdprExecuted.replace("{a}", String(erasures.length))}
                   </h3>
                   <div className="max-h-60 overflow-y-auto rounded-card border border-line bg-canvas">
@@ -997,7 +997,7 @@ export function AdminConsole() {
                                 {new Date(r.executed_at).toLocaleString()}
                               </td>
                               <td className="p-2.5">
-                                <span className="rounded bg-panel px-1.5 py-0.5 text-xs font-semibold border border-line">
+                                <span className="rounded bg-panel px-1.5 py-0.5 text-xs font-normal border border-line">
                                   {r.subject_kind}
                                 </span>
                               </td>
@@ -1022,7 +1022,7 @@ export function AdminConsole() {
                   <h2 className="t-section">{t.body.admin.backupsTitle}</h2>
                   {backupsStatus && (
                     <span
-                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-normal ${
                         backupsStatus.healthy ? "bg-ok/10 text-ok border border-ok/30" : "bg-danger/10 text-danger border border-danger/30"
                       }`}
                     >
@@ -1079,11 +1079,11 @@ export function AdminConsole() {
                             </td>
                             <td className="p-2.5">
                               {b.verification_ok ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-semibold text-ok border border-ok/20">
+                                <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-normal text-ok border border-ok/20">
                                   <CheckCircle2 className="h-3 w-3" /> {t.body.admin.backupsVerified}
                                 </span>
                               ) : b.verified ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger border border-danger/20">
+                                <span className="inline-flex items-center gap-1 rounded bg-danger/10 px-2 py-0.5 text-xs font-normal text-danger border border-danger/20">
                                   <XCircle className="h-3 w-3" /> {t.body.admin.backupsMismatch}
                                 </span>
                               ) : (
@@ -1144,7 +1144,7 @@ export function AdminConsole() {
                         <tr key={item.id} className="hover:bg-raised/40">
                           <td className="py-3 t-small">{formatDate(item.occurred_at)}</td>
                           <td className="py-3">
-                            <span className="rounded bg-panel px-2 py-0.5 font-mono text-xs font-semibold text-foreground border border-line">
+                            <span className="rounded bg-panel px-2 py-0.5 font-mono text-xs font-normal text-foreground border border-line">
                               {item.action}
                             </span>
                           </td>
@@ -1153,7 +1153,7 @@ export function AdminConsole() {
                             <div className="t-small">{item.actor_kind}</div>
                           </td>
                           <td className="py-3 text-xs">
-                            <span className="font-medium capitalize">{item.entity_type}</span>
+                            <span className="font-normal capitalize">{item.entity_type}</span>
                             {item.entity_id && (
                               <div className="t-tc text-muted">{item.entity_id}</div>
                             )}

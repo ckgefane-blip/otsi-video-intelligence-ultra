@@ -262,7 +262,7 @@ export function PitchCalibrationDialog({ open, onOpenChange, videoId, videoRef, 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="pitch-calibration" className="fixed left-1/2 top-1/2 z-50 max-h-[94vh] w-[min(1240px,97vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.workspace.calibratePitch}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.workspace.calibratePitch}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             {dict.body.workspace.calibratePitchDesc}
           </Dialog.Description>
@@ -302,7 +302,7 @@ export function PitchCalibrationDialog({ open, onOpenChange, videoId, videoRef, 
                 : dict.body.workspace.clickYellowDot.replace("{a}", elsewhere.size ? dict.body.workspace.whiteRingNote : "")}</p>
               <ul className="max-h-[200px] overflow-y-auto text-xs" aria-label={dict.body.workspace.placesOnPitch}>
                 {[dict.body.workspace.centreLabel, dict.body.workspace.leftEnd, dict.body.workspace.rightEnd].map((gname) => (
-                  <li key={gname}><div className="mt-1 font-semibold text-muted">{gname}</div>
+                  <li key={gname}><div className="mt-1 font-normal text-muted">{gname}</div>
                     {names.filter((n) => group(n) === gname).map((n) => {
                       const idx = placed.findIndex((p) => p.landmark === n);
                       return (
@@ -313,7 +313,7 @@ export function PitchCalibrationDialog({ open, onOpenChange, videoId, videoRef, 
                     })}
                   </li>
                 ))}
-                <li><div className="mt-1 font-semibold text-muted">{dict.body.workspace.anywhereOnLine}</div>
+                <li><div className="mt-1 font-normal text-muted">{dict.body.workspace.anywhereOnLine}</div>
                   {Object.keys(lines).map((k) => {
                     const n = onLine.filter((l) => l.line === k).length;
                     return (
@@ -339,7 +339,7 @@ export function PitchCalibrationDialog({ open, onOpenChange, videoId, videoRef, 
           {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
           <div className="mt-3 flex justify-end gap-2">
             <Dialog.Close className="rounded-ctl border border-line px-3 py-2">{dict.common.cancel}</Dialog.Close>
-            <button type="button" data-pitch-start onClick={() => void start()} disabled={!ok || busy} className="rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">{busy ? dict.body.workspace.starting : placed.length >= ALONE ? dict.body.workspace.calibratePitch : dict.body.workspace.addMoment}</button>
+            <button type="button" data-pitch-start onClick={() => void start()} disabled={!ok || busy} className="rounded-ctl bg-primary px-3 py-2 font-normal text-white disabled:opacity-50">{busy ? dict.body.workspace.starting : placed.length >= ALONE ? dict.body.workspace.calibratePitch : dict.body.workspace.addMoment}</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

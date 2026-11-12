@@ -182,8 +182,8 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
   return (
     <div className="space-y-2" data-who={name}>
       <p className="text-xs text-muted">
-        {revisit ? <>{dict.body.workspace.momentsSaidNot}<span className="font-semibold">{name}</span>{dict.body.workspace.ifInPictureDrag}</>
-          : <>{dict.body.workspace.momentsGreenBoxStart}<span className="font-semibold">{name}</span>{dict.body.workspace.momentsGreenBoxEnd}</>} {(data.his_events === 1 ? (data.his_tracks === 1 ? dict.body.workspace.hisEventsOneTrack : dict.body.workspace.hisEventsOneTracks) : (data.his_tracks === 1 ? dict.body.workspace.hisEventsManyTrack : dict.body.workspace.hisEventsManyTracks)).replace("{a}", String(data.his_events)).replace("{b}", String(data.his_tracks))}{" "}
+        {revisit ? <>{dict.body.workspace.momentsSaidNot}<span className="font-normal">{name}</span>{dict.body.workspace.ifInPictureDrag}</>
+          : <>{dict.body.workspace.momentsGreenBoxStart}<span className="font-normal">{name}</span>{dict.body.workspace.momentsGreenBoxEnd}</>} {(data.his_events === 1 ? (data.his_tracks === 1 ? dict.body.workspace.hisEventsOneTrack : dict.body.workspace.hisEventsOneTracks) : (data.his_tracks === 1 ? dict.body.workspace.hisEventsManyTrack : dict.body.workspace.hisEventsManyTracks)).replace("{a}", String(data.his_events)).replace("{b}", String(data.his_tracks))}{" "}
         <button type="button" className="text-primary" data-revisit onClick={() => { setMsg(null); setRevisit(!revisit); }}>{revisit ? dict.body.workspace.backToNewMoments : dict.body.workspace.goBackNo}</button>
       </p>
       {!cur ? <p className="text-xs text-muted">{data.items.length ? dict.body.workspace.youSkippedRest : revisit ? dict.body.workspace.noMomentMarkedNot.replace("{a}", name) : dict.body.workspace.noMorePossibleMoments.replace("{a}", name)}{skipped.size > 0 && <button type="button" className="text-primary" onClick={() => setSkipped(new Set())}>{dict.body.workspace.showSkippedAgain}</button>}</p> : (
@@ -193,21 +193,21 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
             label={dict.body.workspace.boxedPlayerLabel.replace("{a}", formatDuration(cur.moment.start_us)).replace("{b}", KIND[cur.moment.kind]).replace("{c}", String(left.length + data.more)).replace("{d}", revisit ? dict.body.workspace.toLookAgain : (left.length + data.more === 1 ? dict.body.workspace.possibleMomentsLeftOne : dict.body.workspace.possibleMomentsLeftMany))} />
           {picked ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{dict.body.workspace.isPlayerInBlueBox.replace("{a}", name)}</span>
+              <span className="text-sm font-normal">{dict.body.workspace.isPlayerInBlueBox.replace("{a}", name)}</span>
               {data.kit_group !== null && picked.kit_group != null && picked.kit_group !== data.kit_group
                 && <span className="text-xs text-amber">{dict.body.workspace.shirtColourDiffers.replace("{a}", name)}</span>}
-              <button type="button" disabled={busy} onClick={() => void moveTo(cur, picked, boxSeen)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">{dict.body.workspace.yesMoveBox}</button>
+              <button type="button" disabled={busy} onClick={() => void moveTo(cur, picked, boxSeen)} className="rounded-ctl bg-ok px-4 py-1.5 font-normal text-black disabled:opacity-50">{dict.body.workspace.yesMoveBox}</button>
               <button type="button" disabled={busy} onClick={() => setPicked(null)} className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</button>
               <ImpactNote trackIds={[picked.track_id]} state="CONFIRMED" playerId={playerId} className="w-full" />
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{cur.said_not_him ? dict.body.workspace.youSaidNotName.replace("{a}", name) : dict.body.workspace.isThisName.replace("{a}", name)}</span>
+              <span className="text-sm font-normal">{cur.said_not_him ? dict.body.workspace.youSaidNotName.replace("{a}", name) : dict.body.workspace.isThisName.replace("{a}", name)}</span>
               {cur.said_not_him
                 ? <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl border border-line px-3 py-1.5 disabled:opacity-50">{dict.body.workspace.wasHimAfterAll}</button>
                 : <>
-                    <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl bg-ok px-4 py-1.5 font-semibold text-black disabled:opacity-50">{dict.body.workspace.yesBtn}</button>
-                    <button type="button" disabled={busy} onClick={() => void answer(cur, false)} className="rounded-ctl bg-danger px-4 py-1.5 font-semibold text-white disabled:opacity-50">{dict.body.workspace.noBtn}</button>
+                    <button type="button" disabled={busy} onClick={() => void answer(cur, true)} className="rounded-ctl bg-ok px-4 py-1.5 font-normal text-black disabled:opacity-50">{dict.body.workspace.yesBtn}</button>
+                    <button type="button" disabled={busy} onClick={() => void answer(cur, false)} className="rounded-ctl bg-danger px-4 py-1.5 font-normal text-white disabled:opacity-50">{dict.body.workspace.noBtn}</button>
                   </>}
               <button type="button" disabled={busy} onClick={() => setSkipped((s) => new Set(s).add(cur.track_id))} title={dict.body.workspace.nextMomentTitle} className="rounded-ctl border border-line px-3 py-1.5">{cur.said_not_him ? dict.body.workspace.nextPlain : dict.body.workspace.cantTell}</button>
               <span className="text-xs text-muted">{dict.body.workspace.thisPlayerInEvents.replace("{a}", String(cur.events)).replace("{b}", cur.events === 1 ? dict.body.workspace.eventSingularSuffix : dict.body.workspace.eventPluralSuffix).replace("{c}", cur.look !== null ? dict.body.workspace.looksAlikeSuffix.replace("{a}", String(Math.round(cur.look * 100))) : "")}</span>

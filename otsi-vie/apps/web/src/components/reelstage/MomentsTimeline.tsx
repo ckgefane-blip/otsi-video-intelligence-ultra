@@ -452,7 +452,7 @@ export function Timeline() {
             return (
               <button key={c.id} type="button" role="listitem" data-list-clip={i} aria-pressed={on} onClick={() => r?.setSelectedClip(on ? null : c.id)}
                 className={`grid w-full grid-cols-[3rem_1fr_11rem_5rem_8rem] gap-2 px-2.5 py-1.5 text-left ${on ? "bg-[#0d3a78]" : i % 2 ? "bg-[#081d38]" : ""}`}>
-                <span className="font-semibold">{i + 1}</span><span className="truncate">{c.label ?? dict.body.reelstage.clipListFallback}</span>
+                <span className="font-normal">{i + 1}</span><span className="truncate">{c.label ?? dict.body.reelstage.clipListFallback}</span>
                 <span className="text-muted">{`${mmss(c.in_pts_us)} – ${mmss(c.out_pts_us)}`}</span><span>{secs(d, dict.body.reelstage.durationSec)}</span>
                 <span className="text-muted">{c.effect.kind === "NONE" ? "" : c.effect.kind === "SLOW" ? dict.body.reelstage.effectSlow : c.effect.kind === "FREEZE" ? dict.body.reelstage.effectFreeze : dict.body.reelstage.effectHero}</span>
               </button>

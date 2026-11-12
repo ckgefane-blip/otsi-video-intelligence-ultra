@@ -129,7 +129,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
           <span className="t-panel text-[#33a8ff]">{dict.body.studio.dualTimelinePro}</span>
           <span
             data-cut-diff-summary=""
-            className="text-xs rounded bg-[#0b2447] px-2.5 py-1 font-semibold text-[#cfe0f5]"
+            className="text-xs rounded bg-[#0b2447] px-2.5 py-1 font-normal text-[#cfe0f5]"
           >
             {cutDiffSummary(diff, dict)}
           </span>
@@ -144,7 +144,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             data-dual-sync-mode={syncMode}
             onClick={() => setSyncMode(syncMode === "SOURCE_MATCH" ? "RELATIVE" : "SOURCE_MATCH")}
-            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-medium text-[#cfe8ff] hover:bg-[#123566]"
+            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-normal text-[#cfe8ff] hover:bg-[#123566]"
             title={dict.body.studio.toggleSyncHint}
           >
             Sync: {syncMode === "SOURCE_MATCH" ? dict.body.studio.syncSource : dict.body.studio.syncRelative}
@@ -155,7 +155,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
             type="button"
             onClick={handleCaptureReference}
             title={dict.body.studio.snapshotCutBHint}
-            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-medium text-[#cfe8ff] hover:bg-[#123566]"
+            className="text-xs rounded border border-[#1e90ff]/40 bg-[#0a2040] px-2.5 py-1 font-normal text-[#cfe8ff] hover:bg-[#123566]"
           >{dict.body.studio.snapshotCut}
           </button>
 
@@ -185,7 +185,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
       <div className="flex flex-col gap-1.5 flex-1 justify-center">
         {/* Cut A (Active Edit) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-semibold text-[#33a8ff]">{dict.body.studio.cutA}</span>
+          <span className="w-16 text-right text-xs font-normal text-[#33a8ff]">{dict.body.studio.cutA}</span>
           <div className="relative flex-1 h-7 rounded border border-[#1d4f8a] bg-[#040e20] overflow-hidden flex">
             {cutAClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);
@@ -229,7 +229,7 @@ export function DualTimeline({ st, ui, onClose }: DualTimelineProps) {
 
         {/* Cut B (Comparison Cut) Lane */}
         <div className="flex items-center gap-2">
-          <span className="w-16 text-right text-xs font-semibold text-[#f5b82e]">{dict.body.studio.cutB}</span>
+          <span className="w-16 text-right text-xs font-normal text-[#f5b82e]">{dict.body.studio.cutB}</span>
           <div className="relative flex-1 h-7 rounded border border-[#6b5014] bg-[#040e20] overflow-hidden flex">
             {cutBClips.map((c, i) => {
               const dur = (c.gap_us ?? 0) + (c.out_pts_us - c.in_pts_us);

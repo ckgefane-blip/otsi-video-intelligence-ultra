@@ -17,12 +17,12 @@ export function IdentifyDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <Dialog.Content data-dialog="identify" className="fixed right-4 top-1/2 z-50 max-h-[92vh] w-[min(560px,96vw)] -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 shadow-xl">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-base font-semibold">{dict.body.workspace.whoIsThis}</Dialog.Title>
+              <Dialog.Title className="text-base font-normal">{dict.body.workspace.whoIsThis}</Dialog.Title>
               <Dialog.Description className="text-xs text-muted">
                 {dict.body.workspace.identifyDesc}
               </Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 text-sm font-semibold text-white">{dict.body.upload.done}</Dialog.Close>
+            <Dialog.Close className="rounded-ctl bg-primary px-3 py-1 text-sm font-normal text-white">{dict.body.upload.done}</Dialog.Close>
           </div>
           <SelectedTrack />
         </Dialog.Content>

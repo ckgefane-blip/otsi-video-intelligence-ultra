@@ -87,7 +87,7 @@ export function AnalysisTools({ s, tools }: { s: Shared; tools: PlayerToolState 
         onClick={() => setMuted(!muted)}>{muted ? "🔇" : "🔊"}</button>
       <button type="button" className={btn} aria-label={dict.body.workspace.jumpToPlayer} aria-disabled={!sel} title={sel ? dict.body.workspace.jumpToPlayerFirst : dict.body.workspace.selectPlayerFirstTitle}
         onClick={() => { if (sel) ws?.seek(sel.first_pts_us); else setHint(dict.body.workspace.selectPlayerHint); }}>◎ {dict.body.workspace.jumpToPlayer}</button>
-      <span className="rounded border-2 border-[#f5a623] bg-[#281900cc] px-1.5 py-0.5 text-xs font-semibold text-[#f5b82e]" title={dict.body.workspace.videoResolution}>{quality(ws?.video?.height)}</span>
+      <span className="rounded border-2 border-[#f5a623] bg-[#281900cc] px-1.5 py-0.5 text-xs font-normal text-[#f5b82e]" title={dict.body.workspace.videoResolution}>{quality(ws?.video?.height)}</span>
       <select aria-label={dict.body.tactics.cameraAngle} value="b" disabled title={dict.body.tactics.oneAnglePerVideo}
         className="h-8 rounded border border-line bg-raised px-1 text-sm text-muted" onChange={() => undefined}>
         <option value="b">{dict.body.workspace.broadcastView}</option>
@@ -108,7 +108,7 @@ export function AnalysisTools({ s, tools }: { s: Shared; tools: PlayerToolState 
                 ))}
               </div>
               <div role="group" aria-label={dict.body.workspace.overlayOpacity} className="mt-2 flex flex-col gap-2 border-t border-line pt-2 text-sm text-muted">
-                <span className="font-semibold text-ink">{dict.body.workspace.overlayOpacity}</span>
+                <span className="font-normal text-ink">{dict.body.workspace.overlayOpacity}</span>
                 {([["boxes", dict.body.workspace.boxesAndIds], ["pitch", dict.body.workspace.pitchLayersLabel], ["ball", dict.body.processing.ball]] as const).map(([k, l]) => (
                   <label key={k} className="flex items-center gap-2">
                     <span className="w-[130px] shrink-0">{l}</span>

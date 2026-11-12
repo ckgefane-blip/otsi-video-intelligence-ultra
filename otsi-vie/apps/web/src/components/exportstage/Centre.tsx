@@ -50,7 +50,7 @@ export function Workflow() {
   ];
   return (
     <section aria-label={dict.body.exportstage.workflowAria} data-section="p10-s02" className="vie-panel p-3">
-      <h1 className="text-base font-semibold">{dict.body.exportstage.workflowTitle}</h1>
+      <h1 className="text-base font-normal">{dict.body.exportstage.workflowTitle}</h1>
       <p className="mt-1 text-sm text-muted">{dict.body.exportstage.workflowSub1}</p>
       <p className="text-sm text-muted">{dict.body.exportstage.workflowSub2}</p>
       <ol aria-label={dict.body.exportstage.exportStepsAria} className="mt-3 flex flex-col gap-1">
@@ -63,11 +63,11 @@ export function Workflow() {
                 onClick={on ?? (() => setNote(why[i]!))}
                 title={on ? undefined : why[i]}
                 className={`flex w-full items-center gap-3 rounded-md border px-2.5 py-2 text-left ${cur === i ? "border-primary bg-raised" : "border-line bg-transparent hover:bg-raised"}`}>
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${done[i] ? "bg-ok text-white" : cur === i ? "bg-primary text-white" : "border border-line bg-raised text-ink"}`} aria-hidden>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-normal ${done[i] ? "bg-ok text-white" : cur === i ? "bg-primary text-white" : "border border-line bg-raised text-ink"}`} aria-hidden>
                   {done[i] ? <Check className="h-4 w-4" /> : i + 1}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">{wt}</span>
+                  <span className="block truncate text-sm font-normal">{wt}</span>
                   <span className="block truncate text-xs text-muted">{ws}</span>
                 </span>
               </button>
@@ -88,7 +88,7 @@ function Picker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boole
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl" data-dialog="choose-reel">
-          <Dialog.Title className="text-base font-semibold">{dict.body.exports.openReelToExport}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.exports.openReelToExport}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{dict.body.exportstage.pickerDesc}</Dialog.Description>
           {e.reels === null && !e.reelsFailed && <p className="text-muted">{dict.common.loading}</p>}
           {e.reelsFailed && (<><p className="text-muted">{dict.body.reels.reelsNotLoaded}</p>
@@ -98,7 +98,7 @@ function Picker({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boole
             {e.reels?.map((r) => (
               <li key={r.id}>
                 <Link href={`/exports?reel=${r.id}`} data-reel={r.id} onClick={() => onOpenChange(false)} className="flex items-center justify-between gap-3 rounded-ctl border border-line/70 px-3 py-2 hover:border-primary/60">
-                  <span className="min-w-0 truncate font-medium">{r.name}</span>
+                  <span className="min-w-0 truncate font-normal">{r.name}</span>
                   <span className="shrink-0 text-xs text-muted">{(r.clips.length === 1 ? dict.body.exportstage.pickerClipsOne : dict.body.exportstage.pickerClipsMany).replace("{a}", String(r.clips.length))} · {renderWord(r.latest_render?.state, dict.body.reels)}</span>
                 </Link>
               </li>
@@ -125,7 +125,7 @@ export function Summary() {
           <Film className="h-6 w-6" />
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{e.reel?.name ?? dict.body.exportstage.summaryNoProject}</span>
+          <span className="block truncate text-sm font-normal">{e.reel?.name ?? dict.body.exportstage.summaryNoProject}</span>
           <span className="block truncate text-sm">{e.reel ? (e.reel.player?.display_name ?? dict.body.exportstage.summaryNoPlayer) : dict.body.exports.openReelToExport}</span>
         </span>
       </button>
@@ -168,7 +168,7 @@ export function Preview() {
     <section aria-label={dict.body.exportstage.previewAria2} data-section="p10-s04" data-preview={url ? "render" : "none"} className="vie-panel flex min-w-0 flex-col gap-3 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="t-panel">{line1}</h2>
-        {res?.height ? <span className="rounded border border-amber/60 px-1.5 py-0.5 text-xs font-semibold text-amber">{res.height}p{res.width ? ` · ${res.width}×${res.height}` : ""}</span> : null}
+        {res?.height ? <span className="rounded border border-amber/60 px-1.5 py-0.5 text-xs font-normal text-amber">{res.height}p{res.width ? ` · ${res.width}×${res.height}` : ""}</span> : null}
       </div>
       <p className="text-sm text-muted">{[line2, line3].filter(Boolean).join(" ")}</p>
       <VideoPlayer key={`${seekAt ?? "main"}-${seekNonce}`} src={url} label={dict.body.reels.previewRenderedAria}
@@ -222,7 +222,7 @@ const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: numb
   return (
     <div className="rounded-md border border-line bg-raised/40 p-3">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-sm font-semibold">{hidden ? dict.body.exportstage.chaptersTitleOf.replace("{a}", String(clips.length)).replace("{b}", String(all.length)) : dict.body.exportstage.chaptersTitle.replace("{a}", String(clips.length))}</h2>
+        <h2 className="text-sm font-normal">{hidden ? dict.body.exportstage.chaptersTitleOf.replace("{a}", String(clips.length)).replace("{b}", String(all.length)) : dict.body.exportstage.chaptersTitle.replace("{a}", String(clips.length))}</h2>
         <label className="flex items-center gap-2 text-xs text-muted">
           {dict.body.exportstage.autoChapters}
           <button type="button" role="switch" aria-checked={e.autoChapters} aria-label={dict.body.exportstage.autoChapters} className="vie-sw"
@@ -251,10 +251,10 @@ const ChaptersBox = memo(function ChaptersBox({ seek, canSeek }: { seek(us: numb
             <button key={c.id} role="listitem" type="button" data-chapter={shown[i]!.i + 1} data-action={acts ? (acts.has(c.id) ? "1" : "0") : "unknown"} disabled={!canSeek} title={canSeek ? dict.body.exportstage.chapterSeek : dict.body.exportstage.chapterSeekNoRender} onClick={() => seek(offs[i]!)}
               className="w-[200px] shrink-0 rounded-md border border-line bg-panel p-2 text-left hover:border-primary/60 disabled:opacity-60">
               <span className="flex items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-white">{shown[i]!.i + 1}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-normal text-white">{shown[i]!.i + 1}</span>
                 <span className="ml-auto rounded-sm bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">{dict.body.reelstage.durS.replace("{a}", String(Math.round(clipOutputUs(c) / 1e6)))}</span>
               </span>
-              <span className="mt-2 block truncate text-sm font-semibold">{c.label ?? `${dict.body.reelstage.clipListFallback} ${shown[i]!.i + 1}`}</span>
+              <span className="mt-2 block truncate text-sm font-normal">{c.label ?? `${dict.body.reelstage.clipListFallback} ${shown[i]!.i + 1}`}</span>
             </button>
           ))}
         </div>

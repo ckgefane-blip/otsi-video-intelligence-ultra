@@ -119,8 +119,8 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
         <>
           <div data-archive-rights data-allowed={String(status.rights_now.allowed)} className="rounded border border-line bg-raised p-2.5">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="font-semibold">Live rights check ({status.rights_now.rule_version})</span>
-              <span style={{ color: rightsSummary?.tone === "ok" ? "#3ee6a8" : "#f5b82e" }} className="font-semibold">
+              <span className="font-normal">Live rights check ({status.rights_now.rule_version})</span>
+              <span style={{ color: rightsSummary?.tone === "ok" ? "#3ee6a8" : "#f5b82e" }} className="font-normal">
                 {status.rights_now.allowed ? "Allowed" : "Blocked"}
               </span>
             </div>
@@ -129,7 +129,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
               <ul className="space-y-1">
                 {rightsSummary.videos.map((v) => (
                   <li key={v.video_id} data-archive-video={v.video_id} className="flex justify-between gap-2 rounded border border-line/60 px-2 py-1">
-                    <span className="truncate font-medium">{v.title}</span>
+                    <span className="truncate font-normal">{v.title}</span>
                     <span style={{ color: v.tone === "ok" ? "#3ee6a8" : "#f5b82e" }}>{v.label}</span>
                   </li>
                 ))}
@@ -143,7 +143,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                 disabled={!canWrite || busy || !status.rights_now.allowed}
                 title={!canWrite ? "Your role can view archives but not pack new ones" : status.rights_now.reason_text ?? "Pack a portable archive bundle (.zip)"}
                 onClick={() => void pack()}
-                className="shrink-0 rounded bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-40"
+                className="shrink-0 rounded bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-40"
               >
                 {busy ? "Packing…" : `Pack ${subjectKind.toLowerCase()} archive`}
               </button>
@@ -151,7 +151,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
           </div>
 
           <div>
-            <h4 className="mb-1.5 font-semibold uppercase tracking-wide text-muted">
+            <h4 className="mb-1.5 font-normal uppercase tracking-wide text-muted">
               Packed archive bundles ({status.archives.length})
             </h4>
             {status.archives.length === 0 ? (
@@ -163,7 +163,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                 {status.archives.map((a) => (
                   <li key={a.id} data-archive-row={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line px-2.5 py-1.5">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-semibold">
+                      <div className="truncate font-normal">
                         {a.title} · {formatArchiveBytes(a.bytes)} · {a.file_count} files · {a.audit_count} audit events
                       </div>
                       <div className="truncate text-muted">
@@ -179,7 +179,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                         data-open-archive={a.id}
                         disabled={busy}
                         onClick={() => void openArchive(a)}
-                        className="rounded border border-line bg-[#08213f] px-2.5 py-1 font-semibold text-[#33a8ff]"
+                        className="rounded border border-line bg-[#08213f] px-2.5 py-1 font-normal text-[#33a8ff]"
                       >
                         Open &amp; verify
                       </button>
@@ -187,7 +187,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                         <a
                           href={a.download_url}
                           data-download-archive={a.id}
-                          className="rounded bg-primary px-2.5 py-1 font-semibold text-white no-underline"
+                          className="rounded bg-primary px-2.5 py-1 font-normal text-white no-underline"
                         >
                           Download .zip
                         </a>
@@ -207,7 +207,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
             <div data-archive-opened={opened.id} className="rounded border border-[#1e90ff] bg-[#041022] p-2.5">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="font-semibold">Opened archive · {opened.manifest.schema}</span>{" "}
+                  <span className="font-normal">Opened archive · {opened.manifest.schema}</span>{" "}
                   <span className="text-muted">({opened.manifest.files.map((f) => f.name).join(", ")})</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -215,7 +215,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                     type="button"
                     data-archive-view="manifest"
                     onClick={() => setSubView("manifest")}
-                    className={`rounded border px-2 py-0.5 ${subView === "manifest" ? "border-[#1e90ff] bg-[#08213f] font-semibold text-white" : "border-line text-muted"}`}
+                    className={`rounded border px-2 py-0.5 ${subView === "manifest" ? "border-[#1e90ff] bg-[#08213f] font-normal text-white" : "border-line text-muted"}`}
                   >
                     manifest.json
                   </button>
@@ -223,7 +223,7 @@ export function ArchivePanel({ subjectKind, subjectId, canWrite = true }: {
                     type="button"
                     data-archive-view="audit"
                     onClick={() => setSubView("audit")}
-                    className={`rounded border px-2 py-0.5 ${subView === "audit" ? "border-[#1e90ff] bg-[#08213f] font-semibold text-white" : "border-line text-muted"}`}
+                    className={`rounded border px-2 py-0.5 ${subView === "audit" ? "border-[#1e90ff] bg-[#08213f] font-normal text-white" : "border-line text-muted"}`}
                   >
                     audit-extract.json ({opened.audit_extract.length})
                   </button>
@@ -250,7 +250,7 @@ export function ArchiveDialog({ target, canWrite = true, onClose }: {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="archive" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(680px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">
+          <Dialog.Title className="text-base font-normal">
             Archive {target?.kind.toLowerCase()} &ldquo;{target?.title}&rdquo;
           </Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">

@@ -63,7 +63,7 @@ export function MediaBin({ r, st, onPick, say }: { r: ReelState | null; st: Stud
       <div role="tablist" aria-label={dict.body.studio.assets} className="flex gap-1 border-b border-line">
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}
-            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-semibold text-primary" : "border-transparent text-muted"}`}>
+            className={`t-body border-b-2 px-2 py-1.5 ${tab === i ? "border-primary font-normal text-primary" : "border-transparent text-muted"}`}>
             {needle ? `${l} ${counts[i]}` : l}
           </button>
         ))}
@@ -152,7 +152,7 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
   const kindBadge = (k: OrgTemplateKind) => {
     const bg = k === "SPOTLIGHT" ? "#0e4b75" : k === "STYLE" ? "#4a1d75" : k === "BRANDING" ? "#135c3b" : "#705312";
     const text = k === "SPOTLIGHT" ? "#33a8ff" : k === "STYLE" ? "#d292ff" : k === "BRANDING" ? "#3ee6a8" : "#f5d02e";
-    return <span className="px-1.5 py-0.5 text-xs font-semibold" style={{ borderRadius: 4, background: bg, color: text }}>{kindLabel(k)}</span>;
+    return <span className="px-1.5 py-0.5 text-xs font-normal" style={{ borderRadius: 4, background: bg, color: text }}>{kindLabel(k)}</span>;
   };
 
   return (
@@ -163,7 +163,7 @@ function Templates({ st, canEdit, onPick, say, hit }: { st: Studio; canEdit: boo
         <>
           {/* Quick kind filter pills */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="t-label font-semibold">{dict.body.studio.filterLabel}</span>
+            <span className="t-label font-normal">{dict.body.studio.filterLabel}</span>
             {(["ALL", "SPOTLIGHT", "STYLE", "BRANDING", "FULL"] as const).map((k) => (
               <button key={k} type="button" data-filter-kind={k} onClick={() => setKindFilter(k)} className={chip(kindFilter === k, false)}>
                 {k === "ALL" ? dict.body.processing.filterAll : kindLabel(k)}

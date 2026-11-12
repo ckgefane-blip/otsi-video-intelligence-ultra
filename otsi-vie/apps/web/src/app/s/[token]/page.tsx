@@ -44,7 +44,7 @@ export default function SharedReelPage() {
   }, [token]);
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-3 py-8" data-shared-page>
-      <p className="flex items-center gap-2 t-small font-semibold">
+      <p className="flex items-center gap-2 t-small font-normal">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/otsi-mark.png" alt="" className="h-5 w-auto" draggable={false} />
         OTSI VIE · {view?.kind === "REPORT" ? t.body.auth.sharedReport : t.body.auth.sharedVideo}
@@ -109,7 +109,7 @@ function Player({ view, token, password, onComments }: { view: SharedView; token
             <ul className="grid gap-2">
               {view.comments.map((c) => (
                 <li key={c.id}>
-                  <span className="font-semibold">{c.name}</span>
+                  <span className="font-normal">{c.name}</span>
                   {c.at_s !== null && <button type="button" onClick={() => seek(c.at_s!)} className="ml-1 t-small text-primary">{t.body.auth.sharedAt.replace("{a}", clock(c.at_s))}</button>}
                   <span className="t-small"> · {new Date(c.created_at).toLocaleString()}</span>
                   <p>{c.body}</p>

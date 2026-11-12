@@ -47,7 +47,7 @@ function ReelSlot({ reel, failed, loading }: { reel: Reel | undefined; failed: b
       )}
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0">
-          {reel ? <Link href={`/reels/${reel.id}`} className="t-body block truncate font-medium hover:text-primary">{reel.name}</Link>
+          {reel ? <Link href={`/reels/${reel.id}`} className="t-body block truncate font-normal hover:text-primary">{reel.name}</Link>
             : <span className="t-body block text-muted">—</span>}
           <span className="t-small block truncate text-muted">{reel?.player?.display_name ?? ""}</span>
         </div>

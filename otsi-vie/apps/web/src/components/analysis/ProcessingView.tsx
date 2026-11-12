@@ -115,7 +115,7 @@ export function RunHeadline() {
   };
   return (
     <div className="space-y-3 text-sm" data-video={video.id}>
-      <p><span className="font-semibold">{video.title ?? video.original_filename}</span>{" "}
+      <p><span className="font-normal">{video.title ?? video.original_filename}</span>{" "}
         <span className="text-muted">· {formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</span></p>
       {!ready && <p className="text-muted">{dict.body.processing.notVerifiedVideo.replace("{a}", video.state.toLowerCase())}</p>}
       {ready && !active(run) && canRun && (
@@ -129,7 +129,7 @@ export function RunHeadline() {
                 <label key={k} data-profile={k} className={`flex cursor-pointer items-start gap-2 rounded-ctl border px-2.5 py-2 ${chosen === k ? "border-primary bg-primary/5" : "border-line/70"}`}>
                   <input type="radio" name="profile" value={k} checked={chosen === k} onChange={() => setProfile(k)} className="mt-1" aria-label={profileLabelOf(k, dict)} />
                   <span className="min-w-0 flex-1">
-                    <span className="font-medium">{profileLabelOf(k, dict)}</span>
+                    <span className="font-normal">{profileLabelOf(k, dict)}</span>
                     {assessment?.recommended_profile === k && <span className="ml-2 rounded bg-ok/15 px-1.5 py-0.5 text-[11px] text-ok">{dict.body.processing.recommendedBadge}</span>}
                     <span className="block text-xs text-muted">{profileSummaryOf(k, dict)} {dict.body.processing.fpsPasses.replace("{fps}", String(PROFILES[k].sample_fps)).replace("{passes}", String(e?.passes_per_frame ?? "?"))}</span>
                     <span className="block text-xs text-muted" data-estimate={k}>{e?.seconds != null ? dict.body.processing.estimateAbout.replace("{est}", formatEstimate(e.seconds, dict)).replace("{gb}", (e.peak_memory_mb! / 1024).toFixed(1)) : dict.body.processing.estimateAfterCheck}</span>
@@ -145,7 +145,7 @@ export function RunHeadline() {
                 {[1, 2, 3, 5, 6, 8, 10].map((v) => <option key={v} value={v}>{dict.body.processing.fpsOption.replace("{n}", String(v))}</option>)}
               </select>
             </label>
-            <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white disabled:opacity-50">
+            <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-normal text-white disabled:opacity-50">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {run ? dict.body.processing.analyseAgainPlain : dict.body.processing.startAnalysisPlain}
             </button>
           </div>
@@ -159,7 +159,7 @@ export function RunHeadline() {
         </button>
       )}
       {run?.status === "SUCCEEDED" && (
-        <Link href={`/videos/${video.id}/analyze`} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-semibold text-white">{dict.body.processing.openAnalysisWorkspace}</Link>
+        <Link href={`/videos/${video.id}/analyze`} className="inline-flex items-center gap-2 rounded-ctl bg-primary px-3 py-2 font-normal text-white">{dict.body.processing.openAnalysisWorkspace}</Link>
       )}
       {msg && <p role="alert" className="text-danger">{msg}</p>}
     </div>
@@ -182,7 +182,7 @@ function FootageCheck({ assessment }: { assessment: QualityAssessment | null }) 
   const m = assessment.metrics as { people?: { measured?: boolean; median_height_px?: number; people_per_frame?: number }; sharpness?: number; bits_per_pixel?: number | null } | null;
   return (
     <div className="space-y-1 rounded-ctl border border-line/70 p-2 text-xs" data-assessment="SUCCEEDED">
-      <p className="font-semibold">{dict.body.processing.footageCheck}</p>
+      <p className="font-normal">{dict.body.processing.footageCheck}</p>
       {m?.people?.measured && <p className="text-muted">{dict.body.processing.playersAboutTall.replace("{a}", String(Math.round(m.people.median_height_px ?? 0))).replace("{b}", String(m.people.people_per_frame?.toFixed(1)))}</p>}
       {assessment.issues.length === 0 ? <p className="text-ok">{dict.body.processing.noProblemFound}</p> : (
         <ul className="space-y-0.5" aria-label={dict.body.processing.footageIssues}>
@@ -211,7 +211,7 @@ export function PipelineSteps() {
     <ol aria-label={dict.body.processing.analysisSteps} className="grid grid-cols-2 gap-2 md:grid-cols-6">
       {run.steps.map((s) => (
         <li key={s.name} className="rounded-ctl border border-line/70 bg-raised/40 p-2" data-step={s.name} data-step-status={s.status}>
-          <span className="flex items-center gap-1.5 text-sm font-medium">{icon(s.status)} {STEP_NAMES[s.name]?.name ?? s.name}</span>
+          <span className="flex items-center gap-1.5 text-sm font-normal">{icon(s.status)} {STEP_NAMES[s.name]?.name ?? s.name}</span>
           <span className="mt-1 block text-xs text-muted">{s.status === "RUNNING" ? `${Math.round(s.progress)} %` : s.status.toLowerCase()}{s.error_code ? ` · ${s.error_code}` : ""}</span>
           <div className="mt-1.5 h-1 rounded bg-line/60"><div className="h-1 rounded bg-primary" style={{ width: `${Math.min(100, s.progress)}%` }} /></div>
           <span className="mt-1 block text-[11px] text-muted/80">{STEP_NAMES[s.name]?.note}</span>
@@ -233,7 +233,7 @@ export function ProcessingLog() {
           {run.job?.stage_message ?? (run.status === "QUEUED" ? dict.body.processing.waitingWorker : dict.body.processing.working)}</p>
       )}
       {run?.status === "FAILED" && (
-        <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-danger"><span className="font-semibold">{run.failure_code}</span>: {run.failure_detail}</p>
+        <p role="alert" className="rounded-ctl border border-danger/40 bg-danger/10 p-2 text-danger"><span className="font-normal">{run.failure_code}</span>: {run.failure_detail}</p>
       )}
       <ul aria-label={dict.body.processing.analysisRuns} className="space-y-1">
         {runs.map((r) => (
@@ -269,7 +269,7 @@ export function OutputSummary() {
   return (
     <dl className="grid grid-cols-2 gap-2 md:grid-cols-3" aria-label={dict.body.processing.runOutput}>
       {cards.map(([k, v]) => (
-        <div key={k} className="rounded-ctl border border-line/70 bg-raised/40 p-2"><dt className="text-xs text-muted">{k}</dt><dd className="text-sm font-semibold" data-metric={k}>{v}</dd></div>
+        <div key={k} className="rounded-ctl border border-line/70 bg-raised/40 p-2"><dt className="text-xs text-muted">{k}</dt><dd className="text-sm font-normal" data-metric={k}>{v}</dd></div>
       ))}
       <p className="col-span-full text-xs text-muted">{dict.body.processing.eventsNotDetected}</p>
     </dl>

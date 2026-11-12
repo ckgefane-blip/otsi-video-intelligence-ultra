@@ -276,7 +276,7 @@ export function MatchContext() {
   if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" />{dict.common.loading}</p>;
   return (
     <div className="space-y-2 text-sm" data-video={video.id}>
-      <p className="font-semibold">{video.title ?? video.original_filename}</p>
+      <p className="font-normal">{video.title ?? video.original_filename}</p>
       <p className="text-xs text-muted">{formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</p>
       {run ? (
         <p className="text-xs" data-run={run.id}>{dict.body.analysis.analysisOf.replace("{a}", run.finished_at?.slice(0, 16).replace("T", " ") ?? "—").replace("{b}", String(run.config.sample_fps))} ·{" "}
@@ -314,8 +314,8 @@ export function BoxLegend() {
   const { intervalUs, visible } = useWs();
   return (
     <div className="space-y-1 text-xs text-muted">
-      <p>{kitLegend(dict).map(([g, l]) => <span key={g} className="mr-2"><span className="font-semibold" style={{ color: KIT_COLOUR[g] }}>{l}</span></span>)}
-        <span className="font-semibold" style={{ color: "#19a0ff" }}>{dict.body.analysis.legendBlue}</span>: {dict.body.analysis.legendNoTeam} · <span className="font-semibold text-amber">{dict.body.analysis.legendAmber}</span>: {dict.body.analysis.legendBall} · {dict.body.analysis.legendWhite}: {dict.body.analysis.legendSelected}.
+      <p>{kitLegend(dict).map(([g, l]) => <span key={g} className="mr-2"><span className="font-normal" style={{ color: KIT_COLOUR[g] }}>{l}</span></span>)}
+        <span className="font-normal" style={{ color: "#19a0ff" }}>{dict.body.analysis.legendBlue}</span>: {dict.body.analysis.legendNoTeam} · <span className="font-normal text-amber">{dict.body.analysis.legendAmber}</span>: {dict.body.analysis.legendBall} · {dict.body.analysis.legendWhite}: {dict.body.analysis.legendSelected}.
         {dict.body.analysis.legendNameReplaces}</p>
       <p>{dict.body.analysis.legendFrames.replace("{a}", seconds(intervalUs))}</p>
       <p data-visible-boxes={visible.length}>{dict.body.analysis.legendBoxesAtPlayhead.replace("{a}", String(visible.length))}</p>
@@ -352,7 +352,7 @@ const TrackRow = memo(function TrackRow({ t, selected, onSelect, onSeek }: { t: 
         className={`flex w-full items-start gap-2 rounded-ctl border px-2 py-1.5 text-left ${selected ? "border-primary bg-primary/10" : "border-line/60 hover:border-primary/50"}`}>
         {t.class_name !== "BALL" && <TrackThumb trackId={t.track_id} has={t.has_thumbnail} size={22} />}
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{t.label}</span>
+          <span className="block truncate font-normal">{t.label}</span>
           <span className="block text-xs text-muted">{seconds(t.first_pts_us)}–{seconds(t.last_pts_us)} · {t.observation_count} {dict.body.analysis.obsAbbr} · {dict.body.analysis.confAbbr} {t.mean_confidence?.toFixed(2) ?? "—"}
             {t.identity_state !== "UNRESOLVED" ? ` · ${stateLabel[t.identity_state] ?? t.identity_state.toLowerCase()}` : ""}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-2">
@@ -463,7 +463,7 @@ export function SelectedTrack() {
   return (
     <div className="space-y-3 text-sm" data-selected-track={t.track_number}>
       <div>
-        <p className="font-semibold" data-track-label>{t.label}</p>
+        <p className="font-normal" data-track-label>{t.label}</p>
         <p className="text-xs text-muted">{dict.body.analysis.temporaryTrack.replace("{a}", trackLabel(t.track_number))}{t.shot_number ? ` · ${dict.body.analysis.shotLabel.replace("{a}", String(t.shot_number))}` : ""}</p>
       </div>
       <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
@@ -482,7 +482,7 @@ export function SelectedTrack() {
       </dl>
       {t.class_name !== "BALL" && (
         <div className="space-y-2 rounded-ctl border border-line/70 p-2" aria-label={dict.body.analysis.identityReview}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.upload.identity}</p>
+          <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.upload.identity}</p>
           {!identity ? <p className="text-xs text-muted">{dict.common.loading}</p> : (
             <>
               <p data-identity-state={identity.state}>{identity.display.label}
@@ -512,7 +512,7 @@ export function SelectedTrack() {
                       {hits.map((p) => (
                         <li key={p.player_id}>
                           <button type="button" data-confirm-player={p.player_id} disabled={busy || !reasonOk} onClick={() => decide("CONFIRMED", p.player_id, dict.body.analysis.confirmedAs.replace("{a}", trackLabel(t.track_number)).replace("{b}", p.display_name))}
-                            className="flex w-full items-center justify-between gap-2 rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 text-left text-sm font-semibold hover:bg-ok/25 disabled:opacity-50">
+                            className="flex w-full items-center justify-between gap-2 rounded-ctl border border-ok/60 bg-ok/15 px-3 py-2 text-left text-sm font-normal hover:bg-ok/25 disabled:opacity-50">
                             <span className="truncate">{dict.body.analysis.confirmAs.replace("{a}", p.display_name)}</span>
                             <span className="shrink-0 text-xs font-normal text-muted">{p.canonical_otsi_id ?? dict.body.analysis.provisionalBadge}</span>
                           </button>
@@ -549,7 +549,7 @@ export function SelectedTrack() {
               .then((r) => router.push(`/reels/${r.id}`), (x) => setMsg({ ok: false, text: x instanceof ApiProblem ? x.message : dict.body.analysis.reelNotCreated }))
               .finally(() => setBusy(false));
           }}
-          className="w-full rounded-ctl bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          className="w-full rounded-ctl bg-primary px-3 py-2 text-sm font-normal text-white disabled:opacity-50">
           Create highlight reel for {identity.player.display_name}
         </button>
       )}

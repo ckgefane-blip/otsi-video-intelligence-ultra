@@ -111,7 +111,7 @@ export function SamePersonPanel({ track, identity, canReview, onChanged, seek, s
           )}
         </div>
       </div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.samePersonElsewhereQ}</p>
+      <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.analysis.samePersonElsewhereQ}</p>
       {!links ? <p className="text-xs text-muted">{dict.common.loading}</p> : links.length === 0 ? <p className="text-xs text-muted">{dict.body.analysis.noSuggestionLookalike}</p> : (
         <ul aria-label={dict.body.analysis.samePersonSuggestions} className="space-y-1.5">
           {[...open, ...decided].map((l) => (
@@ -120,13 +120,13 @@ export function SamePersonPanel({ track, identity, canReview, onChanged, seek, s
                 <TrackThumb trackId={l.other.track_id} has={l.other.has_thumbnail} size={28} />
               </button>
               <div className="min-w-0 flex-1 text-xs">
-                <p className="truncate font-medium">{l.other.label}</p>
+                <p className="truncate font-normal">{l.other.label}</p>
                 <p className="text-muted">{l.direction === "before" ? dict.body.analysis.earlier : dict.body.analysis.later} · {fmt(l.other.first_pts_us)}–{fmt(l.other.last_pts_us)} · {dict.body.analysis.gapLabel} {fmt(l.gap_us)}
                   {l.crosses_cut && <span className="ml-1 inline-flex items-center gap-0.5 text-cyan"><Scissors className="h-3 w-3" />{dict.body.analysis.acrossCut}</span>}
                   {" "}· {dict.body.analysis.scoreLabel} {l.score.toFixed(2)}</p>
                 {l.state !== "PROPOSED" && <p className={l.state === "CONFIRMED" ? "text-ok" : "text-muted"}>{l.state === "CONFIRMED" ? dict.body.analysis.confirmedSamePerson : l.state === "REJECTED" ? dict.body.analysis.notSamePerson : dict.body.analysis.resetState}</p>}
                 {l.other.confirmed_player && track.identity_state !== "CONFIRMED" && (
-                  <p data-identity-suggestion className="mt-0.5">{dict.body.analysis.suggestionLabel}<span className="font-medium">{l.other.confirmed_player.display_name}</span> {dict.body.analysis.confirmedOn.replace("{a}", trackLabel(l.other.track_number))}</p>
+                  <p data-identity-suggestion className="mt-0.5">{dict.body.analysis.suggestionLabel}<span className="font-normal">{l.other.confirmed_player.display_name}</span> {dict.body.analysis.confirmedOn.replace("{a}", trackLabel(l.other.track_number))}</p>
                 )}
                 {canReview && (
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -189,7 +189,7 @@ export function LookAlikePanel({ track, identity, canReview, onChanged, seek, se
 
   return (
     <div className="space-y-2 rounded-ctl border border-line/70 p-2 text-sm" aria-label={dict.body.analysis.looksLikeElsewhere} data-look-alikes={data?.items.length ?? ""}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.looksLikeElsewhereName.replace("{a}", confirmed ? confirmed.display_name : dict.body.analysis.looksLikeThisPerson)}</p>
+      <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.analysis.looksLikeElsewhereName.replace("{a}", confirmed ? confirmed.display_name : dict.body.analysis.looksLikeThisPerson)}</p>
       {!confirmed && <p className="text-xs text-muted">{dict.body.analysis.nameFirst}</p>}
       {!data ? <p className="text-xs text-muted">{dict.common.loading}</p> : data.items.length === 0 ? (
         <p className="text-xs text-muted">{data.seeds > 1 ? dict.body.analysis.noMoreLookalikesFrom.replace("{a}", String(data.seeds)) : dict.body.analysis.noMoreLookalikes}</p>
@@ -199,7 +199,7 @@ export function LookAlikePanel({ track, identity, canReview, onChanged, seek, se
             <li key={o.track_id} data-look-alike={o.track_number} className="flex items-start gap-2 rounded border border-line/50 p-1.5">
               <TrackThumb trackId={o.track_id} has={o.has_thumbnail} size={30} />
               <div className="min-w-0 flex-1 text-xs">
-                <p className="truncate font-medium">{trackLabel(o.track_number)} · {fmt(o.first_pts_us)}–{fmt(o.last_pts_us)}</p>
+                <p className="truncate font-normal">{trackLabel(o.track_number)} · {fmt(o.first_pts_us)}–{fmt(o.last_pts_us)}</p>
                 <p className="text-muted">{dict.body.analysis.looksAlike.replace("{a}", String(Math.round(similarity * 100)))}{resembles > 1 ? ` ${dict.body.analysis.resembles.replace("{a}", String(resembles))}` : ""}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <button type="button" onClick={() => seek(o.first_pts_us)} className="rounded border border-line px-1.5 py-0.5">{dict.body.analysis.showBtn}</button>

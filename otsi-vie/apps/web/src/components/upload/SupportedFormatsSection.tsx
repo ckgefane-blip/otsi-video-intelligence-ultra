@@ -26,7 +26,7 @@ export function SupportedFormatsSection() {
       <ul aria-label={d.supportedFormats} className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4">
         {TILES.map(([name, codec]) => (
           <li key={name} className="rounded-ctl border border-line/70 bg-raised/40 px-3 py-2">
-            <span className="block text-sm font-semibold">{name}</span>
+            <span className="block text-sm font-normal">{name}</span>
             <span className="block text-xs text-muted">{codec}</span>
           </li>
         ))}
@@ -35,7 +35,7 @@ export function SupportedFormatsSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(460px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.acceptedVideoFiles}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.acceptedVideoFiles}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">
               {limits ? d.upToGbPerFile.replace("{n}", String(Math.round(limits.max_upload_bytes / 1024 ** 3))) + " " : ""}{d.everyFileVerified}
             </Dialog.Description>

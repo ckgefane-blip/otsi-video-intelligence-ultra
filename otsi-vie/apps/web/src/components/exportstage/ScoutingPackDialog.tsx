@@ -56,7 +56,7 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="scouting-pack" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(680px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Scouting Pack — {SCOUTING_PACK_SOURCE_LABELS[source]}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Scouting Pack — {SCOUTING_PACK_SOURCE_LABELS[source]}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             One named bundle for the club: the highlight reel (Player Profile Intro first, then the best moments
             under Best Moment Rule v2.1), the player report, and the AI Analyst brief when it is published — as one
@@ -68,7 +68,7 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
           ) : (
             <>
               <div data-scouting-pack-reel className="mb-3 rounded border border-line bg-raised p-2.5 text-xs">
-                <div className="font-semibold">{reel.name} · {player.display_name}{player.canonical_otsi_id ? ` · ${player.canonical_otsi_id}` : ""}</div>
+                <div className="font-normal">{reel.name} · {player.display_name}{player.canonical_otsi_id ? ` · ${player.canonical_otsi_id}` : ""}</div>
                 <div className="text-muted">
                   {source === "SINGLE_MATCH" ? "Single Match Spotlight — one match, one reel, one report." : "All matches — the cross-match reel, every match he was tracked in."}
                   {reel.best_moments_rule_version ? ` Best Moment Rule v${reel.best_moments_rule_version}.` : " Best Moment Rule v2.1."}
@@ -88,13 +88,13 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
               <div className="mb-3 flex flex-wrap gap-2">
                 <button type="button" data-build-scouting-pack onClick={build} disabled={busy || !canWrite || !reel.last_good_render}
                   title={reel.last_good_render ? "Build the Scouting Pack (10 tokens)" : "Render the reel first"}
-                  className="rounded bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">
+                  className="rounded bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">
                   {busy ? "Building…" : `Build the Scouting Pack — ${SCOUTING_PACK_COST_TOKENS} tokens`}
                 </button>
                 {!reel.last_good_render ? <span className="self-center text-xs text-muted">Render the reel first: the Pack holds the finished reel file.</span> : null}
                 {!canWrite ? <span className="self-center text-xs text-muted">Your role can look, not build.</span> : null}
               </div>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Packs for this player</h3>
+              <h3 className="mb-1.5 text-xs font-normal uppercase tracking-wide text-muted">Packs for this player</h3>
               {!packs ? (
                 <p className="mb-3 text-xs text-muted">Reading the Packs…</p>
               ) : !packs.length ? (
@@ -104,7 +104,7 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
                   {packs.map((p) => (
                     <li key={p.id} data-scouting-pack={p.id} className="rounded border border-line/60 p-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold">{p.manifest.name}</span>
+                        <span className="font-normal">{p.manifest.name}</span>
                         <span style={{ color: p.state === "READY" ? "#3ee6a8" : p.state === "FAILED" ? "#ff8a8a" : "#f5b82e" }}>{p.state}</span>
                       </div>
                       <div className="text-muted">Best Moment Rule v{p.manifest.best_moments_rule_version} · {p.manifest.match_titles.join(" · ")} · {p.cost_tokens} tokens · {p.created_at.slice(0, 10)}</div>
@@ -117,7 +117,7 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
                         ))}
                       </ul>
                       {p.zip ? (
-                        <a data-download-scouting-pack href={p.zip.download_url} className="mt-1.5 inline-block font-semibold text-[#33a8ff] underline">Download the Pack ({(p.zip.bytes / 1_000_000).toFixed(1)} MB)</a>
+                        <a data-download-scouting-pack href={p.zip.download_url} className="mt-1.5 inline-block font-normal text-[#33a8ff] underline">Download the Pack ({(p.zip.bytes / 1_000_000).toFixed(1)} MB)</a>
                       ) : null}
                     </li>
                   ))}

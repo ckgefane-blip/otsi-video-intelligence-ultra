@@ -245,7 +245,7 @@ export function AnalysisTimeline({ s }: { s: Shared }) {
         </div>
 
         <div className="flex flex-wrap items-start gap-x-6 gap-y-1 text-xs">
-          <span className="font-semibold text-sm">{dict.body.workspace.eventTypes}</span>
+          <span className="font-normal text-sm">{dict.body.workspace.eventTypes}</span>
           {LEGEND(dict).map(([l, c]) => (
             <span key={l} className="flex items-center gap-1.5 text-muted"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: c }} />{l}</span>
           ))}
@@ -406,7 +406,7 @@ function MarkerDialog({ s, open, onOpenChange, markers, setMarkers }: { s: Share
             <form className="mb-3 space-y-2" onSubmit={(e) => { e.preventDefault(); if (vid && body.trim()) void go(() => api<VideoMarker[]>(`/v1/videos/${vid}/markers`, { method: "POST", json: { at_pts_us: at, body: body.trim() } })).then((ok) => ok && setBody("")); }}>
               <label className="block text-xs text-muted" htmlFor="marker-body">{dict.body.workspace.noteAtPlayhead.replace("{a}", clock(at))}</label>
               <textarea id="marker-body" data-marker-body value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} rows={2} className="w-full rounded-ctl border border-line bg-raised p-2" />
-              <button type="submit" data-marker-add disabled={busy || !body.trim()} className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-semibold disabled:opacity-40">{dict.body.workspace.pinAt.replace("{a}", clock(at))}</button>
+              <button type="submit" data-marker-add disabled={busy || !body.trim()} className="rounded-ctl border border-primary bg-primary/20 px-3 py-1.5 font-normal disabled:opacity-40">{dict.body.workspace.pinAt.replace("{a}", clock(at))}</button>
             </form>
           ) : <p className="mb-3 text-xs text-muted">{dict.body.workspace.roleReadMarkers}</p>}
           {err && <p className="mb-2 text-xs text-[#ff8a8a]" role="alert">{err}</p>}

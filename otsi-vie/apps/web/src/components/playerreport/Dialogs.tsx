@@ -14,7 +14,7 @@ import { useLocale } from "@/lib/i18n";
 
 export type DialogName = "notes" | "dossier" | "pdf" | "share" | "assess" | "read" | null;
 const why = (x: unknown, fallback: string) => (x instanceof ApiProblem ? x.message : fallback);
-const btn = "rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50";
+const btn = "rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50";
 const ghost = "rounded-ctl border border-line px-3 py-1.5 disabled:opacity-50";
 const field = "w-full rounded-ctl border border-line bg-canvas px-2 py-1.5";
 const when = (s: string) => new Date(s).toLocaleString();
@@ -53,7 +53,7 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
       {d === undefined ? <p className="text-muted">{dict.common.loading}</p> : d === null ? <p role="alert" className="text-danger">{dict.body.reports.notesLoadFailed}</p> : (
         <div className="grid gap-4">
           <section aria-label={dict.body.reports.notesTags} className="grid gap-2">
-            <h3 className="font-semibold">{dict.body.reports.notesTags}</h3>
+            <h3 className="font-normal">{dict.body.reports.notesTags}</h3>
             <div className="flex flex-wrap gap-2" data-tags={String(d.tags.length)}>
               {!d.tags.length && <span className="t-small">{dict.body.reports.notesNoTags}</span>}
               {d.tags.map((t) => (
@@ -70,7 +70,7 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
             )}
           </section>
           <section aria-label={dict.body.reports.notesHeading} className="grid gap-2">
-            <h3 className="font-semibold">{dict.body.reports.notesHeading}</h3>
+            <h3 className="font-normal">{dict.body.reports.notesHeading}</h3>
             {d.can_write && (
               <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void run(() => api<PlayerNotes>(`${base}/notes`, { method: "POST", json: { body: text.trim() } }), dict.body.reports.noteSaveFailed).then((ok) => { if (ok) setText(""); }); }}>
                 <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={3} placeholder={dict.body.reports.notePlaceholder} aria-label={dict.body.reports.newNoteAria} className={field} />
@@ -81,7 +81,7 @@ export function NotesDialog({ player, open, onClose }: { player: PlayerIdentity;
               <ul className="grid gap-2" data-notes={String(d.notes.length)}>
                 {d.notes.map((n) => (
                   <li key={n.id} className="rounded-ctl border border-line/70 p-2">
-                    <div className="flex items-center gap-2 t-small"><span className="font-semibold text-ink">{n.author_name}</span><span>{when(n.created_at)}</span>
+                    <div className="flex items-center gap-2 t-small"><span className="font-normal text-ink">{n.author_name}</span><span>{when(n.created_at)}</span>
                       {n.can_delete && <button type="button" disabled={busy} onClick={() => void run(() => api<PlayerNotes>(`${base}/notes/${n.id}`, { method: "DELETE" }), dict.body.reports.noteDeleteFailed)} className="ml-auto hover:text-danger">{dict.body.reports.deleteBtn}</button>}
                     </div>
                     <p className="mt-1 whitespace-pre-wrap">{n.body}</p>
@@ -126,7 +126,7 @@ export function DossierDialog({ player, open, onClose, canWrite }: { player: Pla
                 return (
                   <li key={d.id} className="rounded-ctl border border-line/70 p-2" data-dossier={d.id}>
                     <div className="flex items-center gap-2">
-                      <label className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
+                      <label className="flex min-w-0 flex-1 items-center gap-2 font-normal">
                         <input type="checkbox" checked={inIt} disabled={!canWrite || busy} aria-label={dict.body.reports.playerInDossier.replace("{a}", player.display_name).replace("{b}", d.name)}
                           onChange={(e) => void run(() => api(`/v1/dossiers/${d.id}/players/${player.player_id}`, { method: e.target.checked ? "PUT" : "DELETE" }), dict.body.reports.dossierChangeFailed)} />
                         <span className="truncate">{d.name}</span><span className="t-small">{d.players.length === 1 ? dict.body.reports.dossierPlayersOne : dict.body.reports.dossierPlayersMany.replace("{a}", String(d.players.length))}</span>
@@ -193,7 +193,7 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
           {!share && canMake && <ReportDesigner playerId={player.player_id} design={design} onDesign={setDesign} onGate={setGate} />}
           <section aria-label={dict.body.reports.pdfReports} className="grid gap-2">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">{dict.body.reports.pdfReports}</h3>
+              <h3 className="font-normal">{dict.body.reports.pdfReports}</h3>
               {canMake && !share && <button type="button" data-make-pdf disabled={busy || blocked} title={blocked ? gate!.reasons.join(" ") : undefined} onClick={() => void make()} className={`${btn} ml-auto`}>{busy ? dict.body.reports.makingPdf : blocked ? dict.body.reports.identityNotConfirmed : latest ? dict.body.reports.makeNewPdf : dict.body.reports.makePdf}</button>}
             </div>
             {!jobs.length ? <p className="t-small">{dict.body.reports.pdfNone}</p> : (
@@ -212,7 +212,7 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
             {!canMake && <p className="t-small">{dict.body.reports.pdfReadOnly}</p>}
           </section>
           <section aria-label={dict.body.reports.shareLinkHeading} className="grid gap-2 border-t border-line pt-3">
-            <h3 className="font-semibold">{dict.body.reports.shareLinkHeading}</h3>
+            <h3 className="font-normal">{dict.body.reports.shareLinkHeading}</h3>
             <p className="t-small">{dict.body.reports.shareLinkDesc}</p>
             {!latest ? <p className="t-small">{dict.body.reports.shareNeedPdf}</p> : !canShare ? <p className="t-small">{dict.body.reports.shareReadOnly}</p> : (
               <div className="grid gap-2">
@@ -256,10 +256,10 @@ export function AssessmentView({ a }: { a: AssessmentBody }) {
   const { t: dict } = useLocale();
   return (
     <div className="grid gap-2">
-      {a.role && <p><span className="text-muted">{dict.body.reports.assessRoleLabel}</span><span className="font-semibold">{a.role}</span></p>}
+      {a.role && <p><span className="text-muted">{dict.body.reports.assessRoleLabel}</span><span className="font-normal">{a.role}</span></p>}
       {a.summary && <p className="whitespace-pre-wrap">{a.summary}</p>}
       {!!a.traits.length && <div className="flex flex-wrap gap-1">{a.traits.map((t) => <span key={t} className="rounded-full border border-primary/50 px-2 py-0.5 text-xs">{t}</span>)}</div>}
-      {a.rating !== null && <p><span className="text-muted">{dict.body.reports.assessRatingLabel}</span><span className="font-semibold">{dict.body.reports.assessRatingValue.replace("{a}", String(a.rating))}</span></p>}
+      {a.rating !== null && <p><span className="text-muted">{dict.body.reports.assessRatingLabel}</span><span className="font-normal">{dict.body.reports.assessRatingValue.replace("{a}", String(a.rating))}</span></p>}
       {!!a.criteria.length && (
         <ul className="grid gap-1">{a.criteria.map((c) => (
           <li key={c.name} className="flex items-center gap-2 text-xs"><span className="w-40 truncate">{c.name}</span>

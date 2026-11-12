@@ -141,12 +141,12 @@ export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
             className={`flex items-center gap-2.5 rounded-md border px-2.5 py-2 ${on ? "border-primary/60 bg-raised" : "border-line bg-raised/40"}`}>
             <button type="button" role="checkbox" aria-checked={on} aria-label={`${on ? "Leave out" : "Include"} ${t}`}
               onClick={() => (e.canEdit ? o.toggle(k) : setNote("Your role can look, not make files"))}
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${on ? "border-primary bg-primary text-white" : "border-muted text-transparent"}`} aria-hidden={false}>
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-normal ${on ? "border-primary bg-primary text-white" : "border-muted text-transparent"}`} aria-hidden={false}>
               {on ? "✓" : ""}
             </button>
             <span className="h-9 w-8 shrink-0 rounded" style={{ background: COLOR[k] }} aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{t}</span>
+              <span className="block truncate text-sm font-normal">{t}</span>
               <span className="block truncate text-xs" style={{ color: tone }}>{line}</span>
             </span>
             {open && (
@@ -203,7 +203,7 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="deliver" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{dict.body.exports.deliverToClient}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{dict.body.exports.deliverToClient}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             A private link to the finished reel is made only when the video&apos;s rights allow sharing (checked again whenever it is opened). Your own mail app opens
             with the email ready: you send it. The delivery is recorded; the app counts how often the link is opened.
@@ -214,19 +214,19 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
               <code className="break-all rounded-ctl border border-line px-2 py-1 text-xs">{made.url}</code>
               <div className="flex gap-2">
                 <button type="button" onClick={() => void navigator.clipboard?.writeText(made.url).then(() => setCopied(true), () => setErr("Copy failed"))} className="rounded-ctl border border-line px-3 py-1.5">{copied ? "Copied" : "Copy link"}</button>
-                <a href={made.mailto} className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">Open my mail app again</a>
+                <a href={made.mailto} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">Open my mail app again</a>
               </div>
             </div>
           ) : (
             <div className="grid gap-3">
-              <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={o.notifyClient} onChange={(x) => o.setNotifyClient(x.target.checked)} />Notify client</label>
+              <label className="flex items-center gap-2 font-normal"><input type="checkbox" checked={o.notifyClient} onChange={(x) => o.setNotifyClient(x.target.checked)} />Notify client</label>
               {o.notifyClient && (
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <label className="grid gap-1">{dict.body.exports.clientName}<input aria-label="Client name" value={name} maxLength={255} onChange={(x) => setName(x.target.value)} className={field} /></label>
                   <label className="grid gap-1">{dict.body.exports.clientEmail}<input aria-label="Client email" type="email" value={email} maxLength={255} onChange={(x) => setEmail(x.target.value)} className={field} /></label>
                 </div>
               )}
-              <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={o.notifyTeam} onChange={(x) => o.setNotifyTeam(x.target.checked)} />Notify team</label>
+              <label className="flex items-center gap-2 font-normal"><input type="checkbox" checked={o.notifyTeam} onChange={(x) => o.setNotifyTeam(x.target.checked)} />Notify team</label>
               {o.notifyTeam && (
                 <ul className="grid max-h-40 gap-1 overflow-y-auto text-xs" aria-label="Team members">
                   {(e.members ?? []).map((m) => (
@@ -246,11 +246,11 @@ export function DeliverDialog({ e, o }: { e: ExportState; o: Outbox }) {
                 <label className="flex items-center gap-2"><input type="checkbox" checked={download} onChange={(x) => setDownload(x.target.checked)} />Allow download</label>
               </div>
               <button type="button" data-deliver onClick={() => void send()} disabled={busy || (!o.notifyClient && !o.notifyTeam)}
-                className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? "Checking the rights…" : "Make the link and open my mail app"}</button>
+                className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">{busy ? "Checking the rights…" : "Make the link and open my mail app"}</button>
             </div>
           )}
           {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
-          <h3 className="mb-1 mt-4 font-semibold">Deliveries of this reel</h3>
+          <h3 className="mb-1 mt-4 font-normal">Deliveries of this reel</h3>
           {!o.deliveries?.length ? <p className="text-xs text-muted">{dict.body.exports.noneYet}</p> : (
             <ul className="grid gap-1 text-xs" aria-label="Deliveries">
               {o.deliveries.map((d) => (

@@ -30,8 +30,8 @@ export function HowItWorks() {
           <li key={href}>
             <Link href={href} className="flex h-full flex-col gap-1 rounded-md border border-line bg-p0 p-3 hover:border-line2" aria-label={`Step ${i + 1}: ${title}`}>
               <span className="flex items-center gap-2">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary t-small font-semibold" style={{ color: "rgb(var(--primary-ink))" }}>{i + 1}</span>
-                <span className="t-body flex-1 font-medium">{title}</span>
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary t-small font-normal" style={{ color: "rgb(var(--primary-ink))" }}>{i + 1}</span>
+                <span className="t-body flex-1 font-normal">{title}</span>
                 <ChevronRight className="h-4 w-4 text-muted" aria-hidden />
               </span>
               <span className="t-small text-muted">{desc}</span>

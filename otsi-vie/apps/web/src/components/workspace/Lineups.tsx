@@ -129,7 +129,7 @@ export function LineupsDialog({ open, onOpenChange, videoId, lineups, onApplied 
         <Dialog.Content data-dialog="lineups" className="fixed left-1/2 top-1/2 z-50 max-h-[94vh] w-[min(1500px,98vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-base font-semibold">{dict.body.workspace.lineupsBroadcast}</Dialog.Title>
+              <Dialog.Title className="text-base font-normal">{dict.body.workspace.lineupsBroadcast}</Dialog.Title>
               <Dialog.Description className="text-xs text-muted">
                 Check each row against the picture and correct what the engine misread. {linked ? dict.body.workspace.approvingFills : dict.body.workspace.markHomeAway}
                 {" "}{dict.body.workspace.playersFoundRegistry}
@@ -177,7 +177,7 @@ export function LineupsDialog({ open, onOpenChange, videoId, lineups, onApplied 
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button type="button" data-lineups-apply disabled={busy || !ready} onClick={() => void apply()} className="rounded-ctl bg-primary px-4 py-2 font-semibold text-white disabled:opacity-50">
+            <button type="button" data-lineups-apply disabled={busy || !ready} onClick={() => void apply()} className="rounded-ctl bg-primary px-4 py-2 font-normal text-white disabled:opacity-50">
               {busy ? dict.body.workspace.approving : dict.body.workspace.approveRoster}</button>
             {!ready && chosen.length > 0 && <span className="text-xs text-muted">{linked ? dict.body.workspace.giveTeamName : dict.body.workspace.chooseHomeAway}</span>}
             {msg && <span role={msg.ok ? "status" : "alert"} className={`text-xs ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</span>}

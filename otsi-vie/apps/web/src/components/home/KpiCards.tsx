@@ -41,7 +41,7 @@ const KpiCard = memo(function KpiCard({ Icon, stat, label, href, stats, failed }
         </span>
       </span>
       <span className="flex flex-col items-end gap-1.5">
-        <span className={`t-small font-medium ${weeks && weeks[4]! > 0 ? "text-ok" : "text-muted"}`}>{weeks ? `+${weeks[4]}` : "—"}</span>
+        <span className={`t-small font-normal ${weeks && weeks[4]! > 0 ? "text-ok" : "text-muted"}`}>{weeks ? `+${weeks[4]}` : "—"}</span>
         <span className="flex h-6 items-end gap-[3px]" aria-hidden>
           {[0, 1, 2, 3, 4].map((j) => {
             const h = weeks && peak ? 3 + Math.round((21 * weeks[j]!) / peak) : 3;

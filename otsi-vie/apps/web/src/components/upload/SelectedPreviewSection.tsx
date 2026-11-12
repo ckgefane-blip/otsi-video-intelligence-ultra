@@ -85,16 +85,16 @@ export function SelectedPreviewSection() {
               className="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/70 text-white hover:bg-black/90">
               <Play className="h-6 w-6 fill-current" aria-hidden />
             </button>
-            <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-semibold text-white">{v ? mmss(v.duration_us) : "—"}</span>
+            <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-normal text-white">{v ? mmss(v.duration_us) : "—"}</span>
           </div>
         )}
         <div>
-          <p className="truncate font-semibold">{name ?? d.noVideoSelected}</p>
+          <p className="truncate font-normal">{name ?? d.noVideoSelected}</p>
           <p className="text-xs text-muted">
             {v ? d.uploadedOn.replace("{date}", new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })) : d.selectUploadPreview}
           </p>
           {failed ? (
-            <p role="alert" className="mt-1 text-danger"><span className="font-semibold">{v!.failure_code}</span>: {v!.failure_detail}</p>
+            <p role="alert" className="mt-1 text-danger"><span className="font-normal">{v!.failure_code}</span>: {v!.failure_detail}</p>
           ) : <p className="mt-1 text-xs text-muted">{codecs ?? "—"}</p>}
         </div>
         <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
@@ -108,10 +108,10 @@ export function SelectedPreviewSection() {
             <dd className="min-w-0">
               {match?.home || match?.away ? (
                 <span className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-semibold" title={match?.home?.name ?? ""}>{(match?.home?.short_name ?? match?.home?.name ?? "?").slice(0, 2).toUpperCase()}</span>
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-normal" title={match?.home?.name ?? ""}>{(match?.home?.short_name ?? match?.home?.name ?? "?").slice(0, 2).toUpperCase()}</span>
                   <span className="truncate">{match?.home?.short_name ?? match?.home?.name ?? "—"}</span>
                   <span className="text-muted">·</span>
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-semibold" title={match?.away?.name ?? ""}>{(match?.away?.short_name ?? match?.away?.name ?? "?").slice(0, 2).toUpperCase()}</span>
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-[11px] font-normal" title={match?.away?.name ?? ""}>{(match?.away?.short_name ?? match?.away?.name ?? "?").slice(0, 2).toUpperCase()}</span>
                   <span className="truncate">{match?.away?.short_name ?? match?.away?.name ?? "—"}</span>
                 </span>
               ) : "—"}
@@ -126,7 +126,7 @@ export function SelectedPreviewSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-panel p-4 text-sm shadow-2xl">
-            <Dialog.Title className="text-base font-semibold">{d.editMetadataTitle}</Dialog.Title>
+            <Dialog.Title className="text-base font-normal">{d.editMetadataTitle}</Dialog.Title>
             <Dialog.Description className="mb-3 text-xs text-muted">{d.editMetadataDesc}</Dialog.Description>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -137,7 +137,7 @@ export function SelectedPreviewSection() {
               {err && <p role="alert" className="mb-2 text-xs text-danger">{err}</p>}
               <div className="flex justify-end gap-2">
                 <Dialog.Close className="rounded-ctl border border-line px-3 py-1.5">{dict.common.cancel}</Dialog.Close>
-                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white">{dict.common.save}</button>
+                <button type="submit" className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.common.save}</button>
               </div>
             </form>
           </Dialog.Content>

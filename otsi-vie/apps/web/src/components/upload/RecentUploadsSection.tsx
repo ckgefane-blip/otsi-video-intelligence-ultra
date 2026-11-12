@@ -139,7 +139,7 @@ export function RecentUploadsSection() {
       {videos === null && <p className="p-3 text-sm text-muted" role="status">{dict.common.loading}</p>}
       {videos?.length === 0 && (
         <div className="p-3 text-sm text-muted">
-          <p className="font-medium text-ink">{d.noUploadsYet}</p>
+          <p className="font-normal text-ink">{d.noUploadsYet}</p>
           <p>{d.uploadsAppearHere}</p>
         </div>
       )}
@@ -160,18 +160,18 @@ export function RecentUploadsSection() {
               <div className="flex items-start gap-3">
                 <div className="relative shrink-0">
                   <Thumb v={v} />
-                  <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[11px] font-semibold text-white">{mmss(v.duration_us)}</span>
+                  <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[11px] font-normal text-white">{mmss(v.duration_us)}</span>
                 </div>
                 <button type="button" onClick={() => select(v.id)} aria-pressed={sel} aria-label={`${v.title ?? v.original_filename}: ${p!.text}`}
                   className={`min-w-0 flex-1 rounded-ctl p-1 text-left hover:bg-raised/50 ${sel ? "bg-primary/10" : ""}`}>
-                  <span className="block truncate text-sm font-medium">{v.title ?? v.original_filename ?? d.untitledVideo}</span>
+                  <span className="block truncate text-sm font-normal">{v.title ?? v.original_filename ?? d.untitledVideo}</span>
                   <span className="block text-xs text-muted">{`${new Date(v.created_at).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" })} · ${formatBytes(v.byte_size)}`}</span>
                   {bars.length === 0 && (
-                    <span data-video-state={v.state} className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${TONE[p?.tone ?? "idle"]}`}>{p!.text}</span>
+                    <span data-video-state={v.state} className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-normal ${TONE[p?.tone ?? "idle"]}`}>{p!.text}</span>
                   )}
                   {bars.map((b) => (
                     <Fragment key={b.label}>
-                      <span className={`mt-1 block text-xs font-semibold ${b.tone === "idle" ? "text-amber" : "text-ink2"}`}>
+                      <span className={`mt-1 block text-xs font-normal ${b.tone === "idle" ? "text-amber" : "text-ink2"}`}>
                         {b.tone === "idle" ? `${b.label} · ${d.waitingWord}` : `${b.label} ${Math.round(b.pct)}%`}
                       </span>
                       <span className="mt-0.5 block h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-label={`${v.title ?? v.original_filename}: ${b.label} progress`} aria-valuenow={Math.round(b.pct)} aria-valuemin={0} aria-valuemax={100}>
@@ -194,7 +194,7 @@ export function RecentUploadsSection() {
                       <span className="flex flex-wrap items-center gap-2 text-xs text-amber">
                         {stop ? d.cancelAnalysisQ : gone ? d.removeQ : d.cancelUploadQ}
                         <button type="button" aria-label={d.confirmAria.replace("{text}", `${verb.toLowerCase()} ${name}`)} onClick={() => (stop ? stopAnalysis(v) : remove(v))}
-                          className="font-semibold text-danger">{d.yes}</button>
+                          className="font-normal text-danger">{d.yes}</button>
                         <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
                       </span>
                     );
@@ -212,13 +212,13 @@ export function RecentUploadsSection() {
                 {canWrite && v.state === "INGESTED" && (() => {
                   if (confirm === key("proxy")) return (
                     <span className="flex flex-wrap items-center gap-2 text-xs text-amber">{d.cancelPlaybackQ}
-                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelPlaybackQ.replace("?", "").toLowerCase())} onClick={() => cancelPlayback(v)} className="font-semibold text-danger">{d.yes}</button>
+                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelPlaybackQ.replace("?", "").toLowerCase())} onClick={() => cancelPlayback(v)} className="font-normal text-danger">{d.yes}</button>
                       <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
                     </span>
                   );
                   if (confirm === key("analysis")) return (
                     <span className="flex flex-wrap items-center gap-2 text-xs text-amber">{d.cancelAnalysisQ}
-                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelAnalysisQ.replace("?", "").toLowerCase())} onClick={() => stopAnalysis(v)} className="font-semibold text-danger">{d.yes}</button>
+                      <button type="button" aria-label={d.confirmAria.replace("{text}", d.cancelAnalysisQ.replace("?", "").toLowerCase())} onClick={() => stopAnalysis(v)} className="font-normal text-danger">{d.yes}</button>
                       <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
                     </span>
                   );
@@ -245,7 +245,7 @@ export function RecentUploadsSection() {
                     confirm === v.id ? (
                       <span className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-amber">
                         {!takes ? d.checking : takes.blocked ? takes.blocked : d.moveToTrash}
-                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} className="font-semibold text-danger">{d.yes}</button>}
+                        {takes && !takes.blocked && <button type="button" onClick={() => remove(v)} className="font-normal text-danger">{d.yes}</button>}
                         <button type="button" onClick={() => setConfirm(null)} className="text-ink2">{d.no}</button>
                       </span>
                     ) : <button type="button" onClick={() => setConfirm(v.id)} className="block w-full rounded px-2.5 py-1.5 text-left text-danger hover:bg-raised">{d.removeUpload}</button>

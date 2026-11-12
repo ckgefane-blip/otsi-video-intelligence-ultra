@@ -110,7 +110,7 @@ export function SharePanel({ focus }: { focus: boolean }) {
         <span className="flex-1">Link expires after</span>
         <button type="button" aria-label={`Link expires after ${days} days (click to change)`}
           onClick={() => setDays(DAYS[(DAYS.indexOf(days) + 1) % DAYS.length]!)}
-          className="font-semibold text-primary hover:underline">{days} day{days === 1 ? "" : "s"}</button>
+          className="font-normal text-primary hover:underline">{days} day{days === 1 ? "" : "s"}</button>
       </div>
       <div data-share="download" title={canDownload ? undefined : "The video's rights do not allow downloads"} className="mt-2 flex items-center gap-2 text-sm">
         <Download className={`h-4 w-4 shrink-0 ${canDownload ? "text-muted" : "text-muted/50"}`} aria-hidden />
@@ -170,13 +170,13 @@ function ShareDialog({ open, onOpenChange, rights, links, admin, canEdit, videoI
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content data-dialog="sharing" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(720px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Sharing &amp; rights</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Sharing &amp; rights</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
             A share link works only while the source video&apos;s rights allow sharing; the rights are checked again every time a link is opened.
             Every change is recorded in the audit log.
           </Dialog.Description>
 
-          <h3 className="mb-1 font-semibold">The video&apos;s rights</h3>
+          <h3 className="mb-1 font-normal">The video&apos;s rights</h3>
           <p className="mb-2 text-xs" data-rights-now>{g
             ? `${STATE_WORDS[g.rights_state]} · uses: ${g.allowed_uses.join(", ").toLowerCase() || "none"}${g.valid_until ? ` · until ${new Date(g.valid_until).toLocaleDateString()}` : ""}${g.guardian_consent_state !== "NOT_APPLICABLE" ? ` · guardian consent ${g.guardian_consent_state.toLowerCase()}` : ""} · recorded ${new Date(g.created_at).toLocaleString()}`
             : "No rights recorded: nothing from this video can be shared."}</p>
@@ -199,11 +199,11 @@ function ShareDialog({ open, onOpenChange, rights, links, admin, canEdit, videoI
                 </select>
               </label>
               <label className="grid gap-1">Reason / evidence (required)<textarea aria-label="Reason" value={reason} onChange={(x) => setReason(x.target.value)} rows={2} placeholder="e.g. licence from the league, clause 4; club owns the footage" className="rounded-ctl border border-line bg-transparent px-2 py-1" /></label>
-              <button type="button" data-record-rights onClick={() => void save()} disabled={busy || reason.trim().length < 3} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-semibold text-white disabled:opacity-50">{busy ? "Recording…" : "Record these rights"}</button>
+              <button type="button" data-record-rights onClick={() => void save()} disabled={busy || reason.trim().length < 3} className="justify-self-start rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">{busy ? "Recording…" : "Record these rights"}</button>
             </div>
           ) : <p className="mb-4 text-xs text-muted">Only an Owner or Admin records a video&apos;s rights.</p>}
 
-          <h3 className="mb-1 font-semibold">Links to this render</h3>
+          <h3 className="mb-1 font-normal">Links to this render</h3>
           {!links?.length ? <p className="text-xs text-muted">{dict.body.exports.noLinksYet}</p> : (
             <ul className="grid gap-1 text-xs" aria-label="Share links">
               {links.map((l) => (
@@ -219,11 +219,11 @@ function ShareDialog({ open, onOpenChange, rights, links, admin, canEdit, videoI
           )}
           {reading && (
             <div className="mt-3 rounded-ctl border border-line p-2 text-xs" data-link-comments={reading.id}>
-              <h3 className="mb-1 font-semibold">Comments left through this link</h3>
+              <h3 className="mb-1 font-normal">Comments left through this link</h3>
               {!reading.list ? <p className="text-muted">Loading…</p> : !reading.list.length ? <p className="text-muted">No comments yet.</p> : (
                 <ul className="grid gap-1">
                   {reading.list.map((c) => (
-                    <li key={c.id}><span className="font-semibold">{c.name}</span>{c.at_s !== null ? <span className="text-muted"> at {Math.floor(c.at_s / 60)}:{String(Math.floor(c.at_s % 60)).padStart(2, "0")}</span> : null}
+                    <li key={c.id}><span className="font-normal">{c.name}</span>{c.at_s !== null ? <span className="text-muted"> at {Math.floor(c.at_s / 60)}:{String(Math.floor(c.at_s % 60)).padStart(2, "0")}</span> : null}
                       <span className="text-muted"> · {new Date(c.created_at).toLocaleString()}</span><br />{c.body}</li>
                   ))}
                 </ul>

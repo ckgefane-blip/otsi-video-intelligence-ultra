@@ -30,7 +30,7 @@ export function VideoPicker({ open, onOpenChange, current, basePath = "/processi
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="choose-video">
-          <Dialog.Title className="text-base font-semibold">{d.chooseVideoTitle}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">{d.chooseVideoTitle}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">{d.chooseVideoDesc}</Dialog.Description>
           {videos === undefined && <p className="text-muted">{dict.common.loading}</p>}
           {videos === null && <p role="alert" className="text-danger">{d.couldNotLoadVideos2}</p>}
@@ -41,7 +41,7 @@ export function VideoPicker({ open, onOpenChange, current, basePath = "/processi
                 <button type="button" data-video={v.id} aria-current={v.id === current}
                   onClick={() => { onOpenChange(false); router.replace(`${basePath}?video=${v.id}`); }}
                   className={`flex w-full items-center justify-between gap-3 rounded-ctl border px-3 py-2 text-left hover:border-primary/60 ${v.id === current ? "border-primary bg-primary/5" : "border-line/70"}`}>
-                  <span className="min-w-0 truncate font-medium">{v.title ?? v.original_filename ?? u.untitledVideo}</span>
+                  <span className="min-w-0 truncate font-normal">{v.title ?? v.original_filename ?? u.untitledVideo}</span>
                   <span className="shrink-0 text-xs text-muted">{formatDuration(v.duration_us)} · {v.state === "INGESTED" ? d.readyState : v.state.toLowerCase()}</span>
                 </button>
               </li>

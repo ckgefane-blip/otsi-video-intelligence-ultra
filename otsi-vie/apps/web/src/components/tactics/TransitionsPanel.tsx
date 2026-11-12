@@ -59,7 +59,7 @@ export function TransitionsPanel({
         <h2 className="t-panel"><span aria-hidden className="mr-2 inline-block h-5 w-1.5 rounded bg-primary align-middle" />{dict.body.tactics.transitionsInferred}
           <span tabIndex={0} role="note" aria-label={dict.body.tactics.transitionsDesc} title={dict.body.tactics.transitionsDesc} className="ml-2 cursor-help rounded-full border border-line2 px-1.5 text-xs font-normal text-muted">i</span>
         </h2>
-        <span className="rounded border border-primary/40 bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">{dict.body.tactics.inferredLabel}</span>
+        <span className="rounded border border-primary/40 bg-primary/15 px-2 py-0.5 text-xs font-normal text-primary">{dict.body.tactics.inferredLabel}</span>
       </div>
       <div className="p-3">
         {!videoId ? (
@@ -91,8 +91,8 @@ export function TransitionsPanel({
               ].map(([label, val1, val2]) => (
                 <div key={String(label)} className="grid grid-cols-3 text-sm text-[#cfdcf0]">
                   <span>{label}</span>
-                  <span className="text-right font-semibold tabular-nums">{val1}</span>
-                  <span className="text-right font-semibold tabular-nums">{val2}</span>
+                  <span className="text-right font-normal tabular-nums">{val1}</span>
+                  <span className="text-right font-normal tabular-nums">{val2}</span>
                 </div>
               ))}
             </div>
@@ -107,11 +107,11 @@ export function TransitionsPanel({
                   <button key={it.id} type="button" onClick={() => onSeek && onSeek(it.trigger_pts_us)} disabled={!onSeek}
                     className="flex items-center justify-between gap-2 rounded bg-[#12305a66] px-2 py-1 text-left text-sm disabled:cursor-default">
                     <span className="w-12 shrink-0 text-[#9fb3cc] t-tc">{clock(it.trigger_pts_us)}</span>
-                    <span className="font-semibold" style={{ color: it.kit_group === 0 ? "#7ab6ff" : "#e8d9a0" }}>
+                    <span className="font-normal" style={{ color: it.kit_group === 0 ? "#7ab6ff" : "#e8d9a0" }}>
                       {it.trigger_kind.replace("_", " ")}
                     </span>
                     <span className="text-muted">→</span>
-                    <span className="font-semibold"
+                    <span className="font-normal"
                       style={{
                         color:
                           it.next_action.outcome === "SHOT" || it.next_action.outcome === "GOAL"

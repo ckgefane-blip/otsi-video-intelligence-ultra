@@ -46,10 +46,10 @@ function StageCard({ stage, num, lines, children }: { stage: Stage; num: string;
   return (
     <li className="rounded-ctl border border-line/70 bg-raised/40 p-3" data-stage={stage.name} data-stage-state={stage.state}>
       <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line bg-panel text-sm font-semibold">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line bg-panel text-sm font-normal">
           {stage.state === "done" ? "✓" : num}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{stage.name}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-normal text-primary">{stage.name}</span>
         {STAGE_ICON[stage.state]}
       </div>
       {lines && <p className="mt-1.5 text-xs text-muted">{lines[0]}<br />{lines[1]}</p>}
@@ -112,12 +112,12 @@ export function PipelinePreviewSection() {
   const ready = v?.state === "INGESTED";
   const detect = ready && !run
     ? { name: d.aiDetection, state: "todo" as State, progress: null, status: d.notStarted,
-        action: <Link href={`/processing?video=${v!.id}`} className="font-semibold text-primary">{d.analyseThisVideo}</Link> }
+        action: <Link href={`/processing?video=${v!.id}`} className="font-normal text-primary">{d.analyseThisVideo}</Link> }
     : stepStage(run, "DETECT", d.aiDetection, d);
   const track = stepStage(run, "TRACK", d.tracking, d);
   const index: Stage = { name: d.indexing, state: "unbuilt", progress: null, status: notBuilt() };
   const done: Stage = run?.status === "SUCCEEDED"
-    ? { name: d.analysisReady, state: "done", progress: 100, status: d.ready, action: <Link href={`/videos/${v!.id}/analyze`} className="font-semibold text-primary">{d.openAnalysis}</Link> }
+    ? { name: d.analysisReady, state: "done", progress: 100, status: d.ready, action: <Link href={`/videos/${v!.id}/analyze`} className="font-normal text-primary">{d.openAnalysis}</Link> }
     : { name: d.analysisReady, state: run?.status === "FAILED" ? "bad" : "todo", progress: null, status: run?.status === "FAILED" ? `${d.runFailed}${run.failure_code ? ` (${run.failure_code})` : ""}` : d.waitingDots };
   const stages = [detect, track, index, done];
   const cardLines: [string, string][] = [[d.cardDetecting, d.cardDetecting2], [d.cardTracking, d.cardTracking2], [d.cardIndexing, d.cardIndexing2], [d.cardReady, d.cardReady2]];
@@ -137,8 +137,8 @@ export function PipelinePreviewSection() {
           <div className="flex min-w-0 flex-1 items-center gap-2" role="progressbar" aria-label={d.analysisProgress} aria-valuenow={Math.round(overall)} aria-valuemin={0} aria-valuemax={100} data-analysis-status={run.status}>
             <span className={`max-w-[190px] truncate text-sm ${run.status === "FAILED" ? "text-danger" : "text-ink2"}`}>{overallText}</span>
             <span className="h-2 min-w-16 flex-1 overflow-hidden rounded bg-line/60"><i className={`block h-full rounded ${run.status === "SUCCEEDED" ? "bg-ok" : run.status === "FAILED" || run.status === "CANCELLED" ? "bg-danger" : "bg-primary"}`} style={{ width: `${Math.min(100, Math.max(run.status === "RUNNING" ? 1 : 0, overall))}%` }} /></span>
-            <span className={`text-sm font-semibold ${run.status === "SUCCEEDED" ? "text-ok" : "text-primary"}`}>{run.status === "QUEUED" || run.status === "CANCELLED" ? "—" : `${overall < 10 && overall > 0 ? overall.toFixed(1) : Math.round(overall)}%`}</span>
-            {v && <Link href={`/processing?video=${v.id}`} className="whitespace-nowrap text-sm font-semibold text-primary">{d.followInProcessing}</Link>}
+            <span className={`text-sm font-normal ${run.status === "SUCCEEDED" ? "text-ok" : "text-primary"}`}>{run.status === "QUEUED" || run.status === "CANCELLED" ? "—" : `${overall < 10 && overall > 0 ? overall.toFixed(1) : Math.round(overall)}%`}</span>
+            {v && <Link href={`/processing?video=${v.id}`} className="whitespace-nowrap text-sm font-normal text-primary">{d.followInProcessing}</Link>}
           </div>
         )}
         {runActive && (
@@ -146,7 +146,7 @@ export function PipelinePreviewSection() {
             {confirmCancel ? (
               <>
                 <span className="text-amber">{d.cancelAnalysisQ}</span>
-                <button type="button" aria-label={d.confirmCancelAnalysis} onClick={cancelRun} className="font-semibold text-danger">{d.yes}</button>
+                <button type="button" aria-label={d.confirmCancelAnalysis} onClick={cancelRun} className="font-normal text-danger">{d.yes}</button>
                 <button type="button" onClick={() => setConfirmCancel(false)} className="text-ink2">{d.no}</button>
               </>
             ) : (
@@ -158,8 +158,8 @@ export function PipelinePreviewSection() {
       <ol aria-label={d.processingPipeline} className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-5">
         <li data-stage="Uploading" data-stage-state={upload.state} data-transfer-state={transfer?.state ?? ""} className="rounded-ctl border border-primary/60 bg-primary/5 p-3">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line bg-panel text-sm font-semibold">{upload.state === "done" ? "✓" : "1"}</span>
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{d.uploading}</span>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line bg-panel text-sm font-normal">{upload.state === "done" ? "✓" : "1"}</span>
+            <span className="min-w-0 flex-1 truncate text-sm font-normal text-primary">{d.uploading}</span>
             {STAGE_ICON[upload.state]}
           </div>
           <p className="mt-1.5 truncate text-xs text-muted">{transfer && transfer.state !== "done" ? transfer.file.name : v ? (v.title ?? v.original_filename ?? dict.body.processing.videoFallback) : d.noFileUploaded}</p>

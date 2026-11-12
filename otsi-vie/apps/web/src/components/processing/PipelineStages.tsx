@@ -13,7 +13,7 @@ function Ring({ s }: { s: RibbonStep }) {
   const mark = s.state === "DONE" ? "✓" : s.state === "STALE" ? "!" : s.state === "ACTIVE" ? `${Math.round(s.progress ?? 0)}%` : "";
   const colour = s.state === "DONE" ? "#19e6c0" : s.state === "STALE" ? "#ffc94d" : s.state === "ACTIVE" ? "#1a8cff" : s.state === "FAILED" ? "#ff8a8a" : "#5d7699";
   return (
-    <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 text-sm font-semibold"
+    <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 text-sm font-normal"
       style={{ borderColor: colour, color: colour, borderStyle: s.state === "SKIPPED" ? "dashed" : "solid", background: s.state === "DONE" ? "#0a3a3f" : s.state === "STALE" ? "#3a2f10" : "transparent" }}>
       {mark}
     </span>
@@ -36,14 +36,14 @@ export function PipelineStages({ steps, selected, onSelect }: { steps: RibbonSte
                 className={`flex h-full w-full flex-col items-start gap-1.5 rounded-ctl border p-2.5 text-left ${on ? "border-primary bg-primary/10" : "border-line/70 hover:border-line2"}`}>
                 <span className="flex w-full items-center justify-between gap-2">
                   <Ring s={s} />
-                  <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={RIBBON_PILL[s.state]}>{s.label}</span>
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-normal" style={RIBBON_PILL[s.state]}>{s.label}</span>
                 </span>
-                <span className="text-sm font-semibold">{`${i + 1}. ${s.title}`}</span>
+                <span className="text-sm font-normal">{`${i + 1}. ${s.title}`}</span>
                 <span className="block truncate text-xs text-muted" title={s.line}>{s.line}</span>
                 <span className="h-1.5 w-full overflow-hidden rounded bg-line/60">
                   <i className="block h-full rounded" style={{ width: `${s.progress ?? 0}%`, background: s.state === "STALE" ? "#ffc94d" : "#1a8cff" }} />
                 </span>
-                <span className="text-xs font-semibold">{pct(s.progress)}</span>
+                <span className="text-xs font-normal">{pct(s.progress)}</span>
               </button>
             </li>
           );

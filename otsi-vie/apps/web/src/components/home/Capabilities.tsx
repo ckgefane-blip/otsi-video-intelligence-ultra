@@ -34,7 +34,7 @@ export function Capabilities() {
             <Link href={href} className="flex items-start gap-2.5 rounded px-2 py-2 hover:bg-raised" aria-label={`${title}: ${desc}`}>
               <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
-                <span className="t-body block font-medium">{title}</span>
+                <span className="t-body block font-normal">{title}</span>
                 <span className="t-small block text-muted">{desc}</span>
               </span>
             </Link>
