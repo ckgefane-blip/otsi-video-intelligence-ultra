@@ -521,6 +521,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.shell.notifTitleFallback",
       "body.auth.code",
       "body.auth.inviteTitle",
+      "body.auth.setupEmailPh",            // the email placeholder, the same in every language
     ]);
     for (const locale of ["ru", "es", "de", "fr"] as const) {
       const dict = getDictionary(locale);
@@ -595,7 +596,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
     expect(bodyKeys("shell").length).toBe(256);
-    expect(bodyKeys("auth").length).toBe(88);
+    expect(bodyKeys("auth").length).toBe(100);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

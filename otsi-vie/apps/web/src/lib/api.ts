@@ -3,7 +3,7 @@
  * localStorage), the selected organization in `X-Organization-Id`, and one silent refresh through the HttpOnly cookie when the token
  * has expired. Errors arrive as the API's Problem shape ({code, message, request_id}).
  */
-import type { AcceptInvitationRequest, InvitationPreview, LoginResponse, Me, MfaChallenge, SessionResponse, WebAuthnCredential, WebAuthnCredentialListResponse } from "@otsi-vie/contracts";
+import type { AcceptInvitationRequest, InvitationPreview, LoginResponse, Me, MfaChallenge, SessionResponse, SetupRequest, WebAuthnCredential, WebAuthnCredentialListResponse } from "@otsi-vie/contracts";
 import type { AuthenticationResponseJSON, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/browser";
 
 export class ApiProblem extends Error {
@@ -90,6 +90,9 @@ export const webauthnDeleteCredential = (id: string) =>
 
 /** a new person accepts an invitation with their name and password, and is signed in */
 export const acceptInvitation = (body: AcceptInvitationRequest) => sessionCall("invitations/accept", body);
+
+/** first-run owner setup (SOT page 10): create the owner account and sign them in */
+export const setupOwner = (body: SetupRequest) => sessionCall("setup", body);
 
 /** what an invitation link is for (no sign-in needed) */
 export async function invitationPreview(token: string): Promise<InvitationPreview> {

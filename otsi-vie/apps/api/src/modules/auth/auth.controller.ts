@@ -7,7 +7,7 @@
  * a browser keeps only for that loopback origin; every other origin keeps Secure.
  */
 import { Body, Controller, Headers, HttpCode, Post, Req, Res } from "@nestjs/common";
-import { AcceptInvitationRequest, LoginRequest, MfaLoginRequest } from "@otsi-vie/contracts";
+import { AcceptInvitationRequest, LoginRequest, MfaLoginRequest, SetupRequest } from "@otsi-vie/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ApiError } from "../../core/problem";
 import { AuthService, ClientInfo } from "./auth.service";
@@ -79,6 +79,16 @@ export class AuthController {
     this.guard(req, csrf);
     const { mfa_token, code } = MfaLoginRequest.parse(body);
     const s = await this.auth.loginSecondStep(mfa_token, code, this.client(req));
+    this.setCookie(req, res, s.refreshToken, s.refreshMaxAgeSeconds);
+    return s.body;
+  }
+
+  /** first-run owner setup (SOT page 10): create the owner account and sign them in. Refused once an organization exists. */
+  @Post("auth/setup")
+  @HttpCode(200)
+  async setup(@Body() body: unknown, @Headers(CSRF_HEADER) csrf: string | undefined, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+    this.guard(req, csrf);
+    const s = await this.auth.setup(SetupRequest.parse(body), this.client(req));
     this.setCookie(req, res, s.refreshToken, s.refreshMaxAgeSeconds);
     return s.body;
   }

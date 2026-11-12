@@ -9,6 +9,18 @@ export const LoginRequest = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequest>;
 
+/**
+ * First-run owner setup (SOT page 10): the owner creates their account — full name, email, password — and is signed in.
+ * The SOT's form has no organization field: the organization takes the owner's name, and the owner can rename it in
+ * Settings › Team after setup. Refused (409) once an organization already exists.
+ */
+export const SetupRequest = z.object({
+  email: z.string().trim().email().max(255),
+  display_name: z.string().trim().min(2, "Enter at least 2 characters.").max(80, "Use at most 80 characters."),
+  password: z.string().min(1).max(256),
+});
+export type SetupRequest = z.infer<typeof SetupRequest>;
+
 export const Me = z.object({
   user: z.object({ id: z.string().uuid(), email: z.string(), display_name: z.string(),
     /** when the profile photo was last set (GET /v1/me/avatar returns it); null = no photo */

@@ -13,7 +13,7 @@
  *  - A new person accepting an invitation (team.ts) gets their account and is signed in by the same `issue`.
  */
 import { Inject, Injectable } from "@nestjs/common";
-import { type AcceptInvitationRequest, type MfaChallenge, SessionResponse } from "@otsi-vie/contracts";
+import { type AcceptInvitationRequest, type MfaChallenge, SessionResponse, type SetupRequest } from "@otsi-vie/contracts";
 import { createHash, randomBytes } from "node:crypto";
 import { importPKCS8, importSPKI, jwtVerify, KeyLike, SignJWT } from "jose";
 import { RowDataPacket } from "mysql2/promise";
@@ -23,6 +23,7 @@ import { Db } from "../../core/db";
 import { dummyHash, verifyPassword } from "../../core/passwords";
 import { ApiError } from "../../core/problem";
 import { AccountService } from "../account/account";
+import { bootstrapOwner } from "./bootstrap";
 import { TeamService } from "../team/team";
 import { TwoStepService } from "./two-step";
 
@@ -145,6 +146,25 @@ export class AuthService {
   }
 
   /** a new person accepts an invitation: their account is created and they are signed in */
+  /**
+   * First-run owner setup (SOT page 10): create the one organization and its OWNER, then sign them in.
+   * The SOT's form has no organization field, so the organization takes the owner's name; the owner can
+   * rename it in Settings › Team. bootstrapOwner refuses (a plain Error) once an organization exists or
+   * the email is taken — those become 409s here, and the validation errors become 400s.
+   */
+  async setup(body: SetupRequest, client: ClientInfo): Promise<IssuedSession> {
+    let userId: string;
+    try {
+      ({ userId } = await bootstrapOwner(this.db, { email: body.email, displayName: body.display_name,
+        organizationName: body.display_name, password: body.password }));
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      if (/already has an organization|already has an account/i.test(m)) throw new ApiError(409, "ALREADY_SET_UP", m);
+      throw new ApiError(400, "SETUP_FAILED", m);
+    }
+    return this.issueSession(userId, client);
+  }
+
   async acceptInvitation(body: AcceptInvitationRequest, client: ClientInfo): Promise<IssuedSession> {
     const { userId, subject } = await this.team.acceptNew(body);
     return this.issue(userId, subject, uuidv7(), client);
