@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OTSI VIE</title>
+<title>OTSI VIE — Starting</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -10,32 +10,100 @@
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     background: #0A0B0D;
     color: #ECEEF1;
-    padding: 28px 32px;
     user-select: none;
+    overflow: hidden;
   }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.4px; }
+  /* the SOT splash (Splash.dc.html), fitted to the 480x380 loading window: the centred logo, the progress
+   * bar, "Starting the engine…" with the version, the three start-up steps, and the offline-grace footer.
+   * The faint pitch outline sits behind it all, as in the SOT. */
+  #status-view {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    padding: 24px 32px 44px;
+  }
+  #status-view .pitch {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 700px;
+    height: auto;
+    transform: translate(-50%, -50%);
+    opacity: .3;
+    pointer-events: none;
+  }
+  #status-view .inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  #status-view .brand { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  #status-view .brand img { height: 56px; width: auto; display: block; }
+  .eb {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: #8E96A1;
+  }
+  #status-view .prog { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  #status-view .bar { height: 3px; border-radius: 2px; background: #252A31; overflow: hidden; }
+  #status-view .bar > div { height: 100%; width: 0%; background: #2BD4B0; border-radius: 2px; transition: width .4s ease; }
+  #status-view .bar-row { display: flex; justify-content: space-between; font-size: 13px; }
+  #status-view .bar-row .sub { color: #8E96A1; }
+  #status-view .bar-row .ver { font-family: ui-monospace, "JetBrains Mono", monospace; color: #8E96A1; }
+  #status-view .steps {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    font-size: 13px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #status-view .steps li { display: flex; gap: 10px; align-items: center; }
+  #status-view .steps .sub { color: #8E96A1; }
+  #status-view .steps .mut { color: #8E96A1; }
+  #status-view .steps .ok { color: #2BD4B0; flex: none; }
+  #status-view .steps .spin {
+    width: 14px; height: 14px; flex: none;
+    border-radius: 50%;
+    border: 1.5px solid #4F9DFF;
+    border-right-color: transparent;
+    animation: rot 1s linear infinite;
+  }
+  #status-view .steps .todo {
+    width: 14px; height: 14px; flex: none;
+    border-radius: 50%;
+    border: 1.5px solid #333942;
+  }
+  #status-view .steps .warn { color: #F2A93B; flex: none; font-weight: 600; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  #status-view .foot {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: #8E96A1;
+  }
+  /* the owner and error views are not in the SOT; they keep their own flow, in the same dark style. */
+  #owner-view, #error-view { padding: 28px 32px; }
+  #owner-view h1, #error-view h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.4px; }
   .sub { color: #8E96A1; font-size: 13px; margin: 0 0 22px; }
-  #status { font-size: 15px; min-height: 22px; }
-  .bar {
-    height: 6px; background: #252A31; border-radius: 3px;
-    overflow: hidden; margin: 14px 0 18px;
-  }
-  .bar > div {
-    height: 100%; width: 40%; background: #2BD4B0; border-radius: 3px;
-    animation: slide 1.4s ease-in-out infinite;
-  }
-  @keyframes slide {
-    0% { margin-left: -40%; }
-    100% { margin-left: 100%; }
-  }
-  details { color: #8E96A1; font-size: 12px; }
-  details summary { cursor: pointer; outline: none; }
-  pre {
-    background: #0F1114; color: #B9BFC8; border-radius: 6px;
-    padding: 10px; max-height: 120px; overflow: auto;
-    font-size: 11px; line-height: 1.45; white-space: pre-wrap;
-    word-break: break-word; user-select: text;
-  }
+  #owner-view .note, #error-view .note { color: #8E96A1; font-size: 12px; margin-top: 14px; line-height: 1.5; }
   form label { display: block; font-size: 13px; color: #B9BFC8; margin: 12px 0 4px; }
   form input {
     width: 100%; padding: 9px 10px; font-size: 14px; border-radius: 6px;
@@ -63,27 +131,43 @@
     cursor: pointer; background: none; border: none; padding: 0;
   }
   .err { color: #FF8073; font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
-  .hidden { display: none; }
-  .note { color: #8E96A1; font-size: 12px; margin-top: 14px; line-height: 1.5; }
+  .hidden { display: none !important; }
+  details { color: #8E96A1; font-size: 12px; }
+  details summary { cursor: pointer; outline: none; }
+  pre {
+    background: #0F1114; color: #B9BFC8; border-radius: 6px;
+    padding: 10px; max-height: 120px; overflow: auto;
+    font-size: 11px; line-height: 1.45; white-space: pre-wrap;
+    word-break: break-word; user-select: text;
+  }
 </style>
 </head>
 <body>
-  <h1>OTSI VIE</h1>
-  <p class="sub">Video Intelligence Engine</p>
-
   <div id="status-view">
-    <div id="status">Starting OTSI VIE...</div>
-    <div id="update" class="note"></div>
-    <div id="hardware" class="note"></div>
-    <div class="bar"><div></div></div>
-    <details>
-      <summary>What is happening</summary>
-      <pre id="log"></pre>
-    </details>
-    <p class="note">© Osio &amp; Tee Solutions International Ltd</p>
+    <svg class="pitch" viewBox="0 0 680 440" aria-hidden="true">
+      <g fill="none" stroke="#1F2A25" stroke-width="1.2"><rect x="10" y="10" width="660" height="420" rx="4"></rect><rect x="10" y="118" width="108" height="204"></rect><rect x="562" y="118" width="108" height="204"></rect></g>
+    </svg>
+    <div class="inner">
+      <div class="brand">
+        <h1 style="margin: 0"><img src="./assets/otsi-logo.png" alt="OTSI" draggable="false"></h1>
+        <span class="eb">Video Intelligence Engine</span>
+      </div>
+      <div class="prog">
+        <div class="bar"><div id="bar-fill"></div></div>
+        <div class="bar-row"><span class="sub" id="status">Starting the engine…</span><span class="ver" id="version">v—</span></div>
+      </div>
+      <ul class="steps" id="steps">
+        <li data-step="workspace"><span class="todo" aria-hidden="true"></span><span class="mut">Local workspace opened</span></li>
+        <li data-step="models"><span class="todo" aria-hidden="true"></span><span class="mut">Loading analysis models</span></li>
+        <li data-step="licence"><span class="todo" aria-hidden="true"></span><span class="mut">Checking licence</span></li>
+      </ul>
+    </div>
+    <p class="foot">Video work runs on this computer · offline grace period applies when the server can’t be reached</p>
   </div>
 
   <div id="owner-view" class="hidden">
+    <h1>OTSI VIE</h1>
+    <p class="sub">Video Intelligence Engine</p>
     <p style="margin:0 0 4px;">First time: create your owner account.</p>
     <p class="sub" style="margin:0;">This is the account you sign in with. It lives only on this machine.</p>
     <form id="owner-form">
@@ -110,6 +194,7 @@
   </div>
 
   <div id="error-view" class="hidden">
+    <h1>OTSI VIE</h1>
     <p style="margin:0 0 4px;">Something did not work.</p>
     <p id="error-message" class="err"></p>
     <details open>
@@ -122,14 +207,11 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const logEl = $('log');
   let logLines = [];
 
   function appendLog(line) {
     logLines.push(line);
     if (logLines.length > 200) logLines = logLines.slice(-200);
-    logEl.textContent = logLines.join('');
-    logEl.scrollTop = logEl.scrollHeight;
   }
 
   function show(view) {
@@ -138,21 +220,64 @@
     $('error-view').classList.toggle('hidden', view !== 'error');
   }
 
-  window.otsi.onStatus((text) => { $('status').textContent = text; });
-  window.otsi.onUpdateStatus((text) => { $('update').textContent = text || ''; });
-  window.otsi.onHardware((data) => {
-    $('hardware').textContent = data.summary || '';
-    if (data.warnings && data.warnings.length) {
-      $('hardware').textContent += ' ' + data.warnings.join(' ');
+  /* The three start-up steps, driven by the status text the main process sends. The SOT shows the
+   * middle of the start-up: the workspace open, the models loading, the licence still to check. */
+  const CHECK = '<svg class="ok" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>';
+  const SPIN = '<span class="spin" aria-hidden="true"></span>';
+  const TODO = '<span class="todo" aria-hidden="true"></span>';
+  const WARN = '<span class="warn" aria-hidden="true">!</span>';
+  function setStep(name, state) {
+    const li = document.querySelector(`#steps [data-step="${name}"]`);
+    if (!li) return;
+    const icon = li.firstElementChild;
+    const label = li.lastElementChild;
+    icon.outerHTML = state === 'done' ? CHECK : state === 'active' ? SPIN : state === 'warn' ? WARN : TODO;
+    label.className = state === 'done' ? '' : state === 'active' ? '' : 'mut';
+    if (state === 'warn') label.className = '';
+  }
+  function setProgress(pct) { $('bar-fill').style.width = pct + '%'; }
+  function applyStatus(text) {
+    $('status').textContent = text;
+    // the main process's start-up order (main.js): Starting / Checking this PC / AI runtimes /
+    // database / AI models / licence / Starting the engine / Opening the engine
+    if (/licence expired/i.test(text)) {
+      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'warn'); setProgress(70);
+    } else if (/opening the engine/i.test(text)) {
+      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'done'); setProgress(100);
+    } else if (/starting the engine/i.test(text)) {
+      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'done'); setProgress(90);
+    } else if (/checking the licence/i.test(text)) {
+      setStep('workspace', 'done'); setStep('models', 'done'); setStep('licence', 'active'); setProgress(70);
+    } else if (/models ready|ai models/i.test(text)) {
+      setStep('workspace', 'done'); setStep('models', 'active'); setStep('licence', 'pending'); setProgress(38);
+    } else if (/database/i.test(text)) {
+      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(25);
+    } else if (/ai runtimes|checking this pc/i.test(text)) {
+      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(15);
+    } else {
+      setStep('workspace', 'active'); setStep('models', 'pending'); setStep('licence', 'pending'); setProgress(8);
     }
+  }
+
+  window.otsi.onStatus((text) => applyStatus(text));
+  // the update and hardware notes are not shown on the SOT splash; they are still collected into the
+  // log so the error view can show them if the start-up fails.
+  window.otsi.onUpdateStatus((text) => { if (text) appendLog('[update] ' + text + '\n'); });
+  window.otsi.onHardware((data) => {
+    const s = (data.summary || '') + ((data.warnings && data.warnings.length) ? ' ' + data.warnings.join(' ') : '');
+    if (s.trim()) appendLog('[hardware] ' + s + '\n');
   });
   window.otsi.onLog((line) => appendLog(line));
   window.otsi.onShowOwner(() => { show('owner'); $('email').focus(); });
   window.otsi.onShowError((data) => {
     $('error-message').textContent = data.message || 'Something did not work.';
-    $('error-log').textContent = data.log || '';
+    $('error-log').textContent = (data.log || '') + logLines.join('');
     show('error');
   });
+  // the real version, from the main process; "v—" until it answers (the SOT's v[—] slot).
+  if (window.otsi.version) {
+    window.otsi.version().then((v) => { if (v) $('version').textContent = 'v' + v; }).catch(() => {});
+  }
 
   // Show / hide password (eye toggle on each password field).
   const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -191,19 +316,19 @@
     $('owner-submit').disabled = true;
     $('owner-error').textContent = '';
     show('status');
-    $('status').textContent = 'Creating your owner account...';
+    applyStatus('Creating your owner account...');
     window.otsi.submitOwner({ email, name, organization: org, password });
   });
 
   $('have-account').addEventListener('click', () => {
     show('status');
-    $('status').textContent = 'Carrying on...';
+    applyStatus('Carrying on...');
     window.otsi.ownerHaveAccount();
   });
 
   $('retry').addEventListener('click', () => {
     show('status');
-    $('status').textContent = 'Trying again...';
+    applyStatus('Trying again...');
     window.otsi.retry();
   });
 

@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('otsi', {
   onHardware: (fn) => ipcRenderer.on('hardware', (_event, data) => fn(data)),
   onShowOwner: (fn) => ipcRenderer.on('show-owner', () => fn()),
   onShowError: (fn) => ipcRenderer.on('show-error', (_event, data) => fn(data)),
+  /** the app version for the splash screen (the SOT's v[—] slot, filled with the real version) */
+  version: () => ipcRenderer.invoke('app-version'),
   submitOwner: (details) => ipcRenderer.send('owner-submit', details),
   ownerHaveAccount: () => ipcRenderer.send('owner-have-account'),
   retry: () => ipcRenderer.send('retry'),

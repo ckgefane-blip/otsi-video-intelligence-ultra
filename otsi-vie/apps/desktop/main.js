@@ -549,6 +549,7 @@ ipcMain.on('owner-have-account', () => {
 // hands them here. The session is stored for licence refreshes; with two-step sign-in on, step 1
 // returns a challenge and the renderer calls 'licence-sign-in-two-step' with the code. The live flow
 // cannot be tested here (no central server is deployed yet); the first live test is on the owner's host.
+ipcMain.handle('app-version', () => app.getVersion());
 ipcMain.handle('licence-sign-in', async (_event, credentials) => {
   const centralUrl = backend.licence.centralServerUrl();
   if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL).');

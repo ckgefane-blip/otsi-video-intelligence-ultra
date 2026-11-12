@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = { title: "Sign in" };
 
+/** Sign in (SOT Page 27) is a full two-column page, not a centred card: the layout only gives it the screen. */
 export default function LoginLayout({ children }: { children: ReactNode }) {
-  return <main id="main" className="grid min-h-screen place-items-center px-4 py-10">{children}</main>;
+  return <main id="main" className="min-h-screen">{children}</main>;
 }

@@ -58,20 +58,20 @@ beforeEach(() => {
 describe("sign-in page passkey button", () => {
   it("shows the Windows Hello button when passkeys are supported", async () => {
     render(<LoginPage />);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with Windows Hello/ })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
   });
 
   it("shows a clear message (and no button) when passkeys are not supported", async () => {
     browserSupportsWebAuthn.mockReturnValue(false);
     render(<LoginPage />);
     await waitFor(() => expect(screen.getByText(/does not support passkeys here/)).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /Sign in with Windows Hello/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sign in with a passkey/ })).not.toBeInTheDocument();
   });
 
   it("asks for the email first when the button is used with no email", async () => {
     render(<LoginPage />);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with Windows Hello/ })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /Sign in with Windows Hello/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /Sign in with a passkey/ }));
     await waitFor(() => expect(screen.getByText(/Enter your email first/)).toBeInTheDocument());
     expect(signInWithPasskey).not.toHaveBeenCalled();
   });

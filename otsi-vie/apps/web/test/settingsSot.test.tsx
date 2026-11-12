@@ -102,7 +102,7 @@ describe("Settings — Team (SOT, Page 23)", () => {
     expect(screen.getByRole("button", { name: "Send invite" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy invite link" })).toBeDisabled();
     expect(screen.getByText("Members")).toBeInTheDocument();
-    const ownerRow = screen.getByText("Karo").closest("[data-member]")!;
+    const ownerRow = screen.getByText("Karo").closest("[data-member]") as HTMLElement;
     expect(within(ownerRow).getByText("You")).toBeInTheDocument();
     expect(within(ownerRow).getByText("Owner")).toBeInTheDocument();
     expect(within(ownerRow).getByText("Can't be removed")).toBeInTheDocument();

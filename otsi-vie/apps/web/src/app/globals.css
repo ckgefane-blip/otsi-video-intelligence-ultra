@@ -219,3 +219,13 @@ dialog[data-player-full]::backdrop { background: #000; }
 .in:disabled { opacity: .55; }
 .in[readonly] { color: rgb(var(--ink2)); }
 select.in { appearance: auto; }
+
+/* Shared link + Sign in (SOT, pages 25-28): the divider line, the status LED, the icon button, the ghost
+ * button (the Show-password button inside a field), and the 14px section heading. */
+.div { height: 1px; background: rgb(var(--line)); }
+.led { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--muted)); }
+.led.ok { background: rgb(var(--primary)); }
+.ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; background: transparent; border: 1px solid transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
+.ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
+.gh { background: transparent; border-color: transparent; color: rgb(var(--ink2)); }
+.h2 { font-size: 14px; font-weight: 600; line-height: 20px; }

@@ -475,6 +475,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.processing.pjActions",       // French "Actions" is the same word
       "body.reels.rbRule",              // the versioned rule name, the same in every language
       "body.settings.stSecWindowsHello", // the Windows Hello product name, the same in every language
+      "webauthn.windowsHello",          // the Windows Hello product name, the same in every language
       "body.settings.stPrefNotifications", // French "Notifications" is the same word
       "body.settings.stPrefLicenceStatus", // German "Status" is the same word
       "body.settings.stPrefLicenceVersion", // German/French "Version" is the same word
@@ -614,6 +615,9 @@ describe("dictionaries (ADR-139)", () => {
       // settings/wallet keys, five of them the same in French — "Notifications",
       // "Windows Hello", "₦ Naira", "$ Dollar" and "Version". French is the
       // highest at 288.
+      // Pages 25-28 Shared link + Sign in (2026-11-12) raise it by one:
+      // "Windows Hello" (the new webauthn key) is the same in French.
+      // French is the highest at 289.
       expect(same.length, locale).toBeLessThan(292);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
@@ -651,7 +655,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("settings").length).toBe(139);
     expect(bodyKeys("wallet").length).toBe(129);
     expect(bodyKeys("shell").length).toBe(282);
-    expect(bodyKeys("auth").length).toBe(100);
+    expect(bodyKeys("auth").length).toBe(128);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

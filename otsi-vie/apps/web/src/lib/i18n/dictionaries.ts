@@ -6642,6 +6642,34 @@ export interface Dictionary {
       sharedCommentFailed: string;
       sharedSending: string;
       sharedSend: string;
+      sharedGateTitle: string;
+      sharedGateDesc: string;
+      sharedExpires: string;
+      sharedByOrg: string;
+      sharedPack: string;
+      sharedNoFootageSot: string;
+      sharedNoFootageBody: string;
+      sharedReel: string;
+      sharedReportNotIncluded: string;
+      sharedBriefNotIncluded: string;
+      sharedCommentsPinned: string;
+      sharedNameShown: string;
+      sharedCommentPlaceholder: string;
+      sharedPostComment: string;
+      sharedCommentAt: string;
+      sharedMeasuredFooter: string;
+      sharedDownloadReel: string;
+      signInWelcome: string;
+      signInForgot: string;
+      signInForgotNote: string;
+      signInNextStep: string;
+      signInVerifyCode: string;
+      signInCodeDesc: string;
+      signInVerify: string;
+      signInUseRecovery: string;
+      signInUseCode: string;
+      signInInvitedBy: string;
+      signInAcceptInvite: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -6672,6 +6700,8 @@ export interface Dictionary {
     passkeyAddedOn: string;
     passkeyAddFailed: string;
     passkeyRemoveFailed: string;
+    signInWithPasskeyShort: string;
+    windowsHello: string;
   };
 }
 
@@ -13309,6 +13339,34 @@ export const en: Dictionary = {
       sharedCommentFailed: "The comment could not be sent.",
       sharedSending: "Sending…",
       sharedSend: "Send comment",
+      sharedGateTitle: "This link is protected",
+      sharedGateDesc: "An organisation shared a Scouting Pack with you. Enter the password they gave you to open it.",
+      sharedExpires: "Link expires {a}",
+      sharedByOrg: "Shared with you by an organisation",
+      sharedPack: "Scouting Pack",
+      sharedNoFootageSot: "No playable footage",
+      sharedNoFootageBody: "Open the match file from this computer to play it.",
+      sharedReel: "Highlight reel",
+      sharedReportNotIncluded: "Not included",
+      sharedBriefNotIncluded: "Not included · not published",
+      sharedCommentsPinned: "Comments are pinned to the current time.",
+      sharedNameShown: "Shown with your comment",
+      sharedCommentPlaceholder: "What did you notice here?",
+      sharedPostComment: "Post comment",
+      sharedCommentAt: "Comment at {a}",
+      sharedMeasuredFooter: "Figures measured by OTSI VIE. Unmeasured values are marked.",
+      sharedDownloadReel: "Download reel",
+      signInWelcome: "Welcome back",
+      signInForgot: "Forgot password?",
+      signInForgotNote: "There's no self-service password reset. Ask your organisation's owner to reset it for you.",
+      signInNextStep: "Next step · when two-step is on",
+      signInVerifyCode: "Enter your verification code",
+      signInCodeDesc: "Open your authenticator app and enter the 6-digit code.",
+      signInVerify: "Verify",
+      signInUseRecovery: "Use a recovery code instead",
+      signInUseCode: "Use the 6-digit code instead",
+      signInInvitedBy: "Invited by your organisation?",
+      signInAcceptInvite: "Accept your invite",
     },
   },
   webauthn: {
@@ -13338,6 +13396,8 @@ export const en: Dictionary = {
     passkeyAddedOn: "Added {a}",
     passkeyAddFailed: "Could not add this passkey. Try again.",
     passkeyRemoveFailed: "Could not remove this passkey. Try again.",
+    signInWithPasskeyShort: "Sign in with a passkey",
+    windowsHello: "Windows Hello",
   },
 };
 
@@ -19972,6 +20032,34 @@ export const ru: DeepPartial<Dictionary> = {
       sharedCommentFailed: "Комментарий отправить не удалось.",
       sharedSending: "Отправка…",
       sharedSend: "Отправить комментарий",
+      sharedGateTitle: "Эта ссылка защищена",
+      sharedGateDesc: "Организация поделилась с вами Скаутинговым пакетом. Введите пароль, который вам дали, чтобы открыть его.",
+      sharedExpires: "Ссылка истекает {a}",
+      sharedByOrg: "Поделилась с вами организация",
+      sharedPack: "Скаутинговый пакет",
+      sharedNoFootageSot: "Нет воспроизводимого видео",
+      sharedNoFootageBody: "Откройте файл матча с этого компьютера, чтобы воспроизвести его.",
+      sharedReel: "Видеонарезка",
+      sharedReportNotIncluded: "Не включено",
+      sharedBriefNotIncluded: "Не включено · не опубликовано",
+      sharedCommentsPinned: "Комментарии привязываются к текущему моменту.",
+      sharedNameShown: "Показывается с вашим комментарием",
+      sharedCommentPlaceholder: "Что вы здесь заметили?",
+      sharedPostComment: "Оставить комментарий",
+      sharedCommentAt: "Комментарий в {a}",
+      sharedMeasuredFooter: "Показатели измерены OTSI VIE. Неизмеренные значения отмечены.",
+      sharedDownloadReel: "Скачать нарезку",
+      signInWelcome: "С возвращением",
+      signInForgot: "Забыли пароль?",
+      signInForgotNote: "Самостоятельного сброса пароля нет. Попросите владельца вашей организации сбросить его для вас.",
+      signInNextStep: "Следующий шаг · когда включена двухэтапная проверка",
+      signInVerifyCode: "Введите код подтверждения",
+      signInCodeDesc: "Откройте приложение-аутентификатор и введите 6-значный код.",
+      signInVerify: "Подтвердить",
+      signInUseRecovery: "Использовать код восстановления",
+      signInUseCode: "Использовать 6-значный код",
+      signInInvitedBy: "Вас пригласила ваша организация?",
+      signInAcceptInvite: "Принять приглашение",
     },
   },
   webauthn: {
@@ -20001,6 +20089,8 @@ export const ru: DeepPartial<Dictionary> = {
     passkeyAddedOn: "Добавлен {a}",
     passkeyAddFailed: "Не удалось добавить ключ доступа. Попробуйте ещё раз.",
     passkeyRemoveFailed: "Не удалось удалить ключ доступа. Попробуйте ещё раз.",
+    signInWithPasskeyShort: "Войти с помощью ключа доступа",
+    windowsHello: "Windows Hello",
   },
 };
 
@@ -26635,6 +26725,34 @@ export const es: DeepPartial<Dictionary> = {
       sharedCommentFailed: "No se pudo enviar el comentario.",
       sharedSending: "Enviando…",
       sharedSend: "Enviar comentario",
+      sharedGateTitle: "Este enlace está protegido",
+      sharedGateDesc: "Una organización compartió un Paquete de scouting contigo. Introduce la contraseña que te dieron para abrirlo.",
+      sharedExpires: "El enlace caduca {a}",
+      sharedByOrg: "Compartido contigo por una organización",
+      sharedPack: "Paquete de scouting",
+      sharedNoFootageSot: "No hay vídeo reproducible",
+      sharedNoFootageBody: "Abre el archivo del partido desde este equipo para reproducirlo.",
+      sharedReel: "Reel de highlights",
+      sharedReportNotIncluded: "No incluido",
+      sharedBriefNotIncluded: "No incluido · no publicado",
+      sharedCommentsPinned: "Los comentarios se fijan al momento actual.",
+      sharedNameShown: "Se muestra con tu comentario",
+      sharedCommentPlaceholder: "¿Qué notaste aquí?",
+      sharedPostComment: "Publicar comentario",
+      sharedCommentAt: "Comentario en {a}",
+      sharedMeasuredFooter: "Cifras medidas por OTSI VIE. Los valores no medidos están marcados.",
+      sharedDownloadReel: "Descargar reel",
+      signInWelcome: "Te damos la bienvenida",
+      signInForgot: "¿Olvidaste la contraseña?",
+      signInForgotNote: "No hay restablecimiento de contraseña de autoservicio. Pide al propietario de tu organización que la restablezca por ti.",
+      signInNextStep: "Siguiente paso · cuando la verificación en dos pasos está activada",
+      signInVerifyCode: "Introduce tu código de verificación",
+      signInCodeDesc: "Abre tu aplicación de autenticación e introduce el código de 6 dígitos.",
+      signInVerify: "Verificar",
+      signInUseRecovery: "Usar un código de recuperación",
+      signInUseCode: "Usar el código de 6 dígitos",
+      signInInvitedBy: "¿Te invitó tu organización?",
+      signInAcceptInvite: "Acepta tu invitación",
     },
   },
   webauthn: {
@@ -26664,6 +26782,8 @@ export const es: DeepPartial<Dictionary> = {
     passkeyAddedOn: "Añadida {a}",
     passkeyAddFailed: "No se pudo añadir esta clave de acceso. Inténtalo de nuevo.",
     passkeyRemoveFailed: "No se pudo eliminar esta clave de acceso. Inténtalo de nuevo.",
+    signInWithPasskeyShort: "Iniciar sesión con una clave de acceso",
+    windowsHello: "Windows Hello",
   },
 };
 
@@ -33298,6 +33418,34 @@ export const de: DeepPartial<Dictionary> = {
       sharedCommentFailed: "Der Kommentar konnte nicht gesendet werden.",
       sharedSending: "Senden…",
       sharedSend: "Kommentar senden",
+      sharedGateTitle: "Dieser Link ist geschützt",
+      sharedGateDesc: "Eine Organisation hat ein Scouting-Paket mit dir geteilt. Gib das Passwort ein, das du erhalten hast, um es zu öffnen.",
+      sharedExpires: "Link läuft ab am {a}",
+      sharedByOrg: "Mit dir geteilt von einer Organisation",
+      sharedPack: "Scouting-Paket",
+      sharedNoFootageSot: "Kein abspielbares Video",
+      sharedNoFootageBody: "Öffne die Matchdatei von diesem Computer, um sie abzuspielen.",
+      sharedReel: "Highlight-Reel",
+      sharedReportNotIncluded: "Nicht enthalten",
+      sharedBriefNotIncluded: "Nicht enthalten · nicht veröffentlicht",
+      sharedCommentsPinned: "Kommentare werden an die aktuelle Zeit angeheftet.",
+      sharedNameShown: "Wird mit deinem Kommentar angezeigt",
+      sharedCommentPlaceholder: "Was ist dir hier aufgefallen?",
+      sharedPostComment: "Kommentar posten",
+      sharedCommentAt: "Kommentar bei {a}",
+      sharedMeasuredFooter: "Zahlen gemessen von OTSI VIE. Nicht gemessene Werte sind markiert.",
+      sharedDownloadReel: "Reel herunterladen",
+      signInWelcome: "Willkommen zurück",
+      signInForgot: "Passwort vergessen?",
+      signInForgotNote: "Es gibt kein Self-Service-Zurücksetzen des Passworts. Bitte den Inhaber deiner Organisation, es für dich zurückzusetzen.",
+      signInNextStep: "Nächster Schritt · wenn Zwei-Schritt aktiviert ist",
+      signInVerifyCode: "Gib deinen Bestätigungscode ein",
+      signInCodeDesc: "Öffne deine Authenticator-App und gib den 6-stelligen Code ein.",
+      signInVerify: "Bestätigen",
+      signInUseRecovery: "Stattdessen einen Wiederherstellungscode verwenden",
+      signInUseCode: "Stattdessen den 6-stelligen Code verwenden",
+      signInInvitedBy: "Von deiner Organisation eingeladen?",
+      signInAcceptInvite: "Einladung annehmen",
     },
   },
   webauthn: {
@@ -33327,6 +33475,8 @@ export const de: DeepPartial<Dictionary> = {
     passkeyAddedOn: "Hinzugefügt {a}",
     passkeyAddFailed: "Dieser Passkey konnte nicht hinzugefügt werden. Versuche es erneut.",
     passkeyRemoveFailed: "Dieser Passkey konnte nicht entfernt werden. Versuche es erneut.",
+    signInWithPasskeyShort: "Mit einem Passkey anmelden",
+    windowsHello: "Windows Hello",
   },
 };
 
@@ -39961,6 +40111,34 @@ export const fr: DeepPartial<Dictionary> = {
       sharedCommentFailed: "Le commentaire n’a pas pu être envoyé.",
       sharedSending: "Envoi…",
       sharedSend: "Envoyer le commentaire",
+      sharedGateTitle: "Ce lien est protégé",
+      sharedGateDesc: "Une organisation a partagé un Pack de scouting avec vous. Saisissez le mot de passe qu'elle vous a donné pour l'ouvrir.",
+      sharedExpires: "Le lien expire le {a}",
+      sharedByOrg: "Partagé avec vous par une organisation",
+      sharedPack: "Pack de scouting",
+      sharedNoFootageSot: "Aucune vidéo lisible",
+      sharedNoFootageBody: "Ouvrez le fichier du match depuis cet ordinateur pour le lire.",
+      sharedReel: "Reel de highlights",
+      sharedReportNotIncluded: "Non inclus",
+      sharedBriefNotIncluded: "Non inclus · non publié",
+      sharedCommentsPinned: "Les commentaires sont épinglés au moment actuel.",
+      sharedNameShown: "Affiché avec votre commentaire",
+      sharedCommentPlaceholder: "Qu'avez-vous remarqué ici ?",
+      sharedPostComment: "Publier le commentaire",
+      sharedCommentAt: "Commentaire à {a}",
+      sharedMeasuredFooter: "Chiffres mesurés par OTSI VIE. Les valeurs non mesurées sont indiquées.",
+      sharedDownloadReel: "Télécharger le reel",
+      signInWelcome: "Bon retour",
+      signInForgot: "Mot de passe oublié ?",
+      signInForgotNote: "Il n'y a pas de réinitialisation de mot de passe en libre-service. Demandez au propriétaire de votre organisation de le réinitialiser pour vous.",
+      signInNextStep: "Étape suivante · quand la vérification en deux étapes est activée",
+      signInVerifyCode: "Saisissez votre code de vérification",
+      signInCodeDesc: "Ouvrez votre application d'authentification et saisissez le code à 6 chiffres.",
+      signInVerify: "Vérifier",
+      signInUseRecovery: "Utiliser un code de récupération à la place",
+      signInUseCode: "Utiliser le code à 6 chiffres à la place",
+      signInInvitedBy: "Invité par votre organisation ?",
+      signInAcceptInvite: "Accepter votre invitation",
     },
   },
   webauthn: {
@@ -39990,6 +40168,8 @@ export const fr: DeepPartial<Dictionary> = {
     passkeyAddedOn: "Ajoutée {a}",
     passkeyAddFailed: "Impossible d’ajouter cette clé d’accès. Réessayez.",
     passkeyRemoveFailed: "Impossible de supprimer cette clé d’accès. Réessayez.",
+    signInWithPasskeyShort: "Se connecter avec une clé d'accès",
+    windowsHello: "Windows Hello",
   },
 };
 
@@ -46633,7 +46813,35 @@ export const pt: DeepPartial<Dictionary> = {
       "sharedPin": "Fixar no momento em que o vídeo está",
       "sharedCommentFailed": "Não foi possível enviar o comentário.",
       "sharedSending": "Enviando…",
-      "sharedSend": "Enviar comentário"
+      "sharedSend": "Enviar comentário",
+      "sharedGateTitle": "Este link está protegido",
+      "sharedGateDesc": "Uma organização compartilhou um Pacote de scouting com você. Digite a senha que lhe deram para abri-lo.",
+      "sharedExpires": "O link expira em {a}",
+      "sharedByOrg": "Compartilhado com você por uma organização",
+      "sharedPack": "Pacote de scouting",
+      "sharedNoFootageSot": "Nenhum vídeo reproduzível",
+      "sharedNoFootageBody": "Abra o arquivo da partida neste computador para reproduzi-lo.",
+      "sharedReel": "Reel de destaques",
+      "sharedReportNotIncluded": "Não incluído",
+      "sharedBriefNotIncluded": "Não incluído · não publicado",
+      "sharedCommentsPinned": "Os comentários são fixados no momento atual.",
+      "sharedNameShown": "Exibido com o seu comentário",
+      "sharedCommentPlaceholder": "O que você notou aqui?",
+      "sharedPostComment": "Publicar comentário",
+      "sharedCommentAt": "Comentário em {a}",
+      "sharedMeasuredFooter": "Números medidos pelo OTSI VIE. Valores não medidos são marcados.",
+      "sharedDownloadReel": "Baixar reel",
+      "signInWelcome": "Bem-vindo de volta",
+      "signInForgot": "Esqueceu a senha?",
+      "signInForgotNote": "Não há redefinição de senha por conta própria. Peça ao proprietário da sua organização para redefini-la para você.",
+      "signInNextStep": "Próximo passo · quando a verificação em duas etapas está ativada",
+      "signInVerifyCode": "Digite seu código de verificação",
+      "signInCodeDesc": "Abra o aplicativo autenticador e digite o código de 6 dígitos.",
+      "signInVerify": "Verificar",
+      "signInUseRecovery": "Usar um código de recuperação",
+      "signInUseCode": "Usar o código de 6 dígitos",
+      "signInInvitedBy": "Convidado pela sua organização?",
+      "signInAcceptInvite": "Aceitar seu convite",
     }
   },
   "webauthn": {
@@ -46662,7 +46870,9 @@ export const pt: DeepPartial<Dictionary> = {
     "passkeyNeverUsed": "Nunca usada",
     "passkeyAddedOn": "Adicionada {a}",
     "passkeyAddFailed": "Não foi possível adicionar esta chave de acesso. Tente novamente.",
-    "passkeyRemoveFailed": "Não foi possível remover esta chave de acesso. Tente novamente."
+    "passkeyRemoveFailed": "Não foi possível remover esta chave de acesso. Tente novamente.",
+    "signInWithPasskeyShort": "Entrar com uma chave de acesso",
+    "windowsHello": "Windows Hello",
   }
 };
 
