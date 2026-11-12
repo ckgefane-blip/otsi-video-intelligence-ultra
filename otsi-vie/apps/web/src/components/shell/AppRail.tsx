@@ -43,7 +43,9 @@ const ENTRIES: Record<string, RailEntry> = {
 
 function readRail(): number {
   try {
-    const v = Number(localStorage.getItem(RAIL_STORAGE_KEY));
+    const raw = localStorage.getItem(RAIL_STORAGE_KEY);
+    if (raw === null) return DEFAULT_W;
+    const v = Number(raw);
     return Number.isFinite(v) ? Math.min(MAX_W, Math.max(MIN_W, v)) : DEFAULT_W;
   } catch { return DEFAULT_W; }
 }
