@@ -2,12 +2,12 @@
 /**
  * The Analysis / Tactical video on the Drop 1 shared player (Desktop UI).
  *
- * The shared VideoPlayer owns its <video> element, but the Analysis workspace hook (ADR-035) needs that element: it follows the frame
- * on screen (requestVideoFrameCallback) so the tracking boxes sit on the players, and every seek (track click, timeline, event, ?t=)
- * drives it. The bridge finds the player's <video> after every render and hands it to `ws.videoRef` — the workspace's own listener
- * effect (which runs after this component's effects, and again whenever the playback URL changes) then attaches to the live element.
- * Nothing here changes the data layer: the playback URL is still the signed GET /v1/videos/:id/playback address, the boxes are still
- * the run's observations at the playhead, and the pitch layers still draw only where a calibration covers the moment.
+ * The shared VideoPlayer owns its <video> element and hands it straight to the workspace hook (ADR-035) through its `videoRef`
+ * prop: the hook follows the frame on screen (requestVideoFrameCallback) so the tracking boxes sit on the players, and every seek
+ * (track click, timeline, event, ?t=) drives it. Nothing here changes the data layer: the playback URL is still the signed
+ * GET /v1/videos/:id/playback address, the boxes are still the run's observations at the playhead, and the pitch layers still draw
+ * only where a calibration covers the moment. The B.4 zoom reaches the player as `pictureStyle`, so it scales the picture and its
+ * overlays together and leaves the transport bar unzoomed.
  *
  * Overlays drawn over the picture (as the player's children): the tracking boxes (TrackOverlay), the engine ball ring (BallOverlay)
  * and the pitch layers (PitchLayers: tracks, team shapes, heat, pass arrows). Which of those appear is the caller's `layers`.
@@ -74,7 +74,6 @@ export interface WorkspacePlayerProps {
 
 export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, pitchLayers = false, ballRing = false, ballBoxes = "engine", minimap = false, zoom = "1", op = { boxes: 1, pitch: 1, ball: 1 }, className = "" }: WorkspacePlayerProps) {
   const { t: dict } = useLocale();
-  const wrap = useRef<HTMLDivElement | null>(null);
   const [pitchNote, setPitchNote] = useState<string | null>(null);
   const url = ws?.playback?.available ? ws.playback.url : ws?.playback ? null : undefined;
   const video = ws?.video ?? null;
@@ -95,21 +94,18 @@ export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, 
   const minimapNote = placed.length ? dict.body.workspace.placedCount.replace("{a}", String(placed.length))
     : calibrated ? dict.body.workspace.notMeasuredHere : dict.body.workspace.pitchNotCalibrated;
 
-  // hand the player's <video> to the workspace after every render (its element is re-created when the URL changes)
-  useEffect(() => {
-    if (!ws) return;
-    ws.videoRef.current = wrap.current?.querySelector("video") ?? null;
-  });
-
   return (
-    <div ref={wrap} className="min-w-0 overflow-hidden rounded-md">
-      <div style={zoom !== "1" ? { transform: `scale(${zoom})`, transformOrigin: zoomOrigin(selBox) } : undefined}>
+    <div className="min-w-0 overflow-hidden rounded-md">
         <VideoPlayer
           src={url}
           label={video ? (video.title ?? video.original_filename ?? dict.body.processing.matchVideo) : dict.body.processing.matchVideo}
           allowLocal
           aspect={`${W} / ${H}`}
           className={className}
+          // SOT: the shared player hands its <video> straight to the workspace (no DOM query) and the B.4 zoom applies to
+          // the picture + overlays together, so the transport bar stays unzoomed
+          videoRef={ws?.videoRef}
+          pictureStyle={zoom !== "1" ? { transform: `scale(${zoom})`, transformOrigin: zoomOrigin(selBox), transition: "transform-origin .4s linear" } : undefined}
         >
           {ws && layers && (
             <>
@@ -146,7 +142,6 @@ export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, 
             </>
           )}
         </VideoPlayer>
-      </div>
     </div>
   );
 }

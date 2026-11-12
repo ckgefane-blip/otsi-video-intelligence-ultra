@@ -7,8 +7,8 @@
  * reel's confirmed player as recorded: team, shirt number and position from the match team sheet, nationality, foot and age from the
  * Players list (position: this match's team sheet first, else his usual one; "—" where nothing is recorded; the pencil opens his row
  * there), on a dark backing so it reads over bright footage; the scoreboard shows the linked match's recorded teams and score.
- * Source footage starts at the clip's in point; when it reaches the out point the preview advances to the next clip (looping to the
- * first) and keeps playing — the shared player exposes no external pause, so the old stop-at-the-out-point becomes advance-and-play-on.
+ * Source footage starts at the clip's in point and plays only to its out point (the player's `range`); when it reaches the out
+ * point the preview advances to the next clip (looping to the first) and keeps playing.
  * Without a reel: the honest empty state, and the organization's reels to open below it.
  */
 import type { Match, Playback, Reel, TrackSummary, Video } from "@otsi-vie/contracts";
@@ -97,6 +97,8 @@ export function PreviewPanel() {
   const [replay, setReplay] = useState(0);
   const advanceRef = useRef(false);
   const advancingRef = useRef(false);
+  // SOT: the shared player hands its <video> to the spotlight through this ref, and plays only the clip's in/out (range)
+  const ref = useRef<HTMLVideoElement | null>(null);
   const clips = reel?.clips ?? [];
   const sel = r?.selectedClip ?? null;
   const clipIndex = Math.max(0, clips.findIndex((c) => c.id === sel));
@@ -186,10 +188,12 @@ export function PreviewPanel() {
           aspect={ASPECT[reel?.aspect ?? "16:9"] ?? "16 / 9"}
           autoPlay={autoPlay}
           startAt={src?.kind === "source" && clip ? clip.in_pts_us / 1e6 : undefined}
+          videoRef={ref}
+          range={src?.kind === "source" && clip ? { inUs: clip.in_pts_us, outUs: clip.out_pts_us } : null}
           onTime={onTime}
           empty={{ title: emptyTitle, body: "" }}
         >
-          {reel && src?.kind === "source" && <LiveSpotlight path={path} reel={reel} clip={clip} settings={look} on={!message && !reel.stale} />}
+          {reel && src?.kind === "source" && <LiveSpotlight video={ref} path={path} reel={reel} clip={clip} settings={look} on={!message && !reel.stale} />}
           {message && src && <div className="pointer-events-none absolute inset-0 grid place-items-center"><p className="t-body bg-black/60 rounded-md px-3 py-1.5">{message}</p></div>}
         </VideoPlayer>
         {spotNote && <div data-spotlight-note className="pointer-events-none absolute bottom-12 left-2 rounded-md bg-black/60 px-2 py-1 t-small"

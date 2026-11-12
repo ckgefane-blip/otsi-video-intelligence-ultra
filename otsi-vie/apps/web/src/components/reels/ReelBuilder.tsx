@@ -223,6 +223,7 @@ export function ReelPreview() {
       <VideoPlayer key={`${src?.url ?? "none"}:${clip?.id ?? ""}:${src?.kind ?? ""}`} src={src === undefined ? undefined : (src?.url ?? null)}
         aspect={aspect} label={src?.kind === "render" ? dict.body.reels.previewRenderedAria : dict.body.reels.previewSourceAria}
         startAt={src?.kind === "source" && clip ? clip.in_pts_us / 1e6 : undefined}
+        range={src?.kind === "source" && clip ? { inUs: clip.in_pts_us, outUs: clip.out_pts_us } : null}
         empty={{ title: dict.body.reels.previewNoPreview, body: "" }} />
       {src && <p className="t-small">{src.kind === "render" ? dict.body.reels.previewRenderedNote : clip ? dict.body.reels.previewSourceNote.replace("{a}", sec(clip.in_pts_us, dict.body.reelstage.durationSec)) : dict.body.reels.previewSourceNoteStart}</p>}
     </div>
