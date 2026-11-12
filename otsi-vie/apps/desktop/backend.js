@@ -668,14 +668,18 @@ function writeOwnerMarker(data) {
  * exits is logged (jobs wait until it is back); it does not kill the app.
  * Returns a handle for stopBackend.
  */
-function startBackend(root, data, env, logStream, log, mysqlSupervisor) {
+function startBackend(root, data, env, logStream, log, mysqlSupervisor, devMode) {
   const otsiVie = otsiVieDir(root);
   const node = bundledNode();
   const workerExe = nativeWorkerExe(root);
   if (!workerExe) {
-    throw new Error(
-      'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
-    );
+    if (devMode) {
+      if (log) log('Dev mode: no compiled worker — the API and web still start, and video jobs will wait until a worker exists.\n');
+    } else {
+      throw new Error(
+        'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
+      );
+    }
   }
   const fullEnv = { ...process.env, ...env, ...node.extraEnv, NEXT_TELEMETRY_DISABLED: '1', NODE_ENV: 'production' };
   const children = [];
@@ -715,11 +719,13 @@ function startBackend(root, data, env, logStream, log, mysqlSupervisor) {
     cwd: path.join(otsiVie, 'apps', 'web', '.next', 'standalone'),
     env: { ...fullEnv, PORT: String(WEB_PORT), HOSTNAME: '127.0.0.1' },
   }, true);
-  for (const [group, kinds] of Object.entries(WORKER_GROUPS)) {
-    spawnChild(group, workerExe, [], {
-      cwd: otsiVie,
-      env: { ...fullEnv, OTSI_VIE_WORKER_KINDS: kinds },
-    }, false);
+  if (workerExe) {
+    for (const [group, kinds] of Object.entries(WORKER_GROUPS)) {
+      spawnChild(group, workerExe, [], {
+        cwd: otsiVie,
+        env: { ...fullEnv, OTSI_VIE_WORKER_KINDS: kinds },
+      }, false);
+    }
   }
   if (mysqlSupervisor) children.push({ name: 'mysql', child: mysqlSupervisor, critical: false });
 

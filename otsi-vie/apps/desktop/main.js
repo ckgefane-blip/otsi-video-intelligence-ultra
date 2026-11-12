@@ -310,6 +310,13 @@ function checkAborted() {
 }
 
 async function startup() {
+  // Dev mode (running from the repo source, not from the packaged installer):
+  // the packaged AI runtimes, compiled tools and Nuitka worker are not staged
+  // here yet, so the packaging checks below warn instead of stopping the app.
+  // The UI still opens; video analysis waits until those components exist.
+  // A packaged install (app.isPackaged) keeps the strict checks — a missing
+  // runtime there is a broken install.
+  const devMode = !app.isPackaged;
   const engine = engineDir();
   const userData = app.getPath('userData');
   const data = backend.dataDir(userData);
@@ -348,22 +355,34 @@ async function startup() {
   setStatus('Checking the AI runtimes...');
   const runtime = backend.ensureAiRuntime(engine, log);
   if (!runtime.ok) {
-    throw new Error(
-      'The AI runtimes are incomplete — these files are missing:\n'
-      + runtime.missing.join('\n')
-      + `\n(from ${runtime.dir})\nReinstall OTSI VIE.`,
-    );
+    if (devMode) {
+      log('Dev mode: the AI runtimes are not staged yet, so video analysis is unavailable. The UI still opens.\n');
+    } else {
+      throw new Error(
+        'The AI runtimes are incomplete — these files are missing:\n'
+        + runtime.missing.join('\n')
+        + `\n(from ${runtime.dir})\nReinstall OTSI VIE.`,
+      );
+    }
   }
   const tools = backend.ensureToolBinaries(engine, log);
   if (!tools.ok) {
-    throw new Error(
-      `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
-    );
+    if (devMode) {
+      log('Dev mode: the compiled tools are not staged yet, so model downloads and the worker are unavailable. The UI still opens.\n');
+    } else {
+      throw new Error(
+        `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
+      );
+    }
   }
   if (!backend.nativeWorkerExe(engine)) {
-    throw new Error(
-      'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
-    );
+    if (devMode) {
+      log('Dev mode: the compiled worker is not staged yet, so video jobs will wait. The UI still opens.\n');
+    } else {
+      throw new Error(
+        'The installer is missing the compiled worker (vie_worker.exe).\nReinstall OTSI VIE.',
+      );
+    }
   }
   checkAborted();
 
@@ -415,7 +434,7 @@ async function startup() {
   checkAborted();
 
   setStatus('Starting the engine...');
-  backendHandle = backend.startBackend(engine, data, env, backendLogStream, log, mysqlSupervisor);
+  backendHandle = backend.startBackend(engine, data, env, backendLogStream, log, mysqlSupervisor, devMode);
   // If the engine process dies, say so at once instead of waiting 4 minutes.
   const first = await Promise.race([
     backend.waitForWeb(backend.WEB_URL, 240000).then(() => 'ready'),
