@@ -43,10 +43,10 @@ export function LineupsBlock({ videoId, canWrite, onReview, onName, lineups }: {
     catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.workspace.engineCouldNotStart); }
   };
   const line = { color: "#8ea3bf" } as const;
-  const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: "pointer" } as const;
+  const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 400, cursor: "pointer" } as const;
   return (
     <div data-lineups-block style={{ display: "flex", flexDirection: "column", gap: u(10), width: u(330 + dw), marginTop: u(18), fontSize: u(17) }}>
-      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>{dict.body.analysis.lineups}</div>
+      <div style={{ color: "#cfe0f5", fontWeight: 400, fontSize: u(20) }}>{dict.body.analysis.lineups}</div>
       {!r && <span style={line}>{dict.body.workspace.teamSheetsHint}</span>}
       {r && (r.status === "QUEUED" || r.status === "RUNNING") && <span role="status" style={line}>{dict.body.workspace.readingLineups} {r.stage_message ?? ""}{r.progress !== null ? ` (${Math.round(r.progress)}%)` : ""}</span>}
       {r?.status === "FAILED" && <span role="alert" style={{ color: "#ff8a8a" }}>{r.failure_detail ?? dict.body.workspace.lineupsCouldNotBeRead}</span>}
@@ -58,11 +58,11 @@ export function LineupsBlock({ videoId, canWrite, onReview, onName, lineups }: {
             : dict.body.workspace.lineupCardMany.replace("{a}", c.team_name ?? dict.body.workspace.aTeam).replace("{b}", String(c.entries.length)).replace("{c}", c.state === "APPLIED" ? dict.body.workspace.approvedSuffix : ""))).join(" · ")}
         </span>
       )}
-      {canWrite && cards.length > 0 && <button type="button" data-lineups-review onClick={onReview} style={open.length ? btn : { ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 600 }}>{open.length ? dict.body.workspace.reviewApproveLineups : dict.body.workspace.seeLineups}</button>}
+      {canWrite && cards.length > 0 && <button type="button" data-lineups-review onClick={onReview} style={open.length ? btn : { ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 400 }}>{open.length ? dict.body.workspace.reviewApproveLineups : dict.body.workspace.seeLineups}</button>}
       {canWrite && d?.match_id && <button type="button" data-name-players onClick={onName} style={btn}>{dict.body.workspace.namePlayersRoster}</button>}
       {canWrite && r?.status !== "QUEUED" && r?.status !== "RUNNING" && (
         <button type="button" data-lineups-start onClick={() => void start()}
-          style={cards.length ? { ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 600, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` } : btn}>
+          style={cards.length ? { ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 400, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` } : btn}>
           {r ? dict.body.workspace.readLineupsAgain : dict.body.workspace.readLineups}</button>
       )}
       {err && <span role="alert" style={{ color: "#ff8a8a" }}>{err}</span>}

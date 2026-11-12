@@ -32,7 +32,7 @@ const row = (on: boolean): CSSProperties => ({
   background: on ? "#0a2b55" : "transparent", outline: on ? "1.5px solid #1e90ff" : "none", color: on ? "#fff" : "#d6e4f7", font: "inherit", fontSize: 13, cursor: "pointer",
 });
 const count: CSSProperties = { marginLeft: "auto", color: "#8ea3bf", fontSize: 13 };
-const head: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: "14px 4px 4px", fontSize: 12, fontWeight: 600,
+const head: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: "14px 4px 4px", fontSize: 12, fontWeight: 400,
   letterSpacing: "0.06em", textTransform: "uppercase", color: "#8ea3bf" };
 
 function Item({ on, label, n, onClick, icon, data }: { on: boolean; label: string; n: number | null; onClick: () => void; icon: ReactNode; data: string }) {

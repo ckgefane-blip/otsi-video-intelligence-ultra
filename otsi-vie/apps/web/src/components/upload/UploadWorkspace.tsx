@@ -270,7 +270,7 @@ export function DropZone() {
         className={`flex flex-col items-center gap-3 rounded-card border-2 border-dashed px-4 py-8 text-center ${over ? "border-primary bg-primary/10" : "border-primary/50 bg-canvas/40"}`}
       >
         <UploadCloud className="h-12 w-12 text-primary" />
-        <p className="text-lg font-normal">{d.dragDropMatch}</p>
+        <p className="t-body">{d.dragDropMatch}</p>
         <p className="text-xs text-muted">{ACCEPTED_EXTENSIONS.map((e) => e.toUpperCase()).join(", ")} · {d.dropSubtitlePlain}</p>
         <button type="button" disabled={!projectId} onClick={() => input.current?.click()}
           className="rounded-ctl bg-primary px-5 py-2.5 font-normal text-white disabled:opacity-50">{d.browseFiles}</button>

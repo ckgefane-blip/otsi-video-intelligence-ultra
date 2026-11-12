@@ -111,7 +111,7 @@ export function AdminBillingView() {
           <ul className="space-y-3">
             {requests.map((r) => (
               <li key={r.id} className="rounded-ctl border border-line bg-canvas p-3">
-                <p><strong>{r.pack_code}</strong> · {r.tokens} {t.body.wallet.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: t.body.wallet.statusRequested, INVOICED: t.body.wallet.statusInvoiced, PAID: t.body.wallet.statusPaid, CANCELLED: t.body.wallet.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</p>
+                <p><span>{r.pack_code}</span> · {r.tokens} {t.body.wallet.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: t.body.wallet.statusRequested, INVOICED: t.body.wallet.statusInvoiced, PAID: t.body.wallet.statusPaid, CANCELLED: t.body.wallet.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</p>
                 <p className="text-xs text-muted">{t.body.wallet.billingRequestedAt.replace("{a}", new Date(r.created_at).toLocaleString())}</p>
                 {(r.status === "REQUESTED" || r.status === "INVOICED") && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">

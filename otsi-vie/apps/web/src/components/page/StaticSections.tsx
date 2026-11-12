@@ -10,7 +10,7 @@ export function HomeHero() {
     <div className="flex h-full flex-col justify-between gap-6 rounded-ctl bg-gradient-to-br from-raised/80 via-panel to-canvas p-5" data-owner-asset="hero-visual">
       <div>
         <p className="text-xs font-normal uppercase tracking-[0.25em] text-muted">Turn football video into insights</p>
-        <p className="mt-2 text-4xl font-extrabold leading-[1.05] tracking-tight xl:text-5xl">
+        <p className="mt-2 t-page">
           Professional Football <span className="block text-primary">Video Intelligence</span>
         </p>
         <p className="mt-3 max-w-xl text-[15px] text-ink/85">

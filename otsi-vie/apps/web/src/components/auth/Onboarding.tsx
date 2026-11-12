@@ -146,11 +146,11 @@ export function Onboarding() {
           <>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2cqw" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1.2cqw" }}>
-                <span aria-hidden style={{ width: "4.4cqw", height: "4.4cqw", borderRadius: "50%", background: "rgb(var(--primary))", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--primary-ink))", fontWeight: 700, fontSize: "2.4cqw" }}>O</span>
-                <span style={{ fontSize: "3.4cqw", fontWeight: 700, letterSpacing: ".04em" }}>OTSI <span style={{ color: "rgb(var(--primary))" }}>VIE</span></span>
+                <span aria-hidden style={{ width: "4.4cqw", height: "4.4cqw", borderRadius: "50%", background: "rgb(var(--primary))", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--primary-ink))", fontWeight: 400, fontSize: "2.4cqw" }}>O</span>
+                <span style={{ fontSize: "3.4cqw", fontWeight: 400, letterSpacing: ".04em" }}>OTSI <span style={{ color: "rgb(var(--primary))" }}>VIE</span></span>
               </div>
               <p style={{ margin: 0, fontSize: "1.05cqw", letterSpacing: ".35em", color: "rgb(var(--muted))" }}>VIDEO INTELLIGENCE ENGINE</p>
-              <p style={{ margin: 0, fontSize: "2.2cqw", fontWeight: 600 }}>Turn football video into insights.</p>
+              <p style={{ margin: 0, fontSize: "2.2cqw", fontWeight: 400 }}>Turn football video into insights.</p>
               <div role="progressbar" aria-label={t.body.auth.loadingWorkspaceAria} aria-valuemin={0} aria-valuemax={100} aria-valuenow={ready ? 100 : 40}
                 style={{ width: "29.5%", height: "1.6%", boxSizing: "border-box", border: `${q(2)} solid rgb(var(--primary))`, borderRadius: q(20), background: "rgb(var(--panel))", overflow: "hidden" }}>
                 <div style={{ width: ready ? "100%" : "40%", height: "100%", borderRadius: q(20), background: "rgb(var(--primary))", transition: "width .5s ease-out" }} />
@@ -164,7 +164,7 @@ export function Onboarding() {
         {tour && (
           <>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2.2cqw", padding: "0 6%" }}>
-              <h1 style={{ margin: 0, textAlign: "center", fontSize: "4.4cqw", lineHeight: 1.1, fontWeight: 700 }}>
+              <h1 style={{ margin: 0, textAlign: "center", fontSize: "4.4cqw", lineHeight: 1.1, fontWeight: 400 }}>
                 {slide.titleA} <span style={{ color: "rgb(var(--primary))" }}>{slide.titleB}</span>
               </h1>
               <p style={{ margin: 0, maxWidth: "62%", textAlign: "center", fontSize: "1.35cqw", lineHeight: 1.5, color: "rgb(var(--ink2))" }}>{slide.sub}</p>
@@ -172,7 +172,7 @@ export function Onboarding() {
                 {slide.cards.map((c) => (
                   <div key={c.title} style={{ background: "rgb(var(--panel))", border: `${q(1.5)} solid rgb(var(--line))`, borderRadius: q(12), padding: "1.4cqw 1.2cqw", display: "flex", flexDirection: "column", gap: ".8cqw" }}>
                     <span style={{ color: "rgb(var(--primary))" }}><Icon kind={c.icon} /></span>
-                    <span style={{ fontSize: "1.15cqw", fontWeight: 600 }}>{c.title}</span>
+                    <span style={{ fontSize: "1.15cqw", fontWeight: 400 }}>{c.title}</span>
                     <span style={{ fontSize: "1cqw", lineHeight: 1.5, color: "rgb(var(--muted))" }}>{c.desc}</span>
                   </div>
                 ))}
@@ -192,7 +192,7 @@ export function Onboarding() {
               ))}
             </div>
             <button type="button" onClick={() => go(step === 3 ? NAME : step + 1)} className="focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-primary"
-              style={{ ...ctl, left: "84.8%", top: "88.5%", width: "12.38%", height: "6.38%", borderRadius: ".8cqw", border: 0, background: "rgb(var(--primary))", color: "rgb(var(--primary-ink))", fontWeight: 600, gap: ".8cqw", fontSize: q(13) }}>
+              style={{ ...ctl, left: "84.8%", top: "88.5%", width: "12.38%", height: "6.38%", borderRadius: ".8cqw", border: 0, background: "rgb(var(--primary))", color: "rgb(var(--primary-ink))", fontWeight: 400, gap: ".8cqw", fontSize: q(13) }}>
               {step === 3 ? t.body.auth.getStarted : t.body.auth.next} <Arrow />
             </button>
           </>
@@ -203,13 +203,13 @@ export function Onboarding() {
           <form onSubmit={(e) => { e.preventDefault(); finish(); }} aria-labelledby="welcome-title" data-welcome-name
             style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: q(640), padding: q(24), boxSizing: "border-box", borderRadius: q(12),
               background: "rgb(var(--panel))", border: `${q(2)} solid rgb(var(--line2))`, boxShadow: "0 0 60px rgb(var(--primary) / 0.18)", color: "rgb(var(--ink))" }}>
-            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(16), fontWeight: 600 }}>{t.body.auth.welcome}</h1>
+            <h1 id="welcome-title" style={{ margin: 0, fontSize: q(16), fontWeight: 400 }}>{t.body.auth.welcome}</h1>
             <p style={{ margin: `${q(4)} 0 ${q(16)}`, fontSize: q(13), color: "rgb(var(--ink2))" }}>{t.body.auth.welcomeNameQ}</p>
             <label htmlFor="welcome-name" style={{ fontSize: q(12), color: "rgb(var(--muted))" }}>{t.body.auth.yourName}</label>
             <input id="welcome-name" name="display_name" autoComplete="name" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.body.auth.nameExample}
               style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: q(4), height: q(40), padding: `0 ${q(12)}`, fontSize: q(13), color: "rgb(var(--ink))", background: "rgb(var(--canvas))", border: `${q(1.5)} solid rgb(var(--line2))`, borderRadius: q(8), outline: "none" }} />
             {err && <p role="alert" style={{ margin: `${q(8)} 0 0`, fontSize: q(12), color: "rgb(var(--danger))" }}>{err}</p>}
-            <button type="submit" disabled={busy} style={{ marginTop: q(20), width: "100%", height: q(44), fontSize: q(13), fontWeight: 600, color: "rgb(var(--primary-ink))", background: "rgb(var(--primary))", border: 0, borderRadius: q(8), cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1 }}>
+            <button type="submit" disabled={busy} style={{ marginTop: q(20), width: "100%", height: q(44), fontSize: q(13), fontWeight: 400, color: "rgb(var(--primary-ink))", background: "rgb(var(--primary))", border: 0, borderRadius: q(8), cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1 }}>
               {busy ? t.body.auth.saving : t.body.auth.startUsing}
             </button>
             <button type="button" onClick={() => setStep(3)} style={{ marginTop: q(12), width: "100%", fontSize: q(12), color: "rgb(var(--primary))", background: "transparent", border: 0, cursor: "pointer" }}>{t.body.auth.backTour}</button>

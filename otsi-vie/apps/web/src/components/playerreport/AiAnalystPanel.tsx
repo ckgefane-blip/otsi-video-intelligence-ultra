@@ -201,10 +201,10 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
                 <div className="rounded-ctl border border-line/70 bg-[#071a33] px-3 py-2.5 t-body">
                   <p className="mb-2">{a.scout_brief.strengths_summary}</p>
                   <p className="mb-2">{a.scout_brief.fit_summary}</p>
-                  <p className="mb-2"><strong>{dict.body.aiAnalyst.whatToWatch}:</strong> {a.scout_brief.what_to_watch}</p>
+                  <p className="mb-2"><span>{dict.body.aiAnalyst.whatToWatch}:</span> {a.scout_brief.what_to_watch}</p>
                   {a.scout_brief.key_clips.length > 0 && (
                     <p className="m-0">
-                      <strong>{dict.body.aiAnalyst.keyClips}:</strong>{" "}
+                      <span>{dict.body.aiAnalyst.keyClips}:</span>{" "}
                       {a.scout_brief.key_clips.map((k, i) => (
                         <span key={i}>
                           {i > 0 && " · "}
@@ -223,7 +223,7 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
                 <h3 className="mb-2 t-panel">{dict.body.aiAnalyst.notMeasured}</h3>
                 <ul className="pl-[18px] t-body text-muted">
                   {a.not_measured.map((n, i) => (
-                    <li key={i}><strong className="text-ink">{n.topic}:</strong> {n.reason}</li>
+                    <li key={i}><span className="text-ink">{n.topic}:</span> {n.reason}</li>
                   ))}
                 </ul>
               </div>

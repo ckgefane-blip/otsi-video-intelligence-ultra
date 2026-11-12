@@ -35,7 +35,7 @@ export function Evidence({ level, why, compact = false, size = 13, style }: { le
   return (
     <span data-evidence={level} title={title} aria-label={title} role="img"
       style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none", boxSizing: "border-box", whiteSpace: "nowrap",
-        fontSize: px(size), fontWeight: 700, lineHeight: 1, color: e.fg, background: e.bg, border: `${px(1)} solid ${e.fg}55`, borderRadius: px(4),
+        fontSize: px(size), fontWeight: 400, lineHeight: 1, color: e.fg, background: e.bg, border: `${px(1)} solid ${e.fg}55`, borderRadius: px(4),
         ...(compact ? { width: px(size * 1.7), height: px(size * 1.7) } : { padding: `${px(3)} ${px(7)}` }), ...style }}>
       {compact ? e.letter : e.label}
     </span>

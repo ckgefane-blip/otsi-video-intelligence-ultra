@@ -174,9 +174,9 @@ export function CentreVideo({ s }: { s: Shared }) {
           <B o={[F.x, F.y]} x={439} y={200} w={441} h={40} style={{ background: "#0a1a38", borderRadius: u(4) }} />
           <B o={[F.x, F.y]} x={439} y={200} w={50} h={40} style={{ background: "#fff", borderRadius: u(3) }} />
           <T o={[F.x, F.y]} x={509} y={220} size={26} weight={700}>{code(match?.home?.name, match?.home?.short_name)}</T>
-          <B o={[F.x, F.y]} x={603} y={200} w={92} h={40} style={{ background: "#1580ff", fontSize: u(24), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{score(match?.home_score)}</B>
+          <B o={[F.x, F.y]} x={603} y={200} w={92} h={40} style={{ background: "#1580ff", fontSize: u(24), fontWeight: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>{score(match?.home_score)}</B>
           <T o={[F.x, F.y]} x={710} y={222} size={24} weight={700}>{code(match?.away?.name, match?.away?.short_name)}</T>
-          <B o={[F.x, F.y]} x={789} y={200} w={91} h={40} style={{ background: "#1580ff", fontSize: u(24), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: `0 ${u(20)} ${u(20)} 0` }}>{score(match?.away_score)}</B>
+          <B o={[F.x, F.y]} x={789} y={200} w={91} h={40} style={{ background: "#1580ff", fontSize: u(24), fontWeight: 400, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: `0 ${u(20)} ${u(20)} 0` }}>{score(match?.away_score)}</B>
 
           {mini && (() => {
             const placed = (ws?.visible ?? []).filter(({ o }) => o.class_name === "PERSON" && typeof o.pitch_x === "number" && typeof o.pitch_y === "number");
@@ -212,7 +212,7 @@ export function CentreVideo({ s }: { s: Shared }) {
           style={{ border: `${u(1.5)} solid ${mini ? "#1e90ff" : "#2a4f80"}`, borderRadius: u(6), background: "rgba(8,20,40,.85)", zIndex: 2 }}>
           <T o={[1867, 190]} x={1890} y={213} size={20} align="center" as="span">▦</T>
         </Hit>
-        <div title={dict.body.workspace.videoResolution}><B x={1927 + dw} y={192} w={50} h={38} style={{ border: `${u(2)} solid #f5a623`, borderRadius: u(5), background: "rgba(40,25,0,.8)", color: "#f5b82e", fontWeight: 700,
+        <div title={dict.body.workspace.videoResolution}><B x={1927 + dw} y={192} w={50} h={38} style={{ border: `${u(2)} solid #f5a623`, borderRadius: u(5), background: "rgba(40,25,0,.8)", color: "#f5b82e", fontWeight: 400,
           fontSize: u(21), display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>{quality(video?.height)}</B></div>
       </section>
 
@@ -225,9 +225,9 @@ export function CentreVideo({ s }: { s: Shared }) {
         <T x={668} y={885} size={20} style={{ whiteSpace: "nowrap" }}>{url ? `${clock(t)} / ${clock(dur)}` : "— / —"}</T>
         {/* B.4: In / Out marks and Loop */}
         <Hit x={884} y={866} w={36} h={36} label={mk.marks.inUs !== null ? dict.body.workspace.inAtSetHere.replace("{a}", clock(mk.marks.inUs)) : dict.body.workspace.markInHere} pressed={mk.marks.inUs !== null} {...(url ? { onClick: mk.markIn } : { reason: dict.body.workspace.noVideoYet })}
-          style={{ border: `${u(1.5)} solid ${mk.marks.inUs !== null ? "#ffd400" : "#2a4f80"}`, borderRadius: u(5), color: "#ffe680", fontSize: u(18), fontWeight: 700, textAlign: "center", lineHeight: u(33) }}>I</Hit>
+          style={{ border: `${u(1.5)} solid ${mk.marks.inUs !== null ? "#ffd400" : "#2a4f80"}`, borderRadius: u(5), color: "#ffe680", fontSize: u(18), fontWeight: 400, textAlign: "center", lineHeight: u(33) }}>I</Hit>
         <Hit x={926} y={866} w={36} h={36} label={mk.marks.outUs !== null ? dict.body.workspace.outAtSetHere.replace("{a}", clock(mk.marks.outUs)) : dict.body.workspace.markOutHere} pressed={mk.marks.outUs !== null} {...(url ? { onClick: mk.markOut } : { reason: dict.body.workspace.noVideoYet })}
-          style={{ border: `${u(1.5)} solid ${mk.marks.outUs !== null ? "#ffd400" : "#2a4f80"}`, borderRadius: u(5), color: "#ffe680", fontSize: u(18), fontWeight: 700, textAlign: "center", lineHeight: u(33) }}>O</Hit>
+          style={{ border: `${u(1.5)} solid ${mk.marks.outUs !== null ? "#ffd400" : "#2a4f80"}`, borderRadius: u(5), color: "#ffe680", fontSize: u(18), fontWeight: 400, textAlign: "center", lineHeight: u(33) }}>O</Hit>
         <Hit x={968} y={866} w={36} h={36} label={mk.marks.loop ? dict.body.workspace.loopOn : dict.body.workspace.loopBetween} pressed={mk.marks.loop}
           {...(mk.marks.inUs !== null && mk.marks.outUs !== null ? { onClick: mk.toggleLoop } : { reason: dict.body.workspace.markInOutFirst })}
           style={{ border: `${u(1.5)} solid ${mk.marks.loop ? "#1e90ff" : "#2a4f80"}`, borderRadius: u(5), background: mk.marks.loop ? "#0f4f9a" : "transparent", color: "#fff", fontSize: u(20), textAlign: "center", lineHeight: u(33) }}>⟲</Hit>
@@ -278,7 +278,7 @@ export function CentreVideo({ s }: { s: Shared }) {
                 ))}
               </div>
               <div role="group" aria-label={dict.body.workspace.overlayOpacity} style={{ borderTop: `${u(1)} solid #1f4a7a`, marginTop: u(4), paddingTop: u(8), display: "flex", flexDirection: "column", gap: u(6), fontSize: u(18), color: "#cfdcf0" }}>
-                <span style={{ fontWeight: 700 }}>{dict.body.workspace.overlayOpacity}</span>
+                <span style={{ fontWeight: 400 }}>{dict.body.workspace.overlayOpacity}</span>
                 {([["boxes", dict.body.workspace.boxesAndIds], ["pitch", dict.body.workspace.pitchLayersLabel], ["ball", dict.body.processing.ball]] as const).map(([k, l]) => (
                   <label key={k} style={{ display: "flex", alignItems: "center", gap: u(8) }}>
                     <span style={{ width: u(130) }}>{l}</span>
@@ -309,7 +309,7 @@ function OpenInTactical({ s, mode }: { s: Shared; mode: number }) {
   return (
     <Link href={href} data-open-tactical={tab} title={dict.body.workspace.openTacticalHint}
       style={{ position: "absolute", right: u(18), top: u(14), zIndex: 5, padding: `${u(6)} ${u(14)}`, borderRadius: u(6), border: `${u(1.5)} solid #33a8ff`,
-        background: "#0b2347", color: "#cfe6ff", fontSize: u(18), fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+        background: "#0b2347", color: "#cfe6ff", fontSize: u(18), fontWeight: 400, textDecoration: "none", whiteSpace: "nowrap" }}>
       {dict.body.workspace.openInTactical} →
     </Link>
   );
@@ -321,7 +321,7 @@ function ComparisonView({ s }: { s: Shared }) {
   const sel = s.ws?.selectedId ? s.ws.tracks?.find((t) => t.track_id === s.ws!.selectedId) ?? null : null;
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: u(14), textAlign: "center", padding: u(40) }}>
-      <div style={{ fontSize: u(26), fontWeight: 700, color: "#dbe8f8" }}>{dict.body.workspace.playerComparisonTactical}</div>
+      <div style={{ fontSize: u(26), fontWeight: 400, color: "#dbe8f8" }}>{dict.body.workspace.playerComparisonTactical}</div>
       <div style={{ fontSize: u(20), color: "#b9cbe2", maxWidth: u(900), lineHeight: 1.4 }}>
         {sel ? dict.body.workspace.opensAtMoment.replace("{a}", String(sel.track_number)) : dict.body.workspace.opensAtMomentNoPlayer}
         {" "}{dict.body.workspace.headToHeadNotMeasured}
@@ -396,7 +396,7 @@ function HeatView({ s, w, h }: { s: Shared; w: number; h: number }) {
       <Note>{dict.body.workspace.bothTeamsHeat}</Note>
       {[0, 1].map((i) => (
         <div key={i}>
-          <div style={{ position: "absolute", left: u(26 + i * (pw + 26)), top: u(78), fontSize: u(20), fontWeight: 700, color: "#dbe8f8" }}>{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</div>
+          <div style={{ position: "absolute", left: u(26 + i * (pw + 26)), top: u(78), fontSize: u(20), fontWeight: 400, color: "#dbe8f8" }}>{sides[i]?.label ?? (i ? dict.body.workspace.awayTeam : dict.body.workspace.homeTeam)}</div>
           <div style={{ position: "absolute", left: u(26 + i * (pw + 26)), top: u(110), width: u(pw), height: u(ph), background: "#1d5a2e", border: `${u(2)} solid #cfe3d8` }} />
           <TeamHeat runId={ws.run!.id} side={sides[i]} x={28 + i * (pw + 26)} y={112 + 101} w={pw - 4} h={ph - 4} calKey={calKey} />
         </div>
@@ -412,7 +412,7 @@ function PassNetworkView({ s }: { s: Shared }) {
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: u(14), textAlign: "center", padding: u(40) }}>
       <Evidence level="NOT_MEASURED" size={18} />
-      <div style={{ fontSize: u(26), fontWeight: 700, color: "#dbe8f8" }}>{dict.body.workspace.passNetworkNotMeasured}</div>
+      <div style={{ fontSize: u(26), fontWeight: 400, color: "#dbe8f8" }}>{dict.body.workspace.passNetworkNotMeasured}</div>
       <div style={{ fontSize: u(20), color: "#b9cbe2", maxWidth: u(900), lineHeight: 1.4 }}>
         {dict.body.workspace.passNetworkNeeds}
         {n !== null && dict.body.workspace.passesFoundEventsTab.replace("{a}", String(n))}

@@ -247,7 +247,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
     borderRadius: 5,
     fontSize: 13,
     fontFamily: "inherit",
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     border: `1.5px solid ${active ? "#33a8ff" : "#1d4f8a"}`,
     background: active ? "#0d3a78" : "#06152d",

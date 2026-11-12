@@ -79,7 +79,7 @@ function EventsTab({ s }: { s: Shared }) {
               <span style={{ width: u(12), height: u(12), marginTop: u(5), borderRadius: "50%", background: k.color, flex: "none" }} />
               <span style={{ width: u(64), flex: "none", color: "#9fb3cc" }}>{clock(m.at)}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontWeight: 600 }}>{k.noun[0]!.toUpperCase() + k.noun.slice(1)}</span>
+                <span style={{ fontWeight: 400 }}>{k.noun[0]!.toUpperCase() + k.noun.slice(1)}</span>
                 {who.length > 0 && <span style={{ color: "#cfdcf0" }}> · {who.join(" → ")}</span>}
                 {m.detail && <span style={{ display: "block", color: "#8ea3bf", fontSize: u(15) }}>{m.detail}</span>}
               </span>
@@ -88,7 +88,7 @@ function EventsTab({ s }: { s: Shared }) {
                   fontSize: u(12),
                   padding: `${u(2)} ${u(6)}`,
                   borderRadius: u(4),
-                  fontWeight: 600,
+                  fontWeight: 400,
                   background: dec === "CONFIRM" ? "rgba(34, 197, 94, 0.2)" : dec === "EDIT" ? "rgba(59, 130, 246, 0.2)" : "rgba(245, 158, 11, 0.2)",
                   color: dec === "CONFIRM" ? "#22c55e" : dec === "EDIT" ? "#60a5fa" : "#fbbf24",
                 }}>
@@ -151,13 +151,13 @@ function ClipsTab({ s }: { s: Shared }) {
     <div role="list" aria-label={dict.body.workspace.metricClips} data-clips={String(reels!.reduce((n, r) => n + r.clips.length, 0))} className="absolute" style={list_(dw)}>
       {reels!.filter((r) => r.clips.length).map((r) => (
         <div key={r.id}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: u(8), padding: `${u(6)} ${u(6)}`, fontSize: u(17), fontWeight: 700 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: u(8), padding: `${u(6)} ${u(6)}`, fontSize: u(17), fontWeight: 400 }}>
             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name} · {r.clips.length} clips</span>
             <Link href={`/reels/${r.id}`} style={{ color: "#33a8ff", fontWeight: 400, flex: "none" }}>{dict.body.analysis.openInReelBuilder}</Link>
           </div>
           {r.clips.map((c, i) => (
             <button key={c.id} type="button" role="listitem" data-clip={c.id} style={row} onClick={() => ws?.seek(c.in_pts_us)}>
-              <span style={{ width: u(34), flex: "none", color: "#33a8ff", fontWeight: 700 }}>{i + 1}</span>
+              <span style={{ width: u(34), flex: "none", color: "#33a8ff", fontWeight: 400 }}>{i + 1}</span>
               <span style={{ width: u(130), flex: "none", color: "#9fb3cc" }}>{clock(c.in_pts_us)}–{clock(c.out_pts_us)}</span>
               <span style={{ minWidth: 0 }}>{c.label ?? dict.body.workspace.metricClip} <span style={{ color: "#8ea3bf" }}>· {Math.round(clipOutputUs(c) / 1e6)} s</span></span>
             </button>
@@ -236,7 +236,7 @@ function Players({ s }: { s: Shared }) {
                   <Thumb track={t} w={40} h={44} style={{ position: "absolute", left: u(94), top: u(4), borderRadius: "50%" }} />
                   <span style={{ position: "absolute", left: u(152), top: u(14), width: u(130 + dw), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: u(19), fontWeight: on ? 700 : 400 }} title={t.label}>{t.label.split(" · ")[0]}</span>
                   <span style={{ position: "absolute", left: u(292 + dw), top: u(12), minWidth: u(42), height: u(28), padding: `0 ${u(4)}`, boxSizing: "border-box", borderRadius: u(5), background: a?.club_id ? "#1580ff" : "#12294a",
-                    fontSize: u(17), fontWeight: 700, textAlign: "center", lineHeight: u(28) }} title={a ? (a.club_name ?? dict.body.processing.notATeam) : dict.body.workspace.teamNotAssignedYet}>{a?.club_id ? code(a.club_name) : "—"}</span>
+                    fontSize: u(17), fontWeight: 400, textAlign: "center", lineHeight: u(28) }} title={a ? (a.club_name ?? dict.body.processing.notATeam) : dict.body.workspace.teamNotAssignedYet}>{a?.club_id ? code(a.club_name) : "—"}</span>
                   <span style={{ position: "absolute", left: u(364 + dw), top: u(16), fontSize: u(18) }}>{t.mean_confidence?.toFixed(2) ?? "—"}</span>
                   <span aria-hidden style={{ position: "absolute", left: u(446 + dw), top: u(14) }}>
                     {[1, 2, 3, 4].map((k) => <i key={k} style={{ position: "absolute", left: u((k - 1) * 8), bottom: u(-12), width: u(5), height: u(k * 5 + 2), background: k <= bars(t.mean_confidence) ? "#1a8cff" : "#1a2a44" }} />)}
@@ -320,15 +320,15 @@ function Inspector({ s }: { s: Shared }) {
       {/* B.6 (ADR-084): the picture opens everything recorded about the track */}
       <Hit x={2029} y={912} w={110} h={128} label={dict.body.workspace.propertiesAboutTrack} {...(t ? { onClick: () => setProps(true) } : { reason: dict.body.workspace.selectPlayerFirstShort })}
         style={{ borderRadius: u(6) }}>
-        {t && <span data-props-open style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: u(24), background: "rgba(5,15,32,.82)", color: "#cfe3ff", fontSize: u(14), fontWeight: 700,
+        {t && <span data-props-open style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: u(24), background: "rgba(5,15,32,.82)", color: "#cfe3ff", fontSize: u(14), fontWeight: 400,
           display: "flex", alignItems: "center", justifyContent: "center", borderRadius: `0 0 ${u(6)} ${u(6)}` }}>{dict.body.workspace.propertiesInfo}</span>}
       </Hit>
-      <div title={dict.body.workspace.jerseyNotRead}><B x={2157} y={917} w={39} h={32} style={{ background: "#1580ff", borderRadius: u(4), fontSize: u(22), fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>—</B></div>
+      <div title={dict.body.workspace.jerseyNotRead}><B x={2157} y={917} w={39} h={32} style={{ background: "#1580ff", borderRadius: u(4), fontSize: u(22), fontWeight: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>—</B></div>
       <T x={2214} y={931} size={26} weight={700} as="h2" style={{ maxWidth: u((t && !isBall ? 150 : 260) + dw), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t ? t.label.split(" · ")[0] : dict.body.workspace.noPlayerSelected}</T>
       {ws?.video && t && !isBall && (
         <button type="button" data-identify onClick={() => setIdentifying(true)} title={player ? dict.body.workspace.identityOfPlayer.replace("{a}", player.display_name) : dict.body.workspace.sayWhoPlayerIs}
           style={{ position: "absolute", left: u(2372 + dw), top: u(914 - 101), height: u(34), padding: `0 ${u(12)}`, borderRadius: u(17), border: 0, cursor: "pointer",
-            background: player ? "#0a2a55" : "#1580ff", color: player ? "#8fc4ff" : "#fff", fontFamily: "inherit", fontSize: u(17), fontWeight: 700, whiteSpace: "nowrap" }}>
+            background: player ? "#0a2a55" : "#1580ff", color: player ? "#8fc4ff" : "#fff", fontFamily: "inherit", fontSize: u(17), fontWeight: 400, whiteSpace: "nowrap" }}>
           {player ? dict.body.upload.identity : dict.body.workspace.identifyArrow}</button>
       )}
       <Hit x={2470 + dw} y={915} w={40} h={32} label={dict.body.workspace.clearSelection} {...(t && ws ? { onClick: () => ws.select(null) } : { reason: dict.body.workspace.nothingSelected })}>

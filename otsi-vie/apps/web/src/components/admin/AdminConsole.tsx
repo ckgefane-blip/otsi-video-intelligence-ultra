@@ -505,8 +505,8 @@ export function AdminConsole() {
                       </div>
                       <p className="mt-1 t-small truncate">{t.body.admin.workerKinds.replace("{a}", group.kinds.join(", "))}</p>
                       <div className="mt-3 flex justify-between text-xs">
-                        <span>{t.body.admin.workerRunning}: <strong>{group.running_jobs}</strong></span>
-                        <span>{t.body.admin.workerQueued}: <strong>{group.queued_jobs}</strong></span>
+                        <span>{t.body.admin.workerRunning}: <span>{group.running_jobs}</span></span>
+                        <span>{t.body.admin.workerQueued}: <span>{group.queued_jobs}</span></span>
                       </div>
                     </div>
                   ))}

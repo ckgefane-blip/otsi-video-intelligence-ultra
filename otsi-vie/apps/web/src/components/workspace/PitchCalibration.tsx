@@ -62,7 +62,7 @@ export function PitchCalibrationBlock({ videoId, list, camera, reload, canWrite,
   const busy = !!latest && ACTIVE(latest.status);
   return (
     <div data-pitch-block style={{ display: "flex", flexDirection: "column", gap: u(10), width: u(330 + dw), maxWidth: u(330 + dw), marginTop: u(18), fontSize: u(17), overflowWrap: "anywhere" }}>
-      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>{dict.body.workspace.pitchCalibration}</div>
+      <div style={{ color: "#cfe0f5", fontWeight: 400, fontSize: u(20) }}>{dict.body.workspace.pitchCalibration}</div>
       {camera ? (
         <span data-pitch-camera style={{ color: "#cfe0f5" }}>{dict.body.workspace.cameraWorkedOut.replace("{a}", String(camera.moments)).replace("{b}", String(camera.points)).replace("{c}", String(Math.round(camera.height_m)))}</span>
       ) : waiting.length > 0 ? <span data-pitch-camera style={{ color: "#8ea3bf" }}>{dict.body.workspace.matchCameraNotWorked}</span> : null}
@@ -108,13 +108,13 @@ export function PitchCalibrationBlock({ videoId, list, camera, reload, canWrite,
       {err && <span role="alert" style={{ color: "#ff8a8a" }}>{err}</span>}
       {canWrite && (
         <button type="button" data-pitch-auto onClick={() => void auto()} disabled={busy || starting}
-          style={{ minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: 0, borderRadius: u(8), background: busy || starting ? "#16406f" : "#1e90ff", color: "#fff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: busy || starting ? "default" : "pointer" }}>
+          style={{ minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: 0, borderRadius: u(8), background: busy || starting ? "#16406f" : "#1e90ff", color: "#fff", fontFamily: "inherit", fontSize: u(19), fontWeight: 400, cursor: busy || starting ? "default" : "pointer" }}>
           {starting ? dict.body.workspace.starting : dict.body.workspace.findPitchAuto}
         </button>
       )}
       {canWrite ? (
         <button type="button" onClick={onStart} disabled={busy}
-          style={{ minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: latest && ACTIVE(latest.status) ? "default" : "pointer" }}>
+          style={{ minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 400, cursor: latest && ACTIVE(latest.status) ? "default" : "pointer" }}>
           {done.length || waiting.length ? dict.body.workspace.calibrateAnother : dict.body.workspace.calibratePitchDots}
         </button>
       ) : <span style={{ color: "#8ea3bf" }}>{dict.body.workspace.roleCalibrations}</span>}

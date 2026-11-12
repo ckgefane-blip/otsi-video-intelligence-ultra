@@ -68,7 +68,7 @@ function RetrackButton({ s }: { s: Shared }) {
     <div data-retrack style={{ display: "flex", flexDirection: "column", gap: u(10), maxWidth: u(330 + dw), marginTop: u(14) }}>
       <TeamsAtKickoff run={ws.run} seedUs={seedUs} onTeach={() => { ws.videoRef.current?.pause(); setSeedUs(Math.round((ws.videoRef.current?.currentTime ?? 0) * 1_000_000)); }} onClear={() => setSeedUs(null)} disabled={busy || !!live} />
       <button type="button" disabled={busy || !!live} onClick={start}
-        style={{ ...plain, position: "static", minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontSize: u(20), fontWeight: 700, cursor: busy || live ? "default" : "pointer" }}>{dict.body.workspace.trackAgainCurrent}
+        style={{ ...plain, position: "static", minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontSize: u(20), fontWeight: 400, cursor: busy || live ? "default" : "pointer" }}>{dict.body.workspace.trackAgainCurrent}
       </button>
       <span style={{ color: "#8ea3bf", fontSize: u(16) }}>{dict.body.workspace.usesSavedDetections}</span>
       {live && (
@@ -82,7 +82,7 @@ function RetrackButton({ s }: { s: Shared }) {
       )}
       {run?.status === "SUCCEEDED" && (
         <button type="button" data-retrack-done onClick={() => window.location.reload()}
-          style={{ ...plain, position: "static", minHeight: u(52), padding: `${u(6)} ${u(10)}`, border: `${u(2)} solid #2ee86a`, borderRadius: u(8), background: "#0a3a1c", color: "#2ee86a", fontSize: u(20), fontWeight: 700, textAlign: "center" }}>{dict.body.workspace.finishedClickTracking}
+          style={{ ...plain, position: "static", minHeight: u(52), padding: `${u(6)} ${u(10)}`, border: `${u(2)} solid #2ee86a`, borderRadius: u(8), background: "#0a3a1c", color: "#2ee86a", fontSize: u(20), fontWeight: 400, textAlign: "center" }}>{dict.body.workspace.finishedClickTracking}
         </button>
       )}
       {run && (run.status === "FAILED" || run.status === "CANCELLED") && <span role="alert" style={{ color: "#ff8a8a", fontSize: u(17) }}>{run.failure_detail ?? dict.body.workspace.didNotFinish}</span>}
@@ -102,7 +102,7 @@ function TeamsAtKickoff({ run, seedUs, onTeach, onClear, disabled }: { run: Anal
   const own = seedUs === null && seen && seen.pts_us === taught;                      // what the engine reported belongs to this moment
   return (
     <div data-teams-kickoff style={{ display: "flex", flexDirection: "column", gap: u(8) }}>
-      <span style={{ color: "#cfe0f5", fontSize: u(18), fontWeight: 700 }}>{dict.body.workspace.teamsFromKickoff}</span>
+      <span style={{ color: "#cfe0f5", fontSize: u(18), fontWeight: 400 }}>{dict.body.workspace.teamsFromKickoff}</span>
       {taught === null && <span style={{ color: "#8ea3bf", fontSize: u(16) }}>{dict.body.workspace.kickoffPauseHint}</span>}
       {found && !found.ok && <span role="alert" style={{ color: "#ff8a8a", fontSize: u(16) }}>{found.reason ?? dict.body.workspace.kickoffNotFound}</span>}
       {taught !== null && <span style={{ color: seedUs !== null ? "#33a8ff" : "#2ee86a", fontSize: u(16) }}>{seedUs !== null ? dict.body.workspace.teachFromMoment.replace("{a}", formatDuration(seedUs)) : found ? dict.body.workspace.kickoffFoundAt.replace("{a}", formatDuration(taught)) : dict.body.workspace.taughtFrom.replace("{a}", formatDuration(taught))}</span>}
@@ -110,7 +110,7 @@ function TeamsAtKickoff({ run, seedUs, onTeach, onClear, disabled }: { run: Anal
       {own && seen && !seen.ok && <span role="alert" style={{ color: "#ff8a8a", fontSize: u(16) }}>{seen.reason ?? dict.body.workspace.teamsNotRead}</span>}
       <div style={{ display: "flex", gap: u(8) }}>
         <button type="button" onClick={onTeach} disabled={disabled}
-          style={{ ...plain, position: "static", flex: 1, minHeight: u(44), padding: `${u(6)} ${u(10)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontSize: u(17), fontWeight: 700 }}>{dict.body.workspace.useMomentKickoff}
+          style={{ ...plain, position: "static", flex: 1, minHeight: u(44), padding: `${u(6)} ${u(10)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontSize: u(17), fontWeight: 400 }}>{dict.body.workspace.useMomentKickoff}
         </button>
         {seedUs !== null && <button type="button" onClick={onClear} style={{ ...plain, position: "static", color: "#8ea3bf", fontSize: u(16) }}>{dict.body.studio.undo}</button>}
       </div>
@@ -327,7 +327,7 @@ function TimeRange({ s, dy }: { s: Shared; dy: number }) {
       {state && <T x={48} y={1318 + dy} size={15} color={per?.data?.state === "CONFIRMED" && !per.dirty ? "#2ee86a" : "#ffd400"} data-periods-state>{state}</T>}
       {ws?.canWrite && per?.data && per.data.state !== "NONE" && (per.dirty || per.data.state === "PROPOSED") && (
         <Hit x={270} y={1305 + dy} w={100} h={28} label={dict.body.workspace.confirmMatchTime} onClick={() => void per.confirm().then(setErr)}
-          style={{ border: `${u(1.5)} solid #1f8cff`, borderRadius: u(6), background: "#0a4aa8", color: "#fff", fontSize: u(16), fontWeight: 700 }}>{dict.body.players.confirm}</Hit>
+          style={{ border: `${u(1.5)} solid #1f8cff`, borderRadius: u(6), background: "#0a4aa8", color: "#fff", fontSize: u(16), fontWeight: 400 }}>{dict.body.players.confirm}</Hit>
       )}
       {err && <T x={48} y={1340 + dy} size={14} color="#ff8a8a">{err}</T>}
     </div>

@@ -57,13 +57,13 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
             <ul className="mb-3 space-y-1.5" data-preflight-checks>
               {pf.checks.map((c) => (
                 <li key={c.key} data-check={c.key} data-level={c.level} className="flex gap-2">
-                  <span aria-label={c.level === "OK" ? "Fine" : c.level === "WARN" ? "Worth knowing" : "Blocks the export"} style={{ color: MARK[c.level][1], width: 14, flex: "none", fontWeight: 700 }}>{MARK[c.level][0]}</span>
+                  <span aria-label={c.level === "OK" ? "Fine" : c.level === "WARN" ? "Worth knowing" : "Blocks the export"} style={{ color: MARK[c.level][1], width: 14, flex: "none", fontWeight: 400 }}>{MARK[c.level][0]}</span>
                   <span>{c.text}</span>
                 </li>
               ))}
               {share && (
                 <li key="share" data-check="share" data-level={share.level} className="flex gap-2">
-                  <span aria-label={share.level === "OK" ? "Fine" : "Worth knowing"} style={{ color: MARK[share.level][1], width: 14, flex: "none", fontWeight: 700 }}>{MARK[share.level][0]}</span>
+                  <span aria-label={share.level === "OK" ? "Fine" : "Worth knowing"} style={{ color: MARK[share.level][1], width: 14, flex: "none", fontWeight: 400 }}>{MARK[share.level][0]}</span>
                   <span>{share.text}
                     {!rights?.grant && canWrite && <button type="button" data-record-rights onClick={() => setDeclare(true)} className="ml-2 text-[#33a8ff] underline">Record the rights</button>}
                     {!!rights?.grant && share.level !== "OK" && <span className="ml-1 text-muted">An Owner or Admin changes them in Sharing &amp; rights.</span>}

@@ -95,10 +95,10 @@ export function BallBlock({ ball, canWrite, onMark }: { ball: BallState; canWrit
   const n = ball.marks ? ball.marks.visible + ball.marks.hidden : 0;
   const go = async () => { setBusy(true); setErr(await ball.start()); setBusy(false); };
   const line = { color: "#8ea3bf" } as const;
-  const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 700, cursor: "pointer" } as const;
+  const btn = { minHeight: u(52), padding: `${u(8)} ${u(12)}`, lineHeight: 1.25, border: `${u(1.5)} solid #1f5a9c`, borderRadius: u(8), background: "#0a2a55", color: "#33a8ff", fontFamily: "inherit", fontSize: u(19), fontWeight: 400, cursor: "pointer" } as const;
   return (
     <div data-ball-block style={{ display: "flex", flexDirection: "column", gap: u(10), width: u(330 + dw), marginTop: u(18), fontSize: u(17) }}>
-      <div style={{ color: "#cfe0f5", fontWeight: 700, fontSize: u(20) }}>{dict.body.processing.ball}<span data-ball-experimental style={{ marginLeft: u(8), padding: `${u(1)} ${u(8)}`, borderRadius: u(10), background: "#3a2a05", color: "#ffd400", fontSize: u(14), fontWeight: 700 }}>{dict.body.workspace.experimental}</span></div>
+      <div style={{ color: "#cfe0f5", fontWeight: 400, fontSize: u(20) }}>{dict.body.processing.ball}<span data-ball-experimental style={{ marginLeft: u(8), padding: `${u(1)} ${u(8)}`, borderRadius: u(10), background: "#3a2a05", color: "#ffd400", fontSize: u(14), fontWeight: 400 }}>{dict.body.workspace.experimental}</span></div>
       <span data-ball-source style={{ color: "#ffd400" }}>{String(m.candidates_from ?? "").startsWith("ball_net")
         ? dict.body.workspace.ballModelOwn
         : tr?.status === "SUCCEEDED" ? dict.body.workspace.ballModelGeneral
@@ -121,7 +121,7 @@ export function BallBlock({ ball, canWrite, onMark }: { ball: BallState; canWrit
         <button type="button" data-ball-open onClick={onMark} style={btn}>{dict.body.workspace.markFramesUnseen}</button>
       )}
       {canWrite && tr?.status === "SUCCEEDED" && (
-        <button type="button" data-ball-again onClick={() => void go()} disabled={busy} style={{ ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 600, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` }}>{dict.body.workspace.followBallAgain}
+        <button type="button" data-ball-again onClick={() => void go()} disabled={busy} style={{ ...btn, minHeight: u(40), fontSize: u(16), fontWeight: 400, background: "transparent", color: "#8ea3bf", border: `${u(1)} solid #1f3f6a` }}>{dict.body.workspace.followBallAgain}
         </button>
       )}
       {!canWrite && <span style={line}>{dict.body.workspace.roleBallMarks}</span>}
