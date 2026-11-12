@@ -387,7 +387,7 @@ async function startup() {
   checkAborted();
 
   setStatus('Setting up the database...');
-  const { env, mysqlSupervisor } = await backend.prepareDatabase(engine, data, userData, detection, log);
+  const { env, mysqlSupervisor } = await backend.prepareDatabase(engine, data, userData, detection, log, devMode);
   checkAborted();
 
   setStatus('Getting the AI models ready (first time, a few minutes)...');

@@ -245,6 +245,22 @@ function toolBinary(root, name) {
   return fs.existsSync(exe) ? exe : null;
 }
 
+/**
+ * The Python interpreter for dev-mode database setup. The packaged app uses
+ * Nuitka-compiled tool binaries; a dev checkout runs the .py sources
+ * directly (db_setup.py and migrate.py are pure stdlib for SQLite).
+ * Override with OTSI_VIE_PYTHON when `python` is not on PATH.
+ */
+function pythonCmd() {
+  return process.env.OTSI_VIE_PYTHON || 'python';
+}
+
+/** Run one of the tools/db/*.py sources directly (dev mode only). */
+function runPythonTool(root, script, args, options) {
+  const scriptPath = path.join(otsiVieDir(root), 'tools', 'db', script);
+  return runCommand(pythonCmd(), [scriptPath, ...args], options);
+}
+
 /** The compiled tool binaries the shell needs. Returns the missing names. */
 function ensureToolBinaries(root, log) {
   const missing = TOOL_BINARIES.filter((name) => !toolBinary(root, name));
@@ -506,15 +522,24 @@ function startMysqlSupervisor(root, data, log) {
  *   database + runtime account, run the migrations (forward-only),
  *   provision the roles, create the signing key and the stack secrets.
  */
-async function prepareDatabase(root, data, userDataDir, detection, log) {
+async function prepareDatabase(root, data, userDataDir, detection, log, devMode) {
   const tools = ensureToolBinaries(root, log);
   if (!tools.ok) {
-    throw new Error(
-      `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
-    );
+    if (devMode) {
+      log('Dev mode: the compiled database tools are not staged; the Python sources in tools/db will be used instead.\n');
+    } else {
+      throw new Error(
+        `The installer is incomplete — these compiled tools are missing: ${tools.missing.join(', ')}.\nReinstall OTSI VIE.`,
+      );
+    }
   }
   const backend = dbBackend();
   const sqlite = backend === 'sqlite';
+  if (devMode && !sqlite) {
+    throw new Error(
+      'Dev mode: the database is set to MySQL, but the compiled MySQL tools are not staged here. Switch to SQLite (the default for a fresh install) or build the installer.',
+    );
+  }
   let mysqlSupervisor = null;
   let rootPw = null;
   let appDsn;
@@ -559,8 +584,14 @@ async function prepareDatabase(root, data, userDataDir, detection, log) {
       OTSI_VIE_SQLITE_PATH: sqliteDbPath(data),
       OTSI_VIE_DB_DSN: appDsn,
     };
-    await runCommand(toolBinary(root, 'db-setup'), [], { log, env: sqliteEnv });
-    await runCommand(toolBinary(root, 'migrate'), ['up'], { log, env: sqliteEnv });
+    if (devMode) {
+      // Dev checkout: run the .py sources directly (pure stdlib for SQLite).
+      await runPythonTool(root, 'db_setup.py', [], { log, env: sqliteEnv });
+      await runPythonTool(root, 'migrate.py', ['up'], { log, env: sqliteEnv });
+    } else {
+      await runCommand(toolBinary(root, 'db-setup'), [], { log, env: sqliteEnv });
+      await runCommand(toolBinary(root, 'migrate'), ['up'], { log, env: sqliteEnv });
+    }
   } else {
     const rootDsn = `mysql://root:${rootPw}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
     appDsn = `mysql://${secrets.DB_USER}:${secrets.DB_PASSWORD}@127.0.0.1:${MYSQL_PORT}/${DB_NAME}`;
