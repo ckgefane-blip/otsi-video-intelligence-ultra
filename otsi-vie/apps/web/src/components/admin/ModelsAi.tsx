@@ -84,7 +84,7 @@ export function ModelsAi() {
         <div className="vie-panel flex flex-col gap-1 px-4 py-3">
           <span className="t-label">{t.body.admin.modelsAccuracy}</span>
           <span className="t-section leading-7 text-amber">{t.body.admin.modelsNotMeasured}</span>
-          <Link href="/settings/admin" className="t-body text-primary hover:underline">
+          <Link href="/settings/admin/release" className="t-body text-primary hover:underline">
             {t.body.admin.modelsSeeGates}
           </Link>
         </div>

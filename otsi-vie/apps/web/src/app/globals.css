@@ -108,6 +108,14 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; border: 1px solid transparent; background: transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
 .vie-ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
 .vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(var(--ink2)); white-space: nowrap; }
+/* Evidence chips (SOT): pills only for evidence status. Dot is currentColor. */
+.vie-chip.ev::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.vie-chip.ev-c { color: rgb(var(--primary)); border-color: rgba(var(--primary), .38); background: rgba(var(--primary), .08); }
+.vie-chip.ev-d { color: rgb(var(--cyan)); border-color: rgba(var(--cyan), .38); background: rgba(var(--cyan), .08); }
+.vie-chip.ev-i { color: rgb(var(--amber)); border-color: rgba(var(--amber), .38); background: rgba(var(--amber), .08); }
+.vie-chip.ev-n { color: rgb(var(--muted)); border-style: dashed; background: transparent; }
+.vie-chip.ev-n::before { background: transparent; border: 1px solid currentColor; width: 5px; height: 5px; }
+.vie-chip.ev-f { color: rgb(var(--danger)); border-color: rgba(var(--danger), .38); background: rgba(var(--danger), .08); }
 .vie-sw { width: 32px; height: 18px; flex: none; border-radius: 999px; background: rgb(var(--line)); border: 1px solid rgb(var(--line2)); position: relative; cursor: pointer; padding: 0; }
 .vie-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
 .vie-sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }
