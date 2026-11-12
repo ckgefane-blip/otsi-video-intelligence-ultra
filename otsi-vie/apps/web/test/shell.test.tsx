@@ -116,16 +116,35 @@ describe("command palette", () => {
   });
 });
 
-describe("keyboard map (A.9)", () => {
-  it("opens with ?, not while typing; finds a key; the palette's command opens it too", () => {
+describe("keyboard map (A.9, SOT)", () => {
+  it("opens with ?, not while typing; shows the SOT's four groups and only real shortcuts; the palette's command opens it too", () => {
     render(<><KeyboardMap /><input aria-label="field" /></>);
     fireEvent.keyDown(screen.getByLabelText("field"), { key: "?" });
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.keyDown(window, { key: "?" });
     const d = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
-    expect([...d.querySelectorAll("[data-keymap-scope]")].map((x) => x.getAttribute("data-keymap-scope"))).toEqual(["everywhere", "studio", "analysis", "reels", "reports", "library", "exports"]);
-    fireEvent.change(screen.getByLabelText("Find a shortcut"), { target: { value: "n" } });
-    expect([...d.querySelectorAll("kbd")].map((x) => x.textContent)).toEqual(["N"]);
+    for (const g of ["General", "Analysis", "Video players", "Clip Studio"]) expect(d).toHaveTextContent(g);
+    expect(d).toHaveTextContent("Command palette");
+    expect(d).toHaveTextContent("Ctrl/Cmd K");
+    expect(d).toHaveTextContent("Collapse or expand the rail");
+    expect(d).toHaveTextContent("Ctrl/Cmd B");
+    expect(d).toHaveTextContent("Jobs Center");
+    expect(d).toHaveTextContent("Ctrl/Cmd J");
+    expect(d).toHaveTextContent("Close dialog or panel");
+    expect(d).toHaveTextContent("Add marker");
+    expect(d).toHaveTextContent("Play / pause");
+    expect(d).toHaveTextContent("Back / forward 1 second");
+    expect(d).toHaveTextContent("Fullscreen");
+    expect(d).toHaveTextContent("Mark in / out");
+    // the SOT's rows that are not wired in the engine are left out, not shown as working keys
+    expect(d).not.toHaveTextContent("Confirm identity");
+    expect(d).not.toHaveTextContent("Correct identity");
+    expect(d).not.toHaveTextContent("Reject identity");
+    expect(d).not.toHaveTextContent("Back / forward 1 frame");
+    expect(d).not.toHaveTextContent("Slower / faster");
+    expect(d).not.toHaveTextContent("Open local footage");
+    expect(d).not.toHaveTextContent("Blade tool");
+    expect(d).not.toHaveTextContent("Select tool");
     fireEvent.keyDown(d, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });

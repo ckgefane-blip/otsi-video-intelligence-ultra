@@ -460,6 +460,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.home.hmQualityFhd",
       "body.home.hmQualityUhd",
       "body.shell.jcTokens",             // "Tokens" is the product term in every language
+      "body.shell.ksGeneral",            // Spanish "General" is the same word
       "body.admin.severityInfo",
       "body.admin.metricWorkers",
       "body.admin.metricVideos",
@@ -605,7 +606,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("admin").length).toBe(274);
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
-    expect(bodyKeys("shell").length).toBe(271);
+    expect(bodyKeys("shell").length).toBe(282);
     expect(bodyKeys("auth").length).toBe(100);
   });
 
