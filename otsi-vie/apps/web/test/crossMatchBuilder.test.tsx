@@ -124,8 +124,9 @@ describe("Cross-match source choice", () => {
     mockApi(single, []);
     render(<ReelStage reelId={SINGLE_ID} />);
     await waitFor(() => expect(screen.getByLabelText("Undo: Trimmed a clip")).not.toBeDisabled());
-    fireEvent.change(screen.getByLabelText("Which matches"), { target: { value: "300" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    fireEvent.click(screen.getByRole("button", { name: "All matches" }));
+    fireEvent.click(screen.getByRole("button", { name: "5 minutes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create all-matches reel" }));
     await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/reels", expect.objectContaining({
       method: "POST", json: { source: "ALL_MATCHES", length_s: 300, player_id: PLAYER_ID },
     })));

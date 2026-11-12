@@ -30,7 +30,7 @@ function mockApi(hist: ReelHistory = history) {
     if (url.endsWith("/moments")) return Promise.resolve([]);
     if (url === `/v1/reels/${id}`) return Promise.resolve(reel);
     if (url === "/v1/videos/vid-1") return Promise.resolve({ id: "vid-1", match_id: null });
-    if (url === "/v1/videos/vid-1/playback") return Promise.resolve({ url: "" });
+    if (url === "/v1/videos/vid-1/playback") return Promise.resolve({ url: "https://example.com/v.mp4" });
     if (url === `/v1/reels/${id}/path`) return Promise.resolve({ points: [] });
     if (url.startsWith("/v1/brand-assets")) return Promise.resolve([]);
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -59,8 +59,9 @@ describe("Reel Builder undo / redo keys", () => {
   it("does nothing while typing in a field", async () => {
     await open();
     api.mockClear();
-    fireEvent.keyDown(screen.getByLabelText("Reel title"), { key: "z", ctrlKey: true });
-    fireEvent.keyDown(screen.getByLabelText("Reel title"), { key: "Z", ctrlKey: true, shiftKey: true });
+    // the player's speed select is a field: Ctrl+Z there must not undo the reel
+    fireEvent.keyDown(screen.getByLabelText("Playback speed"), { key: "z", ctrlKey: true });
+    fireEvent.keyDown(screen.getByLabelText("Playback speed"), { key: "Z", ctrlKey: true, shiftKey: true });
     await new Promise((r) => setTimeout(r, 50));
     expect(api).not.toHaveBeenCalled();
   });

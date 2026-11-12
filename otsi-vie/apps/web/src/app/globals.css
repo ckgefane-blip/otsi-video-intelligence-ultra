@@ -179,5 +179,26 @@ dialog[data-player-full]::backdrop { background: #000; }
 .alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255, 128, 115, .45); background: rgba(255, 128, 115, .08); color: rgb(var(--ink)); }
 .alert .i { color: rgb(var(--danger)); margin-top: 1px; }
 
+/* Reel Builder shell (SOT, page 20): the left settings column, panel headers, the budget bar, buttons, tier tags and type helpers. */
+.side { flex: 1 1 260px; max-width: 300px; background: rgb(var(--p0)); border-right: 1px solid rgb(var(--line)); display: flex; flex-direction: column; min-width: 0; }
+.ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
+.bud { position: relative; height: 10px; border-radius: 5px; background: rgb(var(--raised)); overflow: hidden; }
+.bud .used { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(var(--primary)); }
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: rgb(var(--raised)); color: rgb(var(--ink2)); }
+.panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: rgb(var(--line)); }
+.btn.pri { background: rgb(var(--primary)); border-color: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
+.btn.sm { height: 30px; padding: 0 10px; }
+.btn.w { width: 100%; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+.sm { font-size: 12px; line-height: 18px; }
+.mu { color: rgb(var(--muted)); }
+.h1 { font-size: 16px; font-weight: 600; letter-spacing: -.005em; line-height: 24px; }
+.h3 { font-size: 13px; font-weight: 600; line-height: 20px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px; line-height: 16px; font-weight: 500; border: 1px solid rgb(var(--line2)); color: rgb(var(--ink2)); white-space: nowrap; background: rgb(var(--panel)); }
+.content { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; }
+
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
 :root[data-interface="guided"] [data-advanced] { display: none !important; }

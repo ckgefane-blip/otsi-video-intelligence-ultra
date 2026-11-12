@@ -43,6 +43,9 @@ export interface Stage {
   setLengthS(n: ReelLengthS): void;
   /** true for a cross-match reel: its length was fixed when it was made and the picker is read-only */
   lengthFixed: boolean;
+  /** the render confirmation (B.13): the sidebar's Build reel button and the inspector's Generate Reel open the same dialog */
+  buildOpen: boolean;
+  setBuildOpen(o: boolean): void;
 }
 const Ctx = createContext<Stage | null>(null);
 export const StageProvider = ({ value, children }: { value: Stage; children: ReactNode }) => <Ctx.Provider value={value}>{children}</Ctx.Provider>;

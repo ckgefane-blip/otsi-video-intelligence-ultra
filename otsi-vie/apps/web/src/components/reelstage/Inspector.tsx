@@ -112,15 +112,17 @@ function LogoPicker({ kind, onPick, onClose }: { kind: BrandAssetKind; onPick: (
 
 export function Inspector() {
   const { t: dict } = useLocale();
-  const { r, draft, setDraft, name, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro } = useStage();
+  const { r, draft, setDraft, name, dirty, save, focus, jump, tab, mode, setMode, openProfileIntro, buildOpen, setBuildOpen } = useStage();
   const reel = r?.reel ?? null;
   const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
   const [stopAsk, setStopAsk] = useState(false);
   useEffect(() => { if (!stopAsk) return; const t = setTimeout(() => setStopAsk(false), 4000); return () => clearTimeout(t); }, [stopAsk]);
   const [picker, setPicker] = useState<LogoField | null>(null);
   const [extras, setExtras] = useState(false);
-  /** B.13 (ADR-089): Generate Reel asks first, with what the render holds and how long it may take */
-  const [confirm, setConfirm] = useState(false);
+  /** B.13 (ADR-089): Generate Reel asks first, with what the render holds and how long it may take — the confirmation lives in the
+   *  stage so the sidebar's Build reel button opens the same dialog */
+  const confirm = buildOpen;
+  const setConfirm = setBuildOpen;
   /** what Save Project shows: "Saving…" while the request runs, "Saved ✓" until the next change */
   const [saving, setSaving] = useState<"saving" | "saved" | null>(null);
   useEffect(() => { if (dirty) setSaving((s) => (s === "saved" ? null : s)); }, [dirty]);

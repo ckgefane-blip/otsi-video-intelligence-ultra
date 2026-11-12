@@ -473,6 +473,11 @@ describe("dictionaries (ADR-139)", () => {
       "body.players.plPin",              // Russian "OTSI PIN" is the same acronym
       "body.players.plTracks",           // German "Tracks" is the same word
       "body.processing.pjActions",       // French "Actions" is the same word
+      "body.reels.rbRule",              // the versioned rule name, the same in every language
+      "body.reels.rbHeading",          // the page name, the same in every language
+      "body.reels.rbClip",             // French/Spanish/German "Clip" is the same word
+      "body.reels.rbBudget",           // French/German "Budget" is the same word
+      "body.reels.rbTokens10",         // Spanish "10 tokens" is the same phrase
       "body.library.lbTag",              // German "Tag" is the same word
       "body.library.lbDetails",          // German "Details" is the same word
       "body.library.lbCollections",      // French "Collections" is the same word
@@ -588,6 +593,9 @@ describe("dictionaries (ADR-139)", () => {
       // French is the highest at 270.
       // Page 19 Processing jobs (2026-11-12) raised it from 280 to 285:
       // "Actions" is the same word in French. French is the highest at 280.
+      // Page 20 Reel Builder (2026-11-12) keeps it at 285: "Best Moment
+      // Rule v2.1", "Clip" and "Budget" are the same in French. French is
+      // the highest at 283.
       expect(same.length, locale).toBeLessThan(285);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
@@ -603,7 +611,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     expect(bodyKeys("home").length).toBe(125);
     expect(bodyKeys("analysis").length).toBe(243);
-    expect(bodyKeys("reels").length).toBe(237);
+    expect(bodyKeys("reels").length).toBe(276);
     expect(bodyKeys("studio").length).toBe(776);
     expect(bodyKeys("reports").length).toBe(386);
     expect(bodyKeys("library").length).toBe(690);
