@@ -155,6 +155,18 @@ dialog[data-player-full]::backdrop { background: #000; }
 
 /* Media inspector + ingest form (SOT, page 15): the right-hand inspector column, its sections, radio cards, field labels and the danger alert. */
 .insp { flex: 1 1 280px; max-width: 340px; background: rgb(var(--panel)); border-left: 1px solid rgb(var(--line)); display: flex; flex-direction: column; min-width: 0; }
+
+/* Processing pipeline stepper (SOT, page 19): the eight numbered steps, joined by a hairline, with the running/done/failed node. */
+.steps { display: flex; flex-wrap: wrap; gap: 0; padding: 18px 14px 16px; list-style: none; margin: 0; }
+.stp { flex: 1 1 110px; min-width: 0; display: flex; flex-direction: column; gap: 8px; position: relative; padding-right: 10px; }
+.stp .node { display: flex; align-items: center; gap: 0; }
+.stp .dotn { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); background: rgb(var(--panel)); display: grid; place-items: center; font: 600 12px "JetBrains Mono", ui-monospace, monospace; color: rgb(var(--ink2)); }
+.stp .bar { flex: 1; height: 1.5px; background: rgb(var(--line2)); margin-left: 6px; }
+.stp:last-child .bar { display: none; }
+.stp .nm2 { font-weight: 600; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stp.run .dotn { border-color: rgb(var(--cyan)); color: rgb(var(--cyan)); }
+.stp.done .dotn { border-color: rgb(var(--primary)); background: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
+.stp.fail .dotn { border-color: rgb(var(--danger)); color: rgb(var(--danger)); }
 .sect { padding: 14px; border-bottom: 1px solid rgb(var(--line)); display: flex; flex-direction: column; gap: 10px; }
 .radio { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 8px; border: 1px solid rgb(var(--line)); background: rgb(var(--panel)); cursor: pointer; text-align: left; width: 100%; }
 .radio:hover { border-color: rgb(var(--line2)); }

@@ -4448,6 +4448,29 @@ export interface Dictionary {
     };
     processing: {
       stageWaiting: string;
+      pjHowProcessed: string;
+      pjAllJobs: string;
+      pjAllJobsSub: string;
+      pjSubject: string;
+      pjActions: string;
+      pjNoJobs: string;
+      pjUploadToStart: string;
+      pjUploadVideo: string;
+      pjHistory: string;
+      pjLogsKept: string;
+      pjNoFinished: string;
+      pjFinishedHere: string;
+      pjJobDetails: string;
+      pjNoJobSelected: string;
+      pjPauseHint: string;
+      pjLog: string;
+      pjNoLog: string;
+      pjWaitsVideo: string;
+      pjStepFootage: string;
+      pjStepPlayback: string;
+      pjStepLineups: string;
+      pjStepEvents: string;
+      pjStepPitch: string;
       stageProcessing: string;
       stageCompleted: string;
       stageFailed: string;
@@ -10949,6 +10972,29 @@ export const en: Dictionary = {
     },
     processing: {
       stageWaiting: "Waiting",
+      pjHowProcessed: "How each video is processed",
+      pjAllJobs: "All jobs",
+      pjAllJobsSub: "Footage check, playback copy, analysis.",
+      pjSubject: "Subject",
+      pjActions: "Actions",
+      pjNoJobs: "No jobs",
+      pjUploadToStart: "Upload a match video to start.",
+      pjUploadVideo: "Upload a match video",
+      pjHistory: "History",
+      pjLogsKept: "Logs are kept",
+      pjNoFinished: "No finished jobs yet",
+      pjFinishedHere: "Finished and failed jobs appear here.",
+      pjJobDetails: "Job details",
+      pjNoJobSelected: "No job selected",
+      pjPauseHint: "Pause, resume, retry or cancel it.",
+      pjLog: "Log",
+      pjNoLog: "No log output yet.",
+      pjWaitsVideo: "Waits for a video",
+      pjStepFootage: "Footage check",
+      pjStepPlayback: "Playback copy",
+      pjStepLineups: "Lineups",
+      pjStepEvents: "Events",
+      pjStepPitch: "Pitch calibration",
       stageProcessing: "Processing",
       stageCompleted: "Completed",
       stageFailed: "Failed",
@@ -17445,6 +17491,29 @@ export const ru: DeepPartial<Dictionary> = {
       undoRestoreAria: "Отменить: восстановить {title}",
     },
     processing: {
+      pjHowProcessed: "Как обрабатывается каждое видео",
+      pjAllJobs: "Все задания",
+      pjAllJobsSub: "Проверка материала, копия для воспроизведения, анализ.",
+      pjSubject: "Объект",
+      pjActions: "Действия",
+      pjNoJobs: "Нет заданий",
+      pjUploadToStart: "Загрузите видео матча, чтобы начать.",
+      pjUploadVideo: "Загрузить видео матча",
+      pjHistory: "История",
+      pjLogsKept: "Журналы сохраняются",
+      pjNoFinished: "Завершённых заданий пока нет",
+      pjFinishedHere: "Завершённые и неудачные задания появятся здесь.",
+      pjJobDetails: "Сведения о задании",
+      pjNoJobSelected: "Задание не выбрано",
+      pjPauseHint: "Приостановите, возобновите, повторите или отмените его.",
+      pjLog: "Журнал",
+      pjNoLog: "В журнале пока нет записей.",
+      pjWaitsVideo: "Ждёт видео",
+      pjStepFootage: "Проверка материала",
+      pjStepPlayback: "Копия для воспроизведения",
+      pjStepLineups: "Составы",
+      pjStepEvents: "События",
+      pjStepPitch: "Калибровка поля",
       stageWaiting: "Ожидание",
       stageProcessing: "Обработка",
       stageCompleted: "Завершено",
@@ -23943,6 +24012,29 @@ export const es: DeepPartial<Dictionary> = {
     },
     processing: {
       stageWaiting: "Esperando",
+      pjHowProcessed: "Cómo se procesa cada vídeo",
+      pjAllJobs: "Todas las tareas",
+      pjAllJobsSub: "Revisión del metraje, copia de reproducción, análisis.",
+      pjSubject: "Asunto",
+      pjActions: "Acciones",
+      pjNoJobs: "Sin tareas",
+      pjUploadToStart: "Sube un vídeo de partido para empezar.",
+      pjUploadVideo: "Subir un vídeo de partido",
+      pjHistory: "Historial",
+      pjLogsKept: "Los registros se conservan",
+      pjNoFinished: "Aún no hay tareas terminadas",
+      pjFinishedHere: "Las tareas terminadas y fallidas aparecen aquí.",
+      pjJobDetails: "Detalles de la tarea",
+      pjNoJobSelected: "Ninguna tarea seleccionada",
+      pjPauseHint: "Páusala, reanúdala, reinténtala o cancélala.",
+      pjLog: "Registro",
+      pjNoLog: "Aún no hay salida de registro.",
+      pjWaitsVideo: "Espera un vídeo",
+      pjStepFootage: "Revisión del metraje",
+      pjStepPlayback: "Copia de reproducción",
+      pjStepLineups: "Alineaciones",
+      pjStepEvents: "Eventos",
+      pjStepPitch: "Calibración del campo",
       stageProcessing: "Procesando",
       stageCompleted: "Completado",
       stageFailed: "Fallido",
@@ -30440,6 +30532,29 @@ export const de: DeepPartial<Dictionary> = {
     },
     processing: {
       stageWaiting: "Warten",
+      pjHowProcessed: "Wie jedes Video verarbeitet wird",
+      pjAllJobs: "Alle Aufträge",
+      pjAllJobsSub: "Materialprüfung, Wiedergabekopie, Analyse.",
+      pjSubject: "Betreff",
+      pjActions: "Aktionen",
+      pjNoJobs: "Keine Aufträge",
+      pjUploadToStart: "Laden Sie ein Spielvideo hoch, um zu beginnen.",
+      pjUploadVideo: "Spielvideo hochladen",
+      pjHistory: "Verlauf",
+      pjLogsKept: "Protokolle werden aufbewahrt",
+      pjNoFinished: "Noch keine fertigen Aufträge",
+      pjFinishedHere: "Fertige und fehlgeschlagene Aufträge erscheinen hier.",
+      pjJobDetails: "Auftragsdetails",
+      pjNoJobSelected: "Kein Auftrag ausgewählt",
+      pjPauseHint: "Pausieren, fortsetzen, erneut versuchen oder abbrechen.",
+      pjLog: "Protokoll",
+      pjNoLog: "Noch keine Protokollausgabe.",
+      pjWaitsVideo: "Wartet auf ein Video",
+      pjStepFootage: "Materialprüfung",
+      pjStepPlayback: "Wiedergabekopie",
+      pjStepLineups: "Aufstellungen",
+      pjStepEvents: "Ereignisse",
+      pjStepPitch: "Spielfeldkalibrierung",
       stageProcessing: "Verarbeitung",
       stageCompleted: "Abgeschlossen",
       stageFailed: "Fehlgeschlagen",
@@ -36937,6 +37052,29 @@ export const fr: DeepPartial<Dictionary> = {
     },
     processing: {
       stageWaiting: "En attente",
+      pjHowProcessed: "Comment chaque vidéo est traitée",
+      pjAllJobs: "Toutes les tâches",
+      pjAllJobsSub: "Vérification des images, copie de lecture, analyse.",
+      pjSubject: "Sujet",
+      pjActions: "Actions",
+      pjNoJobs: "Aucune tâche",
+      pjUploadToStart: "Importez une vidéo de match pour commencer.",
+      pjUploadVideo: "Importer une vidéo de match",
+      pjHistory: "Historique",
+      pjLogsKept: "Les journaux sont conservés",
+      pjNoFinished: "Aucune tâche terminée pour l’instant",
+      pjFinishedHere: "Les tâches terminées et échouées apparaissent ici.",
+      pjJobDetails: "Détails de la tâche",
+      pjNoJobSelected: "Aucune tâche sélectionnée",
+      pjPauseHint: "Mettez-la en pause, reprenez-la, réessayez ou annulez-la.",
+      pjLog: "Journal",
+      pjNoLog: "Aucune sortie de journal pour l’instant.",
+      pjWaitsVideo: "Attend une vidéo",
+      pjStepFootage: "Vérification des images",
+      pjStepPlayback: "Copie de lecture",
+      pjStepLineups: "Compositions",
+      pjStepEvents: "Événements",
+      pjStepPitch: "Calibrage du terrain",
       stageProcessing: "Traitement",
       stageCompleted: "Terminé",
       stageFailed: "Échec",
@@ -43444,6 +43582,29 @@ export const pt: DeepPartial<Dictionary> = {
     },
     "processing": {
       "stageWaiting": "Aguardando",
+      "pjHowProcessed": "Como cada vídeo é processado",
+      "pjAllJobs": "Todos os trabalhos",
+      "pjAllJobsSub": "Verificação do material, cópia de reprodução, análise.",
+      "pjSubject": "Assunto",
+      "pjActions": "Ações",
+      "pjNoJobs": "Sem trabalhos",
+      "pjUploadToStart": "Envie um vídeo de jogo para começar.",
+      "pjUploadVideo": "Enviar um vídeo de jogo",
+      "pjHistory": "Histórico",
+      "pjLogsKept": "Os registros são mantidos",
+      "pjNoFinished": "Ainda não há trabalhos concluídos",
+      "pjFinishedHere": "Trabalhos concluídos e com falha aparecem aqui.",
+      "pjJobDetails": "Detalhes do trabalho",
+      "pjNoJobSelected": "Nenhum trabalho selecionado",
+      "pjPauseHint": "Pause, retome, tente novamente ou cancele.",
+      "pjLog": "Registro",
+      "pjNoLog": "Ainda não há saída de registro.",
+      "pjWaitsVideo": "Aguarda um vídeo",
+      "pjStepFootage": "Verificação do material",
+      "pjStepPlayback": "Cópia de reprodução",
+      "pjStepLineups": "Escalações",
+      "pjStepEvents": "Eventos",
+      "pjStepPitch": "Calibração do campo",
       "stageProcessing": "Processando",
       "stageCompleted": "Concluído",
       "stageFailed": "Falhou",

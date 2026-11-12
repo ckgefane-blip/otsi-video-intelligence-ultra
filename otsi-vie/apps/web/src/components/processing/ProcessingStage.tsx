@@ -6,14 +6,12 @@
  * newest video); the reference's empty state shows only when there is no video at all.
  */
 import type { Video } from "@otsi-vie/contracts";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnalysisWorkspace, useAnalysisWorkspace, type AnalysisWorkspaceState } from "@/components/analysis/AnalysisWorkspace";
 import { ProcessingProvider, useProcessing, type ProcessingState } from "@/components/analysis/ProcessingView";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { pickVideo } from "@/lib/currentVideo";
 import { DetectionTiles, eventCount } from "./DetectionTiles";
 import { JobCard } from "./JobCard";
 import { JobTable, useVideoJobs } from "./JobTable";
@@ -23,6 +21,7 @@ import { PipelineStages } from "./PipelineStages";
 import { PreviewPanel } from "./PreviewPanel";
 import { TimelineSummary } from "./TimelineSummary";
 import { RunDialog } from "./RunDialog";
+import { ProcessingJobs } from "./ProcessingJobs";
 import { VideoPicker } from "./VideoPicker";
 
 /** a count from a finished run's result, or null when it is not recorded */
@@ -74,22 +73,10 @@ function FollowRun({ videoId }: { videoId: string }) {
 
 export function ProcessingStage() {
   const video = useSearchParams().get("video");
-  const router = useRouter();
   const valid = !!video && UUID.test(video);
-  const org = useAuth().organization?.organization_id;
-  // a page named Processing opens on what is processing: the video with a job or analysis moving, else the one open on another page
-  // (v3 Phase 0, P9), else the newest one
-  useEffect(() => {
-    if (valid) return;
-    let live = true;
-    void api<Video[]>("/v1/videos").then((vs) => {
-      if (!live || !vs.length) return;
-      const busy = vs.find((v) => v.analysis?.status === "RUNNING" || v.analysis?.status === "QUEUED" || v.job?.state === "RUNNING" || v.job?.state === "QUEUED" || v.state === "VALIDATING" || v.state === "PENDING");
-      router.replace(`/processing?video=${(busy ?? pickVideo(org, vs, vs[0])!).id}`, { scroll: false });
-    }, () => undefined);
-    return () => { live = false; };
-  }, [valid, router, org]);
-  if (!valid || !video) return <Sections p={null} ws={null} />;
+  // no video: the jobs overview (SOT, Page 19) — the organisation's engine jobs, the pipeline steps, history and the job log.
+  // A video opens its own processing view (the per-video page the Library, Tactics, Upload and workspace links point at).
+  if (!valid || !video) return <ProcessingJobs />;
   return (
     <ProcessingProvider key={video} videoId={video}>
       <FollowRun videoId={video} />

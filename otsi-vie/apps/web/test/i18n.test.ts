@@ -472,6 +472,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.players.plClub",             // French "Club" is the same word
       "body.players.plPin",              // Russian "OTSI PIN" is the same acronym
       "body.players.plTracks",           // German "Tracks" is the same word
+      "body.processing.pjActions",       // French "Actions" is the same word
       "body.library.lbTag",              // German "Tag" is the same word
       "body.library.lbDetails",          // German "Details" is the same word
       "body.library.lbCollections",      // French "Collections" is the same word
@@ -585,7 +586,9 @@ describe("dictionaries (ADR-139)", () => {
       // raised it from 270 to 280: the four resolution labels and "xA"
       // (Home) and "Tokens" (Jobs Center) are the same in every language.
       // French is the highest at 270.
-      expect(same.length, locale).toBeLessThan(280);
+      // Page 19 Processing jobs (2026-11-12) raised it from 280 to 285:
+      // "Actions" is the same word in French. French is the highest at 280.
+      expect(same.length, locale).toBeLessThan(285);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -608,7 +611,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("players").length).toBe(148);
     expect(bodyKeys("matches").length).toBe(108);
     expect(bodyKeys("upload").length).toBe(485);
-    expect(bodyKeys("processing").length).toBe(302);
+    expect(bodyKeys("processing").length).toBe(325);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
     expect(bodyKeys("tactics").length).toBe(164);
     expect(bodyKeys("workspace").length).toBe(729);
