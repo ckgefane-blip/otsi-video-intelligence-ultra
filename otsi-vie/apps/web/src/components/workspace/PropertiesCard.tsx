@@ -103,7 +103,7 @@ export function PropertiesDialog({ s, track, open, onOpenChange }: { s: Shared; 
 
               <H>{dict.body.aiAnalyst.evidence}</H>
               <div data-props="evidence" className="space-y-1">
-                <p>Shirt number: {d.jersey ? (d.jersey.decision ? (d.jersey.decision.state === "CONFIRMED" ? <b>{dict.body.workspace.shirtConfirmedByPerson.replace("{a}", String(d.jersey.decision.number))}</b> : dict.body.workspace.unreadablePerson)
+                <p>Shirt number: {d.jersey ? (d.jersey.decision ? (d.jersey.decision.state === "CONFIRMED" ? <span className="font-semibold">{dict.body.workspace.shirtConfirmedByPerson.replace("{a}", String(d.jersey.decision.number))}</span> : dict.body.workspace.unreadablePerson)
                   : d.jersey.number ? <>{d.jersey.number} <span className="text-xs text-muted">{(d.jersey.frames.length === 1 ? dict.body.workspace.readOnFramesOne : dict.body.workspace.readOnFramesMany).replace("{a}", String(d.jersey.frames.length)).replace("{b}", d.jersey.confidence?.toFixed(2) ?? "—")}</span></> : dict.body.workspace.notReadShirt)
                   : "—"}</p>
                 {d.candidates && d.candidates.candidates.length > 0 ? (

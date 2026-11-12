@@ -182,8 +182,8 @@ export function WhoIsThisPanel({ videoId, playerId, onNamed }: { videoId: string
   return (
     <div className="space-y-2" data-who={name}>
       <p className="text-xs text-muted">
-        {revisit ? <>{dict.body.workspace.momentsSaidNot}<b>{name}</b>{dict.body.workspace.ifInPictureDrag}</>
-          : <>{dict.body.workspace.momentsGreenBoxStart}<b>{name}</b>{dict.body.workspace.momentsGreenBoxEnd}</>} {(data.his_events === 1 ? (data.his_tracks === 1 ? dict.body.workspace.hisEventsOneTrack : dict.body.workspace.hisEventsOneTracks) : (data.his_tracks === 1 ? dict.body.workspace.hisEventsManyTrack : dict.body.workspace.hisEventsManyTracks)).replace("{a}", String(data.his_events)).replace("{b}", String(data.his_tracks))}{" "}
+        {revisit ? <>{dict.body.workspace.momentsSaidNot}<span className="font-semibold">{name}</span>{dict.body.workspace.ifInPictureDrag}</>
+          : <>{dict.body.workspace.momentsGreenBoxStart}<span className="font-semibold">{name}</span>{dict.body.workspace.momentsGreenBoxEnd}</>} {(data.his_events === 1 ? (data.his_tracks === 1 ? dict.body.workspace.hisEventsOneTrack : dict.body.workspace.hisEventsOneTracks) : (data.his_tracks === 1 ? dict.body.workspace.hisEventsManyTrack : dict.body.workspace.hisEventsManyTracks)).replace("{a}", String(data.his_events)).replace("{b}", String(data.his_tracks))}{" "}
         <button type="button" className="text-primary" data-revisit onClick={() => { setMsg(null); setRevisit(!revisit); }}>{revisit ? dict.body.workspace.backToNewMoments : dict.body.workspace.goBackNo}</button>
       </p>
       {!cur ? <p className="text-xs text-muted">{data.items.length ? dict.body.workspace.youSkippedRest : revisit ? dict.body.workspace.noMomentMarkedNot.replace("{a}", name) : dict.body.workspace.noMorePossibleMoments.replace("{a}", name)}{skipped.size > 0 && <button type="button" className="text-primary" onClick={() => setSkipped(new Set())}>{dict.body.workspace.showSkippedAgain}</button>}</p> : (

@@ -52,7 +52,7 @@ export function SectionCard({ pageId, section, state, area, heading, untitled = 
     >
       {heading && (
         <div className={heading.visible ? "mb-3" : "sr-only"}>
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight">{heading.title}</h1>
+          <h1 className="t-page">{heading.title}</h1>
           <p className="mt-1 text-sm text-muted">{heading.subtitle}</p>
         </div>
       )}

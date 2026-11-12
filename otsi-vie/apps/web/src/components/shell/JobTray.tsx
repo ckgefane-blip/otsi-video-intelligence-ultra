@@ -109,7 +109,7 @@ function Row({ j, busy, act, close }: { j: Job; busy: boolean; close: () => void
     <div className="border-b border-line/60 py-2 last:border-0" data-job={j.kind} data-job-state={j.state}>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 flex-none rounded-full" style={{ background: STATE_COLOR[j.state] }} aria-hidden />
-        <span className="flex-1 truncate text-sm"><b>{j.kind_label}</b>{j.subject_title ? ` · ${j.subject_title}` : ""}</span>
+        <span className="flex-1 truncate text-sm"><span className="font-semibold">{j.kind_label}</span>{j.subject_title ? ` · ${j.subject_title}` : ""}</span>
         <span className="flex-none text-xs" style={{ color: STATE_COLOR[j.state] }}>{jobStateLabel(t, j.state)}{j.state === "RUNNING" ? ` ${Math.round(j.progress)}%` : ""}</span>
       </div>
       {j.state === "RUNNING" && (

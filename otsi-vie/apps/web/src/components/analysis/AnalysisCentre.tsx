@@ -154,7 +154,7 @@ function TacticalView({ s }: { s: Shared }) {
   return (
     <div className="flex flex-col">
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-        <b>{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</b>
+        <span className="font-semibold">{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</span>
         <span className="text-muted">{dict.body.workspace.placedCount.replace("{a}", String(placed.length))}</span>
         {placed.length > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.pitchPositionsCalibrated} />}
         <span className="ml-auto flex gap-3">
@@ -184,7 +184,7 @@ function HeatView({ s }: { s: Shared }) {
     return (
       <div className="flex flex-col">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-          <b>{sel.label.split(" · ")[0]}</b>
+          <span className="font-semibold">{sel.label.split(" · ")[0]}</span>
           <span className="text-muted">{zones ? measuredText(zones, dict) : loading ? dict.body.processing.reading : dict.body.workspace.noHeatZones}</span>
           {zones && zones.measured_s > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.timeInZones} />}
           <button type="button" onClick={() => ws.select(null)} className="ml-auto text-sm text-primary">{dict.body.workspace.showBothTeams}</button>

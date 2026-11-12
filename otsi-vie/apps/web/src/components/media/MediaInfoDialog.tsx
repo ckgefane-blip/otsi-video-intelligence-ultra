@@ -68,7 +68,7 @@ export function MediaInfoBody({ info }: { info: MediaInfo }) {
         <ol className="space-y-0.5">
           {info.checks.map((c) => (
             <li key={c.key} data-check={c.key} data-check-status={c.status} className="flex gap-2">
-              <span aria-hidden className={`w-4 shrink-0 text-center font-bold ${MARK[c.status][1]}`}>{MARK[c.status][0]}</span>
+              <span aria-hidden className={`w-4 shrink-0 text-center font-semibold ${MARK[c.status][1]}`}>{MARK[c.status][0]}</span>
               <span><span className="font-medium">{MEDIA_CHECK_LABELS[c.key]}</span> <span className="sr-only">{STATUS_WORD[c.status]}</span>
                 {c.detail ? <span className="text-muted">: {c.detail}</span> : c.status === "PENDING" ? <span className="text-muted">: waiting</span> : null}</span>
             </li>

@@ -185,7 +185,7 @@ function ThisVideo({ canWrite }: { canWrite: boolean }) {
         {a?.status === "FAILED" && <p className="t-small text-amber">{d.checkFailed}{a.failure_code ? ` (${a.failure_code})` : ""}.</p>}
         {a?.status === "SUCCEEDED" && (
           <>
-            <p className="t-small text-ink2">{d.checkRecommends} <b>{profileLabel(a.recommended_profile, d)}</b>
+            <p className="t-small text-ink2">{d.checkRecommends} <span className="font-semibold">{profileLabel(a.recommended_profile, d)}</span>
               {a.issues.length === 0 ? d.recommendSuffixNone : d.recommendSuffixSome}</p>
             {a.issues.length > 0 && (
               <ul className="t-small mt-0.5 list-disc pl-4" aria-label={d.whyLabel}>

@@ -73,7 +73,7 @@ export function HowItWorks() {
         <li key={title} className="relative">
           <Link href={href} className="flex h-full flex-col gap-2 rounded-ctl border border-line/70 bg-raised/40 p-3 hover:border-primary/60">
             <span className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-white">{i + 1}</span>
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-semibold text-white">{i + 1}</span>
               <Icon className="h-5 w-5 text-cyan" />
             </span>
             <span className="text-sm font-semibold">{title}</span>

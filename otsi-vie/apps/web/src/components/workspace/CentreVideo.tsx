@@ -349,7 +349,7 @@ function TacticalView({ s }: { s: Shared }) {
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: u(12), padding: `${u(14)} ${u(26)}`, fontSize: u(20), color: "#dbe8f8" }}>
-        <b>{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</b>
+        <span className="font-semibold">{dict.body.workspace.positionsAt.replace("{a}", clock(ws?.timeUs ?? 0))}</span>
         <span style={{ color: "#8ea3bf" }}>{dict.body.workspace.placedCount.replace("{a}", String(placed.length))}</span>
         {placed.length > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.pitchPositionsCalibrated} />}
         <span style={{ marginLeft: "auto", display: "flex", gap: u(16), color: "#cfdcf0" }}>
@@ -379,7 +379,7 @@ function HeatView({ s, w, h }: { s: Shared; w: number; h: number }) {
     return (
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: u(12), padding: `${u(14)} ${u(26)}`, fontSize: u(20), color: "#dbe8f8" }}>
-          <b>{sel.label.split(" · ")[0]}</b><span style={{ color: "#8ea3bf" }}>{zones ? measuredText(zones, dict) : loading ? dict.body.processing.reading : dict.body.workspace.noHeatZones}</span>
+          <span className="font-semibold">{sel.label.split(" · ")[0]}</span><span style={{ color: "#8ea3bf" }}>{zones ? measuredText(zones, dict) : loading ? dict.body.processing.reading : dict.body.workspace.noHeatZones}</span>
           {zones && zones.measured_s > 0 && <Evidence level="INFERRED" size={14} why={dict.body.workspace.timeInZones} />}
           <button type="button" onClick={() => ws.select(null)} style={{ marginLeft: "auto", fontSize: u(18), color: "#33a8ff", background: "transparent", border: 0, cursor: "pointer" }}>{dict.body.workspace.showBothTeams}</button>
         </div>

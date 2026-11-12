@@ -89,9 +89,9 @@ function Row({ n, close }: { n: Notification; close: () => void }) {
   return (
     <Link href={n.href} onClick={close} className="flex items-start gap-2 rounded-ctl border-b border-line/60 px-1 py-2 last:border-0 hover:bg-raised/50"
       data-notification={n.kind} data-unread={n.unread ? "1" : "0"}>
-      <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-bold" style={{ color, border: `1.5px solid ${color}` }} aria-hidden>{icon}</span>
+      <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-semibold" style={{ color, border: `1.5px solid ${color}` }} aria-hidden>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm">{n.unread && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan align-middle" aria-label={t.body.shell.notifNew} />}<b>{n.title}</b></span>
+        <span className="block truncate text-sm">{n.unread && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan align-middle" aria-label={t.body.shell.notifNew} />}<span className="font-semibold">{n.title}</span></span>
         {n.detail && <span className="block truncate text-xs text-muted">{n.detail}</span>}
       </span>
       <span className="flex-none text-xs text-muted">{ago(n.at, Date.now(), agoTemplates(t))}</span>

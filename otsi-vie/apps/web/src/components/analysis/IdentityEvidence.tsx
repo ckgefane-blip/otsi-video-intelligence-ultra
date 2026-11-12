@@ -50,8 +50,8 @@ export function ShirtNumberPanel({ track, canReview, seek, onChanged }: { track:
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{dict.body.analysis.shirtNumber}</p>
       <p>
         {ev.decision ? (
-          <span data-jersey-decision={ev.decision.state}>{ev.decision.state === "CONFIRMED" ? <>{dict.body.analysis.noNumber}<b>{ev.decision.number}</b>, {dict.body.analysis.confirmedByPerson}</> : dict.body.analysis.unreadableDecided}</span>
-        ) : ev.number ? <>{dict.body.analysis.noNumber}<b>{ev.number}</b> · {STATE_TEXT[ev.state]}</> : STATE_TEXT[ev.state]}
+          <span data-jersey-decision={ev.decision.state}>{ev.decision.state === "CONFIRMED" ? <>{dict.body.analysis.noNumber}<span className="font-semibold">{ev.decision.number}</span>, {dict.body.analysis.confirmedByPerson}</> : dict.body.analysis.unreadableDecided}</span>
+        ) : ev.number ? <>{dict.body.analysis.noNumber}<span className="font-semibold">{ev.number}</span> · {STATE_TEXT[ev.state]}</> : STATE_TEXT[ev.state]}
       </p>
       <p className="text-xs text-muted">{ev.candidate_frames === 1 ? dict.body.analysis.framesExaminedOne.replace("{a}", String(ev.candidate_frames)) : dict.body.analysis.framesExaminedMany.replace("{a}", String(ev.candidate_frames))}{ev.side !== "UNKNOWN" ? ` ${dict.body.analysis.shirtSideOf.replace("{a}", ev.side === "BACK" ? dict.body.analysis.shirtBack : dict.body.analysis.shirtFront)}` : ""}
         {ev.confidence !== null ? ` ${dict.body.analysis.agreementPct.replace("{a}", (ev.confidence * 100).toFixed(0))}` : ""}{ev.alternatives.length ? ` ${dict.body.analysis.alsoRead.replace("{a}", ev.alternatives.map((a) => `${a.number} (${a.frames}×)`).join(", "))}` : ""}</p>
