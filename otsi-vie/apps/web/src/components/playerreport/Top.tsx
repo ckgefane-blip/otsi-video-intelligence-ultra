@@ -281,3 +281,17 @@ function KpisInner({ r }: { r: Report }) {
   );
 }
 export const Kpis = memo(KpisInner);
+
+/** a subset of the KPI cards, for the Attacking / Passing / Defensive tabs (SOT Page 17) */
+export function KpiSubset({ r, labels }: { r: Report; labels: string[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-cards={String(labels.length)}>
+      {labels.map((l) => {
+        const found = KPIS.find(([name]) => name === l);
+        if (!found) return null;
+        const [, Icon] = found;
+        return <KpiCard key={l} label={l} Icon={Icon} first={false} measures={r.measures} measuresFailed={r.measuresFailed} focused={false} />;
+      })}
+    </div>
+  );
+}

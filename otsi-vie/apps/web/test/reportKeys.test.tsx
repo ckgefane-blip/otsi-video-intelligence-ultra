@@ -1,4 +1,4 @@
-/** Player Reports: [ / ] move between the rail's sections, only while the page is open and never while typing */
+/** Player Reports: [ / ] move between the SOT's tabs, only while the page is open and never while typing */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,9 +11,6 @@ vi.mock("@/lib/api", () => ({ api: (...a: unknown[]) => api(...a), ApiProblem: c
 
 import { ReportStage } from "@/components/playerreport/ReportStage";
 
-// jsdom has no scrollIntoView; the rail jump calls it on the section it scrolls to
-if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = vi.fn();
-
 const id = "0190a000-0000-7000-8000-000000000002";
 
 function mockApi() {
@@ -23,6 +20,9 @@ function mockApi() {
     if (url === `/v1/players/${id}/profile`) return Promise.resolve({ latest_team: null, preferred_foot: null, position: null, nationality: null, age: null });
     if (url === `/v1/players/${id}/assessment`) return Promise.resolve({ published: null, draft: null, published_by_name: null, published_at: null, unpublished_changes: false, can_write: true, version: 1 });
     if (url === `/v1/players/${id}/events`) return Promise.resolve({ items: [], videos: 0, length_m: 105, width_m: 68 });
+    if (url === "/v1/reels") return Promise.resolve([]);
+    if (url === `/v1/players/${id}/ai-analysis/status`) return Promise.resolve({ configured: false });
+    if (url === `/v1/players/${id}/ai-analysis`) return Promise.reject(Object.assign(new Error("not found"), { status: 404 }));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
 }
@@ -36,22 +36,22 @@ async function open() {
 }
 
 describe("Player Reports section keys", () => {
-  it("] moves to the next section and [ back to the previous one", async () => {
+  it("] moves to the next tab and [ back to the previous one", async () => {
     await open();
     fireEvent.keyDown(window, { key: "]" });
-    await waitFor(() => expect(screen.getByLabelText("Performance")).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Attacking" })).toHaveAttribute("aria-selected", "true"));
     fireEvent.keyDown(window, { key: "[" });
-    await waitFor(() => expect(screen.getByLabelText("Overview")).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true"));
   });
 
-  it("does nothing at the first section, and nothing while typing in a field", async () => {
+  it("does nothing at the first tab, and nothing while typing in a field", async () => {
     await open();
     fireEvent.keyDown(window, { key: "[" });
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getByLabelText("Overview")).toHaveAttribute("aria-pressed", "true");
-    fireEvent.keyDown(screen.getByLabelText("Heatmap time range"), { key: "]" });
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(screen.getByLabelText("Add a note about this player"), { key: "]" });
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getByLabelText("Overview")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     expect(push).not.toHaveBeenCalled();
   });
 });
