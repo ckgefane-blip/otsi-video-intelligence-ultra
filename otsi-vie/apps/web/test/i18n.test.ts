@@ -451,6 +451,8 @@ describe("dictionaries (ADR-139)", () => {
       "body.admin.healthConcAnalysis",
       "body.admin.healthConcRenders",
       "body.admin.healthConcIngests",
+      "body.analysis.anPasses",
+      "body.analysis.anVideos",
       "body.admin.queueActiveWord",
       "body.admin.gdprAction",
       "body.admin.gdprColDate",
@@ -534,7 +536,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
   it("covers the in-scope page groups, with the expected key counts", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     expect(bodyKeys("home").length).toBe(97);
-    expect(bodyKeys("analysis").length).toBe(208);
+    expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(212);
     expect(bodyKeys("studio").length).toBe(723);
     expect(bodyKeys("reports").length).toBe(338);
