@@ -144,5 +144,14 @@ dialog[data-player-full]::backdrop { background: #000; }
 /* Modal dialog (SOT): the command palette's shell */
 .modal { background: rgb(var(--panel)); border: 1px solid rgb(var(--line2)); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, .6); width: 100%; overflow: hidden; display: flex; flex-direction: column; max-height: 100%; }
 
+/* Jobs Center drawer (SOT, page 12): a right-hand drawer with tabs and a job table. The SOT positions it absolute inside the app shell
+   (top 48px, bottom 28px); the Radix portal renders at the viewport, so fixed with the same offsets. */
+.drawer { position: fixed; top: 48px; right: 0; bottom: 28px; width: 420px; max-width: 100vw; background: rgb(var(--panel)); border-left: 1px solid rgb(var(--line2)); box-shadow: -24px 0 60px rgba(0, 0, 0, .45); z-index: 50; display: flex; flex-direction: column; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid rgb(var(--line)); padding: 0 8px; }
+.tab { height: 38px; padding: 0 10px; border: 0; background: transparent; color: rgb(var(--muted)); font-weight: 500; font-size: 13px; line-height: 20px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tab.on { color: rgb(var(--ink)); border-bottom-color: rgb(var(--primary)); }
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 28px 20px; }
+.ei { width: 44px; height: 44px; border-radius: 10px; border: 1px dashed rgb(var(--line2)); display: grid; place-items: center; color: rgb(var(--muted)); margin-bottom: 2px; }
+
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
 :root[data-interface="guided"] [data-advanced] { display: none !important; }

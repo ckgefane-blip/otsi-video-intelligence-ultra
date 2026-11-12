@@ -459,6 +459,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.home.hmQualityHd",
       "body.home.hmQualityFhd",
       "body.home.hmQualityUhd",
+      "body.shell.jcTokens",             // "Tokens" is the product term in every language
       "body.admin.severityInfo",
       "body.admin.metricWorkers",
       "body.admin.metricVideos",
@@ -564,7 +565,11 @@ describe("dictionaries (ADR-139)", () => {
       // (Reel, Format, Codec, Master, Source, Client, Message) and two
       // patterns that are the same in every locale (the file name and the
       // email example). French is the highest at 263.
-      expect(same.length, locale).toBeLessThan(270);
+      // Page 11 Home (2026-11-12) and Page 12 Jobs Center (2026-11-12)
+      // raised it from 270 to 280: the four resolution labels and "xA"
+      // (Home) and "Tokens" (Jobs Center) are the same in every language.
+      // French is the highest at 270.
+      expect(same.length, locale).toBeLessThan(280);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
@@ -600,7 +605,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("admin").length).toBe(274);
     expect(bodyKeys("settings").length).toBe(74);
     expect(bodyKeys("wallet").length).toBe(90);
-    expect(bodyKeys("shell").length).toBe(256);
+    expect(bodyKeys("shell").length).toBe(271);
     expect(bodyKeys("auth").length).toBe(100);
   });
 
