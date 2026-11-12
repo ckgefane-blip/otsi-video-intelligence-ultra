@@ -153,5 +153,19 @@ dialog[data-player-full]::backdrop { background: #000; }
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 28px 20px; }
 .ei { width: 44px; height: 44px; border-radius: 10px; border: 1px dashed rgb(var(--line2)); display: grid; place-items: center; color: rgb(var(--muted)); margin-bottom: 2px; }
 
+/* Media inspector + ingest form (SOT, page 15): the right-hand inspector column, its sections, radio cards, field labels and the danger alert. */
+.insp { flex: 1 1 280px; max-width: 340px; background: rgb(var(--panel)); border-left: 1px solid rgb(var(--line)); display: flex; flex-direction: column; min-width: 0; }
+.sect { padding: 14px; border-bottom: 1px solid rgb(var(--line)); display: flex; flex-direction: column; gap: 10px; }
+.radio { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 8px; border: 1px solid rgb(var(--line)); background: rgb(var(--panel)); cursor: pointer; text-align: left; width: 100%; }
+.radio:hover { border-color: rgb(var(--line2)); }
+.radio .o { width: 16px; height: 16px; flex: none; margin-top: 1px; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); }
+.radio.on { border-color: rgb(var(--primary)); background: rgba(43, 212, 176, .06); }
+.radio.on .o { border: 5px solid rgb(var(--primary)); }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lab { font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--muted)); }
+.hint { font-size: 12px; line-height: 18px; color: rgb(var(--muted)); }
+.alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255, 128, 115, .45); background: rgba(255, 128, 115, .08); color: rgb(var(--ink)); }
+.alert .i { color: rgb(var(--danger)); margin-top: 1px; }
+
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
 :root[data-interface="guided"] [data-advanced] { display: none !important; }

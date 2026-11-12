@@ -20,10 +20,11 @@ type Switch = Exclude<keyof UploadPrefs, "profile">;
 type Row = [label: string, kind: Kind, why: string, pref?: Switch];
 
 /** The dictionary subsection these rows come from (ADR-139 Group A). */
-type UploadDict = Dictionary["body"]["upload"];
+export type UploadDict = Dictionary["body"]["upload"];
 
-/** the rows in this language: kinds stay, only the words are translated. */
-const rowsFor = (d: UploadDict): { visual: Row[]; overlays: Row[]; ingest: Row[] } => ({
+/** the rows in this language: kinds stay, only the words are translated. Exported for the SOT Media page (page 15), which shows the same
+    three groups as expandable rows in its Ingest settings inspector. */
+export const rowsFor = (d: UploadDict): { visual: Row[]; overlays: Row[]; ingest: Row[] } => ({
   visual: [
     [d.stabilize, "live", d.whyStabilize, "stabilize"],
     [d.autoCrop, "not-built", d.whyAutoCrop, "autoCrop"],
@@ -53,7 +54,8 @@ const tabsFor = (d: UploadDict): string[] => [d.tabFilters, d.tabOverlays, d.tab
  * not-built (a REQUEST the engine cannot perform yet: it switches freely, is saved with the upload, and shows
  * "saved · not performed yet" while on, so it never claims a step that did not happen)
  */
-function ToggleRow({ label, on, kind, why, onToggle, say }: {
+export type IngestRow = Row;
+export function ToggleRow({ label, on, kind, why, onToggle, say }: {
   label: string; on: boolean; kind: Kind; why: string; onToggle?: () => void; say: (t: string) => void;
 }) {
   const { t: dict } = useLocale();

@@ -460,7 +460,9 @@ describe("dictionaries (ADR-139)", () => {
       "body.home.hmQualityFhd",
       "body.home.hmQualityUhd",
       "body.shell.jcTokens",             // "Tokens" is the product term in every language
-      "body.library.lbTracking",         // German "Tracking" is the same word
+      "body.library.lbTracking",          // German "Tracking" is the same word
+      "body.upload.mdRightsHolderPh",     // German "Name" is the same word
+      "body.upload.mdProfileStandard",    // German "Standard" is the same word
       "body.library.lbTag",              // German "Tag" is the same word
       "body.library.lbDetails",          // German "Details" is the same word
       "body.library.lbCollections",      // French "Collections" is the same word
@@ -596,7 +598,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("exports").length).toBe(90);
     expect(bodyKeys("players").length).toBe(110);
     expect(bodyKeys("matches").length).toBe(108);
-    expect(bodyKeys("upload").length).toBe(435);
+    expect(bodyKeys("upload").length).toBe(485);
     expect(bodyKeys("processing").length).toBe(302);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
     expect(bodyKeys("tactics").length).toBe(164);
