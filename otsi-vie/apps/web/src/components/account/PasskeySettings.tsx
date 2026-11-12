@@ -1,18 +1,18 @@
 "use client";
 /**
- * Passkeys (ADR-143): sign in with Windows Hello (fingerprint, face or PIN) instead of typing email + password.
- * The person adds a passkey here (the browser's create() call), sees their passkeys, and removes one. The password
- * still works everywhere — a passkey is an extra way in, not a replacement. The state shown is
- * GET /v1/auth/webauthn/credentials.
+ * Biometric sign-in (ADR-143): one switch, like a bank app. On = sign in with Windows Hello
+ * (fingerprint, face or PIN) instead of typing your password. Off = it doesn't.
+ * Turning it on enrols a passkey on this device (the browser's create() call); turning it
+ * off removes every passkey on this account. The password still works everywhere — a passkey
+ * is an extra way in, not a replacement. The state shown is GET /v1/auth/webauthn/credentials.
  */
 import type { WebAuthnCredential } from "@otsi-vie/contracts";
 import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint, Loader2, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Fingerprint, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
-const ctl = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 outline-none focus:border-primary";
 const msgOf = (x: unknown) => (x instanceof ApiProblem ? x.message : "Could not reach OTSI VIE. Try again.");
 
 function fmtDate(iso: string | null): string | null {
@@ -25,26 +25,24 @@ export function PasskeySettings() {
   const { t } = useLocale();
   const w = t.webauthn;
   const [list, setList] = useState<WebAuthnCredential[] | null>(null);
-  const [deviceName, setDeviceName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [removing, setRemoving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  /** null until the browser has been asked: the add form shows only when passkeys work here. */
+  /** null until the browser has been asked: the switch shows only when passkeys work here. */
   const [supported, setSupported] = useState<boolean | null>(null);
 
   const load = useCallback(() => { void webauthnCredentials().then((r) => setList(r.credentials), (x) => setError(msgOf(x))); }, []);
   useEffect(load, [load]);
   useEffect(() => { setSupported(browserSupportsWebAuthn()); }, []);
 
-  async function add(e: FormEvent) {
-    e.preventDefault();
+  const on = (list?.length ?? 0) > 0;
+
+  async function turnOn() {
     setBusy(true); setError(null); setNotice(null);
     try {
       const options = await webauthnRegisterOptions();
       const attestation = await startRegistration({ optionsJSON: options });
-      await webauthnRegisterVerify(attestation, deviceName.trim() || undefined);
-      setDeviceName("");
+      await webauthnRegisterVerify(attestation);
       setNotice(w.passkeyAdded);
       load();
     } catch (err) {
@@ -60,67 +58,62 @@ export function PasskeySettings() {
     }
   }
 
-  async function remove(id: string) {
-    setRemoving(id); setError(null); setNotice(null);
+  async function turnOff() {
+    if (!list?.length) return;
+    setBusy(true); setError(null); setNotice(null);
     try {
-      await webauthnDeleteCredential(id);
+      for (const c of list) await webauthnDeleteCredential(c.id);
       setNotice(w.passkeyRemoved);
       load();
     } catch (err) {
       setError(err instanceof ApiProblem ? err.message : w.passkeyRemoveFailed);
     } finally {
-      setRemoving(null);
+      setBusy(false);
     }
   }
 
   return (
     <section className="vie-panel min-w-0" data-passkey-settings>
-      <div className="vie-ph"><h1 className="t-section">{w.passkeysTitle}</h1></div>
+      <div className="vie-ph"><h1 className="t-section">{w.biometricTitle}</h1></div>
       <div className="space-y-4 p-4">
-      <p className="t-body text-muted">{w.passkeysIntro}</p>
-      {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
-      {supported === false && <p className="t-body text-muted">{w.passkeyUnavailable}</p>}
+        <p className="t-body text-muted">{w.biometricHint}</p>
+        {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
+        {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
+        {supported === false && <p className="t-body text-muted">{w.passkeyUnavailable}</p>}
 
-      {!list ? <p className="t-body text-muted" role="status">Loading...</p> : (
-        <section className="rounded-ctl border border-line bg-raised p-4">
-          {list.length === 0 ? (
-            <p className="t-body text-muted">{w.passkeyNone}</p>
-          ) : (
-            <ul className="divide-y divide-line">
-              {list.map((c) => (
-                <li key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Fingerprint className="h-5 w-5 shrink-0 text-muted" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate t-panel">{c.device_name ?? w.passkeyUnnamed}</p>
-                    <p className="text-xs text-muted">
-                      {w.passkeyAddedOn.replace("{a}", fmtDate(c.created_at) ?? c.created_at)}
-                      {" · "}
-                      {c.last_used_at ? w.passkeyLastUsed.replace("{a}", fmtDate(c.last_used_at) ?? c.last_used_at) : w.passkeyNeverUsed}
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => void remove(c.id)} disabled={removing === c.id}
-                    className="vie-btn vie-btn-sm shrink-0 hover:border-danger/60">
-                    {removing === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} {w.passkeyRemove}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {supported !== false && (
-        <form onSubmit={add} className="rounded-ctl border border-line bg-raised p-4">
-          <h2 className="t-section">{w.addPasskey}</h2>
-          <label className="mt-3 block t-label" htmlFor="passkey-name">{w.deviceName}</label>
-          <input id="passkey-name" value={deviceName} onChange={(e) => setDeviceName(e.target.value)} maxLength={80}
-            placeholder={w.deviceNamePlaceholder} className={ctl} />
-          <button type="submit" disabled={busy} className="mt-4 vie-btn vie-btn-pri">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {busy ? w.passkeyWaiting : w.addPasskey}
+        <div className="flex min-h-8 items-center justify-between gap-3 rounded-ctl border border-line bg-raised p-4">
+          <span className="flex min-w-0 items-center gap-2 t-body">
+            <Fingerprint className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+            <span className="min-w-0">
+              <span className="block truncate">{w.biometricToggle}</span>
+              <span className="block t-small text-muted">{on ? w.biometricOn : w.biometricOff}</span>
+            </span>
+          </span>
+          <button type="button" role="switch" aria-checked={on} aria-label={w.biometricToggle}
+            disabled={supported === false || busy || list === null}
+            className="vie-sw shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => void (on ? turnOff() : turnOn())}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
           </button>
-        </form>
-      )}
+        </div>
+
+        {list && list.length > 0 && (
+          <ul className="divide-y divide-line rounded-ctl border border-line bg-raised px-4">
+            {list.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 py-3 first:pt-3 last:pb-3">
+                <Fingerprint className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate t-panel">{c.device_name ?? w.passkeyUnnamed}</p>
+                  <p className="text-xs text-muted">
+                    {w.passkeyAddedOn.replace("{a}", fmtDate(c.created_at) ?? c.created_at)}
+                    {" · "}
+                    {c.last_used_at ? w.passkeyLastUsed.replace("{a}", fmtDate(c.last_used_at) ?? c.last_used_at) : w.passkeyNeverUsed}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );

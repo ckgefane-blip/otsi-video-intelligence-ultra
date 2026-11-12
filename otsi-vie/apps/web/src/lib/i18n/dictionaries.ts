@@ -5947,6 +5947,11 @@ export interface Dictionary {
     passkeyFailed: string;
     passkeysTitle: string;
     passkeysIntro: string;
+    biometricTitle: string;
+    biometricToggle: string;
+    biometricHint: string;
+    biometricOn: string;
+    biometricOff: string;
     deviceName: string;
     deviceNamePlaceholder: string;
     addPasskey: string;
@@ -11901,6 +11906,11 @@ export const en: Dictionary = {
     passkeyFailed: "Could not sign in with your passkey. Try your password.",
     passkeysTitle: "Passkeys",
     passkeysIntro: "Sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Your password still works.",
+    biometricTitle: "Biometric sign-in",
+    biometricToggle: "Biometric sign-in",
+    biometricHint: "Use Windows Hello (fingerprint, face or PIN) to sign in instead of typing your password. Your password still works.",
+    biometricOn: "On — Windows Hello signs you in.",
+    biometricOff: "Off — sign in with your password.",
     deviceName: "Name this passkey",
     deviceNamePlaceholder: "e.g. My Windows laptop",
     addPasskey: "Add a passkey",
@@ -17852,6 +17862,11 @@ export const ru: DeepPartial<Dictionary> = {
     passkeyFailed: "Не удалось войти с ключом доступа. Попробуйте пароль.",
     passkeysTitle: "Ключи доступа",
     passkeysIntro: "Входите с Windows Hello (отпечаток пальца, лицо или ПИН-код) вместо ввода пароля. Пароль по-прежнему работает.",
+    biometricTitle: "Биометрический вход",
+    biometricToggle: "Биометрический вход",
+    biometricHint: "Входите с помощью Windows Hello (отпечаток пальца, лицо или PIN) вместо пароля. Ваш пароль по-прежнему работает.",
+    biometricOn: "Включено — Windows Hello входит за вас.",
+    biometricOff: "Выключено — входите с паролем.",
     deviceName: "Название ключа доступа",
     deviceNamePlaceholder: "например, Мой ноутбук Windows",
     addPasskey: "Добавить ключ доступа",
@@ -23803,6 +23818,11 @@ export const es: DeepPartial<Dictionary> = {
     passkeyFailed: "No se pudo iniciar sesión con tu clave de acceso. Prueba con tu contraseña.",
     passkeysTitle: "Claves de acceso",
     passkeysIntro: "Inicia sesión con Windows Hello (huella, rostro o PIN) en lugar de escribir tu contraseña. Tu contraseña sigue funcionando.",
+    biometricTitle: "Inicio de sesión biométrico",
+    biometricToggle: "Inicio de sesión biométrico",
+    biometricHint: "Usa Windows Hello (huella, rostro o PIN) para iniciar sesión en lugar de escribir tu contraseña. Tu contraseña sigue funcionando.",
+    biometricOn: "Activado — Windows Hello inicia sesión por ti.",
+    biometricOff: "Desactivado — inicia sesión con tu contraseña.",
     deviceName: "Nombre de esta clave de acceso",
     deviceNamePlaceholder: "p. ej., Mi portátil Windows",
     addPasskey: "Añadir una clave de acceso",
@@ -29754,6 +29774,11 @@ export const de: DeepPartial<Dictionary> = {
     passkeyFailed: "Anmeldung mit deinem Passkey fehlgeschlagen. Versuche es mit deinem Passwort.",
     passkeysTitle: "Passkeys",
     passkeysIntro: "Melde dich mit Windows Hello (Fingerabdruck, Gesicht oder PIN) an, statt dein Passwort einzugeben. Dein Passwort funktioniert weiterhin.",
+    biometricTitle: "Biometrische Anmeldung",
+    biometricToggle: "Biometrische Anmeldung",
+    biometricHint: "Melde dich mit Windows Hello (Fingerabdruck, Gesicht oder PIN) an, statt dein Passwort einzugeben. Dein Passwort funktioniert weiterhin.",
+    biometricOn: "Ein — Windows Hello meldet dich an.",
+    biometricOff: "Aus — melde dich mit deinem Passwort an.",
     deviceName: "Name für diesen Passkey",
     deviceNamePlaceholder: "z. B. Mein Windows-Laptop",
     addPasskey: "Passkey hinzufügen",
@@ -35705,6 +35730,11 @@ export const fr: DeepPartial<Dictionary> = {
     passkeyFailed: "Impossible de vous connecter avec votre clé d’accès. Essayez votre mot de passe.",
     passkeysTitle: "Clés d’accès",
     passkeysIntro: "Connectez-vous avec Windows Hello (empreinte, visage ou code PIN) au lieu de saisir votre mot de passe. Votre mot de passe fonctionne toujours.",
+    biometricTitle: "Connexion biométrique",
+    biometricToggle: "Connexion biométrique",
+    biometricHint: "Connectez-vous avec Windows Hello (empreinte, visage ou code PIN) au lieu de saisir votre mot de passe. Votre mot de passe fonctionne toujours.",
+    biometricOn: "Activé — Windows Hello vous connecte.",
+    biometricOff: "Désactivé — connectez-vous avec votre mot de passe.",
     deviceName: "Nom de cette clé d’accès",
     deviceNamePlaceholder: "p. ex. Mon ordinateur portable Windows",
     addPasskey: "Ajouter une clé d’accès",
@@ -41666,6 +41696,11 @@ export const pt: DeepPartial<Dictionary> = {
     "passkeyFailed": "Não foi possível entrar com sua chave de acesso. Tente sua senha.",
     "passkeysTitle": "Chaves de acesso",
     "passkeysIntro": "Entre com o Windows Hello (impressão digital, rosto ou PIN) em vez de digitar sua senha. Sua senha continua funcionando.",
+    "biometricTitle": "Login biométrico",
+    "biometricToggle": "Login biométrico",
+    "biometricHint": "Use o Windows Hello (impressão digital, rosto ou PIN) para entrar em vez de digitar sua senha. Sua senha continua funcionando.",
+    "biometricOn": "Ativado — o Windows Hello entra por você.",
+    "biometricOff": "Desativado — entre com sua senha.",
     "deviceName": "Dê um nome a esta chave de acesso",
     "deviceNamePlaceholder": "ex.: Meu notebook Windows",
     "addPasskey": "Adicionar uma chave de acesso",

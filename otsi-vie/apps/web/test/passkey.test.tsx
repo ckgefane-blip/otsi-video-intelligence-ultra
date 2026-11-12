@@ -1,7 +1,7 @@
 /**
- * Passkeys (ADR-143): the sign-in page shows the Windows Hello button only when the browser supports passkeys
- * (and a clear message when it does not), and Settings/Security lists the person's passkeys with an add form and
- * a remove button per passkey.
+ * Biometric sign-in (ADR-143): the sign-in page shows the Windows Hello button only when the browser supports
+ * passkeys (and a clear message when it does not), and Settings/Security has one switch — on = Windows Hello
+ * signs you in, off = it doesn't. Turning it on enrols a passkey; turning it off removes every passkey.
  */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -85,31 +85,33 @@ describe("Settings passkeys", () => {
     ],
   };
 
-  it("lists passkeys with their names, dates and a remove button each", async () => {
+  it("shows the switch on and lists passkeys with their names and dates", async () => {
     webauthnCredentials.mockResolvedValue(one);
     render(<PasskeySettings />);
     await waitFor(() => expect(screen.getByText("My Windows laptop")).toBeInTheDocument());
+    expect(screen.getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByText("Unnamed passkey")).toBeInTheDocument();
     expect(screen.getByText(/Added Nov 1, 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Last used Nov 10, 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Never used/)).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
-    expect(screen.getByRole("button", { name: /Add a passkey/ })).toBeInTheDocument();
+    expect(screen.getByText(/On — Windows Hello signs you in/)).toBeInTheDocument();
   });
 
-  it("says so when there are no passkeys yet", async () => {
+  it("shows the switch off when there are no passkeys yet", async () => {
     webauthnCredentials.mockResolvedValue({ credentials: [] });
     render(<PasskeySettings />);
-    await waitFor(() => expect(screen.getByText("No passkeys yet.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "false"));
+    expect(screen.getByText(/Off — sign in with your password/)).toBeInTheDocument();
   });
 
-  it("removes a passkey and says so", async () => {
-    webauthnCredentials.mockResolvedValueOnce(one).mockResolvedValueOnce({ credentials: [one.credentials[1]!] });
+  it("turning the switch off removes every passkey and says so", async () => {
+    webauthnCredentials.mockResolvedValueOnce(one).mockResolvedValueOnce({ credentials: [] });
     webauthnDeleteCredential.mockResolvedValue({ deleted: true });
     render(<PasskeySettings />);
     await waitFor(() => expect(screen.getByText("My Windows laptop")).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]!);
+    fireEvent.click(screen.getByRole("switch", { name: "Biometric sign-in" }));
     await waitFor(() => expect(webauthnDeleteCredential).toHaveBeenCalledWith("11111111-1111-1111-1111-111111111111"));
+    expect(webauthnDeleteCredential).toHaveBeenCalledWith("22222222-2222-2222-2222-222222222222");
     await waitFor(() => expect(screen.getByText("Passkey removed.")).toBeInTheDocument());
   });
 });
