@@ -144,6 +144,7 @@ export const NAV: { label: string; href: string; match: RegExp; advanced?: true 
   { label: "Processing", href: "/processing", match: /^\/(processing|videos\/[^/]+\/processing)/ },
   { label: "Analysis", href: "/analysis", match: /^\/(analysis|videos\/[^/]+\/analyze)/ },
   { label: "Tactical", href: "/tactics", match: /^\/(tactics|videos\/[^/]+\/tactics)/, advanced: true },
+  { label: "Players", href: "/players", match: /^\/players/ },
   { label: "Reel Builder", href: "/reels", match: /^\/reels/ },
   { label: "Clip Studio", href: "/studio", match: /^\/studio/, advanced: true },
   { label: "Player Report", href: "/reports", match: /^\/reports/ },

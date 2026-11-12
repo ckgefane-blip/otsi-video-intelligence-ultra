@@ -97,6 +97,7 @@ export interface Dictionary {
     processing: string;
     analysis: string;
     tactical: string;
+    players: string;
     reels: string;
     studio: string;
     reports: string;
@@ -240,6 +241,34 @@ export interface Dictionary {
       kpiStripAria: string;
       kpiPlayersWhy: string;
       capGridAria: string;
+      hmTitle: string;
+      hmSub: string;
+      hmUploadVideo: string;
+      hmPasteLink: string;
+      hmUploadNote: string;
+      hmHeroCaption: string;
+      hmFeaturedReel: string;
+      hmQuality: string;
+      hmQualitySd: string;
+      hmQualityHd: string;
+      hmQualityFhd: string;
+      hmQualityUhd: string;
+      hmRendered: string;
+      hmNotRendered: string;
+      hmPlaying: string;
+      hmMatchesAnalysed: string;
+      hmPlayersTracked: string;
+      hmReelsGenerated: string;
+      hmReportsCreated: string;
+      hmRecentMatches: string;
+      hmViewAll: string;
+      hmNotLinked: string;
+      hmThumbNote: string;
+      hmReviewInbox: string;
+      hmActiveJobs: string;
+      hmReview: string;
+      hmKeyPasses: string;
+      hmXa: string;
     };
     analysis: {
       match: string;
@@ -6331,6 +6360,7 @@ export const en: Dictionary = {
     processing: "Processing",
     analysis: "Analysis",
     tactical: "Tactical",
+    players: "Players",
     reels: "Reel Builder",
     studio: "Clip Studio",
     reports: "Player Report",
@@ -6486,6 +6516,34 @@ export const en: Dictionary = {
       kpiStripAria: "Headline KPI strip",
       kpiPlayersWhy: "a person confirmed each of them on a track",
       capGridAria: "Platform capabilities grid",
+      hmTitle: "Football video intelligence",
+      hmSub: "Upload matches, analyse every player, build reels and share reports.",
+      hmUploadVideo: "Upload video",
+      hmPasteLink: "Paste link",
+      hmUploadNote: "MP4 or MOV · {a} tier includes {b} of video in total · links: direct file, HLS, Wikimedia, Internet Archive, Dropbox",
+      hmHeroCaption: "Live frame from your footage · new confirmed moment every 12 s",
+      hmFeaturedReel: "Featured reel",
+      hmQuality: "Video quality",
+      hmQualitySd: "SD 480p",
+      hmQualityHd: "HD 720p",
+      hmQualityFhd: "Full HD 1080p",
+      hmQualityUhd: "4K 2160p",
+      hmRendered: "rendered",
+      hmNotRendered: "not rendered",
+      hmPlaying: "Playing the {a} file. Other sizes are rendered from Export.",
+      hmMatchesAnalysed: "Matches analysed",
+      hmPlayersTracked: "Players tracked",
+      hmReelsGenerated: "Reels generated",
+      hmReportsCreated: "Reports created",
+      hmRecentMatches: "Recent matches",
+      hmViewAll: "View all",
+      hmNotLinked: "Not linked to a match",
+      hmThumbNote: "Thumbnails are the real frames stored with each video; the app shows them.",
+      hmReviewInbox: "Review inbox",
+      hmActiveJobs: "Active jobs",
+      hmReview: "Review",
+      hmKeyPasses: "Key passes",
+      hmXa: "xA",
     },
     analysis: {
       match: "Match",
@@ -12572,6 +12630,7 @@ export const ru: DeepPartial<Dictionary> = {
     processing: "Обработка",
     analysis: "Анализ",
     tactical: "Тактика",
+    players: "Игроки",
     reels: "Конструктор роликов",
     studio: "Клип-студия",
     reports: "Отчёт игрока",
@@ -12727,6 +12786,34 @@ export const ru: DeepPartial<Dictionary> = {
       kpiStripAria: "Полоса ключевых показателей",
       kpiPlayersWhy: "каждый из них подтверждён человеком на треке",
       capGridAria: "Сетка возможностей платформы",
+      hmTitle: "Футбольная видеоаналитика",
+      hmSub: "Загружайте матчи, анализируйте каждого игрока, создавайте ролики и делитесь отчётами.",
+      hmUploadVideo: "Загрузить видео",
+      hmPasteLink: "Вставить ссылку",
+      hmUploadNote: "MP4 или MOV · тариф {a} включает {b} видео всего · ссылки: прямой файл, HLS, Wikimedia, Internet Archive, Dropbox",
+      hmHeroCaption: "Живой кадр из вашей записи · новый подтверждённый момент каждые 12 с",
+      hmFeaturedReel: "Избранный ролик",
+      hmQuality: "Качество видео",
+      hmQualitySd: "SD 480p",
+      hmQualityHd: "HD 720p",
+      hmQualityFhd: "Full HD 1080p",
+      hmQualityUhd: "4K 2160p",
+      hmRendered: "готово",
+      hmNotRendered: "не готово",
+      hmPlaying: "Воспроизводится файл {a}. Другие размеры создаются в разделе «Экспорт».",
+      hmMatchesAnalysed: "Матчей проанализировано",
+      hmPlayersTracked: "Игроков отслежено",
+      hmReelsGenerated: "Роликов создано",
+      hmReportsCreated: "Отчётов создано",
+      hmRecentMatches: "Недавние матчи",
+      hmViewAll: "Показать все",
+      hmNotLinked: "Не привязано к матчу",
+      hmThumbNote: "Миниатюры — это настоящие кадры, сохранённые с каждым видео; приложение показывает их.",
+      hmReviewInbox: "Входящие на проверку",
+      hmActiveJobs: "Активные задачи",
+      hmReview: "Проверить",
+      hmKeyPasses: "Ключевые передачи",
+      hmXa: "xA",
     },
     analysis: {
       match: "Матч",
@@ -18813,6 +18900,7 @@ export const es: DeepPartial<Dictionary> = {
     processing: "Procesando",
     analysis: "Análisis",
     tactical: "Táctica",
+    players: "Jugadores",
     reels: "Creador de reels",
     studio: "Estudio de clips",
     reports: "Informe del jugador",
@@ -18968,6 +19056,34 @@ export const es: DeepPartial<Dictionary> = {
       kpiStripAria: "Tira de indicadores clave",
       kpiPlayersWhy: "cada uno de ellos fue confirmado por una persona en un seguimiento",
       capGridAria: "Cuadrícula de capacidades de la plataforma",
+      hmTitle: "Inteligencia de vídeo de fútbol",
+      hmSub: "Sube partidos, analiza a cada jugador, crea reels y comparte informes.",
+      hmUploadVideo: "Subir vídeo",
+      hmPasteLink: "Pegar enlace",
+      hmUploadNote: "MP4 o MOV · el plan {a} incluye {b} de vídeo en total · enlaces: archivo directo, HLS, Wikimedia, Internet Archive, Dropbox",
+      hmHeroCaption: "Fotograma en directo de tu metraje · nuevo momento confirmado cada 12 s",
+      hmFeaturedReel: "Reel destacado",
+      hmQuality: "Calidad de vídeo",
+      hmQualitySd: "SD 480p",
+      hmQualityHd: "HD 720p",
+      hmQualityFhd: "Full HD 1080p",
+      hmQualityUhd: "4K 2160p",
+      hmRendered: "renderizado",
+      hmNotRendered: "sin renderizar",
+      hmPlaying: "Reproduciendo el archivo {a}. Los demás tamaños se generan desde Exportar.",
+      hmMatchesAnalysed: "Partidos analizados",
+      hmPlayersTracked: "Jugadores seguidos",
+      hmReelsGenerated: "Reels generados",
+      hmReportsCreated: "Informes creados",
+      hmRecentMatches: "Partidos recientes",
+      hmViewAll: "Ver todo",
+      hmNotLinked: "No vinculado a un partido",
+      hmThumbNote: "Las miniaturas son los fotogramas reales guardados con cada vídeo; la app las muestra.",
+      hmReviewInbox: "Bandeja de revisión",
+      hmActiveJobs: "Trabajos activos",
+      hmReview: "Revisar",
+      hmKeyPasses: "Pases clave",
+      hmXa: "xA",
     },
     analysis: {
       match: "Partido",
@@ -25054,6 +25170,7 @@ export const de: DeepPartial<Dictionary> = {
     processing: "Verarbeitung",
     analysis: "Analyse",
     tactical: "Taktik",
+    players: "Spieler",
     reels: "Reel-Builder",
     studio: "Clip-Studio",
     reports: "Spielerbericht",
@@ -25209,6 +25326,34 @@ export const de: DeepPartial<Dictionary> = {
       kpiStripAria: "Leiste mit den wichtigsten Kennzahlen",
       kpiPlayersWhy: "jede dieser Personen wurde von einem Menschen auf einer Spur bestätigt",
       capGridAria: "Raster der Plattformfunktionen",
+      hmTitle: "Fußball-Videointelligenz",
+      hmSub: "Lade Spiele hoch, analysiere jeden Spieler, erstelle Reels und teile Berichte.",
+      hmUploadVideo: "Video hochladen",
+      hmPasteLink: "Link einfügen",
+      hmUploadNote: "MP4 oder MOV · Tarif {a} enthält insgesamt {b} Video · Links: direkte Datei, HLS, Wikimedia, Internet Archive, Dropbox",
+      hmHeroCaption: "Live-Bild aus Ihrem Material · neuer bestätigter Moment alle 12 s",
+      hmFeaturedReel: "Empfohlenes Reel",
+      hmQuality: "Videoqualität",
+      hmQualitySd: "SD 480p",
+      hmQualityHd: "HD 720p",
+      hmQualityFhd: "Full HD 1080p",
+      hmQualityUhd: "4K 2160p",
+      hmRendered: "gerendert",
+      hmNotRendered: "nicht gerendert",
+      hmPlaying: "Die {a}-Datei wird abgespielt. Andere Größen werden in Export gerendert.",
+      hmMatchesAnalysed: "Analysierte Spiele",
+      hmPlayersTracked: "Verfolgte Spieler",
+      hmReelsGenerated: "Erstellte Reels",
+      hmReportsCreated: "Erstellte Berichte",
+      hmRecentMatches: "Letzte Spiele",
+      hmViewAll: "Alle ansehen",
+      hmNotLinked: "Keinem Spiel zugeordnet",
+      hmThumbNote: "Die Vorschaubilder sind die echten Frames, die mit jedem Video gespeichert werden; die App zeigt sie an.",
+      hmReviewInbox: "Prüfeingang",
+      hmActiveJobs: "Aktive Aufträge",
+      hmReview: "Prüfen",
+      hmKeyPasses: "Schlüsselpässe",
+      hmXa: "xA",
     },
     analysis: {
       match: "Spiel",
@@ -31295,6 +31440,7 @@ export const fr: DeepPartial<Dictionary> = {
     processing: "Traitement",
     analysis: "Analyse",
     tactical: "Tactique",
+    players: "Joueurs",
     reels: "Créateur de reels",
     studio: "Studio de clips",
     reports: "Rapport joueur",
@@ -31450,6 +31596,34 @@ export const fr: DeepPartial<Dictionary> = {
       kpiStripAria: "Bandeau des indicateurs clés",
       kpiPlayersWhy: "chacun d’eux a été confirmé par une personne sur un suivi",
       capGridAria: "Grille des fonctionnalités de la plateforme",
+      hmTitle: "Intelligence vidéo de football",
+      hmSub: "Importez des matchs, analysez chaque joueur, créez des reels et partagez des rapports.",
+      hmUploadVideo: "Importer une vidéo",
+      hmPasteLink: "Coller un lien",
+      hmUploadNote: "MP4 ou MOV · le forfait {a} inclut {b} de vidéo au total · liens : fichier direct, HLS, Wikimedia, Internet Archive, Dropbox",
+      hmHeroCaption: "Image en direct de vos images · nouveau moment confirmé toutes les 12 s",
+      hmFeaturedReel: "Reel à la une",
+      hmQuality: "Qualité vidéo",
+      hmQualitySd: "SD 480p",
+      hmQualityHd: "HD 720p",
+      hmQualityFhd: "Full HD 1080p",
+      hmQualityUhd: "4K 2160p",
+      hmRendered: "rendu",
+      hmNotRendered: "non rendu",
+      hmPlaying: "Lecture du fichier {a}. Les autres tailles sont rendues depuis Export.",
+      hmMatchesAnalysed: "Matchs analysés",
+      hmPlayersTracked: "Joueurs suivis",
+      hmReelsGenerated: "Reels créés",
+      hmReportsCreated: "Rapports créés",
+      hmRecentMatches: "Matchs récents",
+      hmViewAll: "Tout voir",
+      hmNotLinked: "Non lié à un match",
+      hmThumbNote: "Les miniatures sont les vraies images enregistrées avec chaque vidéo ; l’application les affiche.",
+      hmReviewInbox: "Boîte de révision",
+      hmActiveJobs: "Tâches actives",
+      hmReview: "Réviser",
+      hmKeyPasses: "Passes clés",
+      hmXa: "xA",
     },
     analysis: {
       match: "Match",
@@ -37537,6 +37711,7 @@ export const pt: DeepPartial<Dictionary> = {
     "processing": "Processamento",
     "analysis": "Análise",
     "tactical": "Tático",
+    "players": "Jogadores",
     "reels": "Criador de Reels",
     "studio": "Clip Studio",
     "reports": "Relatório do jogador",
@@ -37700,7 +37875,35 @@ export const pt: DeepPartial<Dictionary> = {
       "inboxJobFailed": "Falhou",
       "kpiStripAria": "Faixa de KPIs principais",
       "kpiPlayersWhy": "uma pessoa confirmou cada um deles em uma trilha",
-      "capGridAria": "Grade de recursos da plataforma"
+      "capGridAria": "Grade de recursos da plataforma",
+      "hmTitle": "Inteligência de vídeo de futebol",
+      "hmSub": "Carregue jogos, analise cada jogador, crie reels e partilhe relatórios.",
+      "hmUploadVideo": "Carregar vídeo",
+      "hmPasteLink": "Colar ligação",
+      "hmUploadNote": "MP4 ou MOV · o plano {a} inclui {b} de vídeo no total · ligações: ficheiro direto, HLS, Wikimedia, Internet Archive, Dropbox",
+      "hmHeroCaption": "Fotograma ao vivo das suas imagens · novo momento confirmado a cada 12 s",
+      "hmFeaturedReel": "Reel em destaque",
+      "hmQuality": "Qualidade de vídeo",
+      "hmQualitySd": "SD 480p",
+      "hmQualityHd": "HD 720p",
+      "hmQualityFhd": "Full HD 1080p",
+      "hmQualityUhd": "4K 2160p",
+      "hmRendered": "renderizado",
+      "hmNotRendered": "não renderizado",
+      "hmPlaying": "A reproduzir o ficheiro {a}. Os outros tamanhos são renderizados a partir de Exportar.",
+      "hmMatchesAnalysed": "Jogos analisados",
+      "hmPlayersTracked": "Jogadores seguidos",
+      "hmReelsGenerated": "Reels criados",
+      "hmReportsCreated": "Relatórios criados",
+      "hmRecentMatches": "Jogos recentes",
+      "hmViewAll": "Ver tudo",
+      "hmNotLinked": "Não associado a um jogo",
+      "hmThumbNote": "As miniaturas são os fotogramas reais guardados com cada vídeo; a app mostra-os.",
+      "hmReviewInbox": "Caixa de revisão",
+      "hmActiveJobs": "Tarefas ativas",
+      "hmReview": "Rever",
+      "hmKeyPasses": "Passes-chave",
+      "hmXa": "xA",
     },
     "analysis": {
       "match": "Partida",

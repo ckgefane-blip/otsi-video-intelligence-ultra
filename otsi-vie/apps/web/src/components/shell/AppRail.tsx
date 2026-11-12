@@ -14,7 +14,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
 import {
-  BarChart3, Clapperboard, Crosshair, Download, FileText, FolderOpen, Home, LayoutGrid, PanelLeftClose, Scissors, Settings, Shield, Upload,
+  BarChart3, Clapperboard, Crosshair, Download, FileText, FolderOpen, Home, LayoutGrid, PanelLeftClose, Scissors, Settings, Shield, Upload, Users,
 } from "lucide-react";
 import { navItems } from "@/lib/pages";
 import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
@@ -24,7 +24,7 @@ import { useLocale } from "@/lib/i18n";
 export const RAIL_STORAGE_KEY = "otsi-vie.rail.v2";
 const MIN_W = 64, MAX_W = 320, DEFAULT_W = 240;
 
-type NavKey = "home" | "upload" | "processing" | "analysis" | "tactical" | "reels" | "studio" | "reports" | "library" | "export";
+type NavKey = "home" | "upload" | "processing" | "analysis" | "tactical" | "players" | "reels" | "studio" | "reports" | "library" | "export";
 interface RailEntry { key: NavKey; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> }
 
 /** the approved order; the English label (lib/pages.ts) is the link identity */
@@ -34,6 +34,7 @@ const ENTRIES: Record<string, RailEntry> = {
   Processing: { key: "processing", icon: BarChart3 },
   Analysis: { key: "analysis", icon: Crosshair },
   Tactical: { key: "tactical", icon: LayoutGrid },
+  Players: { key: "players", icon: Users },
   "Reel Builder": { key: "reels", icon: Clapperboard },
   "Clip Studio": { key: "studio", icon: Scissors },
   "Player Report": { key: "reports", icon: FileText },

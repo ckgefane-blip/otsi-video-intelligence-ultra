@@ -19,6 +19,11 @@ import { HowItWorks } from "./HowItWorks";
 
 const Ctx = createContext<HomeInbox | null | undefined>(undefined);
 
+/** the inbox for this visit (undefined while reading, null when it could not be read) */
+export function useHomeInbox(): HomeInbox | null | undefined {
+  return useContext(Ctx);
+}
+
 /** reads the inbox once per visit (and every 30 s while the page stays open) */
 export function HomeInboxProvider({ children }: { children: ReactNode }) {
   const [inbox, setInbox] = useState<HomeInbox | null | undefined>(undefined);

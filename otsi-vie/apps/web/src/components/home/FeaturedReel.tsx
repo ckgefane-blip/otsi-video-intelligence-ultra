@@ -15,11 +15,7 @@ import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { reelActions } from "@/lib/actions";
 import { fill } from "@/lib/fill";
 import { useLocale } from "@/lib/i18n";
-import { mmss, reelSeconds, reloadRenderedReels, useReelPlayback, useRenderedReels } from "./renderedReels";
-
-/** the rendered file's video codec as the render was configured (H.264 / AV1 / VP9) */
-export const codec = (r: Reel) => String((r.last_good_render?.config as { codec?: string } | undefined)?.codec ?? "—").toUpperCase().replace("H264", "H.264");
-export const quality = (h: number | undefined) => (!h ? "—" : h >= 2160 ? "4K" : h >= 1440 ? "QHD" : h >= 1080 ? "HD" : "SD");
+import { codec, mmss, quality, reelSeconds, reloadRenderedReels, useReelPlayback, useRenderedReels } from "./renderedReels";
 
 export function FeaturedReel() {
   const { t } = useLocale();

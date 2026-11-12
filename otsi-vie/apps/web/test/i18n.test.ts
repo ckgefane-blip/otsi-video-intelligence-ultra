@@ -454,6 +454,11 @@ describe("dictionaries (ADR-139)", () => {
       // punctuation ("—"), a query-syntax placeholder and the OTSI Player ID.
       "body.home.heroMetricPasses",
       "body.home.heroPlayerAriaId",
+      "body.home.hmXa",                  // the xA metric abbreviation, the same in every language
+      "body.home.hmQualitySd",           // resolution labels, the same in every language
+      "body.home.hmQualityHd",
+      "body.home.hmQualityFhd",
+      "body.home.hmQualityUhd",
       "body.admin.severityInfo",
       "body.admin.metricWorkers",
       "body.admin.metricVideos",
@@ -572,7 +577,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
 
   it("covers the in-scope page groups, with the expected key counts", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
-    expect(bodyKeys("home").length).toBe(97);
+    expect(bodyKeys("home").length).toBe(125);
     expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(212);
     expect(bodyKeys("studio").length).toBe(776);

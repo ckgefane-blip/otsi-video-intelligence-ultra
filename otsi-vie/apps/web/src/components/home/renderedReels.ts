@@ -53,6 +53,12 @@ export function reelSeconds(reel: Reel): number {
   return r.duration_s ?? reel.duration_us / 1e6;
 }
 
+/** the rendered file's video codec as the render was configured (H.264 / AV1 / VP9) */
+export const codec = (r: Reel) => String((r.last_good_render?.config as { codec?: string } | undefined)?.codec ?? "—").toUpperCase().replace("H264", "H.264");
+
+/** the rendered file's quality band from its height (SD / HD / QHD / 4K) */
+export const quality = (h: number | undefined) => (!h ? "—" : h >= 2160 ? "4K" : h >= 1440 ? "QHD" : h >= 1080 ? "HD" : "SD");
+
 export function mmss(seconds: number) {
   const t = Math.round(seconds);
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;

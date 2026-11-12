@@ -7,7 +7,6 @@
 import type { HeroMoment } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { Evidence } from "@/components/evidence/Evidence";
-import { POSITION_NAMES } from "@/components/players/PlayersList";
 import { useLocale } from "@/lib/i18n";
 
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -15,7 +14,7 @@ const initials = (n: string) => n.split(/\s+/).filter(Boolean).map((w) => w[0]).
 export function HeroPlayerCard({ m, loading }: { m: HeroMoment; loading: boolean }) {
   const { t } = useLocale();
   const sub = !m ? (loading ? t.body.home.heroLoading : t.body.home.heroConfirmedOnly)
-    : [m.position ? (POSITION_NAMES(t)[m.position] ?? m.position) : null, m.team].filter(Boolean).join(" · ") || (m.canonical_otsi_id ?? t.body.home.heroProvisional);
+    : m.canonical_otsi_id ? `${t.body.reports.confirmedShort} · ${m.canonical_otsi_id}` : t.body.home.heroProvisional;
   const body = (
     <>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-primary t-panel" style={{ color: "rgb(var(--primary-ink))" }}>
