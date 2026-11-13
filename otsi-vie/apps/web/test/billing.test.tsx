@@ -67,13 +67,13 @@ const subscription = {
 };
 
 const revenue = {
-  currencies: [{
-    currency: "NGN",
-    confirmed: { count: 1, total_minor: 6_000_000 },
-    outstanding: { count: 1, total_minor: 6_000_000 },
-    refunded: { count: 0, total_minor: 0 },
-    partial: { count: 1, total_minor: 1_000_000 },
-  }],
+  totals: [{ currency: "NGN", received_minor: 7_000_000, refunded_minor: 0, net_minor: 7_000_000, this_month_minor: 7_000_000, last_month_minor: 0,
+    last_12_months_minor: 7_000_000, plans_minor: 7_000_000, packs_minor: 0, awaiting_minor: 11_000_000 },
+    { currency: "USD", received_minor: 0, refunded_minor: 0, net_minor: 0, this_month_minor: 0, last_month_minor: 0,
+    last_12_months_minor: 0, plans_minor: 0, packs_minor: 0, awaiting_minor: 0 }],
+  months: [], orders: { ordered: 0, awaiting: 1, partial: 1, confirmed: 1, rejected: 0, refunded: 0 },
+  packs: { requested: 0, invoiced: 0, paid: 0, cancelled: 0 }, active_plans: [{ plan_code: "CLUB", count: 1 }],
+  renewals_due_7d: 0, generated_at: "2026-11-13T00:00:00.000Z",
 };
 
 const packRequest = (overrides: Record<string, unknown> = {}) => ({
@@ -228,7 +228,7 @@ describe("Admin billing console", () => {
       if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve(requests);
       if (url === "/v1/admin/billing/orders") return Promise.resolve(orders);
       if (url === "/v1/admin/billing/bank-accounts") return Promise.resolve([bankAccount]);
-      if (url === "/v1/admin/billing/revenue-summary") return Promise.resolve(revenue);
+      if (url === "/v1/admin/billing/revenue") return Promise.resolve(revenue);
       if (url === "/v1/billing/subscription") return Promise.resolve(subscription);
       if (url.startsWith("/v1/admin/wallet/") && url.endsWith("/ledger")) return Promise.resolve({ entries: [] });
       return Promise.reject(new Error(`unexpected ${url}`));
@@ -238,15 +238,13 @@ describe("Admin billing console", () => {
   it("shows the revenue summary, the orders, the bank accounts and the renewals", async () => {
     mockAdmin();
     render(<AdminBillingView />);
-    await waitFor(() => expect(screen.getByText("Revenue")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Billing orders")).toBeInTheDocument());
     expect(screen.getByText("Billing orders")).toBeInTheDocument();
     expect(screen.getByText("Bank accounts")).toBeInTheDocument();
     expect(screen.getByText("Renewals")).toBeInTheDocument();
-    // revenue: one confirmed NGN order of ₦60,000, one outstanding of ₦60,000, one part-payment of ₦10,000
-    expect(screen.getByText("Confirmed (paid)")).toBeInTheDocument();
-    expect(screen.getAllByText(/₦60,000 · 1 orders/)).toHaveLength(2);
-    expect(screen.getByText("Part-payments")).toBeInTheDocument();
-    expect(screen.getByText(/₦10,000 · 1 orders/)).toBeInTheDocument();
+    // the one revenue panel (company-wide), filled from /v1/admin/billing/revenue
+    await waitFor(() => expect(document.querySelector("[data-revenue]")).not.toBeNull());
+    expect(api).toHaveBeenCalledWith("/v1/admin/billing/revenue");
     // the order, pending first, and the saved bank account (in the form's inputs)
     expect(screen.getByText(/OTSI-INV-2026-000001/)).toBeInTheDocument();
     expect(screen.getByDisplayValue("Zenith Bank")).toBeInTheDocument();
@@ -275,7 +273,7 @@ describe("Admin billing console", () => {
       if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve([]);
       if (url === "/v1/admin/billing/orders") return Promise.resolve([order({ status: "AWAITING_CONFIRMATION" })]);
       if (url === "/v1/admin/billing/bank-accounts") return Promise.resolve([bankAccount]);
-      if (url === "/v1/admin/billing/revenue-summary") return Promise.resolve(revenue);
+      if (url === "/v1/admin/billing/revenue") return Promise.resolve(revenue);
       if (url === "/v1/billing/subscription") return Promise.resolve(subscription);
       if (url === `/v1/admin/wallet/${ORG}/ledger`) return Promise.resolve({ entries: [] });
       if (url === `/v1/admin/billing/orders/${ORDER_ID}/confirm` && init?.method === "POST") {

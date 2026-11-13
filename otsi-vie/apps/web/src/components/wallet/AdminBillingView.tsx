@@ -19,10 +19,11 @@
  * the ledger below act on the wallet picked in the Wallet selector (the first wallet when the page
  * loads); without it the actions would silently target whichever wallet happened to load first.
  */
-import type { BankAccount, BankTransferOrder, ProFormaInvoice, RenewalRunResult, RevenueSummary, SubscriptionStatus, AdminWalletRow, PackRequest, WalletLedgerEntry, WalletLedgerPage } from "@otsi-vie/contracts";
+import type { BankAccount, BankTransferOrder, ProFormaInvoice, RenewalRunResult, SubscriptionStatus, AdminWalletRow, PackRequest, WalletLedgerEntry, WalletLedgerPage } from "@otsi-vie/contracts";
 import { PAY_REFERENCE_NOTE } from "@otsi-vie/contracts";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { RevenueSummary } from "@/components/billing/RevenueSummary";
 import { ApiProblem, api, apiBlob } from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
@@ -57,7 +58,6 @@ export function AdminBillingView() {
   const [selectedOrder, setSelectedOrder] = useState<BankTransferOrder | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [bankDraft, setBankDraft] = useState<Record<string, { account_name: string; bank_name: string; account_number: string; swift_iban: string; is_active: boolean }>>({});
-  const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [renewal, setRenewal] = useState<RenewalRunResult | null>(null);
   const [confirmForm, setConfirmForm] = useState({ amount: "", bankReference: "", confirmedAt: "" });
@@ -70,19 +70,17 @@ export function AdminBillingView() {
     setLoading(true);
     setError(null);
     try {
-      const [w, reqs, ords, accounts, rev, sub] = await Promise.all([
+      const [w, reqs, ords, accounts, sub] = await Promise.all([
         api<AdminWalletRow[]>("/v1/admin/wallet"),
         api<PackRequest[]>("/v1/admin/wallet/pack-requests"),
         api<BankTransferOrder[]>("/v1/admin/billing/orders"),
         api<BankAccount[]>("/v1/admin/billing/bank-accounts"),
-        api<RevenueSummary>("/v1/admin/billing/revenue-summary"),
         api<SubscriptionStatus | null>("/v1/billing/subscription"),
       ]);
       setWallets(w);
       setRequests(reqs);
       setOrders(ords);
       setBankAccounts(accounts);
-      setRevenue(rev);
       setSubscription(sub);
       setBankDraft(Object.fromEntries(["NGN", "USD"].map((c) => {
         const a = accounts.find((x) => x.currency === c);
@@ -278,28 +276,8 @@ export function AdminBillingView() {
         </div>
       </section>
 
-      <section aria-label={t.body.wallet.blRevenue} className="vie-panel">
-        <div className="vie-ph"><h2 className="t-section">{t.body.wallet.blRevenue}</h2></div>
-        <div className="p-4">
-          {!revenue || revenue.currencies.length === 0 ? (
-            <p className="t-body text-muted">{t.body.wallet.blNoOrders}</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {revenue.currencies.map((c) => (
-                <div key={c.currency} className="rounded-ctl border border-line bg-canvas p-3">
-                  <h3 className="t-panel">{c.currency}</h3>
-                  <dl className="mt-2 space-y-1">
-                    <div className="flex justify-between gap-2"><dt>{t.body.wallet.blRevConfirmed}</dt><dd>{money(c.confirmed.total_minor, c.currency)} · {t.body.wallet.blRevOrders.replace("{a}", String(c.confirmed.count))}</dd></div>
-                    <div className="flex justify-between gap-2"><dt>{t.body.wallet.blRevOutstanding}</dt><dd>{money(c.outstanding.total_minor, c.currency)} · {t.body.wallet.blRevOrders.replace("{a}", String(c.outstanding.count))}</dd></div>
-                    <div className="flex justify-between gap-2"><dt>{t.body.wallet.blRevRefunded}</dt><dd>{money(c.refunded.total_minor, c.currency)} · {t.body.wallet.blRevOrders.replace("{a}", String(c.refunded.count))}</dd></div>
-                    <div className="flex justify-between gap-2"><dt>{t.body.wallet.blRevPartial}</dt><dd>{money(c.partial.total_minor, c.currency)} · {t.body.wallet.blRevOrders.replace("{a}", String(c.partial.count))}</dd></div>
-                  </dl>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* revenue: every customer's money for the company organisation (one summary, merge 2026-11-13) */}
+      <RevenueSummary />
 
       <section aria-label={t.body.wallet.blAdminOrders} className="vie-panel">
         <div className="vie-ph"><h2 className="t-section">{t.body.wallet.blAdminOrders}</h2></div>

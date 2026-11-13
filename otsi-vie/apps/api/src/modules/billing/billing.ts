@@ -12,7 +12,7 @@
  *                                                      all customers' orders, a customer org its own)
  *   GET  /v1/admin/billing/orders/:id              one order (admin view)
  *   GET  /v1/admin/billing/orders/:id/proof        download the receipt the payer uploaded (admin view)
- *   GET  /v1/admin/billing/revenue-summary        confirmed / outstanding / refunded / part-payment totals
+ *   GET  /v1/admin/billing/revenue                money confirmed, refunded and awaited, by month, from plans and packs
  *   POST /v1/admin/billing/orders/:id/confirm      confirm the money arrived -> activates plan + wallet
  *   POST /v1/admin/billing/orders/:id/reject       reject with a reason (never activates)
  *   POST /v1/admin/billing/orders/:id/record-partial  record a part-payment (never activates)
@@ -20,6 +20,7 @@
  *   GET  /v1/admin/billing/bank-accounts           the owner's bank details, one per currency
  *   POST /v1/admin/billing/bank-accounts           create / update a bank account by currency
  *   POST /v1/admin/billing/renewals/run            create renewal orders + apply expiry / grace (daily job trigger)
+ *   GET  /v1/admin/billing/revenue                 money in, refunds, awaiting and plans, per currency and month (own organization)
  *
  * Nothing activates without a human confirmation: only the admin confirm step writes the subscription row (the
  * existing `subscriptions` table), the entitlement grants (the existing `entitlement_grants` table) and the
@@ -59,12 +60,12 @@ import {
   RENEWAL_GRACE_DAYS,
   RENEWAL_WINDOW_DAYS,
   RenewalRunResult,
-  RevenueSummary,
   SubscriptionStatus,
+  summarizeRevenue,
+  type RevenueSummary,
   type BankTransferOrder as BankTransferOrderType,
   type PlanCatalogue as PlanCatalogueType,
   type ProFormaInvoice,
-  type RevenueSummary as RevenueSummaryType,
   type SubscriptionStatus as SubscriptionStatusType,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
@@ -406,36 +407,6 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Revenue totals from the orders table (admin). One bucket per currency — naira
-   *  and dollars are never added together. See the RevenueSummary contract for the bucket definitions.
-   *  The company org's revenue is EVERY customer's money (that is the point of Admin › Billing); a
-   *  customer org sees only its own totals. */
-  async revenueSummary(p: Principal): Promise<RevenueSummaryType> {
-    const company = isCompanyOrg(p, this.companyOrgId);
-    const where = company ? "" : "WHERE organization_id = ? ";
-    const args = company ? [] : [p.organizationId];
-    const rows = await this.db.rows<RowDataPacket>(
-      `SELECT currency,
-         SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count,
-         SUM(CASE WHEN status = 'CONFIRMED' THEN amount_received_minor ELSE 0 END) AS confirmed_total,
-         SUM(CASE WHEN status IN ('ORDERED', 'AWAITING_CONFIRMATION', 'PARTIAL') THEN 1 ELSE 0 END) AS outstanding_count,
-         SUM(CASE WHEN status IN ('ORDERED', 'AWAITING_CONFIRMATION', 'PARTIAL') THEN amount_minor - amount_received_minor ELSE 0 END) AS outstanding_total,
-         SUM(CASE WHEN status = 'REFUNDED' THEN 1 ELSE 0 END) AS refunded_count,
-         SUM(CASE WHEN status = 'REFUNDED' THEN COALESCE(amount_refunded_minor, 0) ELSE 0 END) AS refunded_total,
-         SUM(CASE WHEN status = 'PARTIAL' THEN 1 ELSE 0 END) AS partial_count,
-         SUM(CASE WHEN status = 'PARTIAL' THEN amount_received_minor ELSE 0 END) AS partial_total
-       FROM bank_transfer_orders ${where}GROUP BY currency ORDER BY currency ASC`,
-      args);
-    return RevenueSummary.parse({
-      currencies: rows.map((r) => ({
-        currency: r.currency,
-        confirmed: { count: Number(r.confirmed_count), total_minor: Number(r.confirmed_total) },
-        outstanding: { count: Number(r.outstanding_count), total_minor: Number(r.outstanding_total) },
-        refunded: { count: Number(r.refunded_count), total_minor: Number(r.refunded_total) },
-        partial: { count: Number(r.partial_count), total_minor: Number(r.partial_total) },
-      })),
-    });
-  }
 
   /**
    * Proof of payment, two shapes on one endpoint (the receipt is optional):
@@ -527,6 +498,30 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
   }
 
   // -- admin: orders --
+
+  /** Admin › Billing revenue summary, from plan orders, token pack requests and subscriptions; the math is summarizeRevenue
+   *  (contracts) so the rule is tested without a database. The company organisation (OTSI) sees EVERY customer's money: that is
+   *  what Admin › Billing is for (ADR-140 §8). A customer organisation, or any caller when the setting is absent, sees its own. */
+  async revenue(p: Principal, now = new Date()): Promise<RevenueSummary> {
+    const all = isCompanyOrg(p, this.companyOrgId);
+    const own = (col: string) => (all ? "" : ` WHERE ${col} = ?`);
+    const args = all ? [] : [p.organizationId];
+    const orders = await this.db.rows<RowDataPacket>(
+      `SELECT currency, status, plan_code, amount_minor, amount_received_minor, amount_refunded_minor, confirmed_at, updated_at
+         FROM bank_transfer_orders${own("organization_id")}`, args);
+    const packs = await this.db.rows<RowDataPacket>(`SELECT currency, status, amount_minor, updated_at FROM wallet_pack_requests${own("organization_id")}`, args);
+    const subs = await this.db.rows<RowDataPacket>(
+      `SELECT p.code AS plan_code, s.state, s.period_end FROM subscriptions s JOIN plan_versions pv ON pv.id = s.plan_version_id JOIN plans p ON p.id = pv.plan_id${own("s.organization_id")}`, args);
+    const num = (v: unknown) => Number(v ?? 0);
+    return summarizeRevenue(
+      orders.map((o) => ({ currency: String(o.currency), status: String(o.status), plan_code: String(o.plan_code), amount_minor: num(o.amount_minor),
+        amount_received_minor: num(o.amount_received_minor), amount_refunded_minor: o.amount_refunded_minor === null || o.amount_refunded_minor === undefined ? null : num(o.amount_refunded_minor),
+        confirmed_at: dbIso(o.confirmed_at as string | null), updated_at: dbIso(o.updated_at as string | null) ?? now.toISOString() })),
+      packs.map((k) => ({ currency: String(k.currency), status: String(k.status), amount_minor: num(k.amount_minor), updated_at: dbIso(k.updated_at as string | null) ?? now.toISOString() })),
+      subs.map((x) => ({ plan_code: String(x.plan_code), state: String(x.state), period_end: dbIso(x.period_end as string | null) })),
+      now,
+    );
+  }
 
   /** The admin order list (ADR-140 §8, the visibility fix): the company org sees EVERY customer's
    *  order, with the customer's name on each row — otherwise a club's payment could never be confirmed
@@ -1005,11 +1000,6 @@ export class AdminBillingController {
     return this.billing.downloadProof(p, uuidParam(id, "Order"), res);
   }
 
-  @Get("billing/revenue-summary")
-  revenueSummary(@CurrentPrincipal() p: Principal): Promise<RevenueSummaryType> {
-    return this.billing.revenueSummary(p);
-  }
-
   @Post("billing/orders/:id/confirm")
   confirm(@CurrentPrincipal() p: Principal, @Param("id") id: string, @Body() body: unknown): Promise<BankTransferOrderType> {
     return this.billing.confirmOrder(p, uuidParam(id, "Order"), ConfirmOrderRequest.parse(body));
@@ -1047,6 +1037,11 @@ export class AdminBillingController {
    * so the owner can run it on demand. It runs org-wide, and it is a company job: only the company
    * organisation may call it (the internal scheduler is unaffected — it calls runRenewals() directly).
    */
+  @Get("billing/revenue")
+  revenue(@CurrentPrincipal() p: Principal): Promise<RevenueSummary> {
+    return this.billing.revenue(p);
+  }
+
   @Post("billing/renewals/run")
   runRenewals(@CurrentPrincipal() p: Principal): Promise<RenewalRunResult> {
     return this.billing.runRenewalsManual(p);

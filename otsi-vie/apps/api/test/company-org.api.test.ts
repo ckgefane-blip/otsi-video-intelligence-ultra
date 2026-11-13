@@ -311,23 +311,20 @@ describe("company-organisation reads: the company org sees every customer's orde
 
   it("the company org's revenue counts every customer's money; a customer sees only its own", async () => {
     const a = await seedBareMember();
-    const before = await call(company, "GET", "/v1/admin/billing/revenue-summary");
+    type Rev = { totals: { currency: string; awaiting_minor: number }[]; orders: { awaiting: number } };
+    const ngn = (r: Rev) => r.totals.find((t) => t.currency === "NGN")!.awaiting_minor;
+    const before = await call(company, "GET", "/v1/admin/billing/revenue");
     expect(before.status).toBe(200);
-    const ngnBefore = (before.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
-      .find((c) => c.currency === "NGN");
     const orderA = await awaitingOrder(a);
-    const after = await call(company, "GET", "/v1/admin/billing/revenue-summary");
-    const ngnAfter = (after.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
-      .find((c) => c.currency === "NGN");
-    // one more outstanding order, for exactly the new order's amount (STARTER, 1 month, NGN).
-    expect((ngnAfter?.outstanding.count ?? 0) - (ngnBefore?.outstanding.count ?? 0)).toBe(1);
-    expect((ngnAfter?.outstanding.total_minor ?? 0) - (ngnBefore?.outstanding.total_minor ?? 0)).toBe(orderA.amount_minor);
+    const after = await call(company, "GET", "/v1/admin/billing/revenue");
+    // one more order waiting, for exactly the new order's amount (STARTER, 1 month, NGN).
+    expect((after.body as Rev).orders.awaiting - (before.body as Rev).orders.awaiting).toBe(1);
+    expect(ngn(after.body as Rev) - ngn(before.body as Rev)).toBe(orderA.amount_minor);
     // the customer sees only its own order in its revenue.
-    const mine = await call(a, "GET", "/v1/admin/billing/revenue-summary");
+    const mine = await call(a, "GET", "/v1/admin/billing/revenue");
     expect(mine.status).toBe(200);
-    const ngnMine = (mine.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
-      .find((c) => c.currency === "NGN");
-    expect(ngnMine?.outstanding).toEqual({ count: 1, total_minor: orderA.amount_minor });
+    expect((mine.body as Rev).orders.awaiting).toBe(1);
+    expect(ngn(mine.body as Rev)).toBe(orderA.amount_minor);
   });
 
   it("the company org lists every customer's wallet and reads its ledger; another customer is refused the ledger", async () => {

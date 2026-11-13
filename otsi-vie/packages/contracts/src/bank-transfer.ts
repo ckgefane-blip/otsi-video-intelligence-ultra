@@ -184,31 +184,6 @@ export const SubscriptionStatus = z.object({
 });
 export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
 
-/**
- * Revenue totals read from the orders table (admin only, own organization). One bucket per currency —
- * naira and dollars are never added together. Definitions: confirmed = orders with status CONFIRMED,
- * totalled on the amount actually received; outstanding = orders still open (ORDERED, AWAITING_CONFIRMATION
- * or PARTIAL), totalled on what is still owed (amount minus amount received); refunded = orders with
- * status REFUNDED, totalled on the money refunded; partial = orders with status PARTIAL, totalled on
- * what has arrived so far. Counts are orders in each bucket.
- */
-export const RevenueSummaryBucket = z.object({
-  count: z.number().int().nonnegative(),
-  total_minor: z.number().int().nonnegative(),
-});
-export type RevenueSummaryBucket = z.infer<typeof RevenueSummaryBucket>;
-
-export const RevenueSummary = z.object({
-  currencies: z.array(z.object({
-    currency: BankTransferCurrency,
-    confirmed: RevenueSummaryBucket,
-    outstanding: RevenueSummaryBucket,
-    refunded: RevenueSummaryBucket,
-    partial: RevenueSummaryBucket,
-  })),
-});
-export type RevenueSummary = z.infer<typeof RevenueSummary>;
-
 export const PlanCatalogue = z.object({
   plans: z.array(PlanCatalogueEntry),
   periods_months: z.array(z.union([z.literal(1), z.literal(12)])),
@@ -291,3 +266,101 @@ export const RenewalRunResult = z.object({
   downgraded_to_free: z.number().int().min(0),
 });
 export type RenewalRunResult = z.infer<typeof RenewalRunResult>;
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Revenue summary (owner 2026-11-13): Admin › Billing. Money only from recorded rows of the caller's own organization: plan orders
+// (bank_transfer_orders) and token packs (wallet_pack_requests). Pure math here, so the API and the tests share one rule:
+//  - money in: a CONFIRMED order's amount on the day it was confirmed; a PARTIAL order's amount received so far on its last update;
+//    a REFUNDED order still counts its received amount on its confirmation day, and its refund leaves on the refund day; a PAID pack
+//    on the day it was marked paid (its last update: PAID is final).
+//  - net = money in − refunds. Awaiting = what customers said they paid, or were invoiced, and nobody has confirmed yet.
+//  - months are calendar months in UTC, the last 12 including the current one, oldest first.
+
+export const RevenueCurrencyTotals = z.object({
+  currency: BankTransferCurrency,
+  received_minor: z.number().int(),
+  refunded_minor: z.number().int(),
+  net_minor: z.number().int(),
+  this_month_minor: z.number().int(),
+  last_month_minor: z.number().int(),
+  last_12_months_minor: z.number().int(),
+  plans_minor: z.number().int(),
+  packs_minor: z.number().int(),
+  awaiting_minor: z.number().int(),
+});
+export type RevenueCurrencyTotals = z.infer<typeof RevenueCurrencyTotals>;
+
+export const RevenueSummary = z.object({
+  totals: z.array(RevenueCurrencyTotals),
+  months: z.array(z.object({ month: z.string(), NGN: z.number().int(), USD: z.number().int() })),
+  orders: z.object({ ordered: z.number().int(), awaiting: z.number().int(), partial: z.number().int(), confirmed: z.number().int(), rejected: z.number().int(), refunded: z.number().int() }),
+  packs: z.object({ requested: z.number().int(), invoiced: z.number().int(), paid: z.number().int(), cancelled: z.number().int() }),
+  active_plans: z.array(z.object({ plan_code: z.string(), count: z.number().int() })),
+  renewals_due_7d: z.number().int(),
+  generated_at: z.string(),
+});
+export type RevenueSummary = z.infer<typeof RevenueSummary>;
+
+export interface RevenueOrderRow { currency: string; status: string; plan_code: string; amount_minor: number; amount_received_minor: number;
+  amount_refunded_minor: number | null; confirmed_at: string | null; updated_at: string }
+export interface RevenuePackRow { currency: string; status: string; amount_minor: number; updated_at: string }
+export interface RevenueSubscriptionRow { plan_code: string; state: string; period_end: string | null }
+
+const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+
+export function summarizeRevenue(orders: RevenueOrderRow[], packs: RevenuePackRow[], subs: RevenueSubscriptionRow[], now = new Date()): RevenueSummary {
+  const months: string[] = [];
+  for (let i = 11; i >= 0; i--) months.push(monthKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))));
+  const thisMonth = months[11]!, lastMonth = months[10]!;
+  const cur = ["NGN", "USD"] as const;
+  const totals = Object.fromEntries(cur.map((c) => [c, { currency: c, received_minor: 0, refunded_minor: 0, net_minor: 0, this_month_minor: 0, last_month_minor: 0,
+    last_12_months_minor: 0, plans_minor: 0, packs_minor: 0, awaiting_minor: 0 }])) as Record<"NGN" | "USD", RevenueCurrencyTotals>;
+  const byMonth = Object.fromEntries(months.map((m) => [m, { month: m, NGN: 0, USD: 0 }])) as Record<string, { month: string; NGN: number; USD: number }>;
+  const book = (currency: string, amount: number, at: string | null, kind: "plans" | "packs") => {
+    if (currency !== "NGN" && currency !== "USD" || !amount) return;
+    const t = totals[currency];
+    if (amount > 0) t.received_minor += amount; else t.refunded_minor += -amount;
+    t.net_minor += amount;
+    t[kind === "plans" ? "plans_minor" : "packs_minor"] += amount;
+    const m = at ? monthKey(new Date(at)) : null;
+    if (m && byMonth[m]) { byMonth[m][currency] += amount; t.last_12_months_minor += amount; }
+    if (m === thisMonth) t.this_month_minor += amount;
+    if (m === lastMonth) t.last_month_minor += amount;
+  };
+  const orderCounts = { ordered: 0, awaiting: 0, partial: 0, confirmed: 0, rejected: 0, refunded: 0 };
+  for (const o of orders) {
+    const s = o.status;
+    if (s === "ORDERED") orderCounts.ordered++;
+    else if (s === "AWAITING_CONFIRMATION") { orderCounts.awaiting++; if (o.currency in totals) totals[o.currency as "NGN"].awaiting_minor += o.amount_minor - o.amount_received_minor; }
+    else if (s === "PARTIAL") { orderCounts.partial++; book(o.currency, o.amount_received_minor, o.updated_at, "plans"); if (o.currency in totals) totals[o.currency as "NGN"].awaiting_minor += o.amount_minor - o.amount_received_minor; }
+    else if (s === "CONFIRMED") { orderCounts.confirmed++; book(o.currency, o.amount_received_minor, o.confirmed_at ?? o.updated_at, "plans"); }
+    else if (s === "REJECTED") orderCounts.rejected++;
+    else if (s === "REFUNDED") {
+      orderCounts.refunded++;
+      book(o.currency, o.amount_received_minor, o.confirmed_at ?? o.updated_at, "plans");
+      book(o.currency, -(o.amount_refunded_minor ?? o.amount_received_minor), o.updated_at, "plans");
+    }
+  }
+  const packCounts = { requested: 0, invoiced: 0, paid: 0, cancelled: 0 };
+  for (const k of packs) {
+    if (k.status === "REQUESTED") packCounts.requested++;
+    else if (k.status === "INVOICED") { packCounts.invoiced++; if (k.currency in totals) totals[k.currency as "NGN"].awaiting_minor += k.amount_minor; }
+    else if (k.status === "PAID") { packCounts.paid++; book(k.currency, k.amount_minor, k.updated_at, "packs"); }
+    else if (k.status === "CANCELLED") packCounts.cancelled++;
+  }
+  const active = new Map<string, number>();
+  let due = 0;
+  for (const s of subs) {
+    if (s.state !== "ACTIVE" && s.state !== "PAST_DUE") continue;
+    active.set(s.plan_code, (active.get(s.plan_code) ?? 0) + 1);
+    if (s.state === "ACTIVE" && s.period_end) {
+      const left = Date.parse(s.period_end) - now.getTime();
+      if (left >= 0 && left <= 7 * 86_400_000) due++;
+    }
+  }
+  return RevenueSummary.parse({
+    totals: cur.map((c) => totals[c]), months: months.map((m) => byMonth[m]), orders: orderCounts, packs: packCounts,
+    active_plans: [...active].map(([plan_code, count]) => ({ plan_code, count })).sort((a, b) => b.count - a.count || a.plan_code.localeCompare(b.plan_code)),
+    renewals_due_7d: due, generated_at: now.toISOString(),
+  });
+}

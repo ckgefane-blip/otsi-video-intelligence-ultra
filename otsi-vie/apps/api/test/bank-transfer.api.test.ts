@@ -401,17 +401,16 @@ describe("bank-transfer billing", () => {
     await call(company, "POST", `/v1/admin/billing/orders/${refunded.order.id}/confirm`, { amount_received_minor: 25_000_000, bank_reference: "BANK-REV-3" });
     const ref = await call(company, "POST", `/v1/admin/billing/orders/${refunded.order.id}/refund`, { reason: "Charged twice" });
     expect(ref.status).toBe(201);
-    const summary = await call(m, "GET", "/v1/admin/billing/revenue-summary");
+    const summary = await call(m, "GET", "/v1/admin/billing/revenue");
     expect(summary.status).toBe(200);
-    expect(summary.body.currencies).toHaveLength(1);
-    expect(summary.body.currencies[0]).toMatchObject({
-      currency: "NGN",
-      confirmed: { count: 1, total_minor: 6_000_000 },
-      outstanding: { count: 2, total_minor: 11_500_000 },
-      refunded: { count: 1, total_minor: 25_000_000 },
-      partial: { count: 1, total_minor: 2_000_000 },
-    });
-    expect((await call(viewer, "GET", "/v1/admin/billing/revenue-summary")).status).toBe(403);
+    const ngn = summary.body.totals.find((t: { currency: string }) => t.currency === "NGN");
+    // received ₦60,000 + ₦20,000 + ₦250,000; refunded ₦250,000; still owed on the part-paid order ₦100,000
+    expect(ngn).toMatchObject({ received_minor: 33_000_000, refunded_minor: 25_000_000, net_minor: 8_000_000,
+      this_month_minor: 8_000_000, plans_minor: 8_000_000, awaiting_minor: 10_000_000 });
+    expect(summary.body.orders).toMatchObject({ ordered: 1, partial: 1, confirmed: 1, refunded: 1 });
+    expect(summary.body.months).toHaveLength(12);
+    expect(summary.body.active_plans).toEqual(expect.arrayContaining([{ plan_code: "CLUB", count: 1 }]));
+    expect((await call(viewer, "GET", "/v1/admin/billing/revenue")).status).toBe(403);
   });
 
   it("shows a pack request's payment details to its own organization only, and only after invoicing", async () => {
