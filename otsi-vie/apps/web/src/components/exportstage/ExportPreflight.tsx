@@ -6,21 +6,28 @@
  * number on the strap, no match card, no clock, music licence). Nothing starts until "Start"; then one batch request makes every file.
  */
 import * as Dialog from "@radix-ui/react-dialog";
-import { outputLabel, outputLufs, shareCheck, uniqueOutputs, type ExportPreset, type Preflight, type Reel, type VideoRights } from "@otsi-vie/contracts";
+import { TOKEN_COSTS, outputLabel, outputLufs, shareCheck, uniqueOutputs, type ExportPreset, type Preflight, type Reel, type VideoRights } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { DeclareRightsDialog } from "@/components/upload/RightsDialog";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 
 const MARK = { OK: ["✓", "#3ee6a8"], WARN: ["!", "#f5b82e"], BLOCK: ["✕", "#ff6b6b"] } as const;
 
 export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWrite, open, onOpenChange, onStart }: {
   reel: Reel; preset: ExportPreset; codec: string; bitrate: number; upToDate: boolean; canWrite: boolean; open: boolean; onOpenChange(o: boolean): void; onStart(): void;
 }) {
+  const { t } = useLocale();
+  const w = t.body.wallet;
   const [pf, setPf] = useState<Preflight | null>(null);
   const [failed, setFailed] = useState(false);
   // B.23 (ADR-098): the source video's rights, and recording them right here when none are (A.11's four questions, saved on the video)
   const [rights, setRights] = useState<VideoRights | null | undefined>(undefined);
   const [declare, setDeclare] = useState(false);
+  // billing blueprint §4.2(2): rendering a file costs 10 tokens, so a batch of N files costs N × 10.
+  // "Start N files" asks first (the shared cost preview, with the total), and only Continue starts it.
+  const [costPreview, setCostPreview] = useState(false);
   useEffect(() => {
     if (!open) return;
     let live = true;
@@ -38,6 +45,7 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
   const blocked = !!pf?.checks.some((c) => c.level === "BLOCK");
   const fmt = codec === "h264" ? "MP4 (H.264)" : codec === "av1" ? "MP4 (AV1)" : "WebM (VP9)";
   return (
+    <>
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
@@ -75,7 +83,7 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
           {reel.video_id && <DeclareRightsDialog videoId={reel.video_id} name="this reel's video" open={declare} onOpenChange={setDeclare} onDone={(r) => setRights(r)} />}
           <div className="flex justify-end gap-2">
             <Dialog.Close className="rounded border border-line px-3 py-1.5">Cancel</Dialog.Close>
-            <button type="button" data-start-export disabled={!pf || blocked || toStart === 0} onClick={onStart}
+            <button type="button" data-start-export disabled={!pf || blocked || toStart === 0} onClick={() => setCostPreview(true)}
               className="rounded bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-40">
               {blocked ? "Fix the blocked items first" : toStart === 0 ? "Every file is rendering" : `Start ${toStart} file${toStart === 1 ? "" : "s"}`}
             </button>
@@ -83,5 +91,9 @@ export function ExportPreflight({ reel, preset, codec, bitrate, upToDate, canWri
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    <CostPreviewDialog
+      action={toStart === 1 ? w.cpRenderBatchOne : w.cpRenderBatchMany.replace("{a}", String(toStart))}
+      cost={toStart * TOKEN_COSTS.reelRender} open={costPreview} onOpenChange={setCostPreview} onConfirm={onStart} />
+    </>
   );
 }

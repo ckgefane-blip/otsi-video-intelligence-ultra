@@ -6515,6 +6515,8 @@ export interface Dictionary {
       cpScoutingPackDone: string;
       cpUploadDone: string;
       cpIdle: string;
+      cpRenderBatchOne: string;
+      cpRenderBatchMany: string;
     };
     shell: {
       brandAria: string;
@@ -13504,6 +13506,8 @@ export const en: Dictionary = {
       cpScoutingPackDone: "Scouting Pack",
       cpUploadDone: "Upload",
       cpIdle: "Nothing running",
+      cpRenderBatchOne: "Render 1 file",
+      cpRenderBatchMany: "Render {a} files",
     },
     shell: {
       brandAria: "OTSI VIE home",
@@ -20489,6 +20493,8 @@ export const ru: DeepPartial<Dictionary> = {
       cpScoutingPackDone: "Скаутинг-пакет",
       cpUploadDone: "Загрузка",
       cpIdle: "Ничего не выполняется",
+      cpRenderBatchOne: "Отрендерить 1 файл",
+      cpRenderBatchMany: "Отрендерить {a} файлов",
     },
     shell: {
       brandAria: "Главная OTSI VIE",
@@ -27474,6 +27480,8 @@ export const es: DeepPartial<Dictionary> = {
       cpScoutingPackDone: "Paquete de scouting",
       cpUploadDone: "Subida",
       cpIdle: "Nada en curso",
+      cpRenderBatchOne: "Renderizar 1 archivo",
+      cpRenderBatchMany: "Renderizar {a} archivos",
     },
     shell: {
       brandAria: "Inicio de OTSI VIE",
@@ -34459,6 +34467,8 @@ export const de: DeepPartial<Dictionary> = {
       cpScoutingPackDone: "Scouting-Paket",
       cpUploadDone: "Upload",
       cpIdle: "Nichts läuft",
+      cpRenderBatchOne: "1 Datei rendern",
+      cpRenderBatchMany: "{a} Dateien rendern",
     },
     shell: {
       brandAria: "OTSI VIE Startseite",
@@ -41444,6 +41454,8 @@ export const fr: DeepPartial<Dictionary> = {
       cpScoutingPackDone: "Pack de scouting",
       cpUploadDone: "Envoi",
       cpIdle: "Rien en cours",
+      cpRenderBatchOne: "Rendre 1 fichier",
+      cpRenderBatchMany: "Rendre {a} fichiers",
     },
     shell: {
       brandAria: "Accueil OTSI VIE",
@@ -48439,6 +48451,8 @@ export const pt: DeepPartial<Dictionary> = {
       "cpScoutingPackDone": "Pacote de scouting",
       "cpUploadDone": "Envio",
       "cpIdle": "Nada em curso",
+      "cpRenderBatchOne": "Renderizar 1 arquivo",
+      "cpRenderBatchMany": "Renderizar {a} arquivos",
     },
     "shell": {
       "brandAria": "Início do OTSI VIE",

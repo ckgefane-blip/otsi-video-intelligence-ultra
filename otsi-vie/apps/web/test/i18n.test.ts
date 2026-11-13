@@ -670,7 +670,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // player card, review inbox, active jobs).
     expect(bodyKeys("admin").length).toBe(282);
     expect(bodyKeys("settings").length).toBe(141);
-    expect(bodyKeys("wallet").length).toBe(285);
+    expect(bodyKeys("wallet").length).toBe(287);
     expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
     // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org
