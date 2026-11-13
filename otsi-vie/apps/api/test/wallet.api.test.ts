@@ -49,7 +49,7 @@ beforeAll(async () => {
   root = await rootDb();
   // the company organisation (OTSI): the setting names it, so the API under test runs with it set.
   const companyOrgId = uuidv7();
-  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi"]);
+  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi-wallet"]);
   company = await seedMember(root, "OWNER", companyOrgId);
   app = await startApi({ companyOrganizationId: companyOrgId });
   owner = await seedMember(root, "OWNER");
@@ -69,7 +69,9 @@ describe("token wallet", () => {
     expect(r.body.packs[0]).toMatchObject({ tokens: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900 });
     expect(r.body.packs[3]).toMatchObject({ tokens: 3000, price_ngn_minor: 25_000_000, price_usd_minor: 89900 });
     expect(r.body.free_grant_tokens).toBe(25);
-    expect(r.body.costs).toEqual({ analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10 });
+    // ADR-141 added the AI Analyst cost (10 tokens, like a player report) to the catalogue; the
+    // test must expect it — an exact-equality check, so a new cost field fails it until updated.
+    expect(r.body.costs).toEqual({ analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10, ai_analysis: 10 });
     expect(r.body.low_balance_threshold).toBe(90);
   });
 
@@ -79,7 +81,10 @@ describe("token wallet", () => {
     const grant = await call(m, "POST", "/v1/wallet/free-grant");
     expect(grant.status).toBe(201);
     expect(grant.body).toMatchObject({ kind: "FREE_GRANT", amount: 25, balance_after: 25 });
-    expect(await balance(m)).toMatchObject({ balance: 100, spendable_balance: 100, low_balance: false });
+    // the grant is 25 tokens (ADR-140), so the balance is 25 — and 25 is below the 90-token
+    // low-balance threshold, so the warning stays on. The old expectation (100, no warning)
+    // was stale from when the grant was briefly 100.
+    expect(await balance(m)).toMatchObject({ balance: 25, spendable_balance: 25, low_balance: true });
     expect((await call(m, "POST", "/v1/wallet/free-grant")).body.code).toBe("FREE_GRANT_ALREADY_CLAIMED");
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
     expect(ledger.body.entries).toHaveLength(1);
@@ -118,15 +123,18 @@ describe("token wallet", () => {
   it("charges 90 tokens for a 90-minute analysis at enqueue, and refunds them when the queued run is cancelled", async () => {
     const m = await seedBareMember();
     await call(m, "POST", "/v1/wallet/free-grant");
+    // 25 (free grant) + 100 (top-up) = 125. The old numbers (200 / 110 / 200) assumed a
+    // 100-token grant, which the grant no longer is — the grant is 25 (ADR-140).
     const topup = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 100, reason: "Test top-up", invoice_ref: "INV-TEST-1" });
-    expect(topup.body).toMatchObject({ kind: "PURCHASE", amount: 100, balance_after: 200 });
+    expect(topup.body).toMatchObject({ kind: "PURCHASE", amount: 100, balance_after: 125 });
     const video = await seedVideo(m);
     const run = await call(m, "POST", `/v1/videos/${video}/analysis-runs`, {});
     expect(run.status).toBe(201);
-    expect(await balance(m)).toMatchObject({ balance: 110, spendable_balance: 110, low_balance: false });
+    // the 90-token charge leaves 35, which is below the 90-token low-balance threshold.
+    expect(await balance(m)).toMatchObject({ balance: 35, spendable_balance: 35, low_balance: true });
     const cancelled = await call(m, "POST", `/v1/analysis-runs/${run.body.id}/cancel`);
     expect(cancelled.status).toBe(200);
-    expect(await balance(m)).toMatchObject({ balance: 200 });
+    expect(await balance(m)).toMatchObject({ balance: 125 });
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
     expect(ledger.body.entries.map((e: { kind: string }) => e.kind)).toEqual(["REFUND", "SPEND", "PURCHASE", "FREE_GRANT"]);
   });

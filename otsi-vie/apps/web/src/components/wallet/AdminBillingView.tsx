@@ -12,8 +12,12 @@
  *
  * Scoping (ADR-140 §8): the company billing actions (bank accounts, plan order confirm / part-pay /
  * reject / refund, pack invoice / confirm, top-up) are the company organisation's (OTSI) alone — the API
- * refuses everybody else with 403. The reads here (own wallet, own orders) stay own-organisation. A
- * customer admin never reaches this view: the nav hides it and the view below refuses to render it.
+ * refuses everybody else with 403. The reads here are the company org's view of EVERY customer: the
+ * order list, pack requests, revenue and wallets show all customers, with the customer's name on each
+ * row (a customer org's own reads, on its own pages, stay own-organisation). A customer admin never
+ * reaches this view: the nav hides it and the view below refuses to render it. The manual actions and
+ * the ledger below act on the wallet picked in the Wallet selector (the first wallet when the page
+ * loads); without it the actions would silently target whichever wallet happened to load first.
  */
 import type { BankAccount, BankTransferOrder, ProFormaInvoice, RenewalRunResult, RevenueSummary, SubscriptionStatus, AdminWalletRow, PackRequest, WalletLedgerEntry, WalletLedgerPage } from "@otsi-vie/contracts";
 import { PAY_REFERENCE_NOTE } from "@otsi-vie/contracts";
@@ -34,6 +38,12 @@ export function AdminBillingView() {
   const [wallets, setWallets] = useState<AdminWalletRow[]>([]);
   const [requests, setRequests] = useState<PackRequest[]>([]);
   const [ledger, setLedger] = useState<WalletLedgerEntry[]>([]);
+  // Which customer's wallet the manual actions (top-up / refund / adjust / write-off) and the
+  // ledger below act on. Defaults to the first wallet once they load; the admin picks another
+  // customer's wallet here. (Before the visibility fix there was only ever one wallet — the
+  // company org's own — so the actions could just use it; with every customer's wallet listed,
+  // silently acting on the first one would top up the wrong club.)
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -78,10 +88,7 @@ export function AdminBillingView() {
         const a = accounts.find((x) => x.currency === c);
         return [c, { account_name: a?.account_name ?? "", bank_name: a?.bank_name ?? "", account_number: a?.account_number ?? "", swift_iban: a?.swift_iban ?? "", is_active: a?.is_active ?? true }];
       })));
-      if (w[0]) {
-        const page = await api<WalletLedgerPage>(`/v1/admin/wallet/${w[0].organization_id}/ledger`);
-        setLedger(page.entries);
-      }
+      if (w[0]) setSelectedWalletId((cur) => cur ?? w[0]!.organization_id);
     } catch (e) {
       setError(e instanceof ApiProblem ? e.message : t.body.wallet.billingLoadFailed);
     } finally {
@@ -91,7 +98,19 @@ export function AdminBillingView() {
 
   useEffect(() => { if (isCompanyOrg) void load(); }, [load, isCompanyOrg]);
 
-  const orgId = wallets[0]?.organization_id ?? null;
+  const orgId = selectedWalletId ?? wallets[0]?.organization_id ?? null;
+
+  // The ledger follows the picked wallet.
+  useEffect(() => {
+    if (!isCompanyOrg || !orgId) return;
+    let cancelled = false;
+    void api<WalletLedgerPage>(`/v1/admin/wallet/${orgId}/ledger`).then((page) => {
+      if (!cancelled) setLedger(page.entries);
+    }).catch((e) => {
+      if (!cancelled) setError(e instanceof ApiProblem ? e.message : t.body.wallet.billingLoadFailed);
+    });
+    return () => { cancelled = true; };
+  }, [orgId, isCompanyOrg, t]);
 
   /** Pick an order to work on: the confirm amount starts prefilled with what is still owed. */
   function selectOrder(o: BankTransferOrder) {
@@ -234,7 +253,7 @@ export function AdminBillingView() {
           <ul className="space-y-3">
             {requests.map((r) => (
               <li key={r.id} className="rounded-ctl border border-line bg-canvas p-3">
-                <p><span>{r.pack_code}</span> · {r.tokens} {t.body.wallet.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: t.body.wallet.statusRequested, INVOICED: t.body.wallet.statusInvoiced, PAID: t.body.wallet.statusPaid, CANCELLED: t.body.wallet.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</p>
+                <p>{r.organization_name ? `${r.organization_name} · ` : ""}<span>{r.pack_code}</span> · {r.tokens} {t.body.wallet.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: t.body.wallet.statusRequested, INVOICED: t.body.wallet.statusInvoiced, PAID: t.body.wallet.statusPaid, CANCELLED: t.body.wallet.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</p>
                 <p className="text-xs text-muted">{t.body.wallet.billingRequestedAt.replace("{a}", new Date(r.created_at).toLocaleString())}</p>
                 {(r.status === "REQUESTED" || r.status === "INVOICED") && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -291,7 +310,7 @@ export function AdminBillingView() {
             <ul className="space-y-2">
               {orders.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-ctl border border-line bg-canvas px-3 py-2">
-                  <span>{o.reference} · {o.plan_code} · {planMonths(o.period_months, t.body.wallet)} · {money(o.amount_minor, o.currency)} · <OrderStatusLabel order={o} /></span>
+                  <span>{o.organization_name ? `${o.organization_name} · ` : ""}{o.reference} · {o.plan_code} · {planMonths(o.period_months, t.body.wallet)} · {money(o.amount_minor, o.currency)} · <OrderStatusLabel order={o} /></span>
                   <span className="flex items-center gap-3">
                     <span className="t-small text-muted">{new Date(o.created_at).toLocaleDateString()}</span>
                     <button type="button" className="t-button text-primary" onClick={() => selectOrder(o)}>{t.body.wallet.blViewOrder}</button>
@@ -307,7 +326,7 @@ export function AdminBillingView() {
                 <button type="button" className="t-button text-muted" onClick={() => setSelectedOrder(null)}>{t.common.close}</button>
               </div>
               <p className="t-body">
-                {selectedOrder.plan_code} · {planMonths(selectedOrder.period_months, t.body.wallet)} · {money(selectedOrder.amount_minor, selectedOrder.currency)} · <OrderStatusLabel order={selectedOrder} />
+                {selectedOrder.organization_name ? `${selectedOrder.organization_name} · ` : ""}{selectedOrder.plan_code} · {planMonths(selectedOrder.period_months, t.body.wallet)} · {money(selectedOrder.amount_minor, selectedOrder.currency)} · <OrderStatusLabel order={selectedOrder} />
               </p>
               <dl className="kv">
                 <dt>{t.body.wallet.blAmountReceived}</dt>
@@ -476,6 +495,15 @@ export function AdminBillingView() {
         <section aria-label={t.body.wallet.billingManualAria} className="vie-panel">
           <div className="vie-ph"><h2 className="t-section">{t.body.wallet.billingManual}</h2></div>
           <div className="p-4">
+          <label className="flex flex-wrap items-center gap-2 t-body">
+            {t.body.wallet.billingWalletSection}
+            <select aria-label={t.body.wallet.billingWalletSection} value={orgId ?? ""} onChange={(e) => setSelectedWalletId(e.target.value || null)}
+              className="rounded-ctl border border-line bg-canvas px-2 py-1.5">
+              {wallets.map((w) => (
+                <option key={w.organization_id} value={w.organization_id}>{w.organization_name}</option>
+              ))}
+            </select>
+          </label>
           <p className="t-body text-muted">{t.body.wallet.billingManualDesc}</p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <form onSubmit={(e) => { e.preventDefault(); void act("topup", () => api(`/v1/admin/wallet/${orgId}/topup`, { method: "POST", json: { amount: Number(topUp.amount), reason: topUp.reason.trim(), invoice_ref: topUp.invoiceRef.trim() || null } }), t.body.wallet.billingTopUpDone.replace("{a}", topUp.amount)); }}

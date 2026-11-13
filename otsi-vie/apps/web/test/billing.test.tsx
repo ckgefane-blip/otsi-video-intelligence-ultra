@@ -41,7 +41,7 @@ const bankAccount = {
 };
 
 const order = (overrides: Record<string, unknown> = {}) => ({
-  id: ORDER_ID, organization_id: ORG, plan_code: "CLUB", period_months: 1,
+  id: ORDER_ID, organization_id: ORG, organization_name: "Osio & Tee", plan_code: "CLUB", period_months: 1,
   amount_minor: 6_000_000, currency: "NGN", reference: "OTSI-INV-2026-000001", bank_account_id: BANK_ID,
   status: "ORDERED", amount_received_minor: 0, amount_refunded_minor: null, tokens_granted: 500,
   subscription_id: null, renews_subscription_id: null, expires_at: "2026-11-27T00:00:00.000Z",
@@ -77,7 +77,7 @@ const revenue = {
 };
 
 const packRequest = (overrides: Record<string, unknown> = {}) => ({
-  id: "0190a000-0000-7000-8000-000000000006", organization_id: ORG, pack_code: "CLUB",
+  id: "0190a000-0000-7000-8000-000000000006", organization_id: ORG, organization_name: "Osio & Tee", pack_code: "CLUB",
   currency: "NGN", amount_minor: 6_000_000, tokens: 500, status: "INVOICED",
   invoice_ref: "INV-2026-001", requested_by: USER,
   created_at: "2026-11-13T00:00:00.000Z", updated_at: "2026-11-13T00:00:00.000Z", ...overrides,
@@ -215,18 +215,22 @@ describe("Admin billing console", () => {
     });
   });
 
-  function mockAdmin(orders: unknown[] = [order({ status: "AWAITING_CONFIRMATION" })]) {
+  function mockAdmin(
+    orders: unknown[] = [order({ status: "AWAITING_CONFIRMATION" })],
+    requests: unknown[] = [],
+    wallets: unknown[] = [{ organization_id: ORG, organization_name: "Osio & Tee", balance: 10, spendable_balance: 10, low_balance: true, last_activity_at: null }],
+  ) {
     mockAuth.useAuth.mockReturnValue({
       organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
     });
     api.mockImplementation((url: string) => {
-      if (url === "/v1/admin/wallet") return Promise.resolve([{ organization_id: ORG, organization_name: "Osio & Tee", balance: 10, spendable_balance: 10, low_balance: true, last_activity_at: null }]);
-      if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve([]);
+      if (url === "/v1/admin/wallet") return Promise.resolve(wallets);
+      if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve(requests);
       if (url === "/v1/admin/billing/orders") return Promise.resolve(orders);
       if (url === "/v1/admin/billing/bank-accounts") return Promise.resolve([bankAccount]);
       if (url === "/v1/admin/billing/revenue-summary") return Promise.resolve(revenue);
       if (url === "/v1/billing/subscription") return Promise.resolve(subscription);
-      if (url === `/v1/admin/wallet/${ORG}/ledger`) return Promise.resolve({ entries: [] });
+      if (url.startsWith("/v1/admin/wallet/") && url.endsWith("/ledger")) return Promise.resolve({ entries: [] });
       return Promise.reject(new Error(`unexpected ${url}`));
     });
   }
@@ -302,5 +306,48 @@ describe("Admin billing console", () => {
     await waitFor(() => expect(screen.getByText("Administrator access required")).toBeInTheDocument());
     expect(screen.queryByText("Billing orders")).not.toBeInTheDocument();
     expect(api).not.toHaveBeenCalled();
+  });
+
+  it("shows each customer's name on its orders and pack requests (ADR-140 §8, the visibility fix)", async () => {
+    const CUSTOMER = "0190a000-0000-7000-8000-000000000007";
+    mockAdmin(
+      [order({ organization_id: CUSTOMER, organization_name: "A Customer Club", status: "AWAITING_CONFIRMATION" })],
+      [packRequest({ organization_id: CUSTOMER, organization_name: "A Customer Club", status: "REQUESTED", invoice_ref: null })],
+    );
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Billing orders")).toBeInTheDocument());
+    // the customer's name is on the order row and on the pack request row — that is how the
+    // company org tells whose payment it is confirming.
+    expect(screen.getAllByText(/A Customer Club/)).toHaveLength(2);
+    // opening the order shows the same name in the detail, so the company org confirms the
+    // right customer's payment. (The customer side — a customer sees only their own order —
+    // is proven by the API test; on the web a customer admin never reaches this console at
+    // all, see the access-panel test above.)
+    fireEvent.click(screen.getByRole("button", { name: "View order" }));
+    await waitFor(() => expect(screen.getByText("Your invoice")).toBeInTheDocument());
+    expect(screen.getAllByText(/A Customer Club/)).toHaveLength(3);
+  });
+
+  it("lets the admin pick which customer's wallet the manual actions and ledger act on", async () => {
+    const CUSTOMER = "0190a000-0000-7000-8000-000000000007";
+    const walletRow = (id: string, name: string, balance: number) => ({
+      organization_id: id, organization_name: name, balance, spendable_balance: balance, low_balance: false, last_activity_at: null,
+    });
+    mockAdmin(
+      [order({ status: "AWAITING_CONFIRMATION", organization_name: null })],
+      [],
+      [walletRow(ORG, "Osio & Tee", 10), walletRow(CUSTOMER, "A Customer Club", 500)],
+    );
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Billing orders")).toBeInTheDocument());
+    // both customers' wallets are listed, each under its own name
+    expect(screen.getAllByText("Osio & Tee").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("A Customer Club").length).toBeGreaterThan(0);
+    // the manual actions act on the first wallet until the admin picks another one
+    const select = screen.getByRole("combobox", { name: "Wallet" }) as HTMLSelectElement;
+    expect(select.value).toBe(ORG);
+    expect(api).toHaveBeenCalledWith(`/v1/admin/wallet/${ORG}/ledger`);
+    fireEvent.change(select, { target: { value: CUSTOMER } });
+    await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/admin/wallet/${CUSTOMER}/ledger`));
   });
 });

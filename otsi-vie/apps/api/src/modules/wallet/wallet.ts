@@ -41,7 +41,7 @@ import {
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, userActor } from "../../core/audit";
-import { AuthGuard, CurrentPrincipal, Principal, requireCompanyOrg, Roles } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
@@ -53,7 +53,14 @@ export const INSUFFICIENT_TOKENS = "INSUFFICIENT_TOKENS";
  *  EXCEPT the company billing actions (invoice or confirm a token pack, top up a wallet, refund or adjust a
  *  wallet, expire credits): those are the company organisation's alone. The company organisation is the one
  *  named by the server setting OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses
- *  everybody else, and refuses everybody at all when the setting is missing (fail closed). */
+ *  everybody else, and refuses everybody at all when the setting is missing (fail closed).
+ *
+ *  The READS follow the same rule the other way round (the visibility fix, as in billing.ts): the company
+ *  org's Admin › Billing reads — the pack-request list, the wallet list, one wallet's ledger — show EVERY
+ *  customer's rows, with the customer's name on each one. A customer org's reads show only its own.
+ *  Without this, OTSI could top up or refund a club's wallet but never see it, so no pack payment could
+ *  ever be confirmed in practice. `isCompanyOrg` is the read-side check; it is false when the setting
+ *  is missing, so a read never silently widens to all organisations. */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "WALLET_ADMIN_OTHER_ORG", "Wallet Admin acts only on your own organization.");
 }
@@ -294,7 +301,8 @@ export class WalletService {
 
   private parsePackRequest(r: RowDataPacket): PackRequest {
     return PackRequest.parse({
-      id: r.id, organization_id: r.organization_id, pack_code: r.pack_code, currency: r.currency,
+      id: r.id, organization_id: r.organization_id, organization_name: r.organization_name ?? null,
+      pack_code: r.pack_code, currency: r.currency,
       amount_minor: Number(r.amount_minor), tokens: Number(r.tokens), status: r.status,
       invoice_ref: r.invoice_ref ?? null, requested_by: r.requested_by,
       created_at: new Date(r.created_at).toISOString(), updated_at: new Date(r.updated_at).toISOString(),
@@ -377,8 +385,14 @@ export class WalletService {
 
   // -- admin: every organization's wallet and ledger; top-up, refund, adjust, each with a reason --
 
+  /** The wallet list (ADR-140 §8, the visibility fix): the company org sees EVERY customer's wallet,
+   *  with the customer's name on each row — otherwise it could top up a club's wallet but never see
+   *  it. A customer org sees only its own wallet, as before. */
   async adminWallets(p: Principal): Promise<AdminWalletRow[]> {
-    const orgs = await this.db.rows<RowDataPacket>("SELECT id, name FROM organizations WHERE id = ? ORDER BY name ASC", [p.organizationId]);
+    const company = isCompanyOrg(p, this.companyOrgId);
+    const orgs = company
+      ? await this.db.rows<RowDataPacket>("SELECT id, name FROM organizations ORDER BY name ASC")
+      : await this.db.rows<RowDataPacket>("SELECT id, name FROM organizations WHERE id = ? ORDER BY name ASC", [p.organizationId]);
     const out: AdminWalletRow[] = [];
     for (const o of orgs) {
       const entries = await this.ledgerRows(String(o.id));
@@ -393,7 +407,9 @@ export class WalletService {
   }
 
   async adminLedger(p: Principal, organizationId: string): Promise<WalletLedgerPage> {
-    ownOrgOrDeny(p, organizationId);
+    // The company org may read any customer's ledger (it has to, to check a top-up landed); a
+    // customer org may read only its own.
+    if (!isCompanyOrg(p, this.companyOrgId)) ownOrgOrDeny(p, organizationId);
     const org = await this.db.one<RowDataPacket>("SELECT id FROM organizations WHERE id = ?", [organizationId]);
     if (!org) throw notFound("Organization");
     const entries = await this.ledgerRows(organizationId);
@@ -401,8 +417,13 @@ export class WalletService {
     return page;
   }
 
+  /** The admin pack-request list (ADR-140 §8, the visibility fix): the company org sees EVERY
+   *  customer's request, with the customer's name on each row. A customer org sees only its own. */
   async adminPackRequests(p: Principal): Promise<PackRequest[]> {
-    const rows = await this.db.rows<RowDataPacket>("SELECT * FROM wallet_pack_requests WHERE organization_id = ? ORDER BY created_at DESC LIMIT 100", [p.organizationId]);
+    const company = isCompanyOrg(p, this.companyOrgId);
+    const rows = company
+      ? await this.db.rows<RowDataPacket>("SELECT w.*, o.name AS organization_name FROM wallet_pack_requests w JOIN organizations o ON o.id = w.organization_id ORDER BY w.created_at DESC LIMIT 100")
+      : await this.db.rows<RowDataPacket>("SELECT w.*, o.name AS organization_name FROM wallet_pack_requests w JOIN organizations o ON o.id = w.organization_id WHERE w.organization_id = ? ORDER BY w.created_at DESC LIMIT 100", [p.organizationId]);
     return rows.map((r) => this.parsePackRequest(r));
   }
 

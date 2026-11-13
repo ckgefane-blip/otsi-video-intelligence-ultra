@@ -214,6 +214,10 @@ export type PackRequestStatus = z.infer<typeof PackRequestStatus>;
 export const PackRequest = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid(),
+  /** The requesting organisation's name, for the company org's Admin › Billing view (ADR-140 §8):
+   *  the company org sees every customer's request with the customer's name on it. Null on
+   *  customer reads, where the name is the caller's own and not needed. */
+  organization_name: z.string().nullable(),
   pack_code: TokenPackCode,
   currency: z.enum(["NGN", "USD"]),
   amount_minor: z.number().int().positive(),

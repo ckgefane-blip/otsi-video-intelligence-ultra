@@ -8,7 +8,8 @@
  *   POST /v1/billing/orders/:id/proof               upload a receipt, or mark "I have paid" with no file
  *   GET  /v1/billing/plans                         the plan catalogue (prices, periods, "Pay online — Coming soon")
  *   GET  /v1/billing/subscription                  the caller's live subscription, if any (ACTIVE / PAST_DUE)
- *   GET  /v1/admin/billing/orders                  pending first (OWNER / ADMIN, own organization)
+ *   GET  /v1/admin/billing/orders                  pending first (OWNER / ADMIN; the company org sees
+ *                                                      all customers' orders, a customer org its own)
  *   GET  /v1/admin/billing/orders/:id              one order (admin view)
  *   GET  /v1/admin/billing/orders/:id/proof        download the receipt the payer uploaded (admin view)
  *   GET  /v1/admin/billing/revenue-summary        confirmed / outstanding / refunded / part-payment totals
@@ -74,7 +75,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, serviceActor, userActor } from "../../core/audit";
-import { AuthGuard, CurrentPrincipal, Principal, requireCompanyOrg, Roles } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
@@ -99,7 +100,14 @@ const RENEWAL_JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
  *  OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses everybody else, and refuses
  *  everybody at all when the setting is missing (fail closed). The renewal run's HTTP endpoint requires the
  *  company org; the internal daily scheduler (startRenewalScheduler) calls runRenewals() directly, so the
- *  daily job is unaffected by the endpoint guard. */
+ *  daily job is unaffected by the endpoint guard.
+ *
+ *  The READS follow the same rule the other way round (the visibility fix): the company org's Admin ›
+ *  Billing reads — the order list, one order, a receipt download, the revenue summary — show EVERY
+ *  customer's rows, with the customer's name on each one. A customer org's reads show only its own.
+ *  Without this, OTSI could act on a club's order (confirm it) but never see it, so no payment could
+ *  ever be confirmed in practice. `isCompanyOrg` is the read-side check; it is false when the setting
+ *  is missing, so a read never silently widens to all organisations. */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "BILLING_ADMIN_OTHER_ORG", "Billing Admin acts only on your own organization.");
 }
@@ -242,7 +250,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
 
   private parseOrder(r: RowDataPacket): BankTransferOrderType {
     return BankTransferOrder.parse({
-      id: r.id, organization_id: r.organization_id, plan_code: r.plan_code, period_months: Number(r.period_months),
+      id: r.id, organization_id: r.organization_id, organization_name: r.organization_name ?? null,
+      plan_code: r.plan_code, period_months: Number(r.period_months),
       amount_minor: Number(r.amount_minor), currency: r.currency, reference: r.reference, bank_account_id: r.bank_account_id,
       status: r.status, amount_received_minor: Number(r.amount_received_minor),
       amount_refunded_minor: r.amount_refunded_minor === null ? null : Number(r.amount_refunded_minor),
@@ -266,10 +275,13 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  /** One order row, with the paying organisation's name joined in (the company org's Admin › Billing
+   *  view shows the customer's name on each order). Every order belongs to an organisation, so the
+   *  inner join never drops a row. */
   private async orderRow(id: string, organizationId?: string): Promise<RowDataPacket> {
     const r = organizationId
-      ? await this.db.one<RowDataPacket>("SELECT * FROM bank_transfer_orders WHERE id = ? AND organization_id = ?", [id, organizationId])
-      : await this.db.one<RowDataPacket>("SELECT * FROM bank_transfer_orders WHERE id = ?", [id]);
+      ? await this.db.one<RowDataPacket>("SELECT b.*, o.name AS organization_name FROM bank_transfer_orders b JOIN organizations o ON o.id = b.organization_id WHERE b.id = ? AND b.organization_id = ?", [id, organizationId])
+      : await this.db.one<RowDataPacket>("SELECT b.*, o.name AS organization_name FROM bank_transfer_orders b JOIN organizations o ON o.id = b.organization_id WHERE b.id = ?", [id]);
     if (!r) throw notFound("Order");
     return r;
   }
@@ -394,9 +406,14 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Revenue totals from the orders table (admin, own organization). One bucket per currency — naira
-   *  and dollars are never added together. See the RevenueSummary contract for the bucket definitions. */
+  /** Revenue totals from the orders table (admin). One bucket per currency — naira
+   *  and dollars are never added together. See the RevenueSummary contract for the bucket definitions.
+   *  The company org's revenue is EVERY customer's money (that is the point of Admin › Billing); a
+   *  customer org sees only its own totals. */
   async revenueSummary(p: Principal): Promise<RevenueSummaryType> {
+    const company = isCompanyOrg(p, this.companyOrgId);
+    const where = company ? "" : "WHERE organization_id = ? ";
+    const args = company ? [] : [p.organizationId];
     const rows = await this.db.rows<RowDataPacket>(
       `SELECT currency,
          SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count,
@@ -407,8 +424,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
          SUM(CASE WHEN status = 'REFUNDED' THEN COALESCE(amount_refunded_minor, 0) ELSE 0 END) AS refunded_total,
          SUM(CASE WHEN status = 'PARTIAL' THEN 1 ELSE 0 END) AS partial_count,
          SUM(CASE WHEN status = 'PARTIAL' THEN amount_received_minor ELSE 0 END) AS partial_total
-       FROM bank_transfer_orders WHERE organization_id = ? GROUP BY currency ORDER BY currency ASC`,
-      [p.organizationId]);
+       FROM bank_transfer_orders ${where}GROUP BY currency ORDER BY currency ASC`,
+      args);
     return RevenueSummary.parse({
       currencies: rows.map((r) => ({
         currency: r.currency,
@@ -511,22 +528,34 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
 
   // -- admin: orders --
 
+  /** The admin order list (ADR-140 §8, the visibility fix): the company org sees EVERY customer's
+   *  order, with the customer's name on each row — otherwise a club's payment could never be confirmed
+   *  in practice. A customer org sees only its own orders, as before. Pending first, then newest. */
   async adminOrders(p: Principal, status?: string): Promise<BankTransferOrderType[]> {
+    // The company org has no org filter at all; a customer org is filtered to its own organisation.
+    // (`1 = 1` keeps one query shape for both.) Either way the customer's name rides on each row.
+    const company = isCompanyOrg(p, this.companyOrgId);
+    const orgFilter = company ? "1 = 1" : "b.organization_id = ?";
+    const orgArgs = company ? [] : [p.organizationId];
     const rows = status
       ? await this.db.rows<RowDataPacket>(
-          `SELECT * FROM bank_transfer_orders WHERE organization_id = ? AND status = ?
-           ORDER BY created_at DESC LIMIT 100`, [p.organizationId, status])
+          `SELECT b.*, o.name AS organization_name FROM bank_transfer_orders b JOIN organizations o ON o.id = b.organization_id
+           WHERE ${orgFilter} AND b.status = ? ORDER BY b.created_at DESC LIMIT 100`,
+          [...orgArgs, status])
       : await this.db.rows<RowDataPacket>(
-          `SELECT * FROM bank_transfer_orders WHERE organization_id = ?
-           ORDER BY CASE status WHEN 'AWAITING_CONFIRMATION' THEN 0 WHEN 'PARTIAL' THEN 1 WHEN 'ORDERED' THEN 2
-             WHEN 'CONFIRMED' THEN 3 WHEN 'REJECTED' THEN 4 WHEN 'REFUNDED' THEN 5 END, created_at DESC LIMIT 100`,
-          [p.organizationId]);
+          `SELECT b.*, o.name AS organization_name FROM bank_transfer_orders b JOIN organizations o ON o.id = b.organization_id
+           WHERE ${orgFilter}
+           ORDER BY CASE b.status WHEN 'AWAITING_CONFIRMATION' THEN 0 WHEN 'PARTIAL' THEN 1 WHEN 'ORDERED' THEN 2
+             WHEN 'CONFIRMED' THEN 3 WHEN 'REJECTED' THEN 4 WHEN 'REFUNDED' THEN 5 END, b.created_at DESC LIMIT 100`,
+          orgArgs);
     return rows.map((r) => this.parseOrder(r));
   }
 
   async adminGetOrder(p: Principal, id: string): Promise<BankTransferOrderType> {
     const row = await this.orderRow(id);
-    ownOrgOrDeny(p, String(row.organization_id));
+    // The company org may open any customer's order (it has to, to confirm it); a customer org
+    // may open only its own.
+    if (!isCompanyOrg(p, this.companyOrgId)) ownOrgOrDeny(p, String(row.organization_id));
     return this.parseOrder(row);
   }
 
@@ -538,7 +567,9 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
    */
   async downloadProof(p: Principal, orderId: string, res: FastifyReply): Promise<void> {
     const row = await this.orderRow(orderId);
-    ownOrgOrDeny(p, String(row.organization_id));
+    // The company org may download any customer's receipt (it has to, to verify the payment); a
+    // customer org may download only its own.
+    if (!isCompanyOrg(p, this.companyOrgId)) ownOrgOrDeny(p, String(row.organization_id));
     const order = this.parseOrder(row);
     const key = row.proof_storage_key as string | null;
     if (!order.proof_filename || !key) throw notFound("Receipt");

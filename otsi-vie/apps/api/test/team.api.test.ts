@@ -89,7 +89,10 @@ describe("invitations", () => {
     const acc = await call("POST", "/v1/auth/invitations/accept", { body: { token: inv.body.token, display_name: "New Person", password: PASSWORD } });
     expect(acc.status).toBe(200);
     expect(acc.cookie).toMatch(/^otsi_vie_refresh=/);
-    expect(acc.body.me.memberships).toEqual([{ organization_id: orgId, organization_name: "Team FC", role: "ANALYST" }]);
+    // the new person is a member of Team FC — and Team FC is not the company org, so the
+    // membership carries is_company_org: false (the bank-account fix adds that flag to every
+    // membership in the Me contract; a company-org member would read true).
+    expect(acc.body.me.memberships).toEqual([{ organization_id: orgId, organization_name: "Team FC", role: "ANALYST", is_company_org: false }]);
     // the link works once
     const again = await call("POST", "/v1/auth/invitations/accept", { body: { token: inv.body.token, display_name: "Someone Else", password: PASSWORD } });
     expect([again.status, again.body.code]).toEqual([410, "INVITATION_USED"]);

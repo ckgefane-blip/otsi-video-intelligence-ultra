@@ -405,9 +405,11 @@ describe("bank-transfer billing", () => {
     expect(after.status).toBe(200);
     expect(after.body.bank_account).toMatchObject({ bank_name: "Zenith Bank", account_number: "1234567890", currency: "NGN" });
     expect(after.body.request.invoice_ref).toBe("INV-2026-777");
-    // another organization, and a viewer, cannot read it
-    expect((await call(owner, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(403);
-    expect((await call(viewer, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(403);
+    // another organization, and a viewer in it, cannot read it. The read looks the request up by
+    // (id, organization), so another org gets "not found" rather than "refused" — either is safe,
+    // and 404 reveals nothing about the request's existence.
+    expect((await call(owner, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(404);
+    expect((await call(viewer, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(404);
   });
 
   it("streams the uploaded receipt back to the admin, and 404s when there is none", async () => {

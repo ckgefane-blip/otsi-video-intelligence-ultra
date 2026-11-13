@@ -8,7 +8,10 @@
  * Needs MySQL 8.4 on 127.0.0.1:3507 (global-setup); it cannot run in this VM without it.
  */
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import type mysql from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -16,16 +19,18 @@ import { Member, rootDb, seedMember, startApi, token } from "./helpers";
 
 let app: NestFastifyApplication;
 let root: mysql.Connection;
+let dir: string;
 /** The company organisation (OTSI) and its owner. */
 let company: Member;
 /** A customer organisation and its owner. */
 let customer: Member;
 
-async function callOn(a: NestFastifyApplication, m: Member | null, method: "GET" | "POST", url: string, body?: unknown) {
-  const r = await a.inject({ method, url, headers: { ...(m?.headers ?? {}) }, ...(body === undefined ? {} : { payload: body as object }) });
-  return { status: r.statusCode, body: r.headers["content-type"]?.toString().includes("json") ? JSON.parse(r.body) : r.rawPayload };
+async function callOn(a: NestFastifyApplication, m: Member | null, method: "GET" | "POST", url: string, body?: unknown, extra: Record<string, string> = {}) {
+  const isRaw = extra["content-type"] === "application/octet-stream";
+  const r = await a.inject({ method, url, headers: { ...(m?.headers ?? {}), ...extra }, ...(body === undefined ? {} : { payload: isRaw ? (body as Buffer) : (body as object) }) });
+  return { status: r.statusCode, headers: r.headers, body: r.headers["content-type"]?.toString().includes("json") ? JSON.parse(r.body) : r.rawPayload };
 }
-const call = (m: Member | null, method: "GET" | "POST", url: string, body?: unknown) => callOn(app, m, method, url, body);
+const call = (m: Member | null, method: "GET" | "POST", url: string, body?: unknown, extra?: Record<string, string>) => callOn(app, m, method, url, body, extra);
 
 /** An organization with one ACTIVE member, WITHOUT the test wallet funding seedMember adds. */
 async function seedBareMember(role = "OWNER"): Promise<Member> {
@@ -55,12 +60,13 @@ async function packRequest(m: Member) {
 }
 
 beforeAll(async () => {
+  dir = await mkdtemp(path.join(tmpdir(), "otsi-vie-company-org-"));
   root = await rootDb();
   // the company organisation (OTSI): the setting names it, so the API under test runs with it set.
   const companyOrgId = uuidv7();
-  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi"]);
+  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi-company"]);
   company = await seedMember(root, "OWNER", companyOrgId);
-  app = await startApi({ companyOrganizationId: companyOrgId });
+  app = await startApi({ storageDir: dir, companyOrganizationId: companyOrgId });
   customer = await seedBareMember();
   // the company's NGN bank account, so the customer can raise an order at all.
   const account = await call(company, "POST", "/v1/admin/billing/bank-accounts",
@@ -71,6 +77,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await app.close();
   await root.end();
+  await rm(dir, { recursive: true, force: true });
 });
 
 describe("company-organisation guard", () => {
@@ -228,6 +235,116 @@ describe("company-organisation guard", () => {
     const one = await call(customer, "GET", `/v1/billing/orders/${order.id}`);
     expect(one.status).toBe(200);
     expect(one.body.order.id).toBe(order.id);
+  });
+});
+
+describe("company-organisation reads: the company org sees every customer's orders (ADR-140 §8)", () => {
+  /** The name seedBareMember gives an organisation, so the test can check the name on each row. */
+  const orgName = (m: Member) => `Org ${m.orgId.slice(-6)}`;
+
+  it("the company org lists every customer's order with the customer's name; a customer lists only its own", async () => {
+    const a = await seedBareMember();
+    const b = await seedBareMember();
+    const orderA = await awaitingOrder(a);
+    const orderB = await awaitingOrder(b);
+    const all = await call(company, "GET", "/v1/admin/billing/orders");
+    expect(all.status).toBe(200);
+    const rows = all.body as { id: string; organization_name: string | null }[];
+    expect(rows.find((o) => o.id === orderA.id)?.organization_name).toBe(orgName(a));
+    expect(rows.find((o) => o.id === orderB.id)?.organization_name).toBe(orgName(b));
+    const mineA = await call(a, "GET", "/v1/admin/billing/orders");
+    expect(mineA.status).toBe(200);
+    expect((mineA.body as { id: string }[]).map((o) => o.id)).toContain(orderA.id);
+    expect((mineA.body as { id: string }[]).map((o) => o.id)).not.toContain(orderB.id);
+    const mineB = await call(b, "GET", "/v1/admin/billing/orders");
+    expect((mineB.body as { id: string }[]).map((o) => o.id)).toContain(orderB.id);
+    expect((mineB.body as { id: string }[]).map((o) => o.id)).not.toContain(orderA.id);
+  });
+
+  it("the company org opens any customer's order; another customer is refused", async () => {
+    const a = await seedBareMember();
+    const b = await seedBareMember();
+    const orderA = await awaitingOrder(a);
+    const opened = await call(company, "GET", `/v1/admin/billing/orders/${orderA.id}`);
+    expect(opened.status).toBe(200);
+    expect(opened.body).toMatchObject({ id: orderA.id, organization_name: orgName(a) });
+    const refused = await call(b, "GET", `/v1/admin/billing/orders/${orderA.id}`);
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("BILLING_ADMIN_OTHER_ORG");
+  });
+
+  it("the company org downloads a customer's receipt; another customer is refused", async () => {
+    const a = await seedBareMember();
+    const b = await seedBareMember();
+    const orderA = await awaitingOrder(a);
+    const pdf = Buffer.from("%PDF-1.4 fake receipt for the test, not a real transfer\n", "utf8");
+    const uploaded = await call(a, "POST", `/v1/billing/orders/${orderA.id}/proof`, pdf,
+      { "content-type": "application/octet-stream", "x-content-type": "application/pdf", "x-file-name": "transfer-receipt.pdf" });
+    expect(uploaded.status).toBe(201);
+    expect(uploaded.body).toMatchObject({
+      proof_filename: "transfer-receipt.pdf",
+      proof_sha256: createHash("sha256").update(pdf).digest("hex"),
+    });
+    const downloaded = await call(company, "GET", `/v1/admin/billing/orders/${orderA.id}/proof`);
+    expect(downloaded.status).toBe(200);
+    expect(Buffer.from(downloaded.body as Buffer).equals(pdf)).toBe(true);
+    expect(String(downloaded.headers["content-disposition"] ?? "")).toContain("transfer-receipt.pdf");
+    const refused = await call(b, "GET", `/v1/admin/billing/orders/${orderA.id}/proof`);
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("BILLING_ADMIN_OTHER_ORG");
+  });
+
+  it("the company org lists every customer's pack request with the customer's name; a customer lists only its own", async () => {
+    const a = await seedBareMember();
+    const b = await seedBareMember();
+    const reqA = await packRequest(a);
+    const reqB = await packRequest(b);
+    const all = await call(company, "GET", "/v1/admin/wallet/pack-requests");
+    expect(all.status).toBe(200);
+    const rows = all.body as { id: string; organization_name: string | null }[];
+    expect(rows.find((r) => r.id === reqA.id)?.organization_name).toBe(orgName(a));
+    expect(rows.find((r) => r.id === reqB.id)?.organization_name).toBe(orgName(b));
+    const mineA = await call(a, "GET", "/v1/admin/wallet/pack-requests");
+    expect((mineA.body as { id: string }[]).map((r) => r.id)).toContain(reqA.id);
+    expect((mineA.body as { id: string }[]).map((r) => r.id)).not.toContain(reqB.id);
+  });
+
+  it("the company org's revenue counts every customer's money; a customer sees only its own", async () => {
+    const a = await seedBareMember();
+    const before = await call(company, "GET", "/v1/admin/billing/revenue-summary");
+    expect(before.status).toBe(200);
+    const ngnBefore = (before.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
+      .find((c) => c.currency === "NGN");
+    const orderA = await awaitingOrder(a);
+    const after = await call(company, "GET", "/v1/admin/billing/revenue-summary");
+    const ngnAfter = (after.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
+      .find((c) => c.currency === "NGN");
+    // one more outstanding order, for exactly the new order's amount (STARTER, 1 month, NGN).
+    expect((ngnAfter?.outstanding.count ?? 0) - (ngnBefore?.outstanding.count ?? 0)).toBe(1);
+    expect((ngnAfter?.outstanding.total_minor ?? 0) - (ngnBefore?.outstanding.total_minor ?? 0)).toBe(orderA.amount_minor);
+    // the customer sees only its own order in its revenue.
+    const mine = await call(a, "GET", "/v1/admin/billing/revenue-summary");
+    expect(mine.status).toBe(200);
+    const ngnMine = (mine.body.currencies as { currency: string; outstanding: { count: number; total_minor: number } }[])
+      .find((c) => c.currency === "NGN");
+    expect(ngnMine?.outstanding).toEqual({ count: 1, total_minor: orderA.amount_minor });
+  });
+
+  it("the company org lists every customer's wallet and reads its ledger; another customer is refused the ledger", async () => {
+    const a = await seedBareMember();
+    const b = await seedBareMember();
+    const all = await call(company, "GET", "/v1/admin/wallet");
+    expect(all.status).toBe(200);
+    const wallets = all.body as { organization_id: string; organization_name: string }[];
+    expect(wallets.map((w) => w.organization_id)).toContain(a.orgId);
+    expect(wallets.find((w) => w.organization_id === a.orgId)?.organization_name).toBe(orgName(a));
+    const mine = await call(a, "GET", "/v1/admin/wallet");
+    expect((mine.body as { organization_id: string }[]).map((w) => w.organization_id)).toEqual([a.orgId]);
+    const ledger = await call(company, "GET", `/v1/admin/wallet/${a.orgId}/ledger`);
+    expect(ledger.status).toBe(200);
+    const refused = await call(b, "GET", `/v1/admin/wallet/${a.orgId}/ledger`);
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("WALLET_ADMIN_OTHER_ORG");
   });
 });
 

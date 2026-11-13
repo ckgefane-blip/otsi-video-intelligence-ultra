@@ -53,6 +53,13 @@ export function requireCompanyOrg(p: Principal, companyOrganizationId: string | 
     throw new ApiError(403, "COMPANY_ORG_ONLY", "Only the company organisation can do this.");
   }
 }
+/** The read side of the same rule (ADR-140 §8): is this caller a member of the company organisation?
+ *  The company org's Admin › Billing reads (orders, pack requests, revenue, wallets) show every
+ *  customer's rows; a customer org's reads show only its own. False when the setting is missing, so
+ *  a read never silently widens to all organisations. */
+export function isCompanyOrg(p: Principal, companyOrganizationId: string | undefined): boolean {
+  return companyOrganizationId !== undefined && p.organizationId === companyOrganizationId;
+}
 export const CurrentPrincipal = createParamDecorator((_: unknown, ctx: ExecutionContext): Principal => {
   const p = (ctx.switchToHttp().getRequest<FastifyRequest>() as FastifyRequest & { principal?: Principal }).principal;
   if (!p) throw new ApiError(401, "UNAUTHENTICATED", "Sign in first.");

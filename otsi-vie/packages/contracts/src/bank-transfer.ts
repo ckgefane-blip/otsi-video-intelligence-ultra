@@ -113,6 +113,10 @@ export type BankAccount = z.infer<typeof BankAccount>;
 export const BankTransferOrder = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid(),
+  /** The paying organisation's name, for the company org's Admin › Billing view (ADR-140 §8): the
+   *  company org sees every customer's order with the customer's name on it; a customer sees only
+   *  their own. Null on customer reads, where the name is the caller's own and not needed. */
+  organization_name: z.string().nullable(),
   plan_code: BillablePlanCode,
   period_months: PlanPeriodMonths,
   amount_minor: z.number().int().positive(),

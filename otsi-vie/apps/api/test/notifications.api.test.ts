@@ -7,6 +7,8 @@ import { key, Member, rootDb, seedMember, seedTracks, startApi } from "./helpers
 
 let app: NestFastifyApplication;
 let root: mysql.Connection;
+/** The company organisation (OTSI): the admin side of the billing bell test runs as it. */
+let company: Member;
 
 async function call(m: Member | null, method: "GET" | "POST", url: string, body?: unknown, extra: Record<string, string> = {}) {
   const r = await app.inject({ method, url, headers: { ...(m?.headers ?? {}), ...extra }, ...(body === undefined ? {} : { payload: body as object }) });
@@ -15,7 +17,13 @@ async function call(m: Member | null, method: "GET" | "POST", url: string, body?
 type N = { id: string; kind: string; title: string; detail: string | null; href: string; unread: boolean };
 const bell = async (m: Member) => (await call(m, "GET", "/v1/notifications")).body as { items: N[]; unread: number; seen_at: string | null; window_days: number };
 
-beforeAll(async () => { app = await startApi(); root = await rootDb(); });
+beforeAll(async () => {
+  root = await rootDb();
+  const companyOrgId = uuidv7();
+  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi-notif"]);
+  company = await seedMember(root, "OWNER", companyOrgId);
+  app = await startApi({ companyOrganizationId: companyOrgId });
+});
 afterAll(async () => { await app?.close(); await root?.end(); });
 
 describe("notifications bell", () => {
@@ -88,7 +96,11 @@ describe("notifications bell", () => {
 
   it("billing: order placed, marked paid, confirmed, rejected and refunded show as BILLING items linking to the order; a subscription ending within 7 days is news too", async () => {
     const m = await seedMember(root, "OWNER");
-    const bank = await call(m, "POST", "/v1/admin/billing/bank-accounts",
+    // The customer places the orders and uploads proof; the company org (OTSI) does the admin side —
+    // bank account, confirm, reject, refund — because the company lock refuses those to a customer
+    // (that 403 is the lock working, not a failure). The bell is the customer's: the BILLING items
+    // are read off the customer's own orders, whoever confirmed them.
+    const bank = await call(company, "POST", "/v1/admin/billing/bank-accounts",
       { currency: "NGN", account_name: "Osio & Tee Solutions International Ltd", bank_name: "Zenith Bank", account_number: "1234567890", swift_iban: null, is_active: true });
     expect(bank.status).toBe(201);
     const create = async (plan: string) =>
@@ -96,18 +108,18 @@ describe("notifications bell", () => {
     // confirmed (placed -> marked paid -> confirmed)
     const done = await create("CLUB");
     await call(m, "POST", `/v1/billing/orders/${done.id}/proof`, {});
-    expect((await call(m, "POST", `/v1/admin/billing/orders/${done.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-1" })).status).toBe(201);
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${done.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-1" })).status).toBe(201);
     // still awaiting: marked paid, not yet confirmed — the "marked paid" item only fires while it awaits
     const awaiting = await create("STARTER");
     await call(m, "POST", `/v1/billing/orders/${awaiting.id}/proof`, { note: "Sent from Karo" });
     // rejected
     const rejected = await create("STARTER");
-    expect((await call(m, "POST", `/v1/admin/billing/orders/${rejected.id}/reject`, { reason: "Wrong plan" })).status).toBe(201);
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${rejected.id}/reject`, { reason: "Wrong plan" })).status).toBe(201);
     // refunded (placed -> marked paid -> confirmed -> refunded)
     const refunded = await create("CLUB");
     await call(m, "POST", `/v1/billing/orders/${refunded.id}/proof`, {});
-    await call(m, "POST", `/v1/admin/billing/orders/${refunded.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-2" });
-    expect((await call(m, "POST", `/v1/admin/billing/orders/${refunded.id}/refund`, { reason: "Charged twice" })).status).toBe(201);
+    await call(company, "POST", `/v1/admin/billing/orders/${refunded.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-2" });
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${refunded.id}/refund`, { reason: "Charged twice" })).status).toBe(201);
 
     const b = await bell(m);
     const billing = b.items.filter((i) => i.kind === "BILLING");

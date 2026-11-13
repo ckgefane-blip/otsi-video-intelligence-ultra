@@ -148,9 +148,11 @@ describe("a charged job that fails is refunded (ADR-140 §7)", () => {
       [purchaseId, a.orgId, `test-purchase:${purchaseId}`]);
     await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, job_type, job_id, idempotency_key, reason) VALUES (?, ?, 'SPEND', -1, 99, 'ANALYSIS', ?, ?, 'Test analysis charge')",
       [uuidv7(), a.orgId, runId, `spend:ANALYSIS:${runId}`]);
-    // the worker marks the run FAILED directly in the database and never calls the API.
-    await root.query("UPDATE worker_jobs SET state = 'FAILED', finished_at = UTC_TIMESTAMP(6) WHERE id = ?", [jobId]);
-    await root.query("UPDATE pipeline_runs SET status = 'FAILED' WHERE id = ?", [runId]);
+    // the worker marks the run FAILED directly in the database and never calls the API. A failed
+    // job MUST carry an error code (worker_jobs.ck_worker_jobs_failed_has_error): marking it failed
+    // without one is refused by the database, so the test sets it, as the real worker does.
+    await root.query("UPDATE worker_jobs SET state = 'FAILED', error_code = 'TEST_FAILURE', error_detail = 'Test failure for the refund test', finished_at = UTC_TIMESTAMP(6) WHERE id = ?", [jobId]);
+    await root.query("UPDATE pipeline_runs SET status = 'FAILED', failure_code = 'TEST_FAILURE', failure_detail = 'Test failure for the refund test' WHERE id = ?", [runId]);
 
     const r = await call(a, "GET", "/v1/jobs");
     expect(r.status).toBe(200);
