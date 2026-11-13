@@ -5,11 +5,12 @@
  * worker's own progress (2), what the worker is doing now and how runs ended (8), and the measured result of a finished run (11).
  * Events come from the followed ball (Analysis), not from this run, so the run lists only its own four steps; nothing is simulated.
  */
-import { PROFILES, type AnalysisProfile, type AnalysisRun, type QualityAssessment, type Video } from "@otsi-vie/contracts";
+import { PROFILES, analysisCostTokens, type AnalysisProfile, type AnalysisRun, type QualityAssessment, type Video } from "@otsi-vie/contracts";
 import { AlertTriangle, CheckCircle2, CircleDashed, Loader2, Play, Square, XCircle } from "lucide-react";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { api, ApiProblem } from "@/lib/api";
 import { formatDuration, formatResolution, formatWhen, NOT_MEASURED } from "@/lib/format";
 import { getDictionary, useLocale, type Dictionary } from "@/lib/i18n";
@@ -105,13 +106,22 @@ export function RunHeadline() {
     if (!asked && video?.state === "INGESTED" && canRun && assessment === null) { setAsked(true); void assess().catch(() => undefined); }
   }, [asked, video?.state, canRun, assessment, assess]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
   if (!video) return <p className="flex items-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" />{dict.body.processing.loadingVideo}</p>;
   const ready = video.state === "INGESTED";
   const chosen: AnalysisProfile = profile ?? assessment?.recommended_profile ?? "STANDARD";
+  // billing blueprint §4.2(2): analysis costs 1 token per started minute. A video with no measured
+  // duration cannot be priced, so it is refused rather than charged a guessed number.
+  const cost = analysisCostTokens(video.duration_us);
+  const title = video.title ?? video.original_filename ?? "";
   const act = (f: () => Promise<void>) => {
     setBusy(true); setMsg(null);
     void f().catch((x) => setMsg(x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork)).finally(() => setBusy(false));
+  };
+  const ask = () => {
+    if (cost === null) { setMsg(dict.body.wallet.cpNoDuration); return; }
+    setPreview(true);
   };
   return (
     <div className="space-y-3 text-sm" data-video={video.id}>
@@ -119,7 +129,7 @@ export function RunHeadline() {
         <span className="text-muted">· {formatDuration(video.duration_us)} · {formatResolution(video.width, video.height)}</span></p>
       {!ready && <p className="text-muted">{dict.body.processing.notVerifiedVideo.replace("{a}", video.state.toLowerCase())}</p>}
       {ready && !active(run) && canRun && (
-        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); act(() => start(chosen, fps)); }}>
+        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <FootageCheck assessment={assessment} />
           <fieldset className="space-y-1.5" aria-label={dict.body.processing.profileAria}>
             <legend className="mb-1 text-xs text-muted">{dict.body.processing.profileAria}{assessment?.recommended_profile ? ` ${dict.body.processing.recommendedPreselected}` : ""}</legend>
@@ -151,6 +161,11 @@ export function RunHeadline() {
           </div>
           <p className="text-[11px] text-muted">{dict.body.processing.identityRulesNote}</p>
         </form>
+      )}
+      {cost !== null && (
+        <CostPreviewDialog
+          action={dict.body.wallet.cpAnalyse.replace("{a}", title).replace("{b}", String(cost))}
+          cost={cost} open={preview} onOpenChange={setPreview} onConfirm={() => act(() => start(chosen, fps))} />
       )}
       {ready && !canRun && !run && <p className="text-muted">{dict.body.processing.roleViewAnalyses}</p>}
       {active(run) && canRun && (

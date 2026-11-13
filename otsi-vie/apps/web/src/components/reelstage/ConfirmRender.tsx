@@ -9,9 +9,10 @@
  * estimateLine return English strings and must not be edited), so the confirmation is translated in every locale.
  */
 import * as Dialog from "@radix-ui/react-dialog";
-import { type Reel, type RenderEstimate, type SpotlightSettings } from "@otsi-vie/contracts";
+import { TOKEN_COSTS, type Reel, type RenderEstimate, type SpotlightSettings } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { CostSummary, useWalletAffordability } from "@/components/wallet/CostPreview";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 
 /** duration words from the dictionary (the contracts durationWords is English-only): "45 s" / "4 min" / "1 h 5 min". */
@@ -72,6 +73,10 @@ export function ConfirmRender({ reel, settings, codec, dirty, open, onOpenChange
   // the music picker left the Reel Builder (music is chosen in Clip Studio): the row says a track is chosen, or none
   const tune = settings.music_id ? dict.body.reelstage.musicChosenFallback : null;
   const rows = summaryRows(dict.body.reelstage, reel, settings, codec, tune);
+  // billing blueprint §4.2(2): a render costs 10 tokens. The cost is shown here, in this same
+  // confirmation, and Start is disabled while the balance cannot cover it.
+  const afford = useWalletAffordability(TOKEN_COSTS.reelRender);
+  const canStart = afford.state === "ok" || afford.state === "unknown";
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -84,9 +89,12 @@ export function ConfirmRender({ reel, settings, codec, dirty, open, onOpenChange
           </dl>
           {dirty && <p className="mb-2 text-xs text-[#f5b82e]" data-unsaved>{dict.body.reelstage.unsavedFirst}</p>}
           <p className="mb-3 text-xs" data-estimate>{failed ? dict.body.reelstage.estimateNone : estimateText(dict.body.reelstage, est)}</p>
+          <div className="mb-3 border-t border-line pt-3">
+            <CostSummary action={dict.body.reels.renderReel} cost={TOKEN_COSTS.reelRender} />
+          </div>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => onOpenChange(false)} className="rounded-ctl border border-line px-3 py-1.5">{dict.body.reels.backToEditing}</button>
-            <button type="button" data-start-render onClick={() => { onOpenChange(false); onStart(); }} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">{dict.body.reels.startRender}</button>
+            <button type="button" data-start-render disabled={!canStart} onClick={() => { onOpenChange(false); onStart(); }} className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">{dict.body.reels.startRender}</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

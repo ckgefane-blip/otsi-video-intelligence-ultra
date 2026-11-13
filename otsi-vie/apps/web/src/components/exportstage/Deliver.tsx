@@ -11,9 +11,10 @@
  * own mail app with it (mailto). The server cannot know the email was sent: it records "handed to your mail app" and counts link openings.
  */
 import * as Dialog from "@radix-ui/react-dialog";
-import { BUNDLE_ITEM_NAMES, type BundleItemKind, type CreatedDelivery, type Delivery, type ExportBundle } from "@otsi-vie/contracts";
+import { BUNDLE_ITEM_NAMES, TOKEN_COSTS, type BundleItemKind, type CreatedDelivery, type Delivery, type ExportBundle } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
 import type { ExportState } from "./state";
 import { ReportPreviewDialog } from "./ReportPreview";
@@ -33,6 +34,8 @@ export interface Outbox {
   making: boolean;
   err: string | null;
   make(): Promise<ExportBundle | null>;
+  /** making the ticked files would charge 10 tokens: no finished bundle covers this render + picks yet */
+  needsMake: boolean;
   downloadAll(): void;
   notifyTeam: boolean;
   setNotifyTeam(b: boolean): void;
@@ -69,6 +72,10 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
   useEffect(() => { setErr(null); void load(); }, [load, renderId]);
 
   const bundle = (bundles ?? []).filter((b) => b.render_id === renderId).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+  // billing blueprint §4.2(2): making a pack costs 10 tokens, and the server charges every new bundle.
+  // Download All reuses a finished bundle that already covers this render + picks, so it only charges
+  // when no such bundle exists — the callers ask first exactly then.
+  const needsMake = picks.length > 0 && !(bundle?.completed_at && bundle.requested.length === picks.length && picks.every((k) => bundle.requested.includes(k)));
   // the outbox object is memoised (with the provider value): the page polls the reels every 2 s while a render runs
   const toggle = useCallback((k: BundleItemKind) => setPicks((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k])), []);
   const make = useCallback(async () => {
@@ -100,20 +107,23 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
   }, [picks, bundle, make, reelId, e.links]);
   const setMessageCapped = useCallback((s: string) => setMessage(s.slice(0, MESSAGE_MAX)), []);
   return useMemo(() => ({
-    picks, toggle, bundle, making, err, make, downloadAll,
+    picks, toggle, bundle, making, err, make, needsMake, downloadAll,
     notifyTeam, setNotifyTeam, notifyClient, setNotifyClient, message, setMessage: setMessageCapped, dialog, setDialog, deliveries,
     reloadDeliveries: load,
-  }), [picks, toggle, bundle, making, err, make, downloadAll, notifyTeam, notifyClient, message, setMessageCapped, dialog, deliveries, load]);
+  }), [picks, toggle, bundle, making, err, make, needsMake, downloadAll, notifyTeam, notifyClient, message, setMessageCapped, dialog, deliveries, load]);
 }
 
 /** Section 10 Output & Reports: the four companion files of the finished render */
 export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
+  const { t: dict } = useLocale();
   const renderId = e.reel?.last_good_render?.has_output ? e.reel.last_good_render.id : null;
   const can = e.canEdit && !!renderId && !o.making;
   const off = !e.reel ? "Open a reel first" : !renderId ? "Render the reel first: the files belong to a finished render" : !e.canEdit ? "Your role can look, not make files" : "Making the files…";
   // B.23 (ADR-098): a report not made yet can be previewed (rule-built now, nothing saved); a made one opens its file
   const [preview, setPreview] = useState<"PERFORMANCE_PDF" | "CLIP_SHEET_PDF" | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // billing blueprint §4.2(2): making the pack costs 10 tokens — Make files asks first.
+  const [costPreview, setCostPreview] = useState(false);
   const canPreview = !!e.reel?.player;
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -121,10 +131,13 @@ export function Reports({ e, o }: { e: ExportState; o: Outbox }) {
         {o.making && <span className="text-xs text-muted">Making…</span>}
         <button type="button" aria-label={`Make the ticked files (${o.picks.length})`}
           onClick={() => {
-            if (can && o.picks.length) void o.make();
+            if (can && o.picks.length) setCostPreview(true);
             else setNote(can ? "Tick at least one file" : off);
           }}
           className={`text-sm ${can && o.picks.length ? "text-primary hover:underline" : "text-muted"}`}>Make files</button>
+        <CostPreviewDialog
+          action={dict.body.wallet.cpExportPack.replace("{a}", e.reel?.name ?? "")}
+          cost={TOKEN_COSTS.exportPack} open={costPreview} onOpenChange={setCostPreview} onConfirm={() => void o.make()} />
       </div>
       {note && <p role="status" className="text-xs text-muted">{note}</p>}
       {KINDS.map((k) => {

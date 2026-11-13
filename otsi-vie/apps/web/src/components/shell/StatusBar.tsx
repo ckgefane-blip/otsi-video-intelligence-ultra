@@ -14,6 +14,7 @@ import { fill } from "@/lib/fill";
 import { useLocale } from "@/lib/i18n";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { formatGB, useTierLimit } from "@/lib/uploadTier";
+import { ActivityLine } from "./ActivityLine";
 
 export function StatusBar() {
   const { t } = useLocale();
@@ -36,9 +37,10 @@ export function StatusBar() {
 
   return (
     <footer data-status-bar className="flex min-h-[28px] shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line bg-p0 px-3.5 text-muted">
-      <div className="flex flex-wrap items-center gap-x-[18px] gap-y-1">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-[18px] gap-y-1">
         <Item led={lic === null ? "warn" : lic ? "ok" : undefined} label={d.licence} value={licence} />
         <Item led={measured ? "ok" : "warn"} label={d.accuracy} value={measured ? d.accuracyMeasured : d.accuracyNotMeasured} />
+        <ActivityLine />
       </div>
       <div className="flex flex-wrap items-center gap-x-[18px] gap-y-1">
         {tierName && lim?.maxBytes ? (

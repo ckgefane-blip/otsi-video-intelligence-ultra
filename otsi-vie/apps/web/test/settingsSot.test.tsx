@@ -45,7 +45,7 @@ function mockApi(settings?: { library_folder?: string | null; cache_folder?: str
     if (url === "/v1/me/two-step") return Promise.resolve({ enabled: false, recovery_codes_left: 10 });
     if (url === "/v1/settings/storage") return settings === undefined ? Promise.reject(new Error("no settings yet")) : Promise.resolve(settings);
     if (url === "/v1/wallet") return Promise.resolve(walletBalance);
-    if (url === "/v1/wallet/ledger?limit=100") return Promise.resolve({ balance: walletBalance, entries: [] });
+    if (url === "/v1/wallet/ledger?limit=200") return Promise.resolve({ balance: walletBalance, entries: [] });
     if (url === "/v1/wallet/packs") return Promise.resolve(tokenPackCatalogue());
     if (url === "/v1/wallet/packs/requests") return Promise.resolve([]);
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -210,7 +210,7 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByText("1 token / min")).toBeInTheDocument();
     expect(screen.getByText("10 tokens")).toBeInTheDocument();
     expect(screen.getByText("Free grant")).toBeInTheDocument();
-    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("25")).toBeInTheDocument(); // ADR-140 approved grant (reverted from the 100-token proposal in 66db384)
     expect(screen.getByText("Valid 30 days. One per organisation.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument();
     expect(screen.getByText("Free · 2 GB in total")).toBeInTheDocument();

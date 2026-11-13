@@ -14,9 +14,11 @@
  * fixed height so a long assessment never overflows the page.
  */
 import type { AiAnalystAssessment, AiAnalystClaim, AiAnalystProviderStatus } from "@otsi-vie/contracts";
+import { TOKEN_COSTS } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
 
 const CONFIDENCE_STYLE: Record<string, { color: string; background: string }> = {
@@ -71,6 +73,9 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
+  // billing blueprint §4.2(2): an AI Analyst assessment costs 10 tokens — Generate and
+  // Regenerate both ask first, through the one cost preview.
+  const [preview, setPreview] = useState(false);
 
   const load = useCallback(() => {
     setAssessment(undefined);
@@ -133,7 +138,7 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
                 <span>{dict.body.aiAnalyst.consent}</span>
               </label>
-              <button type="button" disabled={busy || !consent} onClick={generate} className="vie-btn vie-btn-pri">
+              <button type="button" disabled={busy || !consent} onClick={() => setPreview(true)} className="vie-btn vie-btn-pri">
                 {dict.body.aiAnalyst.generate}
               </button>
             </>
@@ -253,12 +258,15 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <span>{dict.body.aiAnalyst.consent}</span>
           </label>
-          <button type="button" disabled={busy || !consent} onClick={generate} className="vie-btn">
+          <button type="button" disabled={busy || !consent} onClick={() => setPreview(true)} className="vie-btn">
             {dict.body.aiAnalyst.regenerate}
           </button>
           <span className="t-small">{dict.body.aiAnalyst.costNote}</span>
         </div>
       )}
+      <CostPreviewDialog
+        action={dict.body.aiAnalyst.title}
+        cost={TOKEN_COSTS.aiAnalysis} open={preview} onOpenChange={setPreview} onConfirm={generate} />
       {a?.stale && <p role="alert" className="mt-3 t-body text-amber">{dict.body.aiAnalyst.stale}</p>}
     </section>
   );

@@ -4,9 +4,10 @@
  * (hero Edit, Scouting Report "View Full Report"). Each reads and writes through the API; nothing is kept only in the page.
  */
 import * as Dialog from "@radix-ui/react-dialog";
-import { DEFAULT_REPORT_DESIGN, REPORT_SECTIONS, type AssessmentBody, type CreatedReportShareLink, type Dossier, type PlayerAssessment, type PlayerIdentity, type PlayerNotes, type PlayerReportJob,
+import { DEFAULT_REPORT_DESIGN, REPORT_SECTIONS, TOKEN_COSTS, type AssessmentBody, type CreatedReportShareLink, type Dossier, type PlayerAssessment, type PlayerIdentity, type PlayerNotes, type PlayerReportJob,
   type ReportDesign, type ReportGate, type ReportShareLink } from "@otsi-vie/contracts";
 import { ReportDesigner } from "./ReportDesigner";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ApiProblem } from "@/lib/api";
@@ -158,6 +159,8 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
   const [links, setLinks] = useState<ReportShareLink[] | null>(null);
   const [busy, setBusy] = useState(false), [err, setErr] = useState<string | null>(null);
   const [days, setDays] = useState(7), [download, setDownload] = useState(false), [pw, setPw] = useState<string | null>(null), [made, setMade] = useState<string | null>(null), [copied, setCopied] = useState(false);
+  // billing blueprint §4.2(2): a player report costs 10 tokens — the Make button asks first.
+  const [preview, setPreview] = useState(false);
   // B.24 (ADR-099): the design of the next PDF, and whether a report may leave the page (a person confirmed a track as him)
   const [design, setDesign] = useState<ReportDesign>(DEFAULT_REPORT_DESIGN);
   const [gate, setGate] = useState<ReportGate | null>(null);
@@ -194,8 +197,11 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
           <section aria-label={dict.body.reports.pdfReports} className="grid gap-2">
             <div className="flex items-center gap-2">
               <h3 className="font-normal">{dict.body.reports.pdfReports}</h3>
-              {canMake && !share && <button type="button" data-make-pdf disabled={busy || blocked} title={blocked ? gate!.reasons.join(" ") : undefined} onClick={() => void make()} className={`${btn} ml-auto`}>{busy ? dict.body.reports.makingPdf : blocked ? dict.body.reports.identityNotConfirmed : latest ? dict.body.reports.makeNewPdf : dict.body.reports.makePdf}</button>}
+              {canMake && !share && <button type="button" data-make-pdf disabled={busy || blocked} title={blocked ? gate!.reasons.join(" ") : undefined} onClick={() => setPreview(true)} className={`${btn} ml-auto`}>{busy ? dict.body.reports.makingPdf : blocked ? dict.body.reports.identityNotConfirmed : latest ? dict.body.reports.makeNewPdf : dict.body.reports.makePdf}</button>}
             </div>
+            <CostPreviewDialog
+              action={dict.body.wallet.cpPlayerReport.replace("{a}", player.display_name)}
+              cost={TOKEN_COSTS.playerReport} open={preview} onOpenChange={setPreview} onConfirm={() => void make()} />
             {!jobs.length ? <p className="t-small">{dict.body.reports.pdfNone}</p> : (
               <ul className="grid gap-1" data-reports={String(jobs.length)}>
                 {jobs.slice(0, 6).map((j) => (

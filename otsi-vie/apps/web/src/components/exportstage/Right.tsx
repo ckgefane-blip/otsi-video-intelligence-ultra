@@ -17,8 +17,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Reel, ReelAspectT } from "@otsi-vie/contracts";
+import { TOKEN_COSTS } from "@otsi-vie/contracts";
 import { Check, Cloud, Download, FileText, Film, LayoutTemplate, Plus, Send } from "lucide-react";
 import { api } from "@/lib/api";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
 import { DeliverDialog, MESSAGE_MAX, Reports, type Outbox } from "./Deliver";
 import { SharePanel } from "./Share";
@@ -298,6 +300,9 @@ export function ExportFooter() {
   const ready = r?.state === "SUCCEEDED" && !!e.links;
   const last = o.deliveries?.find((d) => d.state === "SUCCEEDED") ?? null;
   const [note, setNote] = useState<string | null>(null);
+  // billing blueprint §4.2(2): Download All makes the pack (10 tokens) when no finished bundle
+  // covers this render + picks yet — then it asks first. Re-downloading a made pack is free.
+  const [costPreview, setCostPreview] = useState(false);
   return (
     <section aria-label="Render progress" data-section="p10-s13" data-render-state={r?.state ?? "NONE"} className="vie-panel p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -339,10 +344,14 @@ export function ExportFooter() {
             if (!ready) return setNote("Nothing has been rendered yet");
             if (o.making) return setNote("Making the files…");
             if (o.picks.length && !e.canEdit) return setNote("Your role can download the render; untick the files");
+            if (o.needsMake) return setCostPreview(true);
             o.downloadAll();
           }} className="vie-btn">
           <Download className="h-4 w-4" aria-hidden />{dict.body.exports.downloadAll}
         </button>
+        <CostPreviewDialog
+          action={dict.body.wallet.cpExportPack.replace("{a}", e.reel?.name ?? "")}
+          cost={TOKEN_COSTS.exportPack} open={costPreview} onOpenChange={setCostPreview} onConfirm={() => o.downloadAll()} />
         <button type="button" aria-label={dict.body.exports.deliverToClient}
           onClick={() => {
             if (!ready) return setNote("Render the reel first");

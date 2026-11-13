@@ -57,10 +57,20 @@ describe("ScoutingPackDialog", () => {
   });
 
   it("builds the Pack and lists it with its manifest and download", async () => {
-    api.mockResolvedValueOnce([]).mockResolvedValueOnce(pack);
+    api.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url === "/v1/wallet") return Promise.resolve({ organization_id: "0190a000-0000-7000-8000-000000000001", balance: 500, spendable_balance: 500, expired_unwritten_off: 0, low_balance: false });
+      if (url.endsWith("/scouting-packs")) {
+        if (init?.method === "POST") return Promise.resolve(pack);
+        return Promise.resolve([]);
+      }
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
     render(<ScoutingPackDialog reel={reel} canWrite open onOpenChange={() => undefined} />);
     await waitFor(() => expect(screen.getByText("No Scouting Pack yet for this player.")).toBeTruthy());
     fireEvent.click(screen.getByText(/Build the Scouting Pack/));
+    // the Pack costs 10 tokens: the cost preview asks first, then the build runs
+    await waitFor(() => expect(document.querySelector("[data-confirm-cost]")).toBeTruthy());
+    fireEvent.click(document.querySelector("[data-confirm-cost]")!);
     await waitFor(() => expect(screen.getByText("Scouting Pack built — 10 tokens.")).toBeTruthy());
     expect(api).toHaveBeenCalledWith(`/v1/players/${PLAYER}/scouting-packs`, expect.objectContaining({ method: "POST" }));
     const row = screen.getByText(/Scouting Pack — Test Player/);
@@ -72,10 +82,19 @@ describe("ScoutingPackDialog", () => {
 
   it("names the failure when the build is refused", async () => {
     const { ApiProblem } = await import("@/lib/api");
-    api.mockResolvedValueOnce([]).mockRejectedValueOnce(new ApiProblem(409, "NOT_RENDERED", "Render the reel first: the Scouting Pack holds the finished reel file."));
+    api.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url === "/v1/wallet") return Promise.resolve({ organization_id: "0190a000-0000-7000-8000-000000000001", balance: 500, spendable_balance: 500, expired_unwritten_off: 0, low_balance: false });
+      if (url.endsWith("/scouting-packs")) {
+        if (init?.method === "POST") return Promise.reject(new ApiProblem(409, "NOT_RENDERED", "Render the reel first: the Scouting Pack holds the finished reel file."));
+        return Promise.resolve([]);
+      }
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
     render(<ScoutingPackDialog reel={reel} canWrite open onOpenChange={() => undefined} />);
     await waitFor(() => expect(screen.getByText("No Scouting Pack yet for this player.")).toBeTruthy());
     fireEvent.click(screen.getByText(/Build the Scouting Pack/));
+    await waitFor(() => expect(document.querySelector("[data-confirm-cost]")).toBeTruthy());
+    fireEvent.click(document.querySelector("[data-confirm-cost]")!);
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
     expect(screen.getByRole("alert").textContent).toContain("Render the reel first");
   });

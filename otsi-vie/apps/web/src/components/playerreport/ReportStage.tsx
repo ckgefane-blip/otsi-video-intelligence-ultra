@@ -15,6 +15,7 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { AiAnalystAssessment, AiAnalystProviderStatus, PlayerAssessment, PlayerEvents, PlayerIdentity, PlayerListEntry, PlayerMeasures, PlayerProfile, Reel } from "@otsi-vie/contracts";
+import { TOKEN_COSTS } from "@otsi-vie/contracts";
 import { ListOrdered, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,7 @@ import { typing } from "@/lib/keymap";
 import { ActionMapSection, CompareSection, EventsSection, HeatmapSection, InsightsSection, ScoutingSection, usePlayerEvents } from "./Bottom";
 import { AssessmentDialog, DossierDialog, NotesDialog, ReportDialog, type DialogName } from "./Dialogs";
 import { AiAnalystPanel } from "./AiAnalystPanel";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { Hero, KpiSubset, RAIL, type Report } from "./Top";
 import { HeatPitch } from "@/components/workspace/HeatPitch";
 
@@ -199,6 +201,8 @@ function AiBriefPanel({ r }: { r: Report }) {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // billing blueprint §4.2(2): an AI Analyst assessment costs 10 tokens — Generate asks first.
+  const [preview, setPreview] = useState(false);
   const load = useCallback(() => {
     if (!id) return;
     setAssessment(undefined); setErr(null);
@@ -243,9 +247,12 @@ function AiBriefPanel({ r }: { r: Report }) {
               <span>{dict.body.reports.rpConsent}</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" disabled={busy || !id || !consent} onClick={generate} className="vie-btn vie-btn-pri">{dict.body.reports.rpGenerateBrief}</button>
+              <button type="button" disabled={busy || !id || !consent} onClick={() => setPreview(true)} className="vie-btn vie-btn-pri">{dict.body.reports.rpGenerateBrief}</button>
               <button type="button" disabled={busy || !a || a.status !== "DRAFT"} onClick={publish} className="vie-btn">{dict.body.reports.rpPublishBrief}</button>
             </div>
+            <CostPreviewDialog
+              action={dict.body.aiAnalyst.title}
+              cost={TOKEN_COSTS.aiAnalysis} open={preview} onOpenChange={setPreview} onConfirm={generate} />
           </>
         ) : <p className="t-body text-muted">{dict.body.reports.cannotWriteAssessments}</p>}
         <p className="t-small">{dict.body.reports.rpReviewToPublish}</p>

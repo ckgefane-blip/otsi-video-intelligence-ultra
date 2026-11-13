@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
+import { UsageHistory } from "./UsageHistory";
 
 const money = (minor: number, currency: "NGN" | "USD") =>
   currency === "NGN" ? `₦${(minor / 100).toLocaleString("en-NG")}` : `$${(minor / 100).toFixed(2)}`;
@@ -53,7 +54,9 @@ export function WalletView() {
     try {
       const [b, ledger, cat, reqs] = await Promise.all([
         api<WalletBalance>("/v1/wallet"),
-        api<{ balance: WalletBalance; entries: WalletLedgerEntry[] }>("/v1/wallet/ledger?limit=100"),
+        // the API caps the ledger at 200 rows: the usage history below groups these same rows,
+        // so a month with more than 200 ledger rows is under-counted there (the ledger table too).
+        api<{ balance: WalletBalance; entries: WalletLedgerEntry[] }>("/v1/wallet/ledger?limit=200"),
         api<TokenPackCatalogue>("/v1/wallet/packs"),
         api<PackRequest[]>("/v1/wallet/packs/requests"),
       ]);
@@ -202,6 +205,8 @@ export function WalletView() {
           </div>
         </section>
       )}
+
+      <UsageHistory entries={entries} />
 
       <div className="grid flex-1 gap-3 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
         <section className="flex min-w-0 flex-col border-t border-line pt-3" aria-labelledby="pr">

@@ -67,6 +67,8 @@ const assessment = (over: Partial<AiAnalystAssessment> = {}): AiAnalystAssessmen
 
 function mockApi(a: AiAnalystAssessment | null, s: AiAnalystProviderStatus = status()) {
   api.mockImplementation((path: string, init?: { method?: string; json?: unknown }) => {
+    // the cost preview reads the wallet before the 10-token assessment runs
+    if (path === "/v1/wallet") return Promise.resolve({ organization_id: "0190a000-0000-7000-8000-000000000001", balance: 500, spendable_balance: 500, expired_unwritten_off: 0, low_balance: false });
     if (path.endsWith("/ai-analysis/status")) return Promise.resolve(s);
     if (path.endsWith("/ai-analysis")) {
       if (init?.method === "POST") return Promise.resolve(assessment({ status: "DRAFT" }));
@@ -110,6 +112,9 @@ describe("AiAnalystPanel", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     expect((button as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(button);
+    // the assessment costs 10 tokens: the cost preview asks first, then the request runs
+    await waitFor(() => expect(document.querySelector("[data-confirm-cost]")).toBeTruthy());
+    fireEvent.click(document.querySelector("[data-confirm-cost]")!);
     await waitFor(() => expect(api).toHaveBeenCalledWith(
       `/v1/players/${PLAYER}/ai-analysis`,
       expect.objectContaining({ method: "POST", json: expect.objectContaining({ consent_acknowledged: true }) }),

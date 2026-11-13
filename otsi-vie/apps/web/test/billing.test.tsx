@@ -167,7 +167,7 @@ describe("Wallet pack payment details", () => {
   it("shows the bank details and invoice reference for an invoiced pack request", async () => {
     api.mockImplementation((url: string) => {
       if (url === "/v1/wallet") return Promise.resolve(walletBalance);
-      if (url === "/v1/wallet/ledger?limit=100") return Promise.resolve({ balance: walletBalance, entries: [] });
+      if (url === "/v1/wallet/ledger?limit=200") return Promise.resolve({ balance: walletBalance, entries: [] });
       if (url === "/v1/wallet/packs") return Promise.resolve(tokenPackCatalogue());
       if (url === "/v1/wallet/packs/requests") return Promise.resolve([packRequest()]);
       if (url === `/v1/wallet/packs/requests/${packRequest().id}`) {
@@ -187,7 +187,7 @@ describe("Wallet pack payment details", () => {
   it("tells the user the invoice is being prepared for a requested pack", async () => {
     api.mockImplementation((url: string) => {
       if (url === "/v1/wallet") return Promise.resolve(walletBalance);
-      if (url === "/v1/wallet/ledger?limit=100") return Promise.resolve({ balance: walletBalance, entries: [] });
+      if (url === "/v1/wallet/ledger?limit=200") return Promise.resolve({ balance: walletBalance, entries: [] });
       if (url === "/v1/wallet/packs") return Promise.resolve(tokenPackCatalogue());
       if (url === "/v1/wallet/packs/requests") return Promise.resolve([packRequest({ status: "REQUESTED", invoice_ref: null })]);
       if (url === `/v1/wallet/packs/requests/${packRequest().id}`) {

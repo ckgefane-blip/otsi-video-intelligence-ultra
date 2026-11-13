@@ -16,6 +16,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { SCOUTING_PACK_COST_TOKENS, SCOUTING_PACK_ITEM_LABELS, SCOUTING_PACK_SOURCE_LABELS, type Reel, type ScoutingPack } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
+import { CostPreviewDialog } from "@/components/wallet/CostPreview";
+import { useLocale } from "@/lib/i18n";
 
 const STATE_TONE: Record<string, string> = { INCLUDED: "#3ee6a8", EXCLUDED: "#f5b82e", NOT_MEASURED: "#f5b82e", FAILED: "#ff8a8a" };
 
@@ -25,12 +27,15 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
   open: boolean;
   onOpenChange(o: boolean): void;
 }) {
+  const { t: dict } = useLocale();
   const player = reel?.player ?? null;
   const source = reel?.source === "ALL_MATCHES" ? "CROSS_MATCH" as const : "SINGLE_MATCH" as const;
   const [packs, setPacks] = useState<ScoutingPack[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // billing blueprint §4.2(2): the Pack costs 10 tokens — Build asks first.
+  const [preview, setPreview] = useState(false);
   const [includeReport, setIncludeReport] = useState(true);
   const [includeBrief, setIncludeBrief] = useState(true);
 
@@ -86,11 +91,14 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
               {err ? <p role="alert" data-scouting-pack-error className="mb-3 text-xs text-[#ff8a8a]">{err}</p> : null}
               {msg ? <p data-scouting-pack-message className="mb-3 text-xs text-[#3ee6a8]">{msg}</p> : null}
               <div className="mb-3 flex flex-wrap gap-2">
-                <button type="button" data-build-scouting-pack onClick={build} disabled={busy || !canWrite || !reel.last_good_render}
+                <button type="button" data-build-scouting-pack onClick={() => setPreview(true)} disabled={busy || !canWrite || !reel.last_good_render}
                   title={reel.last_good_render ? "Build the Scouting Pack (10 tokens)" : "Render the reel first"}
                   className="rounded bg-primary px-3 py-1.5 font-normal text-white disabled:opacity-50">
                   {busy ? "Building…" : `Build the Scouting Pack — ${SCOUTING_PACK_COST_TOKENS} tokens`}
                 </button>
+                <CostPreviewDialog
+                  action={dict.body.wallet.cpScoutingPack.replace("{a}", player.display_name)}
+                  cost={SCOUTING_PACK_COST_TOKENS} open={preview} onOpenChange={setPreview} onConfirm={build} />
                 {!reel.last_good_render ? <span className="self-center text-xs text-muted">Render the reel first: the Pack holds the finished reel file.</span> : null}
                 {!canWrite ? <span className="self-center text-xs text-muted">Your role can look, not build.</span> : null}
               </div>
