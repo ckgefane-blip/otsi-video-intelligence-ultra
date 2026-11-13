@@ -37,6 +37,7 @@ export const kindVisible = (prefs: NotificationPrefs, kind: NotificationKind): b
     case "COMMENT": return prefs.comment;
     case "BILLING": return prefs.wallet;
     case "RIGHTS": return true; // rights ending has no SOT row; always shown
+    case "BILLING": return prefs.wallet; // plan orders paid by bank transfer go with the wallet row
   }
 };
 

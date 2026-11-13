@@ -175,6 +175,32 @@ describe("bank-transfer billing", () => {
       proof_size_bytes: pdf.length, proof_sha256: createHash("sha256").update(pdf).digest("hex"),
     });
     expect(r.body.proof_uploaded_at).toBeTruthy();
+    // the stored receipt comes back byte for byte, to the payer and to the Admin; never to another organization
+    const mine = await app.inject({ method: "GET", url: `/v1/billing/orders/${created.order.id}/proof`, headers: m.headers });
+    expect(mine.statusCode).toBe(200);
+    expect(mine.headers["content-type"]).toContain("application/pdf");
+    expect(mine.rawPayload.equals(pdf)).toBe(true);
+    const adminView = await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: m.headers });
+    expect(adminView.statusCode).toBe(200);
+    expect(adminView.rawPayload.equals(pdf)).toBe(true);
+    expect((await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: owner.headers })).statusCode).toBe(403);
+    // the Admin's bell says a payment waits for confirmation
+    const bell = await call(m, "GET", "/v1/notifications");
+    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `order:${created.order.id}:waiting`, kind: "BILLING", href: "/settings/admin/billing" })]));
+  });
+
+  it("an order marked paid with no file has no receipt to download; a confirmed order is news in the bell", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "STARTER", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const none = await call(m, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`);
+    expect(none.status).toBe(404);
+    expect(none.body.code).toBe("PROOF_NOT_FOUND");
+    await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: created.order.amount_minor, bank_reference: "BANK-REF-2001" });
+    const bell = await call(m, "GET", "/v1/notifications");
+    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `order:${created.order.id}:confirmed`, kind: "BILLING", title: "Payment confirmed: your plan is active", href: "/settings/plans" })]));
+    expect(bell.body.items.find((i: { id: string }) => i.id === `order:${created.order.id}:waiting`)).toBeUndefined();
   });
 
   it("rejection never activates: no subscription, no grant, no wallet credit, and it cannot be confirmed after", async () => {

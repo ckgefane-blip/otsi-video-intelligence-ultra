@@ -36,6 +36,7 @@ export function AppTopBar() {
         <span className="vie-kbd">Ctrl K</span>
       </button>
       <TokenCounter />
+      <Link href="/settings/billing" className="btn sm" data-upgrade title={t.body.plans.title}>{t.body.plans.upgrade}</Link>
       <ThemeSwitch />
       <JobTray styles={styles} />
       <NotificationBell styles={styles} />

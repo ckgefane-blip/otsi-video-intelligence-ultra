@@ -11,7 +11,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { useLocale } from "@/lib/i18n";
 
-export type SettingsNavCurrent = "team" | "security" | "wallet" | "admin" | "billing";
+export type SettingsNavCurrent = "team" | "security" | "wallet" | "plans" | "admin" | "billing";
 
 export function SettingsNav({ current }: { current: SettingsNavCurrent }) {
   const { t } = useLocale();
@@ -24,6 +24,7 @@ export function SettingsNav({ current }: { current: SettingsNavCurrent }) {
     { id: "team" as const, href: "/settings/team", label: t.body.shell.teamRoles },
     { id: "security" as const, href: "/settings/security", label: t.body.shell.twoStep },
     { id: "wallet" as const, href: "/settings/wallet", label: t.body.shell.tokenWallet },
+    { id: "plans" as const, href: "/settings/billing", label: t.body.plans.title },
     ...(mode === "advanced"
       ? [
           { id: "admin" as const, href: "/settings/admin", label: t.body.shell.adminConsole },

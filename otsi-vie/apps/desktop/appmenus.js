@@ -38,6 +38,7 @@ function menuTemplate(name, ctx) {
         go('Export and delivery', '/exports'),
         sep,
         // the Token Wallet's "Buy a token pack" steps (WalletView, section #tp): nothing is bought until the user goes through them
+        go('Plans and pricing', '/settings/billing'),
         go('Buy tokens…', '/settings/wallet#tp'),
         go('Token Wallet', '/settings/wallet'),
         sep,

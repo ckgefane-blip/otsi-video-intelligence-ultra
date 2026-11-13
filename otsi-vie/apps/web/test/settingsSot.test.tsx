@@ -213,10 +213,9 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByText("25")).toBeInTheDocument(); // ADR-140 approved grant (reverted from the 100-token proposal in 66db384)
     expect(screen.getByText("Valid 30 days. One per organisation.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument();
-    expect(screen.getByText("Free · 2 GB in total")).toBeInTheDocument();
-    expect(screen.getByText("Pro · 24 GB")).toBeInTheDocument();
-    expect(screen.getByText("Enterprise · 64 GB")).toBeInTheDocument();
-    expect(screen.getByText("Upload limits apply per MP4 or MOV file.")).toBeInTheDocument();
+    // the old invented "Free / Pro / Enterprise" strip is gone: the real plan and a link to Plans and pricing (owner 2026-11-13)
+    expect(screen.queryByText("Pro · 24 GB")).toBeNull();
+    expect(screen.getByRole("link", { name: "See plans and pricing" })).toHaveAttribute("href", "/settings/billing");
     expect(screen.getByText("Request a pack")).toBeInTheDocument();
     expect(screen.getByText("Invoice sent")).toBeInTheDocument();
     expect(screen.getByText("Pay by transfer")).toBeInTheDocument();

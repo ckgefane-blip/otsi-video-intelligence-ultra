@@ -336,6 +336,9 @@ describe("dictionaries (ADR-139)", () => {
       "body.studio.csIntro",                   // "Intro" in es/de/fr
       "body.studio.csLook",                    // "Look" in de/fr
       "body.studio.csLooks",                   // "Looks" in es/de/fr
+      "body.plans.bank",                       // German "Bank", the same word as English
+      "body.plans.naira",                      // "Naira (₦)": the currency's name, the same in Spanish
+      "body.plans.swift",                      // "SWIFT / IBAN": banking codes, the same in every language
       "body.studio.csReelBuilder",             // product name, same in every language
       "body.studio.csToolText",                // German "Text"
       "body.studio.csVideoLane",               // German "V1 · Video"
