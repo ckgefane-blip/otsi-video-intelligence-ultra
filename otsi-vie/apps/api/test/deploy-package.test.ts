@@ -2,10 +2,13 @@
  * Deploy package (ADR-146 step 6, staging plan B): the script writes a plain Node app folder the host can
  * install with `npm ci --omit=dev`. This test runs the script end to end and proves the package is real:
  * exact (pinned) versions, a lockfile that matches them, the built API and contracts, and a clean install
- * from the lockfile whose modules load. It needs the npm registry (for the lockfile and the install).
+ * from the lockfile whose modules load. The contracts are a tarball dependency, not a `file:` folder:
+ * on the host (cPanel) node_modules is itself a symlink, so a folder installs as a relative symlink
+ * that breaks (MODULE_NOT_FOUND); a tarball extracts as a real directory. It needs the npm registry
+ * (for the lockfile and the install).
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,12 +29,18 @@ describe("deploy package (staging plan B)", () => {
       expect(pkg.engines?.node).toBe(">=22.11 <23");
       // every dependency is pinned to an exact version; nothing is a range or a workspace link
       for (const [name, version] of Object.entries<string>(pkg.dependencies as Record<string, string>)) {
-        if (name === "@otsi-vie/contracts") { expect(version).toBe("file:./vendor/contracts"); continue; }
+        if (name === "@otsi-vie/contracts") {
+          // a tarball, not a folder: file:./vendor/otsi-vie-contracts-<version>.tgz
+          expect(version).toMatch(/^file:\.\/vendor\/otsi-vie-contracts-\d+\.\d+\.\d+\.tgz$/);
+          continue;
+        }
         expect(version).toMatch(/^\d+\.\d+\.\d+$/);
       }
       expect(existsSync(path.join(pkgDir, "dist", "main.js"))).toBe(true);
-      expect(existsSync(path.join(pkgDir, "vendor", "contracts", "dist", "index.js"))).toBe(true);
-      expect(existsSync(path.join(pkgDir, "vendor", "contracts", "package.json"))).toBe(true);
+      // the contracts ship as one tarball (no vendor/contracts folder left behind)
+      const vendorFiles = readdirSync(path.join(pkgDir, "vendor"));
+      expect(vendorFiles.filter((f) => f.endsWith(".tgz"))).toHaveLength(1);
+      expect(vendorFiles).not.toContain("contracts");
       expect(existsSync(path.join(pkgDir, "README.md"))).toBe(true);
       // the lockfile pins exactly what package.json says, including the local contracts folder
       const lock = JSON.parse(readFileSync(path.join(pkgDir, "package-lock.json"), "utf8"));
@@ -51,6 +60,9 @@ describe("deploy package (staging plan B)", () => {
         "require('./dist/app.js'); require('./dist/core/config.js'); require('@otsi-vie/contracts'); console.log('ok')"],
         { cwd: installDir, stdio: "pipe", timeout: 60_000 });
       expect(existsSync(path.join(installDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
+      // the point of the tarball: the installed contracts are a real directory, not a symlink
+      // (on the host, node_modules is itself a symlink, so a relative symlink breaks).
+      expect(lstatSync(path.join(installDir, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

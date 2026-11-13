@@ -9,8 +9,14 @@
  *     package.json          @otsi-vie/api, exact (pinned) dependency versions, `npm start` runs the API
  *     package-lock.json     generated here, so the host installs exactly these versions with `npm ci --omit=dev`
  *     dist/                 the built API (node dist/main.js)
- *     vendor/contracts/     the built @otsi-vie/contracts, as a file: dependency
+ *     vendor/otsi-vie-contracts-<version>.tgz   the built @otsi-vie/contracts, as a tarball dependency
  *     README.md             how to install and run it on the host
+ *
+ * The contracts are a tarball, not a `file:` folder: on the host (cPanel shared hosting) node_modules
+ * is itself a symlink into ~/nodevenv/..., so a `file:` folder dependency installs as a relative
+ * symlink (node_modules/@otsi-vie/contracts -> ../../vendor/contracts) that resolves against the
+ * symlink target and breaks with MODULE_NOT_FOUND. A tarball is extracted by `npm ci` as a real
+ * directory, so there is no symlink to break — a plain `npm ci` installs it.
  *
  * Usage:
  *   node otsi-vie/tools/deploy/make-deploy-package.mjs [--out <dir>] [--skip-build] [--skip-lockfile]
@@ -19,7 +25,7 @@
  * build can never ship. Nothing in the repo is pushed or deployed by this script — it only writes the folder.
  */
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -113,7 +119,9 @@ function main() {
   const apiPkg = readJson(path.join(API_DIR, "package.json"));
   const contractsPkg = readJson(path.join(CONTRACTS_DIR, "package.json"));
 
-  // Exact versions for every runtime dependency; the workspace package stays a local file: folder.
+  // Exact versions for every runtime dependency. The workspace package becomes a tarball
+  // (see below), not a file: folder — a folder installs as a relative symlink that breaks
+  // on the host, where node_modules is itself a symlink.
   const dependencies = {};
   for (const [name] of Object.entries(apiPkg.dependencies ?? {})) {
     if (name === "@otsi-vie/contracts") continue;
@@ -123,7 +131,6 @@ function main() {
   for (const [name] of Object.entries(contractsPkg.dependencies ?? {})) {
     contractsDeps[name] = installedVersion(name, CONTRACTS_DIR);
   }
-  dependencies["@otsi-vie/contracts"] = "file:./vendor/contracts";
 
   log(`wiping the output folder ${path.relative(ROOT, out)}`);
   rmSync(out, { recursive: true, force: true });
@@ -140,6 +147,20 @@ function main() {
     types: "dist/index.d.ts",
     dependencies: contractsDeps,
   }, null, 2) + "\n", "utf8");
+
+  // Pack the contracts into a tarball and use that as the dependency. `npm pack` runs here
+  // (local, no registry); the staging folder is removed afterwards, so the package holds
+  // only the tarball. A plain `npm ci` extracts a tarball dependency as a real directory —
+  // no symlink — so it installs on the host where node_modules is a symlink.
+  log("packing @otsi-vie/contracts into a tarball (npm pack)");
+  run("npm", ["pack", "--ignore-scripts"], path.join(out, "vendor", "contracts"));
+  const packed = readdirSync(path.join(out, "vendor", "contracts")).filter((f) => f.endsWith(".tgz"));
+  if (packed.length !== 1) fail(`expected exactly one packed tarball in vendor/contracts, found ${packed.length}`);
+  const tarball = packed[0];
+  const tarballPath = path.join(out, "vendor", tarball);
+  renameSync(path.join(out, "vendor", "contracts", tarball), tarballPath);
+  rmSync(path.join(out, "vendor", "contracts"), { recursive: true, force: true });
+  dependencies["@otsi-vie/contracts"] = `file:./vendor/${tarball}`;
 
   writeFileSync(path.join(out, "package.json"), JSON.stringify({
     name: "@otsi-vie/api",
@@ -176,7 +197,10 @@ function main() {
     "## What is in here",
     "",
     "- `dist/` — the built API.",
-    "- `vendor/contracts/` — the built `@otsi-vie/contracts`, installed as a local file: package.",
+    "- `vendor/otsi-vie-contracts-<version>.tgz` — the built `@otsi-vie/contracts`, as a tarball",
+    "  dependency. It is a tarball (not a folder) on purpose: a folder installs as a relative",
+    "  symlink, which breaks on this host, where node_modules is itself a symlink. A plain",
+    "  `npm ci` extracts the tarball as a real directory.",
     "- `package-lock.json` — the exact versions `npm ci` installs. Do not edit it by hand;",
     "  rebuild the package instead.",
     "",
@@ -187,9 +211,10 @@ function main() {
     run("npm", ["install", "--package-lock-only", "--omit=dev", "--ignore-scripts"], out);
   }
 
-  // Verify: the entry points exist, and the lockfile (when generated) pins exactly what package.json says.
+  // Verify: the entry points exist, the tarball is there, and the lockfile (when generated) pins
+  // exactly what package.json says.
   if (!existsSync(path.join(out, "dist", "main.js"))) fail("verification failed: dist/main.js is missing");
-  if (!existsSync(path.join(out, "vendor", "contracts", "dist", "index.js"))) fail("verification failed: vendor/contracts/dist/index.js is missing");
+  if (!existsSync(tarballPath)) fail(`verification failed: ${path.relative(ROOT, tarballPath)} is missing`);
   if (!skipLockfile) {
     const lock = readJson(path.join(out, "package-lock.json"));
     const locked = lock.packages?.[""]?.dependencies ?? {};

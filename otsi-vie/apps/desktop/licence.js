@@ -61,18 +61,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const centralConfig = require('./central-config');
+
 const CSRF_HEADER = 'x-otsi-csrf';
 const REFRESH_COOKIE = 'otsi_vie_refresh';
 const SECURE_REFRESH_COOKIE = '__Host-otsi_vie_refresh';
 const DEFAULT_GRACE_DAYS = 14;
 
-/** The central server URL, or null for local-only (as today). */
+/** The central server URL, or null for local-only (as today). Env wins over the build-time file
+ *  (resources/central.json) — see central-config.js. */
 function centralServerUrl() {
-  const raw = (process.env.OTSI_VIE_CENTRAL_SERVER_URL || '').trim().replace(/\/+$/, '');
-  if (!raw) return null;
-  if (/^https:\/\//.test(raw)) return raw;
-  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(raw)) return raw; // dev only
-  return null; // a central server is a real domain over HTTPS; anything else is ignored, not guessed
+  return centralConfig.centralServerUrl();
 }
 
 function licenceGraceDays() {
@@ -161,13 +160,16 @@ function licenceStatus(userDataDir, nowMs = Date.now()) {
   return { ...out, state: 'expired' };
 }
 
-/** What the worker gets: the token, the central public key when configured, and the issuer when known. */
+/** What the worker gets: the token, the central public key when configured, and the issuer when known.
+ *  The key comes from the environment or the build-time file (central-config.js), so a staging build
+ *  verifies licence tokens against the staging server's key. */
 function licenceEnvForWorker(userDataDir) {
   const env = {};
   const stored = readStoredLicence(userDataDir);
   if (stored) env.OTSI_VIE_LICENCE_TOKEN = stored.licence_token;
-  if (process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM) {
-    env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM;
+  const publicKey = centralConfig.licencePublicKeyPem();
+  if (publicKey) {
+    env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = publicKey;
   }
   if (process.env.OTSI_VIE_CENTRAL_JWKS_URL) {
     env.OTSI_VIE_CENTRAL_JWKS_URL = process.env.OTSI_VIE_CENTRAL_JWKS_URL;

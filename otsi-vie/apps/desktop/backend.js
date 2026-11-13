@@ -38,6 +38,7 @@ const path = require('node:path');
 
 const hardware = require('./hardware');
 const licence = require('./licence');
+const centralConfig = require('./central-config');
 
 // The desktop app always runs the portable stack, which uses its own ports
 // (web 4311, API 4521, MySQL 3510) so it can run side by side with the
@@ -171,20 +172,38 @@ function otsiVieDir(root) {
 }
 
 /**
- * The data folder: user-chosen, defaulting to a non-system drive when one
- * exists (D:\OTSI-VIE on Windows when a D: drive exists). Videos, tracks,
- * renders, project metadata, the local database, the runtimes' caches and
- * the AI models all live under it. No caches go on C: unless it is the
- * only drive. `userDataDir` is app.getPath('userData'), passed in by the
- * main process (this module has no Electron dependency).
+ * The data folder: a test build's override first (OTSI_VIE_DATA_DIR or the build-time
+ * resources/central.json `data_dir` — e.g. D:\OTSI-VIE-staging — so a staging build never touches
+ * D:\OTSI-VIE), else user-chosen, defaulting to a non-system drive when one exists (D:\OTSI-VIE on
+ * Windows when a D: drive exists). Videos, tracks, renders, project metadata, the local database,
+ * the runtimes' caches and the AI models all live under it. No caches go on C: unless it is the
+ * only drive. `userDataDir` is app.getPath('userData'), passed in by the main process (this module
+ * has no Electron dependency). The optional `config` is the build-time file's contents (tests only).
  */
-function dataDir(userDataDir) {
+function dataDir(userDataDir, config) {
+  const override = centralConfig.dataDirOverride(config);
+  if (override) return override;
   if (process.platform === 'win32') {
     try {
       if (fs.existsSync('D:\\')) return path.join('D:\\OTSI-VIE');
     } catch { /* no D: drive */ }
   }
   return path.join(userDataDir, 'OTSI-VIE');
+}
+
+/**
+ * Apply a test build's own identity to the Electron app object: a different app name keeps its
+ * userData folder apart from the production app's, and a different Windows AppUserModelId keeps
+ * its taskbar identity apart, so the staging build neither replaces nor updates the installed
+ * app. A normal build has no override and is unchanged. Must run before the app is ready and
+ * before any app.getPath('userData') call. `appObj` is the Electron app (a fake in tests); the
+ * optional `config` is the build-time file's contents (tests only).
+ */
+function applyBuildIdentity(appObj, config) {
+  const name = centralConfig.appName(config);
+  if (name) appObj.setName(name);
+  const id = centralConfig.appId(config);
+  if (id && process.platform === 'win32') appObj.setAppUserModelId(id);
 }
 
 function modelsDir(data) {
@@ -645,13 +664,17 @@ async function prepareDatabase(root, data, userDataDir, detection, log, devMode)
     ...licence.licenceEnvForWorker(userDataDir), // token + central public key, for the native engine to verify
   };
   // Forward central-server configuration when the install has one, so the
-  // local engine can verify licence tokens against the central key.
-  for (const k of ['OTSI_VIE_CENTRAL_SERVER_URL', 'OTSI_VIE_CENTRAL_MODE',
+  // local engine can verify licence tokens against the central key. The URL
+  // and the key come from the environment or the build-time file
+  // (resources/central.json) — env wins — so a staging build talks to the
+  // staging server without any environment on the user's PC.
+  const centralUrl = centralConfig.centralServerUrl();
+  if (centralUrl) env.OTSI_VIE_CENTRAL_SERVER_URL = centralUrl;
+  const licenceKey = centralConfig.licencePublicKeyPem();
+  if (licenceKey) env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = licenceKey;
+  for (const k of ['OTSI_VIE_CENTRAL_MODE',
     'OTSI_VIE_LICENCE_GRACE_DAYS', 'OTSI_VIE_CENTRAL_JWKS_URL']) {
     if (process.env[k]) env[k] = process.env[k];
-  }
-  if (process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM) {
-    env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM;
   }
   return { env, mysqlSupervisor };
 }
@@ -843,6 +866,7 @@ module.exports = {
   engineRoot,
   otsiVieDir,
   dataDir,
+  applyBuildIdentity,
   modelsDir,
   componentsDir,
   verifyBundledEngine,

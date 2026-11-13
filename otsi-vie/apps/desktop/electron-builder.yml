@@ -51,6 +51,12 @@ files:
   - assets/**/*
   - package.json
 extraResources:
+  # Build-time central config (ADR-146 step 6, staging step D): a staging/test build ships
+  # resources/central.json with the central server address and licence key (see
+  # resources/central.json.example). A normal build has no such file — electron-builder only
+  # warns about the missing file and the app stays local-only, exactly as today.
+  - from: resources/central.json
+    to: central.json
   # Pre-built engine (ADR-144 §1.1).
   - from: ../../apps/api/dist
     to: engine/otsi-vie/apps/api/dist

@@ -303,6 +303,29 @@ root.
    size — the ~300–400 MB target assumes SQLite; with MySQL expect
    ~550–650 MB.
 
+### Staging/test build (points at accounts.otsi.cc, never touches the production install)
+
+A test build needs the central server address and licence key baked in,
+its own data folder, and its own app identity — all from one file, so the
+build machine supplies the values and nothing secret is in the repo:
+
+1. Copy `resources/central.json.example` to `resources/central.json` in
+   this folder and fill in the real values (`central_server_url`,
+   `licence_public_key_pem`, `data_dir` e.g. `D:\OTSI-VIE-staging`,
+   `app_name` e.g. `OTSI VIE Staging`, `app_id` e.g.
+   `cc.otsi.vie.staging`). NEVER commit the real `central.json`.
+   Environment variables (`OTSI_VIE_CENTRAL_SERVER_URL`,
+   `OTSI_VIE_LICENCE_PUBLIC_KEY_PEM`, `OTSI_VIE_DATA_DIR`,
+   `OTSI_VIE_APP_NAME`, `OTSI_VIE_APP_ID`) always win over the file.
+2. Build as usual. The file is shipped inside the app's resources folder
+   (`electron-builder.yml` `extraResources`); a build without the file
+   stays local-only, exactly as today.
+3. To keep the installer itself distinct from the production install,
+   build with a different app id and name:
+   `npx electron-builder --win --publish never --config.appId=cc.otsi.vie.staging --config.productName="OTSI VIE Staging"`.
+   (The runtime name/id from the file keeps the userData folder and the
+   Windows taskbar identity apart even for a portable build.)
+
 The API build is not minified at packaging time yet — the esbuild step
 over `apps/api/dist` is a follow-up, not built. The web is already bundled
 + minified by the Next.js production build.

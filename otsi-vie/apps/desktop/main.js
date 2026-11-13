@@ -32,6 +32,12 @@ const components = require('./components');
 const { installWindowMenu } = require('./windowmenu');
 const { MENU_NAMES, menuTemplate, shortcutFor } = require('./appmenus');
 
+// A test/staging build's own identity (resources/central.json or the environment): a different
+// app name keeps its userData folder apart from the production app's, and a different Windows
+// AppUserModelId keeps its taskbar identity apart, so the staging build neither replaces nor
+// updates the installed app. Must run before the app is ready and before any getPath('userData').
+backend.applyBuildIdentity(app);
+
 let autoUpdater = null;
 try {
   ({ autoUpdater } = require('electron-updater'));
@@ -639,7 +645,7 @@ ipcMain.on('owner-have-account', () => {
 ipcMain.handle('app-version', () => app.getVersion());
 ipcMain.handle('licence-sign-in', async (_event, credentials) => {
   const centralUrl = backend.licence.centralServerUrl();
-  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL).');
+  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL or resources/central.json).');
   const session = await backend.licence.signInToCentral(centralUrl, credentials || {});
   if (session.mfa_required) return { mfa_required: true, mfa_token: session.mfa_token, expires_in: session.expires_in };
   const stored = backend.licence.storeCentralSession(app.getPath('userData'), session);
@@ -648,7 +654,7 @@ ipcMain.handle('licence-sign-in', async (_event, credentials) => {
 
 ipcMain.handle('licence-sign-in-two-step', async (_event, details) => {
   const centralUrl = backend.licence.centralServerUrl();
-  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL).');
+  if (!centralUrl) throw new Error('No central server is configured (OTSI_VIE_CENTRAL_SERVER_URL or resources/central.json).');
   const session = await backend.licence.completeCentralTwoStep(centralUrl, details || {});
   const stored = backend.licence.storeCentralSession(app.getPath('userData'), session);
   return { ok: true, organization_id: stored.organization_id || null };

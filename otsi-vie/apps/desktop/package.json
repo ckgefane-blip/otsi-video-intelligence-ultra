@@ -16,7 +16,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "check": "node --check main.js && node --check backend.js && node --check licence.js && node --check hardware.js && node --check components.js && node --check windowmenu.js && node --check appmenus.js && node --check preload-main.js && node --check preload.js && node --check scripts/compile-bytecode.js && node --check scripts/after-pack.js",
+    "check": "node --check main.js && node --check backend.js && node --check licence.js && node --check central-config.js && node --check hardware.js && node --check components.js && node --check windowmenu.js && node --check appmenus.js && node --check preload-main.js && node --check preload.js && node --check scripts/compile-bytecode.js && node --check scripts/after-pack.js",
     "compile:bytecode": "node scripts/compile-bytecode.js",
     "predist": "npm install",
     "predist:portable": "npm install",
