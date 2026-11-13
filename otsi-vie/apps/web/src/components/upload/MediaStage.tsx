@@ -9,12 +9,11 @@
  *
  * What maps where, and what does not (read before editing):
  *   - Drop zone: the DropZone logic (file drop + browse, MP4/MOV + tier-limit check before any byte is sent). The tier note and chip use
- *     the real tier limit (useTierLimit: Free 2 GB / Pro 24 GB / Enterprise 64 GB, capped by the server's own limit).
+ *     the real plan limit (useTierLimit: the approved per-plan limit per video, capped by the server's own limit).
  *   - Tier alert: the data layer's `error` (a file too large for the tier, or the wrong type), shown as the SOT's danger alert. The error
  *     is one string ("Title. Body"), split on the first ". " for the alert's title and body. Dismiss hides it for this visit; a new
  *     error shows again.
- *   - Tier cards: the three tiers with their limits; the current tier (from useTierLimit) is highlighted. A paid plan the owner has not
- *     yet mapped to Pro/Enterprise (PLAN_TIER) shows Free as the tier — the limit is the server's own maximum.
+ *   - Plan row: every plan with its limit per video (approved price list, 2026-11-13); the caller's plan is highlighted.
  *   - Add from a link: the UrlImport logic (URL input, the provider policy, the access token for Vimeo / Google Drive). The Accepted /
  *     Refused chips are short labels for the IMPORT_PROVIDERS policy (supported + needs_authorization = Accepted; unsupported = Refused,
  *     struck through). Owner 2026-11-13 (ADR-145): "The app should be able to accept all links especially YouTube and VK" — every video
@@ -53,7 +52,7 @@ import { api, ApiProblem } from "@/lib/api";
 import { fill } from "@/lib/fill";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
-import { formatGB, TIER_LIMIT_BYTES, useTierLimit, type UploadTier } from "@/lib/uploadTier";
+import { formatGB, PLAN_LIMITS, useTierLimit } from "@/lib/uploadTier";
 import { MatchLinker } from "@/components/matches/MatchPanels";
 import { usePage02 } from "./page02";
 import { rowsFor, ToggleRow } from "./IngestConfigPanel";
@@ -62,7 +61,6 @@ import { UploadRightsDialog, rightsSummary } from "./RightsDialog";
 import { useUpload, videoStatusText } from "./UploadWorkspace";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",");
-const TIERS: UploadTier[] = ["Free", "Pro", "Enterprise"];
 
 /** the SOT's short chip labels for each import provider (the policy's names are longer) */
 const PROVIDER_LABEL: Record<string, string[]> = {
@@ -90,8 +88,9 @@ export function MediaStage() {
   const up = useUpload();
   const { prefs, setPrefs, say, matches, matchId, chooseMatch, note } = usePage02();
   const tierLimit = useTierLimit();
-  const tier = tierLimit?.tier ?? "Free";
-  const tierBytes = TIER_LIMIT_BYTES[tier];
+  const tier = tierLimit?.plan ?? "FREE";
+  const tierBytes = tierLimit?.maxBytes ?? PLAN_LIMITS[0]!.bytes!;
+  const tierName = tierLimit?.tier ?? PLAN_LIMITS[0]!.label;   // the plan's name ("Free", "Club"), never its code
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
@@ -224,10 +223,10 @@ export function MediaStage() {
           </span>
           <div className="min-w-0 flex-1">
             <div className="h2">{d.mdDropVideos}</div>
-            <div className="sm mu">{fill(d.mdDropSub, { a: tier, b: formatGB(tierBytes) })}</div>
+            <div className="sm mu">{fill(d.mdDropSub, { a: tierName, b: formatGB(tierBytes) })}</div>
           </div>
           {/* the tier note is plain text (SOT), not a chip */}
-          <span className="t-small text-muted">{fill(d.mdTierChip, { a: tier, b: formatGB(tierBytes) })}</span>
+          <span className="t-small text-muted">{fill(d.mdTierChip, { a: tierName, b: formatGB(tierBytes) })}</span>
           {up.canWrite && (
             <button type="button" disabled={!up.projectId} onClick={() => input.current?.click()} className="vie-btn vie-btn-pri">{d.mdBrowseFiles}</button>
           )}
@@ -250,10 +249,11 @@ export function MediaStage() {
 
         {/* tier row: the SOT's is one plain row, not three cards; regular type throughout */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-          {TIERS.map((t) => (
-            <span key={t} className={t === tier ? undefined : "text-muted"}>
-              <span>{t}</span> · <span>{formatGB(TIER_LIMIT_BYTES[t])}</span>
-              {t === tier && <span className="text-muted"> {d.mdYourTier}</span>}
+          {/* every plan's limit per video, from the approved price list (owner 2026-11-13); the caller's plan is marked */}
+          {PLAN_LIMITS.map((t) => (
+            <span key={t.code} className={t.code === tier ? undefined : "text-muted"} data-plan-limit={t.code}>
+              <span>{t.label}</span> · <span>{t.bytes === null ? dict.body.wallet.blNoPlanLimit : formatGB(t.bytes)}</span>
+              {t.code === tier && <span className="text-muted"> {d.mdYourTier}</span>}
             </span>
           ))}
         </div>

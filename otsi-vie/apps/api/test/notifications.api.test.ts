@@ -108,7 +108,7 @@ describe("notifications bell", () => {
     // confirmed (placed -> marked paid -> confirmed)
     const done = await create("CLUB");
     await call(m, "POST", `/v1/billing/orders/${done.id}/proof`, {});
-    expect((await call(company, "POST", `/v1/admin/billing/orders/${done.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-1" })).status).toBe(201);
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${done.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-NOTIF-1" })).status).toBe(201);
     // still awaiting: marked paid, not yet confirmed — the "marked paid" item only fires while it awaits
     const awaiting = await create("STARTER");
     await call(m, "POST", `/v1/billing/orders/${awaiting.id}/proof`, { note: "Sent from Karo" });
@@ -118,7 +118,7 @@ describe("notifications bell", () => {
     // refunded (placed -> marked paid -> confirmed -> refunded)
     const refunded = await create("CLUB");
     await call(m, "POST", `/v1/billing/orders/${refunded.id}/proof`, {});
-    await call(company, "POST", `/v1/admin/billing/orders/${refunded.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-2" });
+    await call(company, "POST", `/v1/admin/billing/orders/${refunded.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-NOTIF-2" });
     expect((await call(company, "POST", `/v1/admin/billing/orders/${refunded.id}/refund`, { reason: "Charged twice" })).status).toBe(201);
 
     const b = await bell(m);
@@ -132,7 +132,7 @@ describe("notifications bell", () => {
       ["Refund issued", `/settings/billing/orders/${refunded.id}`],
     ]));
     const confirmedItem = billing.find((i) => i.title === "Payment confirmed — CLUB · 1 month active")!;
-    expect(confirmedItem.detail).toMatch(/^OTSI-INV-\d{4}-\d{6} · 500 tokens$/);
+    expect(confirmedItem.detail).toMatch(/^OTSI-INV-\d{4}-\d{6} · 1,000 tokens$/);
     const rejectedItem = billing.find((i) => i.title === "Order rejected")!;
     expect(rejectedItem.detail).toContain("Wrong plan");
     // the refund above ended this organisation's plan, so the subscription warning is checked on a second
@@ -140,7 +140,7 @@ describe("notifications bell", () => {
     const m2 = await seedMember(root, "OWNER");
     const o2 = (await call(m2, "POST", "/v1/billing/orders", { plan_code: "CLUB", period_months: 1, currency: "NGN" })).body.order as { id: string };
     await call(m2, "POST", `/v1/billing/orders/${o2.id}/proof`, {});
-    expect((await call(company, "POST", `/v1/admin/billing/orders/${o2.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-3" })).status).toBe(201);
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${o2.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-NOTIF-3" })).status).toBe(201);
     const [subs] = await root.query<mysql.RowDataPacket[]>("SELECT id FROM subscriptions WHERE organization_id = ? AND state = 'ACTIVE'", [m2.orgId]);
     expect(subs).toHaveLength(1);
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subs[0]!.id]);
@@ -160,7 +160,7 @@ describe("company bell (owner 2026-11-13): OTSI hears when a customer pays", () 
     const name = String(org!.name);
     const order = (await call(m, "POST", "/v1/billing/orders", { plan_code: "STARTER", period_months: 1, currency: "NGN" })).body.order as { id: string; reference: string; amount_minor: number };
     expect((await call(m, "POST", `/v1/billing/orders/${order.id}/proof`, { note: "Sent today" })).status).toBe(201);
-    const pack = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "STARTER", currency: "NGN" });
+    const pack = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 1, currency: "NGN" });
     expect(pack.status).toBe(201);
 
     const mine = (await bell(company)).items.filter((i) => i.id.startsWith("company-") && (i.id.includes(order.id) || i.id.includes(pack.body.id)));

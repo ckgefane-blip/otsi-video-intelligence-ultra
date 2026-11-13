@@ -193,21 +193,36 @@ export function WalletView() {
               </li>
             ))}
           </ol>
-          <div className="grid gap-2.5 py-2 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-            {catalogue.packs.map((pack) => (
-              <div key={pack.code} className="flex items-center gap-3 rounded-lg border border-line bg-canvas p-3.5">
-                <div className="flex-1">
-                  <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
-                  <div className="t-body">{money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)}</div>
-                </div>
-                <button type="button" disabled={busy !== null} className="btn sm"
-                  onClick={() => void act(`request-${pack.code}`, () => api("/v1/wallet/packs/request", { method: "POST", json: { pack_code: pack.code, currency } }),
-                    w.requested.replace("{a}", pack.label).replace("{b}", money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)))}>
-                  {busy === `request-${pack.code}` ? w.requesting : w.wlRequest}
-                </button>
+          {/* top-ups: blocks of 100 tokens at the organisation's own plan rate (owner, approved 2026-11-13) */}
+          {catalogue.packs.length === 0 ? (
+            <p className="sm mu" data-topup-agreed>{w.wlTopupAgreed}</p>
+          ) : (
+            <>
+              <p className="sm mu" data-topup-rate>
+                {w.wlRateLine
+                  .replace("{a}", money((currency === "NGN" ? catalogue.block_price_ngn_minor : catalogue.block_price_usd_minor) ?? 0, currency))
+                  .replace("{b}", catalogue.rate_plan_label)}
+              </p>
+              <div className="grid gap-2.5 py-2 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+                {catalogue.packs.map((pack) => {
+                  const price = money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency);
+                  return (
+                    <div key={pack.blocks} className="flex items-center gap-3 rounded-lg border border-line bg-canvas p-3.5" data-topup-blocks={pack.blocks}>
+                      <div className="flex-1">
+                        <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
+                        <div className="t-body">{price}</div>
+                      </div>
+                      <button type="button" disabled={busy !== null} className="btn sm"
+                        onClick={() => void act(`request-${pack.blocks}`, () => api("/v1/wallet/packs/request", { method: "POST", json: { blocks: pack.blocks, currency } }),
+                          w.requested.replace("{a}", pack.label).replace("{b}", price))}>
+                        {busy === `request-${pack.blocks}` ? w.requesting : w.wlRequest}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </section>
       )}
 

@@ -86,8 +86,8 @@ describe("bank-transfer billing", () => {
     const m = await seedBareMember();
     const r = await call(m, "GET", "/v1/billing/plans");
     expect(r.status).toBe(200);
-    expect(r.body.plans.filter((p: { code: string }) => p.code !== "FREE").map((p: { code: string }) => p.code)).toEqual(["STARTER", "CLUB", "ACADEMY", "SEASON"]);
-    expect(r.body.plans.find((p: { code: string }) => p.code === "CLUB")).toMatchObject({ tokens_per_month: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900 });
+    expect(r.body.plans.filter((p: { code: string }) => p.code !== "FREE").map((p: { code: string }) => p.code)).toEqual(["STARTER", "CLUB", "ACADEMY", "SEASON", "ENTERPRISE"]);
+    expect(r.body.plans.find((p: { code: string }) => p.code === "CLUB")).toMatchObject({ tokens_per_month: 1000, price_ngn_minor: 2_000_000, price_usd_minor: 1333, upload_gb_per_video: 24 });
     expect(r.body.periods_months).toEqual([1, 12]);
     expect(r.body).toMatchObject({ order_expiry_days: 14, renewal_window_days: 7, renewal_grace_days: 14, online_payment: "coming_soon" });
   });
@@ -103,7 +103,7 @@ describe("bank-transfer billing", () => {
     const seq = (ref: string) => Number(ref.slice(-6));
     expect(seq(second.order.reference)).toBe(seq(first.order.reference) + 1);
     expect(first.invoice).toMatchObject({
-      reference: first.order.reference, plan_code: "STARTER", amount_minor: 1_500_000, currency: "NGN",
+      reference: first.order.reference, plan_code: "STARTER", amount_minor: 750_000, currency: "NGN",
       bank_account: { account_name: "Osio & Tee Solutions International Ltd", bank_name: "Zenith Bank", account_number: "1234567890" },
     });
     expect(first.invoice.pay_reference_note).toContain("transfer description");
@@ -122,7 +122,7 @@ describe("bank-transfer billing", () => {
     await seedBankAccount("NGN");
     const before = await balance(m);
     const created = await createOrder(m, "CLUB", 1, "NGN");
-    const r = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" });
+    const r = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-1" });
     expect(r.status).toBe(409);
     expect(r.body.code).toBe("ORDER_NOT_AWAITING_CONFIRMATION");
     expect(await balance(m)).toBe(before);
@@ -134,30 +134,35 @@ describe("bank-transfer billing", () => {
     await seedBankAccount("NGN");
     const before = await balance(m);
     const created = await createOrder(m, "CLUB", 1, "NGN");
-    expect(created.order).toMatchObject({ status: "ORDERED", amount_minor: 6_000_000, tokens_granted: 500 });
+    expect(created.order).toMatchObject({ status: "ORDERED", amount_minor: 2_000_000, tokens_granted: 1000 });
     const marked = await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
     expect(marked.status).toBe(201);
     expect(marked.body).toMatchObject({ status: "AWAITING_CONFIRMATION" });
     // an OWNER of another organization cannot confirm this order (ADR-140 §8: only the company
     // organisation may confirm a plan order — not the order's own owner, and not another customer)
-    expect((await call(owner, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" })).status).toBe(403);
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REF-1001" });
+    expect((await call(owner, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-1" })).status).toBe(403);
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-REF-1001" });
     expect(confirmed.status).toBe(201);
-    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", bank_reference: "BANK-REF-1001", amount_received_minor: 6_000_000 });
+    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", bank_reference: "BANK-REF-1001", amount_received_minor: 2_000_000 });
+    // now on Club: top-ups cost the Club rate, ₦2,000 per 100 tokens, and a request is priced at it (owner, approved 2026-11-13)
+    const offer = await call(m, "GET", "/v1/wallet/packs");
+    expect(offer.body).toMatchObject({ rate_plan: "CLUB", block_price_ngn_minor: 200_000 });
+    const topUp = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 3, currency: "NGN" });
+    expect(topUp.body).toMatchObject({ pack_code: "CLUB", tokens: 300, amount_minor: 600_000 });
     expect(confirmed.body.subscription_id).toBeTruthy();
-    expect(await balance(m)).toBe(before + 500);
+    expect(await balance(m)).toBe(before + 1000);
     const sub = await subscriptionOf(m.orgId);
     expect(sub).toMatchObject({ state: "ACTIVE", id: confirmed.body.subscription_id });
     const [grants] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM entitlement_grants WHERE organization_id = ? AND source_subscription_id = ?", [m.orgId, confirmed.body.subscription_id]);
     expect(grants).toHaveLength(1);
-    expect(grants[0]).toMatchObject({ feature_key: "plan:club", limit_value: 500 });
+    expect(grants[0]).toMatchObject({ feature_key: "plan:club", limit_value: 1000 });
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
-    expect(ledger.body.entries[0]).toMatchObject({ kind: "PURCHASE", amount: 500, invoice_ref: created.order.reference, balance_after: before + 500 });
+    expect(ledger.body.entries[0]).toMatchObject({ kind: "PURCHASE", amount: 1000, invoice_ref: created.order.reference, balance_after: before + 1000 });
     // confirming twice: refused, and the wallet does not move (idempotency on top of the status guard)
-    const again = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REF-1001" });
+    const again = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-REF-1001" });
     expect(again.status).toBe(409);
     expect(again.body.code).toBe("ORDER_NOT_AWAITING_CONFIRMATION");
-    expect(await balance(m)).toBe(before + 500);
+    expect(await balance(m)).toBe(before + 1000);
     const ledger2 = await call(m, "GET", "/v1/wallet/ledger");
     expect(ledger2.body.entries.filter((e: { kind: string; invoice_ref: string }) => e.kind === "PURCHASE" && e.invoice_ref === created.order.reference)).toHaveLength(1);
   });
@@ -214,7 +219,7 @@ describe("bank-transfer billing", () => {
     expect(rejected.body).toMatchObject({ status: "REJECTED", reject_reason: "No matching transfer on the bank statement." });
     expect(await balance(m)).toBe(before);
     expect(await subscriptionOf(m.orgId)).toBeUndefined();
-    const confirm = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-1" });
+    const confirm = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-1" });
     expect(confirm.status).toBe(409);
   });
 
@@ -224,25 +229,25 @@ describe("bank-transfer billing", () => {
     const before = await balance(m);
     const created = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const partial = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 2_500_000, bank_reference: "BANK-PART-1" });
+    const partial = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 800_000, bank_reference: "BANK-PART-1" });
     expect(partial.status).toBe(201);
-    expect(partial.body).toMatchObject({ status: "PARTIAL", amount_received_minor: 2_500_000 });
+    expect(partial.body).toMatchObject({ status: "PARTIAL", amount_received_minor: 800_000 });
     expect(await balance(m)).toBe(before);
     expect(await subscriptionOf(m.orgId)).toBeUndefined();
     // a part-payment that would complete the order is refused here — the final amount goes through confirm
-    const tooMuch = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 3_500_000 });
+    const tooMuch = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/record-partial`, { amount_received_minor: 1_200_000 });
     expect(tooMuch.status).toBe(409);
     expect(tooMuch.body.code).toBe("ORDER_AMOUNT_MISMATCH");
     // and confirming with the wrong remainder is refused too
-    const wrong = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 1_000_000, bank_reference: "BANK-PART-2" });
+    const wrong = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 500_000, bank_reference: "BANK-PART-2" });
     expect(wrong.status).toBe(409);
     expect(wrong.body.code).toBe("ORDER_AMOUNT_MISMATCH");
     expect(await balance(m)).toBe(before);
     // the exact remainder confirms and activates
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 3_500_000, bank_reference: "BANK-PART-2" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 1_200_000, bank_reference: "BANK-PART-2" });
     expect(confirmed.status).toBe(201);
-    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", amount_received_minor: 6_000_000 });
-    expect(await balance(m)).toBe(before + 500);
+    expect(confirmed.body).toMatchObject({ status: "CONFIRMED", amount_received_minor: 2_000_000 });
+    expect(await balance(m)).toBe(before + 1000);
     expect((await subscriptionOf(m.orgId))?.state).toBe("ACTIVE");
   });
 
@@ -252,16 +257,16 @@ describe("bank-transfer billing", () => {
     const before = await balance(m);
     const created = await createOrder(m, "STARTER", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 1_500_000, bank_reference: "BANK-2" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 750_000, bank_reference: "BANK-2" });
     expect(confirmed.status).toBe(201);
-    expect(await balance(m)).toBe(before + 100);
-    const refunded = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/refund`, { reason: "Customer asked for a refund; money sent back.", amount_refunded_minor: 1_500_000 });
+    expect(await balance(m)).toBe(before + 300);
+    const refunded = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/refund`, { reason: "Customer asked for a refund; money sent back.", amount_refunded_minor: 750_000 });
     expect(refunded.status).toBe(201);
-    expect(refunded.body).toMatchObject({ status: "REFUNDED", amount_refunded_minor: 1_500_000, refund_reason: "Customer asked for a refund; money sent back." });
+    expect(refunded.body).toMatchObject({ status: "REFUNDED", amount_refunded_minor: 750_000, refund_reason: "Customer asked for a refund; money sent back." });
     expect(await balance(m)).toBe(before);
     expect((await subscriptionOf(m.orgId))?.state).toBe("CANCELED");
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
-    const clawback = ledger.body.entries.find((e: { kind: string; amount: number; reason: string }) => e.kind === "ADJUSTMENT" && e.amount === -100);
+    const clawback = ledger.body.entries.find((e: { kind: string; amount: number; reason: string }) => e.kind === "ADJUSTMENT" && e.amount === -300);
     expect(clawback).toBeTruthy();
     expect(clawback?.reason).toContain("Money refund");
   });
@@ -271,7 +276,7 @@ describe("bank-transfer billing", () => {
     await seedBankAccount("NGN");
     const created = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-3" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-3" });
     const subId = confirmed.body.subscription_id as string;
     // move the subscription so it expires in 3 days: a renewal order is due
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
@@ -281,7 +286,7 @@ describe("bank-transfer billing", () => {
     expect(run1.body.renewal_order_ids).toHaveLength(1);
     const [renewals] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
     expect(renewals).toHaveLength(1);
-    expect(renewals[0]).toMatchObject({ plan_code: "CLUB", period_months: 1, amount_minor: 6_000_000, currency: "NGN", status: "ORDERED" });
+    expect(renewals[0]).toMatchObject({ plan_code: "CLUB", period_months: 1, amount_minor: 2_000_000, currency: "NGN", status: "ORDERED" });
     expect(renewals[0]?.reference).not.toBe(created.order.reference);
     // a second run creates no duplicate renewal
     const run2 = await call(company, "POST", "/v1/admin/billing/renewals/run");
@@ -305,7 +310,7 @@ describe("bank-transfer billing", () => {
     await seedBankAccount("NGN");
     const created = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-4" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-4" });
     const subId = confirmed.body.subscription_id as string;
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
     const [runA, runB] = await Promise.all([
@@ -324,7 +329,7 @@ describe("bank-transfer billing", () => {
     await seedBankAccount("NGN");
     const created = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-5" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-5" });
     const subId = confirmed.body.subscription_id as string;
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
     // the daily job's start-up run fires inside createApp (onModuleInit, not awaited), so poll until it lands
@@ -372,7 +377,7 @@ describe("bank-transfer billing", () => {
     expect((await call(m, "GET", "/v1/billing/subscription")).body).toBeNull();
     const created = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-SUB-1" });
+    const confirmed = await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-SUB-1" });
     expect(confirmed.status).toBe(201);
     const sub = await call(m, "GET", "/v1/billing/subscription");
     expect(sub.status).toBe(200);
@@ -387,11 +392,11 @@ describe("bank-transfer billing", () => {
   it("sums the revenue: confirmed, outstanding, refunded and part-payments, per currency", async () => {
     const m = await seedBareMember();
     await seedBankAccount("NGN");
-    // one confirmed order (CLUB, ₦60,000), one outstanding (STARTER, ₦15,000, still ORDERED),
+    // one confirmed order (CLUB, ₦20,000), one outstanding (STARTER, ₦7,500, still ORDERED),
     // one part-paid (ACADEMY, ₦120,000, ₦20,000 received) and one refunded (SEASON, ₦250,000)
     const confirmed = await createOrder(m, "CLUB", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${confirmed.order.id}/proof`, {});
-    await call(company, "POST", `/v1/admin/billing/orders/${confirmed.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REV-1" });
+    await call(company, "POST", `/v1/admin/billing/orders/${confirmed.order.id}/confirm`, { amount_received_minor: 2_000_000, bank_reference: "BANK-REV-1" });
     await createOrder(m, "STARTER", 1, "NGN");
     const partial = await createOrder(m, "ACADEMY", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${partial.order.id}/proof`, {});
@@ -399,15 +404,15 @@ describe("bank-transfer billing", () => {
     expect(part.status).toBe(201);
     const refunded = await createOrder(m, "SEASON", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${refunded.order.id}/proof`, {});
-    await call(company, "POST", `/v1/admin/billing/orders/${refunded.order.id}/confirm`, { amount_received_minor: 25_000_000, bank_reference: "BANK-REV-3" });
+    await call(company, "POST", `/v1/admin/billing/orders/${refunded.order.id}/confirm`, { amount_received_minor: 7_500_000, bank_reference: "BANK-REV-3" });
     const ref = await call(company, "POST", `/v1/admin/billing/orders/${refunded.order.id}/refund`, { reason: "Charged twice" });
     expect(ref.status).toBe(201);
     const summary = await call(m, "GET", "/v1/admin/billing/revenue");
     expect(summary.status).toBe(200);
     const ngn = summary.body.totals.find((t: { currency: string }) => t.currency === "NGN");
-    // received ₦60,000 + ₦20,000 + ₦250,000; refunded ₦250,000; still owed on the part-paid order ₦100,000
-    expect(ngn).toMatchObject({ received_minor: 33_000_000, refunded_minor: 25_000_000, net_minor: 8_000_000,
-      this_month_minor: 8_000_000, plans_minor: 8_000_000, awaiting_minor: 10_000_000 });
+    // received ₦20,000 + ₦20,000 + ₦75,000; refunded ₦75,000; still owed on the part-paid order ₦25,000 (Academy ₦45,000)
+    expect(ngn).toMatchObject({ received_minor: 11_500_000, refunded_minor: 7_500_000, net_minor: 4_000_000,
+      this_month_minor: 4_000_000, plans_minor: 4_000_000, awaiting_minor: 2_500_000 });
     expect(summary.body.orders).toMatchObject({ ordered: 1, partial: 1, confirmed: 1, refunded: 1 });
     expect(summary.body.months).toHaveLength(12);
     expect((await call(viewer, "GET", "/v1/admin/billing/revenue")).status).toBe(403);
@@ -416,7 +421,7 @@ describe("bank-transfer billing", () => {
   it("shows a pack request's payment details to its own organization only, and only after invoicing", async () => {
     const m = await seedBareMember();
     await seedBankAccount("NGN");
-    const req = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "CLUB", currency: "NGN" });
+    const req = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 5, currency: "NGN" });
     expect(req.status).toBe(201);
     // requested, not yet invoiced: no bank details, only the pay-reference note
     const before = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);

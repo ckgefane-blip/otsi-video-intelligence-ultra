@@ -136,7 +136,15 @@ export type UpdateVideoRequest = z.infer<typeof UpdateVideoRequest>;
 export const ACCEPTED_EXTENSIONS = ["mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mts", "flv", "ogv", "ogg"] as const;
 
 /** what this server accepts (GET /v1/upload-limits): the deployment's real limit, never a design placeholder */
-export const UploadLimits = z.object({ max_upload_bytes: z.number().int().positive(), accepted_extensions: z.array(z.string()) });
+export const UploadLimits = z.object({
+  /** what this caller may upload per video: the smaller of the server's maximum and the plan's limit */
+  max_upload_bytes: z.number().int().positive(),
+  server_max_upload_bytes: z.number().int().positive(),
+  /** the caller's plan (FREE when none) and its limit per video; null = no plan limit (Enterprise) */
+  plan_code: z.string(),
+  plan_max_upload_bytes: z.number().int().positive().nullable(),
+  accepted_extensions: z.array(z.string()),
+});
 export type UploadLimits = z.infer<typeof UploadLimits>;
 
 export const CreateUploadRequest = z.object({

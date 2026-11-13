@@ -1,42 +1,37 @@
 /**
- * Tier-aware upload limits (owner, 2026-11-11). MP4 / MOV only. Free 2 GB, Pro 24 GB, Enterprise 64 GB per video.
+ * Plan-aware upload limits (owner, APPROVED 2026-11-13: Free 2 GB, Starter 8, Club 24, Academy 48, Season 64 GB per video,
+ * Enterprise no plan limit). MP4 / MOV only.
  *
- * The limit a person gets is the smaller of their tier's limit and what this server really enforces (GET /v1/upload-limits,
- * OTSI_VIE_MAX_UPLOAD_BYTES), so the app never promises more than the server accepts. The tier comes from the licence
- * (GET /v1/licence `plan`): "FREE" is the Free tier. OPEN OWNER DECISION: the paid plan codes (STARTER, CLUB, ACADEMY, SEASON) are not
- * yet mapped to Pro or Enterprise; until the owner maps them, a paid plan is limited only by the server's own maximum.
+ * The server decides: GET /v1/upload-limits returns the caller's plan and the limit that applies — the smaller of the plan's
+ * limit and what this server really enforces (OTSI_VIE_MAX_UPLOAD_BYTES) — and the server refuses a bigger upload itself, so
+ * the app never promises more than the server accepts. The plan list (names and limits) is the plan catalogue in contracts.
  */
-import type { LicenceSnapshot, UploadLimits } from "@otsi-vie/contracts";
+import type { UploadLimits } from "@otsi-vie/contracts";
+import { PLAN_CATALOGUE, planEntryOrNull } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 
-export type UploadTier = "Free" | "Pro" | "Enterprise";
 const GB = 1024 ** 3;
-export const TIER_LIMIT_BYTES: Record<UploadTier, number> = { Free: 2 * GB, Pro: 24 * GB, Enterprise: 64 * GB };
-/** plan code -> tier; only FREE is decided (see the header) */
-export const PLAN_TIER: Record<string, UploadTier> = { FREE: "Free" };
+/** Every plan and its limit per video, in catalogue order; null = no plan limit. */
+export const PLAN_LIMITS = PLAN_CATALOGUE.map((p) => ({ code: p.code, label: p.label, bytes: p.upload_gb_per_video === null ? null : p.upload_gb_per_video * GB }));
 export const ACCEPTED = /\.(mp4|mov)$/i;
 
 export const formatGB = (bytes: number) => `${Math.round((bytes / GB) * 10) / 10} GB`;
 export const formatBytes = (b: number) => (b >= GB ? `${(b / GB).toFixed(1)} GB` : b >= 1024 ** 2 ? `${(b / 1024 ** 2).toFixed(0)} MB` : `${Math.ceil(b / 1024)} KB`);
 
-export interface TierLimit { tier: UploadTier | null; plan: string | null; maxBytes: number | null }
+/** `plan` is the plan code (FREE when none), `tier` its catalogue name, `maxBytes` what this caller may upload per video. */
+export interface TierLimit { tier: string | null; plan: string | null; maxBytes: number | null }
 
 let pending: Promise<TierLimit> | null = null;
 export function readTierLimit(): Promise<TierLimit> {
-  pending ??= Promise.all([
-    api<UploadLimits>("/v1/upload-limits").catch(() => null),
-    api<LicenceSnapshot>("/v1/licence").catch(() => null),
-  ]).then(([limits, lic]) => {
-    const plan = lic?.plan ?? null;
-    const tier = plan ? PLAN_TIER[plan] ?? null : null;
-    const server = limits?.max_upload_bytes ?? null;
-    const tierMax = tier ? TIER_LIMIT_BYTES[tier] : null;
-    const maxBytes = server !== null && tierMax !== null ? Math.min(server, tierMax) : server ?? tierMax;
-    return { tier, plan, maxBytes };
-  });
+  pending ??= api<UploadLimits>("/v1/upload-limits").then(
+    (l) => ({ tier: planEntryOrNull(l.plan_code)?.label ?? l.plan_code, plan: l.plan_code, maxBytes: l.max_upload_bytes }),
+    () => ({ tier: null, plan: null, maxBytes: null }),
+  );
   return pending;
 }
+/** for tests and after a plan changes */
+export function resetTierLimit(): void { pending = null; }
 
 /** undefined while reading */
 export function useTierLimit(): TierLimit | undefined {
@@ -45,7 +40,7 @@ export function useTierLimit(): TierLimit | undefined {
   return v;
 }
 
-export type FileCheck = { ok: true } | { ok: false; reason: "type" | "size"; tier: UploadTier | null; limit: number | null };
+export type FileCheck = { ok: true } | { ok: false; reason: "type" | "size"; tier: string | null; limit: number | null };
 
 /** checked when a file is picked or dropped, before any upload starts */
 export function checkUploadFile(f: { name: string; size: number; type?: string }, lim: TierLimit | undefined): FileCheck {

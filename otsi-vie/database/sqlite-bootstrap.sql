@@ -2390,7 +2390,7 @@ CREATE TABLE `wallet_ledger` (
 CREATE TABLE `wallet_pack_requests` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
   `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
-  `pack_code` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_pack_code` CHECK (`pack_code` IN ('STARTER', 'CLUB', 'ACADEMY', 'SEASON')),
+  `pack_code` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_pack_code` CHECK (`pack_code` IN ('FREE', 'STARTER', 'CLUB', 'ACADEMY', 'SEASON')),
   `currency` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_currency` CHECK (length(`currency`) <= 3),
   `amount_minor` INTEGER NOT NULL CHECK (`amount_minor` > 0),
   `tokens` INTEGER NOT NULL CHECK (`tokens` > 0),
@@ -2403,7 +2403,7 @@ CREATE TABLE `wallet_pack_requests` (
 ) STRICT;
 CREATE TABLE `wallet_free_grants` (
   `organization_id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
-  `granted_tokens` INTEGER NOT NULL DEFAULT 25,
+  `granted_tokens` INTEGER NOT NULL DEFAULT 100,
   `email` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_email` CHECK (length(`email`) <= 255),
   `granted_by` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_granted_by` CHECK (length(`granted_by`) <= 36),
   `granted_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),

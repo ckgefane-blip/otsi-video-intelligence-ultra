@@ -18,40 +18,67 @@ export type BankTransferCurrency = z.infer<typeof BankTransferCurrency>;
 /** Billable plans. FREE is the drop-to tier after expiry + grace, never something an order can buy. */
 export const BillablePlanCode = z.enum(["STARTER", "CLUB", "ACADEMY", "SEASON"]);
 export type BillablePlanCode = z.infer<typeof BillablePlanCode>;
-export const PlanCode = z.enum(["FREE", "STARTER", "CLUB", "ACADEMY", "SEASON"]);
+export const PlanCode = z.enum(["FREE", "STARTER", "CLUB", "ACADEMY", "SEASON", "ENTERPRISE"]);
 export type PlanCode = z.infer<typeof PlanCode>;
 
 export const BankTransferOrderStatus = z.enum(["ORDERED", "AWAITING_CONFIRMATION", "CONFIRMED", "REJECTED", "PARTIAL", "REFUNDED"]);
 export type BankTransferOrderStatus = z.infer<typeof BankTransferOrderStatus>;
 
 /**
- * The plan catalogue. Prices and token grants START at the approved token-pack values (ADR-140 §2: Starter
- * 100 tokens ₦15,000 / $49, Club 500 ₦60,000 / $199, Academy 1,200 ₦120,000 / $399, Season 3,000
- * ₦250,000 / $899) so there is one consistent price list, not two invented ones — a plan month buys the same
- * tokens as the pack of the same name. These are recommendations, not measured costs, exactly like the pack
- * prices: the owner must validate them against the unit-cost worksheet and the paid pilots before any real
- * sale (ADR-140 §2). A 12-month period costs 10 monthly payments (2 months free); that rule lives here so a
- * price change is one edit.
+ * The plan catalogue: the owner's APPROVED grassroots price list (2026-11-13, docs/billing-blueprint.md §5). The market is young
+ * grassroots players and local clubs first; analysis runs on the customer's own laptop, so the price follows what they can pay,
+ * not compute. Naira is the real price; dollars are derived at the approved rate of ₦1,500 = $1, rounded to the cent (the
+ * rounding of dollar prices is still an open owner decision). A 12-month period costs 10 monthly payments (2 months free).
+ *
+ * Each plan also carries the two other approved numbers that depend on it:
+ *  - the upload limit per video (Free 2 GB, Starter 8, Club 24, Academy 48, Season 64 GB, Enterprise no plan limit), and
+ *  - the top-up rate: a top-up is sold in blocks of 100 tokens at the customer's OWN plan per-token price
+ *    (Free / Player ₦30, Starter ₦25, Club ₦20, Academy ₦15, Season ₦12.50 a token; Enterprise as agreed).
+ * Enterprise is "Contact us": from ₦250,000 a month, tokens agreed per customer, never ordered from this page.
+ * A full 90-minute match costs 90 tokens and a reel 10, so the one-line "covers" below is plain arithmetic, not a promise.
  */
 export const PlanCatalogueEntry = z.object({
   code: PlanCode,
   label: z.string(),
-  /** Tokens credited to the wallet on confirmation, per month of the period. */
+  /** Tokens credited to the wallet on confirmation, per month of the period (0 for Free and for Enterprise, which agrees its own). */
   tokens_per_month: z.number().int().min(0),
-  /** Monthly price in minor units: kobo for NGN, cents for USD. */
+  /** Monthly price in minor units: kobo for NGN, cents for USD. For Enterprise this is the "from" price. */
   price_ngn_minor: z.number().int().min(0),
   price_usd_minor: z.number().int().min(0),
   /** What the plan is for, in one line for the plan page. */
   covers: z.string(),
+  /** Largest video this plan may upload, in GB; null = no plan limit (only the server's own maximum applies). */
+  upload_gb_per_video: z.number().positive().nullable(),
+  /** Price of one top-up block of TOPUP_BLOCK_TOKENS tokens on this plan; null = agreed with OTSI (Enterprise). */
+  topup_block_ngn_minor: z.number().int().positive().nullable(),
+  topup_block_usd_minor: z.number().int().positive().nullable(),
+  /** true = ordered by bank transfer from the plan page; false = Free (claimed) or Enterprise (contact us). */
+  orderable: z.boolean(),
 });
 export type PlanCatalogueEntry = z.infer<typeof PlanCatalogueEntry>;
 
+/** Tokens in one top-up block (owner 2026-11-13: top-ups are sold in blocks of 100 only). */
+export const TOPUP_BLOCK_TOKENS = 100;
+
 export const PLAN_CATALOGUE: PlanCatalogueEntry[] = [
-  { code: "FREE", label: "Free", tokens_per_month: 0, price_ngn_minor: 0, price_usd_minor: 0, covers: "The free tier: what a plan drops to after expiry plus the grace period. Never ordered." },
-  { code: "STARTER", label: "Starter", tokens_per_month: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900, covers: "1 full match + 1 reel a month. The trial plan." },
-  { code: "CLUB", label: "Club", tokens_per_month: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900, covers: "~5 matches + reels / reports a month." },
-  { code: "ACADEMY", label: "Academy", tokens_per_month: 1200, price_ngn_minor: 12_000_000, price_usd_minor: 39900, covers: "~12 matches + reels / reports a month." },
-  { code: "SEASON", label: "Season", tokens_per_month: 3000, price_ngn_minor: 25_000_000, price_usd_minor: 89900, covers: "~30 matches a month — a season for a small club." },
+  { code: "FREE", label: "Free", tokens_per_month: 0, price_ngn_minor: 0, price_usd_minor: 0,
+    covers: "100 free tokens once, to try a full match and a reel. Top up 100 tokens at a time (the Player pack).",
+    upload_gb_per_video: 2, topup_block_ngn_minor: 300_000, topup_block_usd_minor: 200, orderable: false },
+  { code: "STARTER", label: "Starter", tokens_per_month: 300, price_ngn_minor: 750_000, price_usd_minor: 500,
+    covers: "About 3 full matches a month, with a reel for each.",
+    upload_gb_per_video: 8, topup_block_ngn_minor: 250_000, topup_block_usd_minor: 167, orderable: true },
+  { code: "CLUB", label: "Club", tokens_per_month: 1000, price_ngn_minor: 2_000_000, price_usd_minor: 1333,
+    covers: "About 10 full matches a month, with a reel for each.",
+    upload_gb_per_video: 24, topup_block_ngn_minor: 200_000, topup_block_usd_minor: 133, orderable: true },
+  { code: "ACADEMY", label: "Academy", tokens_per_month: 3000, price_ngn_minor: 4_500_000, price_usd_minor: 3000,
+    covers: "About 30 full matches a month, with a reel for each.",
+    upload_gb_per_video: 48, topup_block_ngn_minor: 150_000, topup_block_usd_minor: 100, orderable: true },
+  { code: "SEASON", label: "Season", tokens_per_month: 6000, price_ngn_minor: 7_500_000, price_usd_minor: 5000,
+    covers: "About 60 full matches a month, with a reel for each — a full season for a club.",
+    upload_gb_per_video: 64, topup_block_ngn_minor: 125_000, topup_block_usd_minor: 83, orderable: true },
+  { code: "ENTERPRISE", label: "Enterprise", tokens_per_month: 0, price_ngn_minor: 25_000_000, price_usd_minor: 16667,
+    covers: "For federations, leagues and professional clubs. Tokens agreed per customer, no plan limit on upload.",
+    upload_gb_per_video: null, topup_block_ngn_minor: null, topup_block_usd_minor: null, orderable: false },
 ];
 
 export function planCatalogueEntry(code: PlanCode): PlanCatalogueEntry {
@@ -363,4 +390,16 @@ export function summarizeRevenue(orders: RevenueOrderRow[], packs: RevenuePackRo
     active_plans: [...active].map(([plan_code, count]) => ({ plan_code, count })).sort((a, b) => b.count - a.count || a.plan_code.localeCompare(b.plan_code)),
     renewals_due_7d: due, generated_at: now.toISOString(),
   });
+}
+
+/** The plan's catalogue entry for a plan code read from the database or the licence; an unknown code (an older plan) is
+ *  null, and the caller then treats the organisation as Free rather than guessing. */
+export function planEntryOrNull(code: string | null | undefined): PlanCatalogueEntry | null {
+  return PLAN_CATALOGUE.find((p) => p.code === code) ?? null;
+}
+
+/** Upload limit per video in bytes for a plan code; null = no plan limit. An unknown or missing plan is the Free limit. */
+export function planUploadLimitBytes(code: string | null | undefined): number | null {
+  const entry = planEntryOrNull(code) ?? planCatalogueEntry("FREE");
+  return entry.upload_gb_per_video === null ? null : Math.round(entry.upload_gb_per_video * 1024 ** 3);
 }

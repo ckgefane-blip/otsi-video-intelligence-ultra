@@ -12,7 +12,9 @@ import {
   deriveWalletBalance,
   expiredCreditTokens,
   spendableBalance,
-  tokenPack,
+  PLAN_CATALOGUE,
+  planUploadLimitBytes,
+  topUpPrice,
   tokenPackCatalogue,
   type WalletLedgerEntry,
 } from "@otsi-vie/contracts";
@@ -55,16 +57,33 @@ describe("token wallet costs", () => {
     expect(analysisCostTokens(-5)).toBeNull();
   });
 
-  it("publishes the four approved packs with Naira prices first", () => {
-    const cat = tokenPackCatalogue();
-    expect(cat.packs).toHaveLength(4);
-    expect(cat.free_grant_tokens).toBe(25);
-    expect(FREE_GRANT_TOKENS).toBe(25);
+  it("publishes the approved grassroots price list (owner 2026-11-13): plans, free grant, top-up rates and upload limits", () => {
+    const row = (code: string) => PLAN_CATALOGUE.find((p) => p.code === code)!;
+    expect(FREE_GRANT_TOKENS).toBe(100);
     expect(LOW_BALANCE_THRESHOLD).toBe(90);
-    expect(tokenPack("STARTER")).toMatchObject({ tokens: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900 });
-    expect(tokenPack("CLUB")).toMatchObject({ tokens: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900 });
-    expect(tokenPack("ACADEMY")).toMatchObject({ tokens: 1200, price_ngn_minor: 12_000_000, price_usd_minor: 39900 });
-    expect(tokenPack("SEASON")).toMatchObject({ tokens: 3000, price_ngn_minor: 25_000_000, price_usd_minor: 89900 });
+    // plans: tokens a month and the monthly price in kobo; dollars at ₦1,500 = $1, to the cent
+    expect(row("STARTER")).toMatchObject({ tokens_per_month: 300, price_ngn_minor: 750_000, price_usd_minor: 500, upload_gb_per_video: 8, orderable: true });
+    expect(row("CLUB")).toMatchObject({ tokens_per_month: 1000, price_ngn_minor: 2_000_000, price_usd_minor: 1333, upload_gb_per_video: 24 });
+    expect(row("ACADEMY")).toMatchObject({ tokens_per_month: 3000, price_ngn_minor: 4_500_000, price_usd_minor: 3000, upload_gb_per_video: 48 });
+    expect(row("SEASON")).toMatchObject({ tokens_per_month: 6000, price_ngn_minor: 7_500_000, price_usd_minor: 5000, upload_gb_per_video: 64 });
+    expect(row("FREE")).toMatchObject({ price_ngn_minor: 0, upload_gb_per_video: 2, orderable: false });
+    expect(row("ENTERPRISE")).toMatchObject({ price_ngn_minor: 25_000_000, upload_gb_per_video: null, topup_block_ngn_minor: null, orderable: false });
+    // top-ups: blocks of 100 at the plan's own per-token price (₦30 / ₦25 / ₦20 / ₦15 / ₦12.50)
+    expect([ "FREE", "STARTER", "CLUB", "ACADEMY", "SEASON" ].map((c) => topUpPrice(c as "FREE", 1)!.ngn_minor)).toEqual([300_000, 250_000, 200_000, 150_000, 125_000]);
+    expect(topUpPrice("CLUB", 5)).toEqual({ tokens: 500, ngn_minor: 1_000_000, usd_minor: 665 });
+    expect(topUpPrice("ENTERPRISE", 1)).toBeNull();
+    // the Wallet's offer: the caller's own rate; no plan (or an unknown old plan) is the Free / Player rate; Enterprise has none
+    const free = tokenPackCatalogue(null);
+    expect(free).toMatchObject({ rate_plan: "FREE", block_tokens: 100, block_price_ngn_minor: 300_000, free_grant_tokens: 100 });
+    expect(free.packs.map((p) => [p.blocks, p.tokens, p.price_ngn_minor, p.label])).toEqual([
+      [1, 100, 300_000, "Player pack"], [3, 300, 900_000, "300 tokens"], [5, 500, 1_500_000, "500 tokens"], [10, 1000, 3_000_000, "1000 tokens"]]);
+    expect(tokenPackCatalogue("SEASON").packs[0]).toMatchObject({ blocks: 1, price_ngn_minor: 125_000, label: "100 tokens" });
+    expect(tokenPackCatalogue("OLD_PLAN").rate_plan).toBe("FREE");
+    expect(tokenPackCatalogue("ENTERPRISE").packs).toEqual([]);
+    // upload limit per video in bytes; Enterprise has no plan limit; unknown is the Free limit
+    expect(planUploadLimitBytes("CLUB")).toBe(24 * 1024 ** 3);
+    expect(planUploadLimitBytes("ENTERPRISE")).toBeNull();
+    expect(planUploadLimitBytes(null)).toBe(2 * 1024 ** 3);
   });
 });
 

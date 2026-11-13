@@ -53,7 +53,7 @@ async function awaitingOrder(m: Member) {
 
 /** A fresh token-pack request (STARTER, NGN, REQUESTED). */
 async function packRequest(m: Member) {
-  const req = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "STARTER", currency: "NGN" });
+  const req = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 1, currency: "NGN" });
   expect(req.status).toBe(201);
   expect(req.body.status).toBe("REQUESTED");
   return req.body as { id: string };

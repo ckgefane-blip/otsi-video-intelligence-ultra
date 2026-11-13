@@ -48,7 +48,7 @@ This document is a specification. Any developer — human or AI — who implemen
 | `TOKEN_COSTS.exportPack` | 10 | Tokens per export pack (Scouting Pack). |
 | `TOKEN_COSTS.aiAnalysis` | 10 | Tokens per AI Analyst assessment. |
 | `LOW_BALANCE_THRESHOLD` | 90 | Below this balance, the wallet warns the user. |
-| `FREE_GRANT_TOKENS` | **100** | Tokens in the one-time free grant. APPROVED 2026-11-13 (supersedes the earlier approved 25; the revert to 25 is commit `6238383f`, now history). **Not yet in the code:** the code still has 25. The change to 100 is approved but must still be implemented (see §8.3). |
+| `FREE_GRANT_TOKENS` | **100** | Tokens in the one-time free grant. APPROVED 2026-11-13 (supersedes the earlier approved 25). **Built** on `claude/billing-merge` (2026-11-13): contracts `FREE_GRANT_TOKENS = 100`, migration 0076 sets the column default to 100. |
 | `FREE_GRANT_EXPIRY_DAYS` | 30 | Days after signup before the free grant expires. |
 | `PACK_EXPIRY_MONTHS` | 12 | Months after purchase before paid tokens expire. |
 
@@ -189,7 +189,7 @@ Because the full cost is known the moment a job starts (the footage length is kn
 
 ### 5.2 Plans and packs (APPROVED)
 
-Source: `TOKEN_PACKS` / `PLAN_CATALOGUE` in `otsi-vie/packages/contracts/src/wallet.ts` and `src/bank-transfer.ts` (to be updated to these numbers — the code still holds the earlier ADR-140 prices). Prices are stored in minor units (kobo / cents) and shown here in major units. A plan is a monthly subscription; the Player pack is a one-off purchase. One price list, not two.
+Source: `PLAN_CATALOGUE` in `otsi-vie/packages/contracts/src/bank-transfer.ts` (built 2026-11-13) — each plan carries its monthly price, tokens, upload limit per video and top-up block price; the Wallet's top-up offer (`tokenPackCatalogue` in `src/wallet.ts`) reads the same rows, so there is one price list. Prices are stored in minor units (kobo / cents) and shown here in major units. Dollar prices are naira ÷ 1,500, rounded to the cent (rounding still OPEN).
 
 | Plan | Tokens | Naira | USD (exact at ₦1,500=$1) | USD (rounded — PROPOSAL) | Per token (NGN) | What it covers |
 |---|---|---|---|---|---|---|
@@ -355,7 +355,7 @@ Known limitations: every member of an organisation sees "receipt uploaded" / "ma
 | Printable invoice view + final receipt view | Print view only. No PDF library. |
 | BILLING kind in the bell | `apps/api/src/modules/overview/notifications.ts` + `packages/contracts/src/notifications.ts`. |
 | Admin revenue summary | `GET /v1/admin/billing/revenue-summary` + UI. (See the two-summaries merge item in §6.4.) |
-| Free grant claim button | "Claim Free grant" button, once per organisation, 30-day expiry. The code still grants **25**; the approved 100 is in §8.3 (not built). |
+| Free grant claim button | "Claim Free grant" button in Token Wallet and on the Free plan card, once per organisation, 30-day expiry, **100 tokens** (built 2026-11-13). |
 | Live token display | Cost preview before every charged action, live job readout as ActivityLine narration, usage history. Commit `4028dbfc`. |
 | ActivityLine, global | Live narration + real-time timing across every engine action. Commit `0eaf0b36`. |
 | Bank-account + order-action lock (OTSI only) | `OTSI_VIE_COMPANY_ORG_ID` setting, fail closed. Commit `556d160a`. |
@@ -366,6 +366,15 @@ Known limitations: every member of an organisation sees "receipt uploaded" / "ma
 
 **Verification (Muse, firsthand, 2026-11-13):** web vitest **544/544 pass** (102 files) at tip `609ecc5`; the company-org guard unit test 5/5 pass (SQLite mode); typechecks only the pre-existing errors; contracts build clean. **Honest limit — the billing logic is NOT proven yet.** No billing bug has been found, but none has been proven absent either: the tests that would catch a billing bug (the company lock, the refund, the wallet) either did not load or broke before checking anything, so they must actually pass on the host before the billing work counts as proven on the server side. **Still unverified here:** the API endpoint tests needing host MySQL (they must run on the owner's machine — the company-org read tests, the jobs refund test with its error code, the bell test confirming as OTSI, the wallet tests with the corrected 25-token numbers and the AI Analyst catalogue cost); the live job readout against a real running job; the bank-account lock against a live server; the renewal daily job in practice. Claude will run the full backend suite on the host against `609ecc5` before the merge.
 
+### 8.1a Built — grassroots price list (branch `claude/billing-merge`, 2026-11-13)
+
+| Item | What exists |
+|---|---|
+| Plan cards | Settings › Plans & billing shows Free (claim 100 free tokens), Starter ₦7,500 / 300, Club ₦20,000 / 1,000, Academy ₦45,000 / 3,000, Season ₦75,000 / 6,000 tokens a month, and Enterprise "Contact us" from ₦250,000. Each card shows its upload limit per video and its top-up rate. 12 months = 10 payments. |
+| Top-ups | Blocks of 100 tokens at the customer's own plan rate (Free / Player ₦3,000, Starter ₦2,500, Club ₦2,000, Academy ₦1,500, Season ₦1,250). The caller sends only the number of blocks; the server prices them. Enterprise top-ups are refused with 409 `TOPUP_AGREED_WITH_OTSI`. `wallet_pack_requests.pack_code` records the plan whose rate applied (migration 0076 adds `FREE`). |
+| Upload limit per video | Free 2, Starter 8, Club 24, Academy 48, Season 64 GB; Enterprise no plan limit. Enforced by the server at upload start (413 `PLAN_UPLOAD_LIMIT`), reported by `GET /v1/upload-limits` (plan, plan limit, server limit), shown on the Media page and status bar. |
+| Not yet | Enterprise has no self-serve subscription: OTSI sets it up (licensing build). "Contact us" shows a note only — OTSI's contact email / phone is not in the app yet (owner to supply). Plans by features (§5.3) stay a proposal. Dollar rounding and dollar top-ups stay OPEN. |
+
 ### 8.2 Built — pre-existing (adopted base `claude/best-of-both` at `6c7110f`)
 
 Token wallet (ledger, packs, free-grant API), bank-transfer plan API, token meter in the top bar, low-balance warning. Claude's additions on top of the base (to be merged): a "Plans and pricing" page and a revenue panel, plus Home fixes (commit `099d23a`).
@@ -374,7 +383,7 @@ Token wallet (ledger, packs, free-grant API), bank-transfer plan API, token mete
 
 | Piece | Status |
 |---|---|
-| Grassroots price list + free grant 100 in the code | APPROVED, not yet implemented. The code still holds the earlier ADR-140 prices (STARTER ₦15,000, CLUB ₦60,000, ACADEMY ₦120,000, SEASON ₦250,000) and the free grant at 25. The new list (§5.2) and the 100-token grant (§2.1) must be written into `TOKEN_PACKS` / `PLAN_CATALOGUE` and `FREE_GRANT_TOKENS` after the merge. |
+| ~~Grassroots price list + free grant 100 in the code~~ | **Built 2026-11-13** on `claude/billing-merge` — see §8.1a. |
 | Pricing page | Being built (Claude). Not yet landed/pushed. When it lands: pull, verify, and wire it in as the payment circle's entry point. Do NOT build a competing pricing page. |
 | Email notifications | Not built. Needs an email provider (owner decision). |
 | Tax / VAT | Not built. Needs the owner's accountant. |

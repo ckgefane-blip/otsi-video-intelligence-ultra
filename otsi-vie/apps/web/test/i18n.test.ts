@@ -676,7 +676,9 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // player card, review inbox, active jobs).
     expect(bodyKeys("admin").length).toBe(283);   // +1 healthApproveInAnalysis (owner 2026-11-13)
     expect(bodyKeys("settings").length).toBe(141);
-    expect(bodyKeys("wallet").length).toBe(287);
+    // grassroots price list (2026-11-13): +9 wallet keys (upload per video, no plan limit, top-up rate, free claim,
+    // "from" price, contact us, Enterprise note, your rate, Enterprise top-ups)
+    expect(bodyKeys("wallet").length).toBe(296);
     expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
     // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org

@@ -5,9 +5,12 @@
  * (GET /v1/billing/orders) and the live subscription (GET /v1/billing/subscription). An order is placed by
  * bank transfer; its pro-forma invoice — with the owner's bank details — lives on the order's own page.
  * "Pay online — Coming soon" is a disabled button only: it never opens a checkout and never charges.
+ * The approved grassroots price list (owner 2026-11-13): Free first (its 100 free tokens are claimed here or in Token Wallet),
+ * the four orderable plans, then Enterprise ("Contact us", from a monthly price, agreed per customer). Every card shows its
+ * upload limit per video and its top-up rate — all read from the catalogue the server sends.
  */
 import type { BankTransferOrder, PlanCatalogue, SubscriptionStatus } from "@otsi-vie/contracts";
-import { planPriceMinor, planTokens } from "@otsi-vie/contracts";
+import { FREE_GRANT_TOKENS, planPriceMinor, planTokens, type PlanCatalogueEntry } from "@otsi-vie/contracts";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -31,6 +34,7 @@ export function PlanOrdersView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [contact, setContact] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,11 +79,31 @@ export function PlanOrdersView() {
     }
   }
 
+  async function claimFree() {
+    setBusy("free");
+    setNotice(null);
+    setError(null);
+    try {
+      await api("/v1/wallet/free-grant", { method: "POST" });
+      setNotice(w.freeAdded);
+    } catch (e) {
+      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (loading && !catalogue) {
     return <main className="flex min-h-64 flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></main>;
   }
 
-  const plans = (catalogue?.plans ?? []).filter((p) => (BILLABLE as readonly string[]).includes(p.code));
+  const plans = catalogue?.plans ?? [];
+  const billable = (p: PlanCatalogueEntry): p is PlanCatalogueEntry & { code: (typeof BILLABLE)[number] } => (BILLABLE as readonly string[]).includes(p.code);
+  const upload = (p: PlanCatalogueEntry) => (p.upload_gb_per_video === null ? w.blNoPlanLimit : `${p.upload_gb_per_video} GB`);
+  const blockPrice = (p: PlanCatalogueEntry) => {
+    const m = currency === "NGN" ? p.topup_block_ngn_minor : p.topup_block_usd_minor;
+    return m === null ? null : money(m, currency);
+  };
   const priceOf = (code: (typeof BILLABLE)[number], months: 1 | 12) => money(planPriceMinor(code, months, currency), currency);
 
   return (
@@ -123,32 +147,59 @@ export function PlanOrdersView() {
         </div>
         <div className="grid gap-2.5 py-2 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
           {plans.map((plan) => (
-            <div key={plan.code} className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3.5">
+            <div key={plan.code} className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3.5" data-plan-card={plan.code}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="t-body">{plan.label}</span>
-                <span className="t-body">{priceOf(plan.code as (typeof BILLABLE)[number], period)}</span>
+                <span className="t-body">
+                  {billable(plan) ? priceOf(plan.code, period)
+                    : plan.code === "ENTERPRISE" ? w.blFromPrice.replace("{a}", money(currency === "NGN" ? plan.price_ngn_minor : plan.price_usd_minor, currency))
+                    : money(0, currency)}
+                </span>
               </div>
               <p className="sm mu">{plan.covers}</p>
               <dl className="kv">
-                <dt>{w.blTokensPerMonth}</dt>
-                <dd>{plan.tokens_per_month}</dd>
-                <dt>{w.blMonthly}</dt>
-                <dd>{priceOf(plan.code as (typeof BILLABLE)[number], 1)}</dd>
-                <dt>{w.blTwelve}</dt>
-                <dd>{priceOf(plan.code as (typeof BILLABLE)[number], 12)}</dd>
+                {billable(plan) && (
+                  <>
+                    <dt>{w.blTokensPerMonth}</dt>
+                    <dd>{plan.tokens_per_month.toLocaleString()}</dd>
+                    <dt>{w.blMonthly}</dt>
+                    <dd>{priceOf(plan.code, 1)}</dd>
+                    <dt>{w.blTwelve}</dt>
+                    <dd>{priceOf(plan.code, 12)}</dd>
+                  </>
+                )}
+                {plan.code === "FREE" && (
+                  <>
+                    <dt>{w.wlFreeGrant}</dt>
+                    <dd>{FREE_GRANT_TOKENS}</dd>
+                  </>
+                )}
+                <dt>{w.blUploadPerVideo}</dt>
+                <dd>{upload(plan)}</dd>
               </dl>
-              <p className="sm mu">
-                {period === 1
-                  ? w.blPeriodTokens.replace("{a}", String(planTokens(plan.code as (typeof BILLABLE)[number], 1)))
-                  : w.blPeriodTokens.replace("{a}", String(planTokens(plan.code as (typeof BILLABLE)[number], 12)))}
-              </p>
+              {blockPrice(plan) && <p className="sm mu" data-topup-rate>{w.blTopupRate.replace("{a}", blockPrice(plan)!)}</p>}
+              {billable(plan) && (
+                <p className="sm mu">{w.blPeriodTokens.replace("{a}", planTokens(plan.code, period).toLocaleString())}</p>
+              )}
               <div className="mt-auto flex flex-wrap gap-2">
-                <button type="button" disabled={busy !== null} className="btn pri sm"
-                  onClick={() => void order(plan.code as (typeof BILLABLE)[number])}>
-                  {busy === `order-${plan.code}` ? w.requesting : `${w.blOrderBtn} · ${planMonths(period, w)}`}
-                </button>
-                <button type="button" disabled className="btn sm" title={w.blPayOnlineNote}>{w.blPayOnline}</button>
+                {billable(plan) && (
+                  <>
+                    <button type="button" disabled={busy !== null} className="btn pri sm" onClick={() => void order(plan.code)}>
+                      {busy === `order-${plan.code}` ? w.requesting : `${w.blOrderBtn} · ${planMonths(period, w)}`}
+                    </button>
+                    <button type="button" disabled className="btn sm" title={w.blPayOnlineNote}>{w.blPayOnline}</button>
+                  </>
+                )}
+                {plan.code === "FREE" && (
+                  <button type="button" disabled={busy !== null} className="btn pri sm" onClick={() => void claimFree()}>
+                    {busy === "free" ? w.claiming : w.blFreeClaim.replace("{a}", String(FREE_GRANT_TOKENS))}
+                  </button>
+                )}
+                {plan.code === "ENTERPRISE" && (
+                  <button type="button" className="btn sm" aria-expanded={contact} onClick={() => setContact((c) => !c)}>{w.blContactUs}</button>
+                )}
               </div>
+              {plan.code === "ENTERPRISE" && contact && <p role="status" className="sm">{w.blEnterpriseNote}</p>}
             </div>
           ))}
         </div>

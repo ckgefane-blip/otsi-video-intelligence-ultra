@@ -97,12 +97,22 @@ describe("Plans & billing (user)", () => {
     });
     render(<PlanOrdersView />);
     await waitFor(() => expect(screen.getByText("Plans & billing")).toBeInTheDocument());
-    // the catalogue's own labels and prices, never typed in: Club is 500 tokens a month, ₦60,000 monthly,
-    // ₦600,000 for 12 months (10 monthly payments, 2 months free)
+    // the catalogue's own labels and prices, never typed in (approved grassroots list, 2026-11-13): Club is 1,000 tokens a
+    // month, ₦20,000 monthly, ₦200,000 for 12 months (10 monthly payments, 2 months free)
     expect(screen.getByText("Club")).toBeInTheDocument();
-    expect(screen.getAllByText("₦60,000").length).toBeGreaterThan(0);
-    expect(screen.getByText("₦600,000")).toBeInTheDocument();
+    expect(screen.getAllByText("₦20,000").length).toBeGreaterThan(0);
+    expect(screen.getByText("₦200,000")).toBeInTheDocument();
     expect(screen.getAllByText("12 months (2 months free)")).toHaveLength(5);
+    // Free first with its claim button, Enterprise last as "Contact us" from ₦250,000; every card shows its upload limit
+    const cards = [...document.querySelectorAll("[data-plan-card]")].map((c) => c.getAttribute("data-plan-card"));
+    expect(cards).toEqual(["FREE", "STARTER", "CLUB", "ACADEMY", "SEASON", "ENTERPRISE"]);
+    expect(screen.getByRole("button", { name: "Claim 100 free tokens" })).toBeInTheDocument();
+    expect(screen.getByText("From ₦250,000 a month")).toBeInTheDocument();
+    expect(screen.getByText("No plan limit")).toBeInTheDocument();
+    expect(screen.getByText("24 GB")).toBeInTheDocument();
+    expect(screen.getByText("Top-up: ₦2,000 per 100 tokens")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Contact us" }));
+    expect(screen.getByText(/Enterprise is set up with OTSI directly/)).toBeInTheDocument();
     expect(screen.getByText(/Plan active until 12\/13\/2026/)).toBeInTheDocument();
     expect(screen.getByText(/OTSI-INV-2026-000001/)).toBeInTheDocument();
     expect(screen.getByText("Awaiting confirmation")).toBeInTheDocument();

@@ -80,7 +80,7 @@ export function useUpload(): Ctx {
 export function UploadWorkspace({ children }: { children: ReactNode }) {
   const { t: dict } = useLocale();
   const d = dict.body.upload;
-  const tierLimit = useTierLimit();                                   // Free 2 GB / Pro 24 GB / Enterprise 64 GB, never above the server's own limit
+  const tierLimit = useTierLimit();                                   // the plan's limit per video (approved price list), never above the server's own limit
   const { organization } = useAuth();
   const canWrite = !!organization && WRITERS.includes(organization.role);
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -180,7 +180,7 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
       if (!projectId) { setError(d.chooseProjectFirst); return true; }
       // the tier limit and the MP4 / MOV rule are checked when the file is picked, before any byte is sent
       const dd = dict.desktop;
-      const tierName = tierLimit?.tier === "Pro" ? dd.tierPro : tierLimit?.tier === "Enterprise" ? dd.tierEnterprise : tierLimit?.tier === "Free" ? dd.tierFree : tierLimit?.plan ?? "";
+      const tierName = tierLimit?.plan === "FREE" ? dd.tierFree : tierLimit?.plan === "ENTERPRISE" ? dd.tierEnterprise : tierLimit?.tier ?? "";
       const files: File[] = [];
       for (const f of Array.from(picked)) {
         const c = checkUploadFile(f, tierLimit);

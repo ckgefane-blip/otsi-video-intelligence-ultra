@@ -258,3 +258,27 @@ describe("provider imports", () => {
     expect(aud[0]!.j).not.toContain("vimeo-personal-token");
   });
 });
+
+describe("upload limit per video follows the plan (owner, approved 2026-11-13)", () => {
+  it("reports the caller's plan limit, capped by the server, and refuses a file over the plan's limit", async () => {
+    // this suite's main API caps uploads at 8 MiB, so the Free plan's 2 GB is reported but the server's own cap applies
+    const lim = (await call(a, "GET", "/v1/upload-limits")).body;
+    expect(lim).toMatchObject({ plan_code: "FREE", plan_max_upload_bytes: 2 * 1024 ** 3, server_max_upload_bytes: 8 * MiB, max_upload_bytes: 8 * MiB });
+    // an API whose server accepts 64 GB: the Free plan still stops at 2 GB per video
+    const bigDir = await mkdtemp(path.join(tmpdir(), "otsi-vie-plan-limit-"));
+    const big = await startApi({ storageDir: bigDir, partBytes: MiB, maxUploadBytes: 64 * 1024 ** 3, credentialKey: Buffer.alloc(32, 7).toString("base64") });
+    try {
+      const at = (size: number) => big.inject({ method: "POST", url: "/v1/uploads", headers: { ...a.headers, "idempotency-key": key() },
+        payload: { project_id: projectA, file_name: "match.mp4", byte_size: size } });
+      expect((await big.inject({ method: "GET", url: "/v1/upload-limits", headers: a.headers })).json()).toMatchObject({ max_upload_bytes: 2 * 1024 ** 3 });
+      const over = await at(3 * 1024 ** 3);
+      expect(over.statusCode).toBe(413);
+      expect(over.json()).toMatchObject({ code: "PLAN_UPLOAD_LIMIT" });
+      expect(over.json().message).toContain("Free plan uploads videos up to 2 GB");
+      expect((await at(1024 ** 3)).statusCode).toBe(201);
+    } finally {
+      await big.close();
+      await rm(bigDir, { recursive: true, force: true });
+    }
+  });
+});

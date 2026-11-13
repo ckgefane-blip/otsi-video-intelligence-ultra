@@ -33,7 +33,7 @@ export function StatusBar() {
   const licence = lic === undefined ? "…" : lic === null ? d.licenceNotVerified
     : lic.valid_until ? `${lic.plan} · ${fill(d.licenceValidUntil, { a: lic.valid_until.slice(0, 10) })}` : d.licenceFree;
   const measured = accuracyMeasured();
-  const tierName = lim?.tier === "Free" ? d.tierFree : lim?.tier === "Pro" ? d.tierPro : lim?.tier === "Enterprise" ? d.tierEnterprise : lim?.plan ?? null;
+  const tierName = lim?.plan === "FREE" ? d.tierFree : lim?.plan === "ENTERPRISE" ? d.tierEnterprise : lim?.tier ?? null;
 
   return (
     <footer data-status-bar className="flex min-h-[28px] shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line bg-p0 px-3.5 text-muted">

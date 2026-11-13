@@ -32,7 +32,7 @@ api.mockImplementation((path: string) => {
   if (path === "/v1/projects") return Promise.resolve([PROJECT]);
   if (path === "/v1/videos") return Promise.resolve([VIDEO]);
   if (path === "/v1/matches") return Promise.resolve([MATCH]);
-  if (path === "/v1/upload-limits") return Promise.resolve({ max_upload_bytes: 2 * 1024 ** 3, accepted_extensions: ["mp4", "mov"] });
+  if (path === "/v1/upload-limits") return Promise.resolve({ max_upload_bytes: 2 * 1024 ** 3, server_max_upload_bytes: 64 * 1024 ** 3, plan_code: "FREE", plan_max_upload_bytes: 2 * 1024 ** 3, accepted_extensions: ["mp4", "mov"] });
   if (path === "/v1/licence") return Promise.resolve({ plan: "FREE" });
   if (path.startsWith("/v1/videos/") && path.endsWith("/rights")) return Promise.resolve({ grant: { rights_state: "INTERNAL", allowed_uses: ["VIEW", "ANALYZE"] }, analysis_blocked: null });
   return Promise.reject(new Error(`unexpected ${path}`));
@@ -50,10 +50,12 @@ describe("Media (SOT)", () => {
     expect(screen.getByText("Drop videos or browse")).toBeInTheDocument();
     expect(screen.getByText("Browse files")).toBeInTheDocument();
     expect(screen.getByText("Free tier · 2 GB")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
+    // the plan row: every plan of the approved price list with its limit per video (owner 2026-11-13)
+    expect(screen.getByText("Starter")).toBeInTheDocument();
     expect(screen.getByText("Enterprise")).toBeInTheDocument();
     expect(screen.getByText("24 GB")).toBeInTheDocument();
     expect(screen.getByText("64 GB")).toBeInTheDocument();
+    expect(screen.getByText("No plan limit")).toBeInTheDocument();
     // add from a link
     expect(screen.getByRole("heading", { name: "Add from a link" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/YouTube, VK, direct file, HLS/)).toBeInTheDocument();
@@ -93,7 +95,7 @@ describe("Media (SOT)", () => {
       if (path === "/v1/videos") return Promise.resolve([]);
       if (path === "/v1/projects") return Promise.resolve([PROJECT]);
       if (path === "/v1/matches") return Promise.resolve([]);
-      if (path === "/v1/upload-limits") return Promise.resolve({ max_upload_bytes: 2 * 1024 ** 3, accepted_extensions: ["mp4", "mov"] });
+      if (path === "/v1/upload-limits") return Promise.resolve({ max_upload_bytes: 2 * 1024 ** 3, server_max_upload_bytes: 64 * 1024 ** 3, plan_code: "FREE", plan_max_upload_bytes: 2 * 1024 ** 3, accepted_extensions: ["mp4", "mov"] });
       if (path === "/v1/licence") return Promise.resolve({ plan: "FREE" });
       return Promise.reject(new Error(`unexpected ${path}`));
     });

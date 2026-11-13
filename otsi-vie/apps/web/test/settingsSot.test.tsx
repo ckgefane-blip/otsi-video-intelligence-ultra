@@ -202,7 +202,7 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
   it("shows the balance, the free grant, the plan strip, the buy stepper with four packs, and the empty lists", async () => {
     mockApi();
     render(<WalletView />);
-    await waitFor(() => expect(screen.getByText("Buy a token pack")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Top up tokens")).toBeInTheDocument());
     expect(screen.getByRole("heading", { name: "Token Wallet & plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "₦ Naira" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Balance")).toBeInTheDocument();
@@ -210,13 +210,15 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByText("1 token / min")).toBeInTheDocument();
     expect(screen.getByText("10 tokens")).toBeInTheDocument();
     expect(screen.getByText("Free grant")).toBeInTheDocument();
-    expect(screen.getByText("25")).toBeInTheDocument(); // ADR-140 approved grant (reverted from the 100-token proposal in 66db384)
+    expect(screen.getByText("100")).toBeInTheDocument(); // the approved free grant (owner 2026-11-13; was 25)
     expect(screen.getByText("Valid 30 days. One per organisation.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument();
     // the old invented "Free / Pro / Enterprise" strip is gone: the real plan and a link to Plans and pricing (owner 2026-11-13)
     expect(screen.queryByText("Pro · 24 GB")).toBeNull();
     expect(screen.getByRole("link", { name: "See plans and pricing" })).toHaveAttribute("href", "/settings/billing");
-    expect(screen.getByText("Request a pack")).toBeInTheDocument();
+    expect(screen.getByText("Request a top-up")).toBeInTheDocument();
+    // no plan: the Free / Player rate, ₦3,000 per 100 tokens, in blocks of 100
+    expect(screen.getByText("Your rate: ₦3,000 per 100 tokens (Free plan)")).toBeInTheDocument();
     expect(screen.getByText("Invoice sent")).toBeInTheDocument();
     expect(screen.getByText("Pay by transfer")).toBeInTheDocument();
     expect(screen.getByText("Owner confirms")).toBeInTheDocument();
@@ -243,10 +245,10 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
   it("switching the currency seg reprices the packs in dollars", async () => {
     mockApi();
     render(<WalletView />);
-    await waitFor(() => expect(screen.getByText("Buy a token pack")).toBeInTheDocument());
-    expect(screen.getByText("₦15,000")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Top up tokens")).toBeInTheDocument());
+    expect(screen.getByText("₦9,000")).toBeInTheDocument();   // 300 tokens at the Free / Player rate
     fireEvent.click(screen.getByRole("button", { name: "$ Dollar" }));
-    expect(screen.getByText("$49.00")).toBeInTheDocument();
-    expect(screen.queryByText("₦15,000")).not.toBeInTheDocument();
+    expect(screen.getByText("$6.00")).toBeInTheDocument();
+    expect(screen.queryByText("₦9,000")).not.toBeInTheDocument();
   });
 });

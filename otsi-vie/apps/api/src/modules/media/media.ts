@@ -15,7 +15,7 @@
  * the file, sets INGESTED — or FAILED / QUARANTINED with the reason.
  */
 import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Injectable, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
-import { ACCEPTED_EXTENSIONS, CreateImportRequest, CreateUploadRequest, IMPORT_PROVIDERS, IngestOptions as IngestOptionsSchema, ImportProvider, importProviderFor, type IngestOptions, NOT_BUILT_SWITCHES, UpdateVideoRequest, UploadSession, Video, type UploadLimits } from "@otsi-vie/contracts";
+import { ACCEPTED_EXTENSIONS, CreateImportRequest, CreateUploadRequest, IMPORT_PROVIDERS, IngestOptions as IngestOptionsSchema, ImportProvider, importProviderFor, type IngestOptions, NOT_BUILT_SWITCHES, planEntryOrNull, planUploadLimitBytes, UpdateVideoRequest, UploadSession, Video, type UploadLimits } from "@otsi-vie/contracts";
 import { createCipheriv, randomBytes } from "node:crypto";
 import { isIP } from "node:net";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -31,6 +31,7 @@ import { AuthGuard, CurrentPrincipal, Principal, Roles } from "../../core/auth";
 import { notHidden } from "../../core/access";
 import { CONFIG, Config, StorageConfig } from "../../core/config";
 import { Db, type Executor } from "../../core/db";
+import { currentPlanCode } from "../../core/plan";
 import { ApiError, notFound } from "../../core/problem";
 import { LocalStore, PartChecksumMismatch, PartSizeMismatch, PartTooLarge } from "../../core/storage";
 import { idempotencyKey, uuidParam } from "../players/players.controller";
@@ -147,6 +148,15 @@ export class MediaService {
     this.credentialKey = cfg.credentialKey ?? "";
     this.storage = cfg.storage ?? null;
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
+  }
+
+  /** The limits for this caller: the smaller of the server's maximum and the plan's limit per video (owner 2026-11-13). */
+  async uploadLimits(p: Principal): Promise<UploadLimits> {
+    const server = this.maxUploadBytes;
+    const plan = await currentPlanCode(this.db, p.organizationId);
+    const planMax = planUploadLimitBytes(plan);
+    return { max_upload_bytes: planMax === null ? server : Math.min(server, planMax), server_max_upload_bytes: server,
+      plan_code: plan, plan_max_upload_bytes: planMax, accepted_extensions: [...ACCEPTED_EXTENSIONS] };
   }
 
   /** the largest upload this deployment accepts (storage configuration) */
@@ -266,6 +276,13 @@ export class MediaService {
     }
     if (body.byte_size > storage.maxUploadBytes) {
       throw new ApiError(413, "FILE_TOO_LARGE", `This server accepts files up to ${(storage.maxUploadBytes / 1024 ** 3).toFixed(0)} GB.`);
+    }
+    // the plan's own limit per video (owner, approved 2026-11-13: Free 2 GB … Season 64 GB, Enterprise no plan limit)
+    const plan = await currentPlanCode(this.db, p.organizationId);
+    const planMax = planUploadLimitBytes(plan);
+    if (planMax !== null && body.byte_size > planMax) {
+      const label = planEntryOrNull(plan)?.label ?? "Free";
+      throw new ApiError(413, "PLAN_UPLOAD_LIMIT", `The ${label} plan uploads videos up to ${Math.round(planMax / 1024 ** 3)} GB each. Choose a bigger plan in Settings › Plans & billing to upload this file.`);
     }
     const existing = await this.db.one<RowDataPacket>("SELECT * , expires_at <= CURRENT_TIMESTAMP(6) AS expired FROM upload_sessions WHERE organization_id = ? AND idempotency_key = ?", [p.organizationId, key]);
     if (existing) {
@@ -427,8 +444,8 @@ export class MediaController {
   }
 
   @Get("upload-limits")
-  limits(): UploadLimits {
-    return { max_upload_bytes: this.media.maxUploadBytes, accepted_extensions: [...ACCEPTED_EXTENSIONS] };
+  limits(@CurrentPrincipal() p: Principal): Promise<UploadLimits> {
+    return this.media.uploadLimits(p);
   }
 
   @Patch("videos/:videoId")

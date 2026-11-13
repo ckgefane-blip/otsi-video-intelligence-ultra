@@ -369,6 +369,11 @@
       "file": "0075_bank_transfer_billing.sql",
       "statements": 8,
       "seed_dml": 0
+    },
+    "0076": {
+      "file": "0076_grassroots_price_list.sql",
+      "statements": 16,
+      "seed_dml": 0
     }
   },
   "procedures": {

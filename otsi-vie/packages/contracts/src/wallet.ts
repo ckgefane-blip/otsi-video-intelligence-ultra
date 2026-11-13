@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLAN_CATALOGUE, TOPUP_BLOCK_TOKENS, planEntryOrNull } from "./bank-transfer";
 
 /**
  * Token Wallet & Credit System (ADR-140, ultra-only; scope: token-wallet-scope.md).
@@ -54,33 +55,40 @@ export const WalletLedgerPage = z.object({
 });
 export type WalletLedgerPage = z.infer<typeof WalletLedgerPage>;
 
-/** The four packs. Naira is the real price (main market Nigeria); USD is the international tier. */
-export const TokenPackCode = z.enum(["STARTER", "CLUB", "ACADEMY", "SEASON"]);
+/**
+ * Top-ups (owner, APPROVED 2026-11-13): tokens are bought in blocks of 100 at the customer's OWN plan per-token price — Free
+ * (the "Player pack") ₦3,000, Starter ₦2,500, Club ₦2,000, Academy ₦1,500, Season ₦1,250 a block; Enterprise as agreed with
+ * OTSI, so it has no self-serve top-up. The rates live on the plan catalogue (bank-transfer.ts) so there is one price list.
+ * `pack_code` on a request is the plan whose rate priced it.
+ */
+export const TokenPackCode = z.enum(["FREE", "STARTER", "CLUB", "ACADEMY", "SEASON"]);
 export type TokenPackCode = z.infer<typeof TokenPackCode>;
 
+/** The sizes offered on the Wallet page, in blocks of 100 tokens; a request may ask for any whole number up to the maximum. */
+export const TOPUP_BLOCK_CHOICES = [1, 3, 5, 10] as const;
+export const TOPUP_MAX_BLOCKS = 100;
+
 export const TokenPack = z.object({
-  code: TokenPackCode,
+  blocks: z.number().int().positive(),
   tokens: z.number().int().positive(),
   /** Price in minor units: kobo for NGN, cents for USD. Naira prices are the real prices. */
   price_ngn_minor: z.number().int().positive(),
   price_usd_minor: z.number().int().positive(),
   label: z.string(),
-  covers: z.string(),
 });
 export type TokenPack = z.infer<typeof TokenPack>;
 
-/** Scope §3, approved 2026-11-10. Prices are recommendations, not measured costs: they must be validated
- *  against the unit-cost worksheet and the paid pilots before they are presented as final (ADR-140 §2). */
-export const TOKEN_PACKS: TokenPack[] = [
-  { code: "STARTER", tokens: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900, label: "Starter", covers: "1 full match + 1 reel. The trial pack." },
-  { code: "CLUB", tokens: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900, label: "Club", covers: "~5 matches + reels / reports." },
-  { code: "ACADEMY", tokens: 1200, price_ngn_minor: 12_000_000, price_usd_minor: 39900, label: "Academy", covers: "~12 matches + reels / reports." },
-  { code: "SEASON", tokens: 3000, price_ngn_minor: 25_000_000, price_usd_minor: 89900, label: "Season", covers: "~30 matches — a season for a small club." },
-];
-
 export const TokenPackCatalogue = z.object({
+  /** The plan whose rate prices this organisation's top-ups; ENTERPRISE has none (agreed with OTSI). */
+  rate_plan: z.enum(["FREE", "STARTER", "CLUB", "ACADEMY", "SEASON", "ENTERPRISE"]),
+  rate_plan_label: z.string(),
+  block_tokens: z.literal(TOPUP_BLOCK_TOKENS),
+  block_price_ngn_minor: z.number().int().positive().nullable(),
+  block_price_usd_minor: z.number().int().positive().nullable(),
+  max_blocks: z.literal(TOPUP_MAX_BLOCKS),
+  /** The offered sizes; empty for Enterprise. */
   packs: z.array(TokenPack),
-  free_grant_tokens: z.literal(25),
+  free_grant_tokens: z.literal(100),
   free_grant_expiry_days: z.literal(30),
   pack_expiry_months: z.literal(12),
   costs: z.object({
@@ -95,10 +103,32 @@ export const TokenPackCatalogue = z.object({
 });
 export type TokenPackCatalogue = z.infer<typeof TokenPackCatalogue>;
 
-export function tokenPackCatalogue(): TokenPackCatalogue {
+/** The plan whose top-up rate applies: the organisation's own plan; no plan, or a plan this catalogue does not know, is Free. */
+export function topUpRatePlan(planCode: string | null | undefined): TokenPackCatalogue["rate_plan"] {
+  const entry = planEntryOrNull(planCode);
+  return entry ? entry.code : "FREE";
+}
+
+/** The price of `blocks` top-up blocks on a plan, or null for Enterprise (agreed with OTSI). */
+export function topUpPrice(ratePlan: TokenPackCatalogue["rate_plan"], blocks: number): { tokens: number; ngn_minor: number; usd_minor: number } | null {
+  const entry = PLAN_CATALOGUE.find((p) => p.code === ratePlan)!;
+  if (entry.topup_block_ngn_minor === null || entry.topup_block_usd_minor === null) return null;
+  return { tokens: blocks * TOPUP_BLOCK_TOKENS, ngn_minor: blocks * entry.topup_block_ngn_minor, usd_minor: blocks * entry.topup_block_usd_minor };
+}
+
+export function tokenPackCatalogue(planCode: string | null | undefined = null): TokenPackCatalogue {
+  const ratePlan = topUpRatePlan(planCode);
+  const entry = PLAN_CATALOGUE.find((p) => p.code === ratePlan)!;
+  const packs = TOPUP_BLOCK_CHOICES.flatMap((blocks) => {
+    const price = topUpPrice(ratePlan, blocks);
+    return price ? [{ blocks, tokens: price.tokens, price_ngn_minor: price.ngn_minor, price_usd_minor: price.usd_minor,
+      label: ratePlan === "FREE" && blocks === 1 ? "Player pack" : `${price.tokens} tokens` }] : [];
+  });
   return TokenPackCatalogue.parse({
-    packs: TOKEN_PACKS,
-    free_grant_tokens: 25,
+    rate_plan: ratePlan, rate_plan_label: entry.label, block_tokens: TOPUP_BLOCK_TOKENS,
+    block_price_ngn_minor: entry.topup_block_ngn_minor, block_price_usd_minor: entry.topup_block_usd_minor,
+    max_blocks: TOPUP_MAX_BLOCKS, packs,
+    free_grant_tokens: FREE_GRANT_TOKENS,
     free_grant_expiry_days: 30,
     pack_expiry_months: 12,
     costs: { analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10, ai_analysis: 10 },
@@ -106,18 +136,13 @@ export function tokenPackCatalogue(): TokenPackCatalogue {
   });
 }
 
-export function tokenPack(code: TokenPackCode): TokenPack {
-  const pack = TOKEN_PACKS.find((p) => p.code === code);
-  if (!pack) throw new Error(`Unknown token pack: ${code}`);
-  return pack;
-}
-
 /** Costs (scope §2). Analysis is 1 token per started minute of footage. */
 export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10, aiAnalysis: 10 } as const;
 /** Scope §7: low-balance warning below the cost of one full match. */
 export const LOW_BALANCE_THRESHOLD = 90;
-/** Scope §4: 25 free tokens, once, expiring 30 days after signup. */
-export const FREE_GRANT_TOKENS = 25;
+/** 100 free tokens, once, claimed with the "Claim free grant" button (never automatic), expiring 30 days after
+ *  signup. Owner APPROVED 2026-11-13 (supersedes the earlier 25). */
+export const FREE_GRANT_TOKENS = 100;
 export const FREE_GRANT_EXPIRY_DAYS = 30;
 /** Scope §3: paid tokens expire 12 months after purchase. */
 export const PACK_EXPIRY_MONTHS = 12;
@@ -202,7 +227,8 @@ export function expiredCreditTokens(entries: WalletLedgerEntry[], nowIso: string
 }
 
 export const RequestPackRequest = z.object({
-  pack_code: TokenPackCode,
+  /** How many blocks of 100 tokens; the price is the organisation's own plan rate, set by the server, never by the caller. */
+  blocks: z.number().int().min(1).max(TOPUP_MAX_BLOCKS),
   /** NGN for the Nigerian market, USD for the international tier. */
   currency: z.enum(["NGN", "USD"]),
 });

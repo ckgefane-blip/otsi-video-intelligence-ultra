@@ -34,7 +34,8 @@ import {
   chargeRefusal,
   deriveWalletBalance,
   expiredCreditTokens,
-  tokenPack,
+  topUpPrice,
+  topUpRatePlan,
   tokenPackCatalogue,
   type WalletJobType,
 } from "@otsi-vie/contracts";
@@ -43,6 +44,7 @@ import { v7 as uuidv7 } from "uuid";
 import { recordChange, userActor } from "../../core/audit";
 import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
+import { currentPlanCode } from "../../core/plan";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 
@@ -241,12 +243,13 @@ export class WalletService {
     return this.append(ex, organizationId, actorId, { ...row });
   }
 
-  /** The one-time 25-token free grant (scope §4). One per organization, enforced by wallet_free_grants. */
+  /** The one-time free grant (FREE_GRANT_TOKENS, 100 since the owner's 2026-11-13 approval), claimed with the button.
+   *  One per organization, enforced by wallet_free_grants. */
   async grantFreeTier(p: Principal): Promise<WalletLedgerEntry> {
     return this.db.tx(async (c) => {
       await this.lockWallet(c, p.organizationId);
       const already = await this.db.one<RowDataPacket>("SELECT organization_id FROM wallet_free_grants WHERE organization_id = ?", [p.organizationId], c);
-      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", "The 25 free tokens are granted once per organization. This organization has already claimed them.");
+      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", `The ${FREE_GRANT_TOKENS} free tokens are granted once per organization. This organization has already claimed them.`);
       const user = await this.db.one<RowDataPacket>("SELECT email FROM users WHERE id = ?", [p.userId], c);
       const now = new Date().toISOString();
       const expiresAt = addDays(now, FREE_GRANT_EXPIRY_DAYS);
@@ -256,7 +259,7 @@ export class WalletService {
       );
       const entry = await this.append(c, p.organizationId, p.userId, {
         kind: "FREE_GRANT", amount: FREE_GRANT_TOKENS, idempotencyKey: `free-grant:${p.organizationId}`,
-        reason: "One-time free tier: 25 tokens on signup, expiring 30 days after signup.", expiresAt,
+        reason: `One-time free grant: ${FREE_GRANT_TOKENS} tokens, expiring ${FREE_GRANT_EXPIRY_DAYS} days after signup.`, expiresAt,
       });
       await recordChange(c, userActor(p), { action: "wallet.free_grant", entityType: "organization", entityId: p.organizationId, after: { tokens: FREE_GRANT_TOKENS, expires_at: expiresAt } });
       return entry;
@@ -282,15 +285,27 @@ export class WalletService {
 
   // -- packs: request -> owner issues invoice -> org pays by bank transfer -> owner confirms -> PURCHASE --
 
+  /** A top-up: `blocks` of 100 tokens at the organisation's OWN plan rate (owner, approved 2026-11-13). The server sets the
+   *  price from the plan; the caller only says how many blocks. Enterprise top-ups are agreed with OTSI, so they are refused
+   *  here with a clear message rather than priced at a guess. `pack_code` records the plan whose rate priced the request. */
   async requestPack(p: Principal, body: RequestPackRequest): Promise<PackRequest> {
-    const pack = tokenPack(body.pack_code);
-    const amountMinor = body.currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor;
+    const ratePlan = topUpRatePlan(await currentPlanCode(this.db, p.organizationId));
+    const price = topUpPrice(ratePlan, body.blocks);
+    if (ratePlan === "ENTERPRISE" || !price) {
+      throw new ApiError(409, "TOPUP_AGREED_WITH_OTSI", "Enterprise top-ups are agreed with OTSI. Contact OTSI to add tokens.");
+    }
+    const amountMinor = body.currency === "NGN" ? price.ngn_minor : price.usd_minor;
     const id = uuidv7();
     await this.db.rows(
       "INSERT INTO wallet_pack_requests (id, organization_id, pack_code, currency, amount_minor, tokens, requested_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [id, p.organizationId, body.pack_code, body.currency, amountMinor, pack.tokens, p.userId],
+      [id, p.organizationId, ratePlan, body.currency, amountMinor, price.tokens, p.userId],
     );
     return this.packRequest(id, p.organizationId);
+  }
+
+  /** The caller's current plan code (none = FREE), for the top-up rate. */
+  planCode(p: Principal): Promise<string> {
+    return currentPlanCode(this.db, p.organizationId);
   }
 
   async packRequests(p: Principal): Promise<PackRequest[]> {
@@ -475,8 +490,9 @@ export class WalletController {
   constructor(private readonly wallet: WalletService) {}
 
   @Get("wallet/packs")
-  packs(): TokenPackCatalogue {
-    return tokenPackCatalogue();
+  async packs(@CurrentPrincipal() p: Principal): Promise<TokenPackCatalogue> {
+    // the top-up sizes at the caller's own plan rate (owner, approved 2026-11-13)
+    return tokenPackCatalogue(await this.wallet.planCode(p));
   }
 
   @Get("wallet")
