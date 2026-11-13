@@ -2551,19 +2551,22 @@ CREATE TABLE `job_tickets` (
   CHECK ((`state` = 'CHARGED' AND `ledger_id` IS NOT NULL) OR (`state` <> 'CHARGED')),
   CHECK ((`source` = 'OFFLINE' AND `spent_at` IS NOT NULL) OR (`source` = 'ONLINE'))
 ) STRICT;
-CREATE TABLE `offline_spends` (
+CREATE TABLE `linked_job_tickets` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
   `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
   `job_type` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_job_type` CHECK (`job_type` IN ('ANALYSIS', 'REEL_RENDER', 'PLAYER_REPORT', 'EXPORT_PACK', 'AI_ANALYSIS')),
   `job_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_job_id` CHECK (length(`job_id`) <= 36),
   `amount` INTEGER NOT NULL CHECK (`amount` > 0),
-  `state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'PENDING' CONSTRAINT `ck_enum_state` CHECK (`state` IN ('PENDING', 'SETTLED', 'REFUNDED')),
+  `source` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_source` CHECK (`source` IN ('ONLINE', 'OFFLINE')),
+  `state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'ACTIVE' CONSTRAINT `ck_enum_state` CHECK (`state` IN ('ACTIVE', 'SETTLED', 'REFUND_PENDING', 'REFUNDED')),
+  `ticket_token` TEXT COLLATE NOCASE,
   `actor_id` TEXT COLLATE NOCASE CONSTRAINT `ck_len_actor_id` CHECK (length(`actor_id`) <= 36),
   `spent_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
   `settled_at` INTEGER,
   `updated_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
   UNIQUE (`organization_id`, `job_type`, `job_id`),
-  CONSTRAINT `fk_offline_spends_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
+  CONSTRAINT `fk_linked_job_tickets_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`),
+  CHECK ((`source` = 'ONLINE' AND `ticket_token` IS NOT NULL) OR (`source` = 'OFFLINE'))
 ) STRICT;
 CREATE TABLE `central_links` (
   `user_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_user_id` CHECK (length(`user_id`) <= 36),
@@ -2705,7 +2708,7 @@ CREATE INDEX `idx_bank_transfer_orders_org` ON `bank_transfer_orders` (`organiza
 CREATE INDEX `idx_bank_transfer_orders_status` ON `bank_transfer_orders` (`status`, `created_at`);
 CREATE INDEX `idx_bank_transfer_orders_renewal` ON `bank_transfer_orders` (`renews_subscription_id`, `status`);
 CREATE INDEX `idx_job_tickets_org_state` ON `job_tickets` (`organization_id`, `state`, `created_at`);
-CREATE INDEX `idx_offline_spends_org_state` ON `offline_spends` (`organization_id`, `state`);
+CREATE INDEX `idx_linked_job_tickets_org_state` ON `linked_job_tickets` (`organization_id`, `state`);
 CREATE INDEX `idx_central_links_org` ON `central_links` (`organization_id`);
 CREATE VIEW `v_player_identity` AS WITH RECURSIVE chain (player_id, current_id, next_id, hops) AS (
   SELECT id, id, merged_into_player_id, 0 FROM players
@@ -3012,10 +3015,10 @@ BEGIN
   UPDATE `job_tickets` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
   WHERE `id` = NEW.`id`;
 END;
-CREATE TRIGGER `trg_offline_spends_updated_at_touch` AFTER UPDATE ON `offline_spends`
+CREATE TRIGGER `trg_linked_job_tickets_updated_at_touch` AFTER UPDATE ON `linked_job_tickets`
 WHEN NEW.`updated_at` = OLD.`updated_at`
 BEGIN
-  UPDATE `offline_spends` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
+  UPDATE `linked_job_tickets` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
   WHERE `id` = NEW.`id`;
 END;
 CREATE TRIGGER `trg_central_links_updated_at_touch` AFTER UPDATE ON `central_links`

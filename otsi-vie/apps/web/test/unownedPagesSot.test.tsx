@@ -23,6 +23,7 @@ vi.mock("@/components/auth/AuthProvider", () => ({
   }),
 }));
 vi.mock("@/lib/api", () => ({
+  authMode: async () => ({ mode: "local", central_url: null }),
   api: apiMock,
   ApiProblem: class ApiProblem extends Error {},
   invitationPreview: invitationPreviewMock,

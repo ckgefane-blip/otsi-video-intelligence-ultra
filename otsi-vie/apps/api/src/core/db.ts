@@ -65,17 +65,33 @@ export class Db implements OnModuleDestroy {
    *  transaction is `BEGIN IMMEDIATE` (see sqlite.ts); nested transactions throw instead of deadlocking. */
   async tx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
     const c = await this.backend.getConnection();
+    const handle = c as unknown as PoolConnection;
     try {
       await c.beginTransaction();
-      const out = await fn(c as unknown as PoolConnection);
+      const out = await fn(handle);
       await c.commit();
       return out;
     } catch (e) {
       await c.rollback().catch(() => undefined);
+      for (const undo of this.undos.get(handle) ?? []) void Promise.resolve().then(undo).catch(() => undefined);
       throw e;
     } finally {
+      this.undos.delete(handle);
       c.release();
     }
+  }
+
+  private readonly undos = new WeakMap<object, Array<() => unknown>>();
+
+  /** Something outside the database that must be undone if this transaction rolls back (ADR-146: a linked desktop's
+   *  job ticket is charged on the central server inside the job's transaction; if the job is not created, the
+   *  central charge is refunded). Runs after the rollback, never awaited, errors ignored. Outside a transaction
+   *  (`ex` is the pool) there is nothing to roll back, so it is never run. */
+  onRollback(ex: Executor, undo: () => unknown): void {
+    if (ex === (this.pool as unknown)) return;
+    const list = this.undos.get(ex) ?? [];
+    list.push(undo);
+    this.undos.set(ex, list);
   }
 
   /** Transient lock conflicts seen and retried, by MySQL error number (diagnostics; read by the load tests and health checks). */

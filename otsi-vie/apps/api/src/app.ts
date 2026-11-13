@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
-import { APP_FILTER, NestFactory } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR, NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { MUSIC_MAX_BYTES, MUSIC_TYPES, VIDEO_MAX_BYTES, VIDEO_TYPES } from "@otsi-vie/contracts";
 import { v7 as uuidv7 } from "uuid";
@@ -38,6 +38,8 @@ import { ExportPresetsController, ExportPresetsService } from "./modules/reels/e
 import { LibraryRemovalController, LibraryRemovalService } from "./modules/library/removal";
 import { LicenceController, LicenceService } from "./modules/licence/licence";
 import { TicketsController, TicketsService } from "./modules/tickets/tickets";
+import { CentralLinkService } from "./modules/central/link";
+import { CentralForwardInterceptor } from "./modules/central/forward";
 import { PlayersService } from "./modules/players/players.service";
 import { TrackIdentityController } from "./modules/tracks/track-identity.controller";
 import { TrackLinksController, TrackLinksService } from "./modules/tracks/track-links";
@@ -86,8 +88,9 @@ export function appModule(cfg: Config) {
     controllers: [EvidenceAuditController, FormationsController, PressingController, TransitionsController, AdminController, RetentionController, MonitoringController, WalletController, AdminWalletController, LicenceController, TicketsController, BillingController, AdminBillingController, AiAnalystController, AssistantController, AccountController, ProjectsController, MediaController, AnalysisController, AssessmentController, PitchCalibrationController, HeatZonesController, BallMarksController, LineupsController, MatchPeriodsController, MatchEventsController, SharingController, PublicShareController, PlayersController, PlayerListController, CountriesController, TrackIdentityController, CrossMatchController, TrackLinksController, IdentityEvidenceController, MatchesController, ReelsController, BrandController, ReelTemplatesController, ReelHistoryController, PlayerReportController, ProfileIntroController, ExportsController, ScoutingPackController, ArchiveController, BeatGridController, JobsController, HomeInboxController, OverviewController, WorkContextController, SearchController, SettingsController, SmartBinsController, NotificationsController, MediaInfoController, LanesController, SnapshotsController, IdentityImpactController, CollabController, TeamController, PublicInvitationController, InvitationJoinController, AuditController, LibraryRemovalController, LibraryFoldersController, LibraryFactsController, RenderEstimateController, BlocksController, ExportPresetsController, OrgTemplatesController, ...local.controllers],
     providers: [
       { provide: CONFIG, useValue: cfg },
-      Db, AuthGuard, WalletService, LicenceService, TicketsService, BillingService, AiAnalystService, EvidenceAuditService, FormationsService, PressingService, TransitionsService, AdminService, RetentionService, MonitoringService, AssistantService, AccountService, AvatarService, PageModeService, ProjectsService, MediaService, AnalysisService, AssessmentService, PitchCalibrationService, HeatZonesService, BallMarksService, LineupsService, MatchPeriodsService, MatchEventsService, SharingService, PlayersService, TrackIdentityService, TrackLinksService, IdentityEvidenceService, MatchesService, ReelsService, CrossMatchService, BrandService, ReelTemplatesService, ReelHistoryService, PlayerReportService, ProfileIntroService, ExportsService, ScoutingPackService, ArchiveService, BeatGridService, JobsService, HomeInboxService, OverviewService, WorkContextService, SearchService, SettingsService, SmartBinsService, NotificationsService, MediaInfoService, LanesService, SnapshotsService, IdentityImpactService, CollabService, TeamService, AuditService, LibraryRemovalService, LibraryFoldersService, LibraryFactsService, RenderEstimateService, BlocksService, ExportPresetsService, OrgTemplatesService, ...local.providers,
+      Db, AuthGuard, WalletService, LicenceService, TicketsService, CentralLinkService, BillingService, AiAnalystService, EvidenceAuditService, FormationsService, PressingService, TransitionsService, AdminService, RetentionService, MonitoringService, AssistantService, AccountService, AvatarService, PageModeService, ProjectsService, MediaService, AnalysisService, AssessmentService, PitchCalibrationService, HeatZonesService, BallMarksService, LineupsService, MatchPeriodsService, MatchEventsService, SharingService, PlayersService, TrackIdentityService, TrackLinksService, IdentityEvidenceService, MatchesService, ReelsService, CrossMatchService, BrandService, ReelTemplatesService, ReelHistoryService, PlayerReportService, ProfileIntroService, ExportsService, ScoutingPackService, ArchiveService, BeatGridService, JobsService, HomeInboxService, OverviewService, WorkContextService, SearchService, SettingsService, SmartBinsService, NotificationsService, MediaInfoService, LanesService, SnapshotsService, IdentityImpactService, CollabService, TeamService, AuditService, LibraryRemovalService, LibraryFoldersService, LibraryFactsService, RenderEstimateService, BlocksService, ExportPresetsService, OrgTemplatesService, ...local.providers,
       { provide: APP_FILTER, useClass: ProblemFilter },
+      { provide: APP_INTERCEPTOR, useClass: CentralForwardInterceptor },
     ],
   })
   class AppModule {}

@@ -14,7 +14,7 @@ const { setupOwner, ApiProblem } = vi.hoisted(() => {
   }
   return { setupOwner, ApiProblem };
 });
-vi.mock("@/lib/api", () => ({ setupOwner, ApiProblem }));
+vi.mock("@/lib/api", () => ({ setupOwner, ApiProblem, authMode: async () => ({ mode: "local", central_url: null }) }));
 
 import SetupPage from "@/app/setup/page";
 

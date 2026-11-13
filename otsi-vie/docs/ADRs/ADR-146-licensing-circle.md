@@ -46,7 +46,7 @@
   oldest first. If the balance is short, the spend is recorded as an **OWED ticket** (not a negative balance: the ledger
   keeps `balance_after >= 0`, migration 0071). While anything is owed, central collects it first on every ticket request and
   refuses a new ticket it cannot cover after that (`402 TOKENS_OWED`); an owed job that failed is cleared by a refund.
-  Built 2026-11-13: migration 0077 (`job_tickets`, `offline_spends`, `central_links`), `modules/tickets/tickets.ts`.
+  Built 2026-11-13: migration 0077 (`job_tickets`, `linked_job_tickets`, `central_links`), `modules/tickets/tickets.ts`.
 - The worst a tampered laptop can take is the allowance once per licence period — the accepted trade-off for weak internet.
 
 ## 5. The licence gate
@@ -73,6 +73,30 @@
 4. Worker: ticket check for paid kinds.
 5. Tests on MySQL, SQLite and MariaDB; the full flow end to end against a local central server.
 6. Staging plan for `accounts.otsi.cc` → the owner's yes → deploy → smoke test.
+
+## 7a. Linked desktop as built (step 3, 2026-11-13)
+
+- `modules/central/link.ts` (CentralLinkService) and `modules/central/forward.ts` (a global interceptor). Linked mode is on
+  only when `OTSI_VIE_CENTRAL_SERVER_URL` is set on an engine that is not the central server; nothing changes otherwise.
+- **Sign-in:** the existing sign-in page and `POST /v1/auth/login` sign in at central first; the session is mirrored with the
+  same ids and this engine issues its own local session as usual. `GET /v1/auth/mode` tells the page to say "Sign in with
+  your OTSI account" and to offer **Create account** (the setup page, which then calls central sign-up with a club name).
+  Two-step challenges from central are passed back and checked by central.
+- **Offline sign-in (decision):** the password is also kept as a local hash, so a person can sign in on this computer with
+  no internet. Without central, the central two-step check cannot run; the local password is the only factor offline.
+- **Sessions:** the central refresh token is stored sealed (AES-256-GCM with the engine's own signing key) in
+  `central_links`; access tokens are kept in memory only. A refused central refresh (401) removes the link.
+- **Forwarding:** `/v1/wallet/...`, `/v1/billing/...` (not `/v1/admin`) and `GET /v1/licence` are answered by central; a
+  receipt upload is passed on as bytes. With no internet these pages say "Your OTSI account cannot be reached".
+- **Charging:** `WalletService.charge` / `refundForJob` hand over to the link: licence gate, central ticket (kept in
+  `linked_job_tickets` with its signed token, for the worker), or an offline spend inside the allowance. A central charge
+  made inside a job's transaction is refunded if that transaction rolls back (`Db.onRollback`). A refund that cannot reach
+  central waits as REFUND_PENDING. A background sync every 5 minutes settles offline spends, sends waiting refunds and
+  refreshes the licence daily.
+- **Licence check on the laptop:** verified with central's Ed25519 public key (`OTSI_VIE_LICENCE_PUBLIC_KEY_PEM` or the
+  JWKS URL) and its audience; the issuer name is not checked (the laptop does not know central's issuer, and the key is
+  the proof). The offline grace applies (`OTSI_VIE_LICENCE_GRACE_DAYS`).
+- The desktop shell's own `signInToCentral` (licence.js) is not used by this flow: the local API holds the central session.
 
 ## 8. Alternatives considered
 

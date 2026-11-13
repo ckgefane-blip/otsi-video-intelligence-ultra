@@ -15,7 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { PitchDiagram } from "@/components/auth/PitchDiagram";
-import { ApiProblem } from "@/lib/api";
+import { ApiProblem, authMode } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { safeNext } from "@/lib/safe-next";
@@ -84,6 +84,9 @@ function LoginForm() {
   const [recoveryCode, setRecoveryCode] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
+  /** a linked desktop signs in with the OTSI account (ADR-146) and offers Create account */
+  const [linked, setLinked] = useState(false);
+  useEffect(() => { void authMode().then((m) => setLinked(m.mode === "linked")); }, []);
 
   useEffect(() => { if (status === "signed-in") router.replace(next); }, [status, next, router]);
   useEffect(() => { setPasskeySupported(browserSupportsWebAuthn()); }, []);
@@ -166,7 +169,7 @@ function LoginForm() {
 
       <main className="flex min-w-0 flex-1 basis-[560px] flex-col items-center justify-start gap-7 px-8 py-10">
         <form onSubmit={submit} className="flex w-full max-w-[380px] flex-col gap-[18px]" aria-labelledby="si">
-          <div className="flex flex-col gap-1.5"><span className="eb">{t.body.auth.signInWelcome}</span><h2 id="si" className="h1">{t.body.auth.signIn}</h2></div>
+          <div className="flex flex-col gap-1.5"><span className="eb">{t.body.auth.signInWelcome}</span><h2 id="si" className="h1">{linked ? t.desktop.centralSignInTitle : t.body.auth.signIn}</h2></div>
           <div className="field">
             <label className="lab" htmlFor="e">{t.body.auth.email}</label>
             <input id="e" className="in" type="email" autoComplete="email" placeholder="you@club.com" style={{ height: 40 }}
@@ -201,6 +204,9 @@ function LoginForm() {
             {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskeyShort}
             <span className="mu sm ml-1">{t.webauthn.windowsHello}</span>
           </button>
+          {linked && (
+            <p className="sm mu text-center" data-create-account>{t.desktop.centralNewHere} <Link href="/setup" className="text-primary hover:underline">{t.desktop.centralCreateAccount}</Link></p>
+          )}
           <p className="sm mu text-center">{t.body.auth.signInInvitedBy} <Link href="/invite" className="text-primary hover:underline">{t.body.auth.signInAcceptInvite}</Link></p>
           {challenge && (
             <button type="button" onClick={startAgain} className="t-small w-full text-center underline">{t.body.auth.startAgain}</button>

@@ -24,6 +24,7 @@ import { dummyHash, verifyPassword } from "../../core/passwords";
 import { ApiError } from "../../core/problem";
 import { AccountService } from "../account/account";
 import { bootstrapOwner } from "./bootstrap";
+import { CentralLinkService, CentralUnreachable } from "../central/link";
 import { TeamService } from "../team/team";
 import { TwoStepService } from "./two-step";
 
@@ -62,12 +63,31 @@ export class AuthService {
   private verifyKey: Promise<KeyLike> | undefined;
 
   constructor(@Inject(CONFIG) private readonly cfg: Config, private readonly db: Db, private readonly account: AccountService,
-              private readonly twoStep: TwoStepService, private readonly team: TeamService) {
+              private readonly twoStep: TwoStepService, private readonly team: TeamService,
+              private readonly central: CentralLinkService) {
     if (!cfg.localAuth) throw new Error("local sign-in is not configured (OTSI_VIE_LOCAL_SIGNING_KEY_FILE)");
     this.local = cfg.localAuth;
   }
 
   get settings(): LocalAuthConfig { return this.local; }
+
+  /** How this engine signs people in (GET /v1/auth/mode): local only, linked to the OTSI account server, or the server. */
+  get mode(): { mode: "local" | "linked" | "central"; central_url: string | null } {
+    if (this.cfg.central?.centralMode) return { mode: "central", central_url: null };
+    return this.central.linked ? { mode: "linked", central_url: this.central.url } : { mode: "local", central_url: null };
+  }
+
+  /** A sign-in token not issued by this engine (the issuer differs): the central server's. Read without trusting it —
+   *  only to choose where to send it; whoever receives it verifies it. */
+  private issuedElsewhere(token: string): boolean {
+    try {
+      const part = token.split(".")[1] ?? "";
+      const iss = (JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as { iss?: string }).iss;
+      return typeof iss === "string" && iss !== this.cfg.jwtIssuer;
+    } catch {
+      return false;
+    }
+  }
 
   private signingKey(): Promise<KeyLike> {
     return (this.key ??= importPKCS8(this.local.signingKeyPem, "RS256"));
@@ -114,6 +134,17 @@ export class AuthService {
   }
 
   async login(email: string, password: string, client: ClientInfo): Promise<IssuedSession | PendingSecondStep> {
+    // a linked desktop signs in with the OTSI account (ADR-146 §2); with no internet, or for an account that only
+    // exists on this computer, the local sign-in below answers
+    if (this.central.linked) {
+      try {
+        const r = await this.central.signIn(email, password);
+        if ("challenge" in r) return { challenge: r.challenge };
+        return this.issueSession(r.userId, client);
+      } catch (e) {
+        if (!(e instanceof CentralUnreachable) && !(e instanceof ApiError && e.status === 401)) throw e;
+      }
+    }
     const row = await this.db.one<RowDataPacket>(
       `SELECT c.user_id, c.password_hash, c.failed_attempts, c.locked_until > CURRENT_TIMESTAMP(6) AS locked, u.external_subject
          FROM local_credentials c JOIN users u ON u.id = c.user_id WHERE c.email_normalized = ?`, [email.trim().toLowerCase()]);
@@ -139,6 +170,15 @@ export class AuthService {
 
   /** sign-in step 2: the challenge token from step 1 and a code from the app (or a recovery code) */
   async loginSecondStep(mfaToken: string, code: string, client: ClientInfo): Promise<IssuedSession> {
+    // the challenge came from the central server (a linked desktop's OTSI account): central checks the code
+    if (this.central.linked && this.issuedElsewhere(mfaToken)) {
+      try {
+        return this.issueSession((await this.central.signInSecondStep(mfaToken, code)).userId, client);
+      } catch (e) {
+        if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", "Your OTSI account cannot be reached. Check the internet connection.");
+        throw e;
+      }
+    }
     let userId: string;
     try {
       this.verifyKey ??= importSPKI(publicKeyOf(this.local.signingKeyPem), "RS256");
@@ -168,6 +208,17 @@ export class AuthService {
    * the email is taken — those become 409s here, and the validation errors become 400s.
    */
   async setup(body: SetupRequest, client: ClientInfo): Promise<IssuedSession> {
+    // a linked desktop: "Create account" makes the OTSI account and organization on the central server (ADR-146 §2)
+    if (this.central.linked) {
+      try {
+        const { userId } = await this.central.signUp({ email: body.email, display_name: body.display_name,
+          organization_name: body.organization_name?.trim() || body.display_name, password: body.password });
+        return this.issueSession(userId, client);
+      } catch (e) {
+        if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", "Creating an OTSI account needs the internet. Check the connection.");
+        throw e;
+      }
+    }
     let userId: string;
     try {
       ({ userId } = await bootstrapOwner(this.db, { email: body.email, displayName: body.display_name,

@@ -18,6 +18,8 @@ export const SetupRequest = z.object({
   email: z.string().trim().email().max(255),
   display_name: z.string().trim().min(2, "Enter at least 2 characters.").max(80, "Use at most 80 characters."),
   password: z.string().min(1).max(256),
+  /** a linked desktop's "Create account" (ADR-146 §2) names the club; a local first run leaves it out (owner's name) */
+  organization_name: z.string().trim().min(2, "Enter at least 2 characters.").max(120, "Use at most 120 characters.").optional(),
 });
 export type SetupRequest = z.infer<typeof SetupRequest>;
 

@@ -47,6 +47,7 @@ import { CONFIG, type Config } from "../../core/config";
 import { currentPlanCode } from "../../core/plan";
 import { nextBankTransferReference } from "../../core/reference";
 import { Db, type Executor } from "../../core/db";
+import { CentralLinkService } from "../central/link";
 import { ApiError, notFound } from "../../core/problem";
 
 export const INSUFFICIENT_TOKENS = "INSUFFICIENT_TOKENS";
@@ -110,6 +111,7 @@ export class WalletService {
   constructor(
     private readonly db: Db,
     @Inject(CONFIG) cfg: Config,
+    private readonly central: CentralLinkService,
   ) {
     this.companyOrgId = cfg.companyOrganizationId;
   }
@@ -179,6 +181,8 @@ export class WalletService {
     actorId: string | null,
     job: { type: WalletJobType; id: string; amount: number; reason?: string },
   ): Promise<WalletLedgerEntry> {
+    // a linked desktop holds no balance: the central server charges, and signs a ticket (ADR-146 §3)
+    if (this.central.linked) return this.central.charge(ex, organizationId, actorId, job);
     await this.lockWallet(ex, organizationId);
     const key = `spend:${job.type}:${job.id}`;
     const existing = await this.db.one<RowDataPacket>(
@@ -210,6 +214,7 @@ export class WalletService {
     actorId: string | null,
     job: { type: WalletJobType; id: string; reason: string },
   ): Promise<WalletLedgerEntry | null> {
+    if (this.central.linked) return this.central.refund(ex, organizationId, actorId, job);
     await this.lockWallet(ex, organizationId);
     const spend = await this.db.one<RowDataPacket>(
       "SELECT * FROM wallet_ledger WHERE organization_id = ? AND idempotency_key = ?", [organizationId, `spend:${job.type}:${job.id}`], ex);

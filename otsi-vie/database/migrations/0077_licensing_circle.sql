@@ -1,4 +1,4 @@
--- 0077 licensing circle: job tickets (central), offline spends and central links (linked desktop). OTSI VIE v2, MySQL 8.4
+-- 0077 licensing circle: job tickets (central), linked job tickets and central links (linked desktop). OTSI VIE v2, MySQL 8.4
 -- (also run on MariaDB 11.4 through tools/db/mariadb_compat.py). ADR-146.
 --
 -- NUMBERING: ultra is at 0076 (grassroots price list). Never renumber a migration that has run anywhere.
@@ -12,8 +12,10 @@
 --     central refuses new tickets while any are OWED and collects them, oldest first, as soon as the balance covers them.
 --     A refund (job cancelled before start, or failed) refunds a CHARGED ticket through the ledger (`refund:<type>:<id>`)
 --     and simply clears an OWED one. One row per (organization, job type, job id): asking twice returns the first.
---   * `offline_spends` — LINKED DESKTOP. A paid job started while central could not be reached, inside the licence's
---     offline allowance; settled with central later (PENDING -> SETTLED), or REFUNDED when the job failed before settling.
+--   * `linked_job_tickets` — LINKED DESKTOP. One row per paid job this computer started. ONLINE: central issued a ticket
+--     (its signed token is kept here for the worker to check). OFFLINE: central could not be reached, so the job ran inside
+--     the licence's offline allowance; it is ACTIVE (unsettled) until settled with central (SETTLED). A refund that could
+--     not reach central waits as REFUND_PENDING and is sent by the background sync; then REFUNDED.
 --   * `central_links` — LINKED DESKTOP. The central session a person signed in with on this computer: the central
 --     refresh token SEALED with the engine's credential key (never stored in clear), and the last signed licence token.
 --     The central user and organization ids are mirrored into the local users / organizations tables with the same ids.
@@ -40,20 +42,23 @@ CREATE TABLE `job_tickets` (
   CONSTRAINT `fk_job_tickets_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `offline_spends` (
+CREATE TABLE `linked_job_tickets` (
   `id` CHAR(36) PRIMARY KEY,
   `organization_id` CHAR(36) NOT NULL,
   `job_type` ENUM('ANALYSIS','REEL_RENDER','PLAYER_REPORT','EXPORT_PACK','AI_ANALYSIS') NOT NULL,
   `job_id` CHAR(36) NOT NULL,
   `amount` INT NOT NULL CHECK (`amount` > 0),
-  `state` ENUM('PENDING','SETTLED','REFUNDED') NOT NULL DEFAULT 'PENDING',
+  `source` ENUM('ONLINE','OFFLINE') NOT NULL,
+  `state` ENUM('ACTIVE','SETTLED','REFUND_PENDING','REFUNDED') NOT NULL DEFAULT 'ACTIVE',
+  `ticket_token` TEXT NULL,
   `actor_id` CHAR(36) NULL,
   `spent_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `settled_at` DATETIME(6) NULL,
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  UNIQUE KEY `uq_offline_spends_job` (`organization_id`, `job_type`, `job_id`),
-  INDEX `idx_offline_spends_org_state` (`organization_id`, `state`),
-  CONSTRAINT `fk_offline_spends_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
+  UNIQUE KEY `uq_linked_job_tickets_job` (`organization_id`, `job_type`, `job_id`),
+  INDEX `idx_linked_job_tickets_org_state` (`organization_id`, `state`),
+  CHECK ((`source` = 'ONLINE' AND `ticket_token` IS NOT NULL) OR (`source` = 'OFFLINE')),
+  CONSTRAINT `fk_linked_job_tickets_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `central_links` (

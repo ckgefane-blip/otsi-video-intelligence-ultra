@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { PitchDiagram } from "@/components/auth/PitchDiagram";
 import { useLocale } from "@/lib/i18n";
-import { ApiProblem, setupOwner } from "@/lib/api";
+import { ApiProblem, authMode, setupOwner } from "@/lib/api";
 import Link from "next/link";
 
 const field = "mt-1.5 h-10 w-full rounded-ctl border border-line2 bg-canvas px-3 t-body text-ink outline-none focus:border-primary";
@@ -51,6 +51,10 @@ export default function SetupPage() {
   const [error, setError] = useState<string | null>(null);
   const [already, setAlready] = useState(false);
   const score = useMemo(() => strength(password), [password]);
+  /** a linked desktop: this form creates the OTSI account and the club on the central server (ADR-146) */
+  const [linked, setLinked] = useState(false);
+  const [club, setClub] = useState("");
+  useEffect(() => { void authMode().then((m) => setLinked(m.mode === "linked")); }, []);
 
   useEffect(() => { if (status === "signed-in") router.replace("/dashboard"); }, [status, router]);
 
@@ -60,7 +64,7 @@ export default function SetupPage() {
     if (password.length < 12) { setError(t.body.auth.setupPasswordHint); return; }
     setBusy(true); setError(null); setAlready(false);
     try {
-      const s = await setupOwner({ email: email.trim(), display_name: name.trim(), password });
+      const s = await setupOwner({ email: email.trim(), display_name: name.trim(), password, ...(linked && club.trim() ? { organization_name: club.trim() } : {}) });
       adoptSession(s);
       router.replace("/dashboard");
     } catch (x) {
@@ -97,14 +101,20 @@ export default function SetupPage() {
         <form onSubmit={submit} aria-labelledby="setup-title" className="flex w-full max-w-[420px] flex-col gap-[18px]">
           <div className="flex flex-col gap-2">
             {/* SOT: "First run" is plain text — the SOT's non-ev chip renders without border, background or padding */}
-            <span className="t-small self-start text-muted">{t.body.auth.setupFirstRun}</span>
-            <h2 id="setup-title" className="t-page">{t.body.auth.setupTitle}</h2>
-            <p className="t-body text-ink2">{t.body.auth.setupSub}</p>
+            {!linked && <span className="t-small self-start text-muted">{t.body.auth.setupFirstRun}</span>}
+            <h2 id="setup-title" className="t-page">{linked ? t.desktop.centralCreateTitle : t.body.auth.setupTitle}</h2>
+            <p className="t-body text-ink2">{linked ? t.desktop.centralCreateSub : t.body.auth.setupSub}</p>
           </div>
           <div>
             <label htmlFor="setup-name" className="t-body text-ink2">{t.body.auth.setupFullName}</label>
             <input id="setup-name" name="display_name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={field} />
           </div>
+          {linked && (
+            <div>
+              <label htmlFor="setup-club" className="t-body text-ink2">{t.desktop.centralClubName}</label>
+              <input id="setup-club" name="organization_name" autoComplete="organization" value={club} onChange={(e) => setClub(e.target.value)} className={field} />
+            </div>
+          )}
           <div>
             <label htmlFor="setup-email" className="t-body text-ink2">{t.body.auth.setupEmail}</label>
             <input id="setup-email" name="email" type="email" autoComplete="email" placeholder={t.body.auth.setupEmailPh} value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
@@ -135,9 +145,11 @@ export default function SetupPage() {
             </p>
           )}
           <button type="submit" disabled={busy} className="h-11 w-full rounded-ctl bg-primary t-body font-normal text-primary-ink hover:brightness-110 disabled:opacity-70">
-            {busy ? t.body.auth.saving : t.body.auth.setupSubmit}
+            {busy ? t.body.auth.saving : linked ? t.desktop.centralCreateAccount : t.body.auth.setupSubmit}
           </button>
-          <p className="t-small text-muted">{t.body.auth.setupNote}</p>
+          {linked
+            ? <p className="t-small text-muted">{t.desktop.centralHaveAccount} <Link href="/login" className="text-primary hover:underline">{t.body.auth.signIn}</Link></p>
+            : <p className="t-small text-muted">{t.body.auth.setupNote}</p>}
         </form>
       </main>
     </div>

@@ -29,6 +29,13 @@ export interface Dictionary {
     navAdmin: string;
     railCollapse: string;
     resizePanel: string;
+    centralSignInTitle: string;
+    centralNewHere: string;
+    centralCreateAccount: string;
+    centralCreateTitle: string;
+    centralCreateSub: string;
+    centralClubName: string;
+    centralHaveAccount: string;
     railCollapseAria: string;
     railExpandAria: string;
     licence: string;
@@ -7173,6 +7180,13 @@ export const en: Dictionary = {
     navAdmin: "Admin",
     railCollapse: "Collapse",
     resizePanel: "Drag to resize",
+    centralSignInTitle: "Sign in with your OTSI account",
+    centralNewHere: "New to OTSI?",
+    centralCreateAccount: "Create account",
+    centralCreateTitle: "Create your OTSI account",
+    centralCreateSub: "One account for your club, on every computer. Your videos stay on this computer.",
+    centralClubName: "Club or organisation name",
+    centralHaveAccount: "Already have an account?",
     railCollapseAria: "Collapse navigation",
     railExpandAria: "Expand navigation",
     licence: "Licence",
@@ -14324,6 +14338,13 @@ export const ru: DeepPartial<Dictionary> = {
     navAdmin: "Админ",
     railCollapse: "Свернуть",
     resizePanel: "Перетащите, чтобы изменить ширину",
+    centralSignInTitle: "Войдите с учётной записью OTSI",
+    centralNewHere: "Впервые в OTSI?",
+    centralCreateAccount: "Создать учётную запись",
+    centralCreateTitle: "Создайте учётную запись OTSI",
+    centralCreateSub: "Одна учётная запись для вашего клуба на любом компьютере. Видео остаются на этом компьютере.",
+    centralClubName: "Название клуба или организации",
+    centralHaveAccount: "Уже есть учётная запись?",
     railCollapseAria: "Свернуть навигацию",
     railExpandAria: "Развернуть навигацию",
     licence: "Лицензия",
@@ -21475,6 +21496,13 @@ export const es: DeepPartial<Dictionary> = {
     navAdmin: "Administración",
     railCollapse: "Contraer",
     resizePanel: "Arrastra para cambiar el ancho",
+    centralSignInTitle: "Inicia sesión con tu cuenta OTSI",
+    centralNewHere: "¿Eres nuevo en OTSI?",
+    centralCreateAccount: "Crear cuenta",
+    centralCreateTitle: "Crea tu cuenta OTSI",
+    centralCreateSub: "Una cuenta para tu club, en cualquier ordenador. Tus vídeos se quedan en este ordenador.",
+    centralClubName: "Nombre del club u organización",
+    centralHaveAccount: "¿Ya tienes una cuenta?",
     railCollapseAria: "Contraer navegación",
     railExpandAria: "Expandir navegación",
     licence: "Licencia",
@@ -28626,6 +28654,13 @@ export const de: DeepPartial<Dictionary> = {
     navAdmin: "Verwaltung",
     railCollapse: "Einklappen",
     resizePanel: "Ziehen, um die Breite zu ändern",
+    centralSignInTitle: "Mit Ihrem OTSI-Konto anmelden",
+    centralNewHere: "Neu bei OTSI?",
+    centralCreateAccount: "Konto erstellen",
+    centralCreateTitle: "Erstellen Sie Ihr OTSI-Konto",
+    centralCreateSub: "Ein Konto für Ihren Verein, auf jedem Computer. Ihre Videos bleiben auf diesem Computer.",
+    centralClubName: "Name des Vereins oder der Organisation",
+    centralHaveAccount: "Sie haben schon ein Konto?",
     railCollapseAria: "Navigation einklappen",
     railExpandAria: "Navigation ausklappen",
     licence: "Lizenz",
@@ -35777,6 +35812,13 @@ export const fr: DeepPartial<Dictionary> = {
     navAdmin: "Administration",
     railCollapse: "Réduire",
     resizePanel: "Faites glisser pour redimensionner",
+    centralSignInTitle: "Connectez-vous avec votre compte OTSI",
+    centralNewHere: "Nouveau sur OTSI ?",
+    centralCreateAccount: "Créer un compte",
+    centralCreateTitle: "Créez votre compte OTSI",
+    centralCreateSub: "Un compte pour votre club, sur chaque ordinateur. Vos vidéos restent sur cet ordinateur.",
+    centralClubName: "Nom du club ou de l’organisation",
+    centralHaveAccount: "Vous avez déjà un compte ?",
     railCollapseAria: "Réduire la navigation",
     railExpandAria: "Déployer la navigation",
     licence: "Licence",
@@ -42929,6 +42971,13 @@ export const pt: DeepPartial<Dictionary> = {
     "navAdmin": "Administração",
     "railCollapse": "Recolher",
     "resizePanel": "Arraste para redimensionar",
+    "centralSignInTitle": "Entre com a sua conta OTSI",
+    "centralNewHere": "Novo na OTSI?",
+    "centralCreateAccount": "Criar conta",
+    "centralCreateTitle": "Crie a sua conta OTSI",
+    "centralCreateSub": "Uma conta para o seu clube, em qualquer computador. Os seus vídeos ficam neste computador.",
+    "centralClubName": "Nome do clube ou organização",
+    "centralHaveAccount": "Já tem uma conta?",
     "railCollapseAria": "Recolher navegação",
     "railExpandAria": "Expandir navegação",
     "licence": "Licença",

@@ -6,7 +6,7 @@
  * this machine's loopback over plain HTTP: requests from an http://127.0.0.1 or http://localhost origin get the non-Secure cookie, which
  * a browser keeps only for that loopback origin; every other origin keeps Secure.
  */
-import { Body, Controller, Headers, HttpCode, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res } from "@nestjs/common";
 import { AcceptInvitationRequest, LoginRequest, MfaLoginRequest, SetupRequest, SignUpRequest } from "@otsi-vie/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ApiError } from "../../core/problem";
@@ -56,6 +56,12 @@ export class AuthController {
 
   private client(req: FastifyRequest): ClientInfo {
     return { userAgent: req.headers["user-agent"], ip: req.ip };
+  }
+
+  /** public: how this engine signs people in, so the sign-in page can say "Sign in with your OTSI account" (ADR-146) */
+  @Get("auth/mode")
+  mode() {
+    return this.auth.mode;
   }
 
   @Post("auth/login")

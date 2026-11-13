@@ -154,7 +154,7 @@ function sanitizeFileName(v: string | undefined, fallback: string): string {
 
 /** Read a raw request body (Buffer from inject, or the octet-stream Readable in production) into one Buffer,
  *  refusing anything over the limit. A Buffer is NOT async-iterated (that would yield single bytes). */
-async function readRawBody(body: unknown, maxBytes: number): Promise<Buffer> {
+export async function readRawBody(body: unknown, maxBytes: number): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
   const push = (b: Buffer): void => {

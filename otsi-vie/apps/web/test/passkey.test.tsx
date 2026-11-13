@@ -38,6 +38,7 @@ const { browserSupportsWebAuthn, startRegistration, webauthnCredentials, webauth
 }));
 vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn, startRegistration, startAuthentication: vi.fn() }));
 vi.mock("@/lib/api", () => ({
+  authMode: async () => ({ mode: "local", central_url: null }),
   ApiProblem: class ApiProblem extends Error {
     constructor(readonly status: number, readonly code: string, message: string) { super(message); }
   },

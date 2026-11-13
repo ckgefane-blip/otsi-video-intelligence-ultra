@@ -94,6 +94,16 @@ export const acceptInvitation = (body: AcceptInvitationRequest) => sessionCall("
 /** first-run owner setup (SOT page 10): create the owner account and sign them in */
 export const setupOwner = (body: SetupRequest) => sessionCall("setup", body);
 
+/** How this engine signs people in (ADR-146): "linked" = with the OTSI account on the central server. No sign-in needed. */
+export interface AuthMode { mode: "local" | "linked" | "central"; central_url: string | null }
+export async function authMode(): Promise<AuthMode> {
+  try {
+    const r = await fetch("/api/v1/auth/mode", { cache: "no-store", credentials: "omit" });
+    if (r.ok) return (await r.json()) as AuthMode;
+  } catch { /* unreachable: assume local */ }
+  return { mode: "local", central_url: null };
+}
+
 /** what an invitation link is for (no sign-in needed) */
 export async function invitationPreview(token: string): Promise<InvitationPreview> {
   const r = await fetch(`/api/v1/public/invitations/${encodeURIComponent(token)}`, { cache: "no-store", credentials: "omit" });

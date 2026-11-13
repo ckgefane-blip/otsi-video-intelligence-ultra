@@ -28,25 +28,28 @@ BEGIN
   UPDATE `job_tickets` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
   WHERE `id` = NEW.`id`;
 END;
-CREATE TABLE `offline_spends` (
+CREATE TABLE `linked_job_tickets` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
   `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
   `job_type` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_job_type` CHECK (`job_type` IN ('ANALYSIS', 'REEL_RENDER', 'PLAYER_REPORT', 'EXPORT_PACK', 'AI_ANALYSIS')),
   `job_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_job_id` CHECK (length(`job_id`) <= 36),
   `amount` INTEGER NOT NULL CHECK (`amount` > 0),
-  `state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'PENDING' CONSTRAINT `ck_enum_state` CHECK (`state` IN ('PENDING', 'SETTLED', 'REFUNDED')),
+  `source` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_source` CHECK (`source` IN ('ONLINE', 'OFFLINE')),
+  `state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'ACTIVE' CONSTRAINT `ck_enum_state` CHECK (`state` IN ('ACTIVE', 'SETTLED', 'REFUND_PENDING', 'REFUNDED')),
+  `ticket_token` TEXT COLLATE NOCASE,
   `actor_id` TEXT COLLATE NOCASE CONSTRAINT `ck_len_actor_id` CHECK (length(`actor_id`) <= 36),
   `spent_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
   `settled_at` INTEGER,
   `updated_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
   UNIQUE (`organization_id`, `job_type`, `job_id`),
-  CONSTRAINT `fk_offline_spends_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
+  CONSTRAINT `fk_linked_job_tickets_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`),
+  CHECK ((`source` = 'ONLINE' AND `ticket_token` IS NOT NULL) OR (`source` = 'OFFLINE'))
 ) STRICT;
-CREATE INDEX `idx_offline_spends_org_state` ON `offline_spends` (`organization_id`, `state`);
-CREATE TRIGGER `trg_offline_spends_updated_at_touch` AFTER UPDATE ON `offline_spends`
+CREATE INDEX `idx_linked_job_tickets_org_state` ON `linked_job_tickets` (`organization_id`, `state`);
+CREATE TRIGGER `trg_linked_job_tickets_updated_at_touch` AFTER UPDATE ON `linked_job_tickets`
 WHEN NEW.`updated_at` = OLD.`updated_at`
 BEGIN
-  UPDATE `offline_spends` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
+  UPDATE `linked_job_tickets` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
   WHERE `id` = NEW.`id`;
 END;
 CREATE TABLE `central_links` (

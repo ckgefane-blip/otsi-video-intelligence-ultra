@@ -34,6 +34,7 @@ vi.mock("@/components/auth/AuthProvider", () => ({
 const webauthn = vi.hoisted(() => ({ supported: true }));
 vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn: () => webauthn.supported }));
 vi.mock("@/lib/api", () => ({
+  authMode: async () => ({ mode: "local", central_url: null }),
   ApiProblem: class ApiProblem extends Error {
     constructor(readonly status: number, readonly code: string, message: string) { super(message); }
   },
