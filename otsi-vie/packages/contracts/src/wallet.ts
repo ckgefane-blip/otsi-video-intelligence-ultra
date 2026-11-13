@@ -80,7 +80,7 @@ export const TOKEN_PACKS: TokenPack[] = [
 
 export const TokenPackCatalogue = z.object({
   packs: z.array(TokenPack),
-  free_grant_tokens: z.literal(100),
+  free_grant_tokens: z.literal(25),
   free_grant_expiry_days: z.literal(30),
   pack_expiry_months: z.literal(12),
   costs: z.object({
@@ -98,7 +98,7 @@ export type TokenPackCatalogue = z.infer<typeof TokenPackCatalogue>;
 export function tokenPackCatalogue(): TokenPackCatalogue {
   return TokenPackCatalogue.parse({
     packs: TOKEN_PACKS,
-    free_grant_tokens: 100,
+    free_grant_tokens: 25,
     free_grant_expiry_days: 30,
     pack_expiry_months: 12,
     costs: { analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10, ai_analysis: 10 },
@@ -116,9 +116,8 @@ export function tokenPack(code: TokenPackCode): TokenPack {
 export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10, aiAnalysis: 10 } as const;
 /** Scope §7: low-balance warning below the cost of one full match. */
 export const LOW_BALANCE_THRESHOLD = 90;
-/** Scope §4: 100 free tokens, once, expiring 30 days after signup — one full match (90 tokens) plus one
- *  reel render (10 tokens): "your first match free", the trial that shows a real reel. */
-export const FREE_GRANT_TOKENS = 100;
+/** Scope §4: 25 free tokens, once, expiring 30 days after signup. */
+export const FREE_GRANT_TOKENS = 25;
 export const FREE_GRANT_EXPIRY_DAYS = 30;
 /** Scope §3: paid tokens expire 12 months after purchase. */
 export const PACK_EXPIRY_MONTHS = 12;
@@ -279,7 +278,7 @@ export type AdminWalletRow = z.infer<typeof AdminWalletRow>;
 
 export const FreeGrant = z.object({
   organization_id: z.string().uuid(),
-  granted_tokens: z.literal(100),
+  granted_tokens: z.literal(25),
   email: z.string(),
   granted_by: z.string().uuid(),
   granted_at: z.string(),

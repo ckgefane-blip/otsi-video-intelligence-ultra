@@ -221,13 +221,12 @@ export class WalletService {
     return this.append(ex, organizationId, actorId, { ...row });
   }
 
-  /** The one-time 100-token free grant (scope §4): one full match plus one reel — "your first match
-   *  free". One per organization, enforced by wallet_free_grants. */
+  /** The one-time 25-token free grant (scope §4). One per organization, enforced by wallet_free_grants. */
   async grantFreeTier(p: Principal): Promise<WalletLedgerEntry> {
     return this.db.tx(async (c) => {
       await this.lockWallet(c, p.organizationId);
       const already = await this.db.one<RowDataPacket>("SELECT organization_id FROM wallet_free_grants WHERE organization_id = ?", [p.organizationId], c);
-      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", "The 100 free tokens are granted once per organization. This organization has already claimed them.");
+      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", "The 25 free tokens are granted once per organization. This organization has already claimed them.");
       const user = await this.db.one<RowDataPacket>("SELECT email FROM users WHERE id = ?", [p.userId], c);
       const now = new Date().toISOString();
       const expiresAt = addDays(now, FREE_GRANT_EXPIRY_DAYS);
@@ -237,7 +236,7 @@ export class WalletService {
       );
       const entry = await this.append(c, p.organizationId, p.userId, {
         kind: "FREE_GRANT", amount: FREE_GRANT_TOKENS, idempotencyKey: `free-grant:${p.organizationId}`,
-        reason: "One-time free tier: 100 tokens on signup, expiring 30 days after signup.", expiresAt,
+        reason: "One-time free tier: 25 tokens on signup, expiring 30 days after signup.", expiresAt,
       });
       await recordChange(c, userActor(p), { action: "wallet.free_grant", entityType: "organization", entityId: p.organizationId, after: { tokens: FREE_GRANT_TOKENS, expires_at: expiresAt } });
       return entry;

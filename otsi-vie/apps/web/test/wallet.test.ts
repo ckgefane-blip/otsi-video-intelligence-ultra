@@ -58,8 +58,8 @@ describe("token wallet costs", () => {
   it("publishes the four approved packs with Naira prices first", () => {
     const cat = tokenPackCatalogue();
     expect(cat.packs).toHaveLength(4);
-    expect(cat.free_grant_tokens).toBe(100);
-    expect(FREE_GRANT_TOKENS).toBe(100);
+    expect(cat.free_grant_tokens).toBe(25);
+    expect(FREE_GRANT_TOKENS).toBe(25);
     expect(LOW_BALANCE_THRESHOLD).toBe(90);
     expect(tokenPack("STARTER")).toMatchObject({ tokens: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900 });
     expect(tokenPack("CLUB")).toMatchObject({ tokens: 500, price_ngn_minor: 6_000_000, price_usd_minor: 19900 });

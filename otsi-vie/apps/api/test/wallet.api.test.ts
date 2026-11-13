@@ -62,17 +62,17 @@ describe("token wallet", () => {
     expect(r.body.packs.map((p: { code: string }) => p.code)).toEqual(["STARTER", "CLUB", "ACADEMY", "SEASON"]);
     expect(r.body.packs[0]).toMatchObject({ tokens: 100, price_ngn_minor: 1_500_000, price_usd_minor: 4900 });
     expect(r.body.packs[3]).toMatchObject({ tokens: 3000, price_ngn_minor: 25_000_000, price_usd_minor: 89900 });
-    expect(r.body.free_grant_tokens).toBe(100);
+    expect(r.body.free_grant_tokens).toBe(25);
     expect(r.body.costs).toEqual({ analysis_per_minute: 1, reel_render: 10, player_report: 10, export_pack: 10 });
     expect(r.body.low_balance_threshold).toBe(90);
   });
 
-  it("starts at zero with a low-balance warning, and the free grant is 100 tokens, once", async () => {
+  it("starts at zero with a low-balance warning, and the free grant is 25 tokens, once", async () => {
     const m = await seedBareMember();
     expect(await balance(m)).toMatchObject({ balance: 0, spendable_balance: 0, low_balance: true });
     const grant = await call(m, "POST", "/v1/wallet/free-grant");
     expect(grant.status).toBe(201);
-    expect(grant.body).toMatchObject({ kind: "FREE_GRANT", amount: 100, balance_after: 100 });
+    expect(grant.body).toMatchObject({ kind: "FREE_GRANT", amount: 25, balance_after: 25 });
     expect(await balance(m)).toMatchObject({ balance: 100, spendable_balance: 100, low_balance: false });
     expect((await call(m, "POST", "/v1/wallet/free-grant")).body.code).toBe("FREE_GRANT_ALREADY_CLAIMED");
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
