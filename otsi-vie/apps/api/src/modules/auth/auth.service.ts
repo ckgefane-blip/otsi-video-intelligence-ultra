@@ -13,7 +13,7 @@
  *  - A new person accepting an invitation (team.ts) gets their account and is signed in by the same `issue`.
  */
 import { Inject, Injectable } from "@nestjs/common";
-import { type AcceptInvitationRequest, type MfaChallenge, SessionResponse, type SetupRequest } from "@otsi-vie/contracts";
+import { type AcceptInvitationRequest, type MfaChallenge, SessionResponse, type SetupRequest, type SignUpRequest } from "@otsi-vie/contracts";
 import { createHash, randomBytes } from "node:crypto";
 import { importPKCS8, importSPKI, jwtVerify, KeyLike, SignJWT } from "jose";
 import { RowDataPacket } from "mysql2/promise";
@@ -38,6 +38,21 @@ export interface PendingSecondStep { challenge: MfaChallenge }
 export const MFA_TOKEN_SECONDS = 300;
 
 const BAD_LOGIN = () => new ApiError(401, "INVALID_CREDENTIALS", "Email or password is incorrect.");
+
+/** Sign-ups allowed per hour from one network address, and for one email address. */
+export const SIGN_UP_LIMIT = 5;
+const signUps = new Map<string, number[]>();
+/** Count one sign-up attempt for `key`; false when the last hour already has SIGN_UP_LIMIT. */
+function signUpAllowed(key: string, now = Date.now()): boolean {
+  const recent = (signUps.get(key) ?? []).filter((t) => now - t < 3_600_000);
+  if (recent.length >= SIGN_UP_LIMIT) { signUps.set(key, recent); return false; }
+  recent.push(now);
+  signUps.set(key, recent);
+  if (signUps.size > 10_000) for (const [k, v] of signUps) if (v.every((t) => now - t >= 3_600_000)) signUps.delete(k);
+  return true;
+}
+/** Tests only: forget the counted sign-ups. */
+export function resetSignUpLimits(): void { signUps.clear(); }
 
 @Injectable()
 export class AuthService {
@@ -161,6 +176,30 @@ export class AuthService {
       const m = e instanceof Error ? e.message : String(e);
       if (/already has an organization|already has an account/i.test(m)) throw new ApiError(409, "ALREADY_SET_UP", m);
       throw new ApiError(400, "SETUP_FAILED", m);
+    }
+    return this.issueSession(userId, client);
+  }
+
+  /**
+   * Public sign-up (ADR-146 §2): central server only (anywhere else 404 — a local install is set up once, by its
+   * owner). A new organization with the person as OWNER, no invitation; the same email and password rules as setup.
+   * Rate-limited per address and per network address (SIGN_UP_LIMIT per hour, kept in memory: one central process).
+   * Email verification waits for an email provider (ADR-146 open decision) — recorded, not faked.
+   */
+  async signUp(body: SignUpRequest, client: ClientInfo): Promise<IssuedSession> {
+    if (!this.cfg.central?.centralMode) throw new ApiError(404, "NOT_FOUND", "Not found.");
+    const email = body.email.trim().toLowerCase();
+    if (!signUpAllowed(`ip:${client.ip ?? "unknown"}`) || !signUpAllowed(`email:${email}`)) {
+      throw new ApiError(429, "TOO_MANY_SIGN_UPS", "Too many new accounts from here. Try again in an hour.");
+    }
+    let userId: string;
+    try {
+      ({ userId } = await bootstrapOwner(this.db, { email, displayName: body.display_name,
+        organizationName: body.organization_name, password: body.password, allowAdditional: true }));
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      if (/already has an account/i.test(m)) throw new ApiError(409, "EMAIL_TAKEN", "That email already has an OTSI account. Sign in instead.");
+      throw new ApiError(400, "SIGN_UP_FAILED", m);
     }
     return this.issueSession(userId, client);
   }

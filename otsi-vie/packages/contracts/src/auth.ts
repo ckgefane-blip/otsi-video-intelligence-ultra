@@ -21,6 +21,18 @@ export const SetupRequest = z.object({
 });
 export type SetupRequest = z.infer<typeof SetupRequest>;
 
+/**
+ * Public sign-up (ADR-146 §2, central server only): a person creates their OTSI account and their organization, and
+ * becomes its OWNER — no invitation. The same password rules as everywhere else. The free grant stays a claim button.
+ */
+export const SignUpRequest = z.object({
+  email: z.string().trim().email().max(255),
+  display_name: z.string().trim().min(2, "Enter at least 2 characters.").max(80, "Use at most 80 characters."),
+  organization_name: z.string().trim().min(2, "Enter at least 2 characters.").max(120, "Use at most 120 characters."),
+  password: z.string().min(1).max(256),
+});
+export type SignUpRequest = z.infer<typeof SignUpRequest>;
+
 export const Me = z.object({
   user: z.object({ id: z.string().uuid(), email: z.string(), display_name: z.string(),
     /** when the profile photo was last set (GET /v1/me/avatar returns it); null = no photo */

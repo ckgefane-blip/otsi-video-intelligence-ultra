@@ -7,7 +7,7 @@
  * a browser keeps only for that loopback origin; every other origin keeps Secure.
  */
 import { Body, Controller, Headers, HttpCode, Post, Req, Res } from "@nestjs/common";
-import { AcceptInvitationRequest, LoginRequest, MfaLoginRequest, SetupRequest } from "@otsi-vie/contracts";
+import { AcceptInvitationRequest, LoginRequest, MfaLoginRequest, SetupRequest, SignUpRequest } from "@otsi-vie/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ApiError } from "../../core/problem";
 import { AuthService, ClientInfo } from "./auth.service";
@@ -89,6 +89,16 @@ export class AuthController {
   async setup(@Body() body: unknown, @Headers(CSRF_HEADER) csrf: string | undefined, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     this.guard(req, csrf);
     const s = await this.auth.setup(SetupRequest.parse(body), this.client(req));
+    this.setCookie(req, res, s.refreshToken, s.refreshMaxAgeSeconds);
+    return s.body;
+  }
+
+  /** public sign-up (ADR-146 §2, central server only): a new account and organization, signed in as its OWNER */
+  @Post("auth/sign-up")
+  @HttpCode(200)
+  async signUp(@Body() body: unknown, @Headers(CSRF_HEADER) csrf: string | undefined, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+    this.guard(req, csrf);
+    const s = await this.auth.signUp(SignUpRequest.parse(body), this.client(req));
     this.setCookie(req, res, s.refreshToken, s.refreshMaxAgeSeconds);
     return s.body;
   }

@@ -2533,6 +2533,51 @@ CREATE TABLE `bank_transfer_reference_seq` (
   `year` INTEGER PRIMARY KEY,
   `next_seq` INTEGER NOT NULL DEFAULT 0 CHECK (`next_seq` >= 0)
 ) STRICT;
+CREATE TABLE `job_tickets` (
+  `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
+  `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
+  `job_type` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_job_type` CHECK (`job_type` IN ('ANALYSIS', 'REEL_RENDER', 'PLAYER_REPORT', 'EXPORT_PACK', 'AI_ANALYSIS')),
+  `job_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_job_id` CHECK (length(`job_id`) <= 36),
+  `amount` INTEGER NOT NULL CHECK (`amount` > 0),
+  `source` TEXT COLLATE NOCASE NOT NULL DEFAULT 'ONLINE' CONSTRAINT `ck_enum_source` CHECK (`source` IN ('ONLINE', 'OFFLINE')),
+  `state` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_state` CHECK (`state` IN ('CHARGED', 'OWED', 'REFUNDED')),
+  `ledger_id` TEXT COLLATE NOCASE CONSTRAINT `ck_len_ledger_id` CHECK (length(`ledger_id`) <= 36),
+  `requested_by` TEXT COLLATE NOCASE CONSTRAINT `ck_len_requested_by` CHECK (length(`requested_by`) <= 36),
+  `spent_at` INTEGER,
+  `created_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  `updated_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  UNIQUE (`organization_id`, `job_type`, `job_id`),
+  CONSTRAINT `fk_job_tickets_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`),
+  CHECK ((`state` = 'CHARGED' AND `ledger_id` IS NOT NULL) OR (`state` <> 'CHARGED')),
+  CHECK ((`source` = 'OFFLINE' AND `spent_at` IS NOT NULL) OR (`source` = 'ONLINE'))
+) STRICT;
+CREATE TABLE `offline_spends` (
+  `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
+  `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
+  `job_type` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_job_type` CHECK (`job_type` IN ('ANALYSIS', 'REEL_RENDER', 'PLAYER_REPORT', 'EXPORT_PACK', 'AI_ANALYSIS')),
+  `job_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_job_id` CHECK (length(`job_id`) <= 36),
+  `amount` INTEGER NOT NULL CHECK (`amount` > 0),
+  `state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'PENDING' CONSTRAINT `ck_enum_state` CHECK (`state` IN ('PENDING', 'SETTLED', 'REFUNDED')),
+  `actor_id` TEXT COLLATE NOCASE CONSTRAINT `ck_len_actor_id` CHECK (length(`actor_id`) <= 36),
+  `spent_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  `settled_at` INTEGER,
+  `updated_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  UNIQUE (`organization_id`, `job_type`, `job_id`),
+  CONSTRAINT `fk_offline_spends_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
+) STRICT;
+CREATE TABLE `central_links` (
+  `user_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_user_id` CHECK (length(`user_id`) <= 36),
+  `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
+  `central_url` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_central_url` CHECK (length(`central_url`) <= 255),
+  `refresh_sealed` TEXT COLLATE NOCASE NOT NULL,
+  `licence_token` TEXT COLLATE NOCASE,
+  `licence_expires_at` INTEGER,
+  `linked_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  `updated_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  PRIMARY KEY (`user_id`, `organization_id`),
+  CONSTRAINT `fk_central_links_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_central_links_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
+) STRICT;
 CREATE INDEX `idx_assets_org_project` ON `assets` (`organization_id`, `project_id`, `created_at` DESC);
 CREATE INDEX `idx_videos_org_project` ON `video_sources` (`organization_id`, `project_id`, `created_at` DESC);
 CREATE INDEX `idx_pipeline_video_created` ON `pipeline_runs` (`video_id`, `created_at` DESC);
@@ -2659,6 +2704,9 @@ CREATE INDEX `idx_webauthn_challenges_expires` ON `webauthn_challenges` (`expire
 CREATE INDEX `idx_bank_transfer_orders_org` ON `bank_transfer_orders` (`organization_id`, `created_at`);
 CREATE INDEX `idx_bank_transfer_orders_status` ON `bank_transfer_orders` (`status`, `created_at`);
 CREATE INDEX `idx_bank_transfer_orders_renewal` ON `bank_transfer_orders` (`renews_subscription_id`, `status`);
+CREATE INDEX `idx_job_tickets_org_state` ON `job_tickets` (`organization_id`, `state`, `created_at`);
+CREATE INDEX `idx_offline_spends_org_state` ON `offline_spends` (`organization_id`, `state`);
+CREATE INDEX `idx_central_links_org` ON `central_links` (`organization_id`);
 CREATE VIEW `v_player_identity` AS WITH RECURSIVE chain (player_id, current_id, next_id, hops) AS (
   SELECT id, id, merged_into_player_id, 0 FROM players
   UNION ALL
@@ -2957,6 +3005,24 @@ WHEN NEW.`updated_at` = OLD.`updated_at`
 BEGIN
   UPDATE `bank_transfer_orders` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
   WHERE `id` = NEW.`id`;
+END;
+CREATE TRIGGER `trg_job_tickets_updated_at_touch` AFTER UPDATE ON `job_tickets`
+WHEN NEW.`updated_at` = OLD.`updated_at`
+BEGIN
+  UPDATE `job_tickets` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
+  WHERE `id` = NEW.`id`;
+END;
+CREATE TRIGGER `trg_offline_spends_updated_at_touch` AFTER UPDATE ON `offline_spends`
+WHEN NEW.`updated_at` = OLD.`updated_at`
+BEGIN
+  UPDATE `offline_spends` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
+  WHERE `id` = NEW.`id`;
+END;
+CREATE TRIGGER `trg_central_links_updated_at_touch` AFTER UPDATE ON `central_links`
+WHEN NEW.`updated_at` = OLD.`updated_at`
+BEGIN
+  UPDATE `central_links` SET `updated_at` = MAX((CAST(unixepoch('subsec')*1000 AS INTEGER)), OLD.`updated_at`+1)
+  WHERE `user_id` = NEW.`user_id` AND `organization_id` = NEW.`organization_id`;
 END;
 
 -- Seed and data-carry-over statements, in migration order (no-ops on a fresh install with no rows to carry over).

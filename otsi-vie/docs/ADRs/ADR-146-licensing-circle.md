@@ -42,8 +42,11 @@
 - The licence carries `offline_allowance: 200`. When central cannot be reached at job start and the licence is valid (or in
   its 14-day grace), the local API records an **offline spend** (job, amount, time) and lets the job run, as long as the
   unsettled offline spends stay within the allowance. Beyond it: "Connect to the internet to start more paid work."
-- Next time central is reachable, the local API settles them (`POST /v1/tickets/settle`): central charges each one once.
-  If the balance is short, central records the debt (balance below zero) and refuses new tickets until it is topped up.
+- Next time central is reachable, the local API settles them (`POST /v1/tickets/settle`): central charges each one once,
+  oldest first. If the balance is short, the spend is recorded as an **OWED ticket** (not a negative balance: the ledger
+  keeps `balance_after >= 0`, migration 0071). While anything is owed, central collects it first on every ticket request and
+  refuses a new ticket it cannot cover after that (`402 TOKENS_OWED`); an owed job that failed is cleared by a refund.
+  Built 2026-11-13: migration 0077 (`job_tickets`, `offline_spends`, `central_links`), `modules/tickets/tickets.ts`.
 - The worst a tampered laptop can take is the allowance once per licence period — the accepted trade-off for weak internet.
 
 ## 5. The licence gate

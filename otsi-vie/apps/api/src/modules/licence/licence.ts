@@ -39,7 +39,7 @@
  * date.
  */
 import { Controller, Get, Headers, HttpCode, Inject, Injectable, Post, Req, UseGuards } from "@nestjs/common";
-import { LicenceClaims, LicenceRefreshResponse, LicenceSnapshot } from "@otsi-vie/contracts";
+import { LicenceClaims, LicenceRefreshResponse, LicenceSnapshot, OFFLINE_ALLOWANCE_TOKENS } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
 import { createRemoteJWKSet, errors, importPKCS8, importSPKI, jwtVerify, JWTPayload, KeyLike, SignJWT } from "jose";
 import { RowDataPacket } from "mysql2/promise";
@@ -118,6 +118,7 @@ export async function verifyLicenceToken(token: string, cfg: Config): Promise<Li
       plan: payload.plan,
       features: payload.features,
       tokens: payload.tokens,
+      offline_allowance: payload.offline_allowance,
       expires_at: payload.expires_at,
     });
   } catch {
@@ -190,6 +191,7 @@ export class LicenceService {
       plan: sub.plan,
       features,
       tokens: balance.spendable_balance,
+      offline_allowance: OFFLINE_ALLOWANCE_TOKENS,
       valid_until: validUntil,
       grace_until: graceUntil(validUntil, this.graceDays),
     });
@@ -249,6 +251,7 @@ export class LicenceService {
       plan: snap.plan,
       features: snap.features,
       tokens: snap.tokens,
+      offline_allowance: snap.offline_allowance,
       expires_at: expiresAtIso,
     })
       .setProtectedHeader({ alg: "EdDSA", typ: "JWT" })
