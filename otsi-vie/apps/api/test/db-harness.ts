@@ -32,7 +32,9 @@ export type TestDbBackend = "mysql" | "sqlite";
 /** Which backend this run tests. Default `mysql`: the existing suite never changes behaviour by accident. */
 export function testDbBackend(): TestDbBackend {
   const raw = (process.env.OTSI_VIE_TEST_DB_BACKEND ?? "mysql").trim().toLowerCase();
-  if (raw !== "mysql" && raw !== "sqlite") throw new Error(`OTSI_VIE_TEST_DB_BACKEND must be "mysql" or "sqlite", got "${process.env.OTSI_VIE_TEST_DB_BACKEND}"`);
+  // "mariadb" (ADR-146 §6, the central server's host) speaks the MySQL protocol: the same mysql backend, on 127.0.0.1:3511
+  if (raw === "mariadb") return "mysql";
+  if (raw !== "mysql" && raw !== "sqlite") throw new Error(`OTSI_VIE_TEST_DB_BACKEND must be "mysql", "mariadb" or "sqlite", got "${process.env.OTSI_VIE_TEST_DB_BACKEND}"`);
   return raw;
 }
 

@@ -7,6 +7,10 @@
  * SQLite mode (`OTSI_VIE_TEST_DB_BACKEND=sqlite`): no server, no migrations — the scratch database is a temp file and `appDsn`
  * is its path. Only the dialect tests (`test/db.dialect.test.ts`) pass on SQLite today: they create their own schema. The full
  * API suite on SQLite needs agent B's SQLite migrations and fails on missing tables until they land.
+ *
+ * MariaDB mode (`OTSI_VIE_TEST_DB_BACKEND=mariadb`, ADR-146 §6): the same, on the disposable MariaDB 11.4 server that stands in
+ * for the central server's host (container otsi-vie-central-mariadb, 127.0.0.1:3511; root password in
+ * .local/mariadb-central-test.env). The migrator applies its MariaDB rewrite (tools/db/mariadb_compat.py) on its own.
  */
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -20,12 +24,14 @@ type GlobalSetupContext = { provide: (key: "rootDsn" | "appDsn" | "publicKeyPem"
 const ROOT = path.resolve(process.cwd(), "../../..");            // D:\OTSI-Workspace\VIE-Engine-v2 (tests run from apps/api)
 const APP = path.join(ROOT, "otsi-vie");
 const PY = path.join(ROOT, ".venv", "Scripts", "python.exe");
-const PORT = 3507;
+const MARIA = (process.env.OTSI_VIE_TEST_DB_BACKEND ?? "").trim().toLowerCase() === "mariadb";
+const PORT = MARIA ? 3511 : 3507;
 
 function rootPassword(): string {
-  const env = readFileSync(path.join(ROOT, ".local", "mysql-lint.env"), "utf8");
-  const m = /^MYSQL_ROOT_PASSWORD=(.+)$/m.exec(env);
-  if (!m) throw new Error("no MYSQL_ROOT_PASSWORD in .local/mysql-lint.env (run tools/db/db_check.py once)");
+  const [file, key] = MARIA ? ["mariadb-central-test.env", "MARIADB_ROOT_PASSWORD"] : ["mysql-lint.env", "MYSQL_ROOT_PASSWORD"];
+  const env = readFileSync(path.join(ROOT, ".local", file), "utf8");
+  const m = new RegExp(`^${key}=(.+)$`, "m").exec(env);
+  if (!m) throw new Error(`no ${key} in .local/${file}${MARIA ? "" : " (run tools/db/db_check.py once)"}`);
   return m[1]!.trim();
 }
 
@@ -54,7 +60,8 @@ export default async function setup({ provide }: GlobalSetupContext) {
   execFileSync(PY, [path.join(APP, "tools", "db", "roles.py"), "--dsn", rootDsn], { stdio: "pipe" });
   await admin.query(`CREATE USER '${appUser}'@'%' IDENTIFIED BY '${appPw}'`);
   await admin.query(`GRANT otsi_app TO '${appUser}'@'%'`);
-  await admin.query(`SET DEFAULT ROLE otsi_app TO '${appUser}'@'%'`);
+  // MariaDB spells the default-role statement differently
+  await admin.query(MARIA ? `SET DEFAULT ROLE otsi_app FOR '${appUser}'@'%'` : `SET DEFAULT ROLE otsi_app TO '${appUser}'@'%'`);
   const { publicKey, privateKey } = await generateKeyPair("RS256", { extractable: true });
   provide("rootDsn", rootDsn);
   provide("appDsn", `mysql://${appUser}:${appPw}@127.0.0.1:${PORT}/${db}`);

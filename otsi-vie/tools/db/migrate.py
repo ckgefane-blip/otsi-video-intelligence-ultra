@@ -46,6 +46,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+try:
+    from . import mariadb_compat  # type: ignore[import-not-found]
+except ImportError:  # run as a script
+    import mariadb_compat  # type: ignore[no-redef]
+
 
 def _pymysql():
     """pymysql is needed only for the MySQL path; importing it lazily keeps the
@@ -212,6 +217,9 @@ def up(dsn: str, migrations: list[Migration] | None = None, applied_by: str = "m
             if cur.fetchone()[0] != 1:
                 raise MigrationError("another migration run holds the lock")
             try:
+                # MariaDB (the central server's host, ADR-146 §6): each statement passes through mariadb_compat.rewrite()
+                cur.execute("SELECT VERSION()")
+                maria = mariadb_compat.is_mariadb(str(cur.fetchone()[0]))
                 cur.execute(BOOTSTRAP)
                 pending = plan(cur, migrations)
                 if pending:
@@ -219,6 +227,8 @@ def up(dsn: str, migrations: list[Migration] | None = None, applied_by: str = "m
                 for m in pending:
                     t0 = time.monotonic()
                     for k, stmt in enumerate(split_statements(m.sql), 1):
+                        if maria:
+                            stmt = mariadb_compat.rewrite(stmt)
                         try:
                             cur.execute(stmt)
                         except pymysql.MySQLError as e:

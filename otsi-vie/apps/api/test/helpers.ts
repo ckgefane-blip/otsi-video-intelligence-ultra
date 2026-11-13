@@ -1,4 +1,5 @@
 /** Test helpers: the API under test, signed access tokens, and seed rows written with the ROOT account (fixtures, not via the API). */
+import { MariaJsonColumns, detectMariaJson, mariaJsonTypeCast } from "../src/core/db/mysql";
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { importJWK, SignJWT } from "jose";
@@ -27,7 +28,12 @@ export async function startApi(opts: { storageDir?: string; partBytes?: number; 
 
 export async function rootDb() {
   const u = new URL(inject("rootDsn"));
-  return mysql.createConnection({ host: u.hostname, port: Number(u.port), user: "root", password: decodeURIComponent(u.password), database: u.pathname.slice(1), dateStrings: true });
+  // on MariaDB (the central server's engine) JSON columns are text; read them parsed, as MySQL does (ADR-146 §6)
+  const json = new MariaJsonColumns();
+  const c = await mysql.createConnection({ host: u.hostname, port: Number(u.port), user: "root", password: decodeURIComponent(u.password), database: u.pathname.slice(1), dateStrings: true,
+    typeCast: mariaJsonTypeCast(json) } as mysql.ConnectionOptions);
+  await detectMariaJson((sql) => c.query(sql), json);
+  return c;
 }
 
 export async function token(sub: string, over: { iss?: string; aud?: string; expSeconds?: number } = {}): Promise<string> {
