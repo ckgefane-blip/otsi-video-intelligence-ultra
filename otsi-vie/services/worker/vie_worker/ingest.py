@@ -23,8 +23,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .db import audit, publish, tx
-from .fetch import Guard, download
-from .providers import resolve as resolve_provider
+from .extractor import extract as extract_page
+from .fetch import Guard, check_url, download
+from .providers import Resolved, resolve as resolve_provider
 from .scanner import scan
 from .secrets_box import open_sealed
 from .jobs import Job, JobError, JobRunner, RetryableError
@@ -262,19 +263,32 @@ MAX_IMPORT_BYTES = int(os.environ.get("OTSI_VIE_MAX_UPLOAD_BYTES", str(64 * 1024
 URL_EXTENSIONS = {"mp4/mov": "mp4", "matroska/webm": "mkv", "avi": "avi", "flv": "flv", "mpeg-ps": "mpg", "mpeg-ts": "ts", "mpeg-ts (m2ts)": "m2ts", "ogg": "ogv"}
 
 
-def handle_ingest_url(runner: JobRunner, job: Job, *, resolve=None, address_ok=None) -> dict:
+def handle_ingest_url(runner: JobRunner, job: Job, *, resolve=None, address_ok=None, extract=None) -> dict:
     """INGEST_URL (F07, ADR-023/027): resolve the link through its provider adapter (official methods only), download through the SSRF guard
     (HLS: segment by segment), then the same verification as an upload. Network trouble is retried; a decided refusal (unsupported provider,
     private address, not a media file, access denied, encrypted or live stream) is final. A user's access token is deleted when the job settles."""
     try:
-        return _ingest_url(runner, job, resolve=resolve, address_ok=address_ok)
+        return _ingest_url(runner, job, resolve=resolve, address_ok=address_ok, extract=extract)
     finally:
         if "credential" in job.payload:
             with runner.conn.cursor() as cur:
                 cur.execute("UPDATE worker_jobs SET payload = JSON_REMOVE(payload, '$.credential') WHERE id = %s", (job.id,))
 
 
-def _ingest_url(runner: JobRunner, job: Job, *, resolve, address_ok) -> dict:
+def _ffmpeg_dir() -> str | None:
+    """the worker's FFmpeg (ADR-029) for joining a site's separate picture and sound streams; else one on PATH; else None"""
+    try:
+        from .ff import bin_dir  # noqa: PLC0415
+        d = bin_dir()
+        if (d / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")).exists():
+            return str(d)
+    except Exception:  # noqa: BLE001 — without FFmpeg the extractor takes a single-file or picture-only format instead
+        pass
+    found = shutil.which("ffmpeg")
+    return str(Path(found).parent) if found else None
+
+
+def _ingest_url(runner: JobRunner, job: Job, *, resolve, address_ok, extract=None) -> dict:
     store = LocalStore(os.environ["OTSI_VIE_STORAGE_DIR"])
     org, video_id, url = job.organization_id, job.payload["video_id"], job.payload["url"]
     with runner.conn.cursor() as cur:
@@ -293,7 +307,22 @@ def _ingest_url(runner: JobRunner, job: Job, *, resolve, address_ok) -> dict:
         kwargs = {k: f for k, f in (("resolve", resolve), ("address_ok", address_ok)) if f is not None}
         try:
             r = resolve_provider(url, token=token, guard=guard)
-            if r.segments:
+
+            def by_extractor() -> dict:
+                # video-page link (ADR-145): the host passes the same guard as every import, then yt-dlp fetches the one video
+                check_url(url, **kwargs)
+                runner.progress(job, 2, "Finding the video on the page")
+                x = (extract or extract_page)(url, work, MAX_IMPORT_BYTES,
+                                              lambda n, total: runner.progress(job, 40 * n / total if total else 20, f"Downloading ({n // (1024 * 1024)} MB)"),
+                                              ffmpeg_dir=_ffmpeg_dir())
+                os.replace(x["path"], target)
+                return x
+
+            if r.extractor:
+                x = by_extractor()
+                r = Resolved(r.provider, extractor=True, title=x["title"], license=x["license"], author=x["author"], source_page=x["source_page"])
+                got = {"bytes": x["bytes"]}
+            elif r.segments:
                 done = 0
                 for i, seg in enumerate(r.segments):
                     remaining = MAX_IMPORT_BYTES - done
@@ -303,9 +332,23 @@ def _ingest_url(runner: JobRunner, job: Job, *, resolve, address_ok) -> dict:
                         runner.progress(job, 40 * (i + 1) / len(r.segments), f"Downloading the stream ({i + 1}/{len(r.segments)} segments)")
                 got = {"bytes": done}
             else:
-                got = download(r.download_url, str(target), MAX_IMPORT_BYTES,
-                               lambda n, total: runner.progress(job, 40 * n / total if total else 20, f"Downloading ({n // (1024 * 1024)} MB)"),
-                               auth=r.auth, **kwargs)
+                try:
+                    got = download(r.download_url, str(target), MAX_IMPORT_BYTES,
+                                   lambda n, total: runner.progress(job, 40 * n / total if total else 20, f"Downloading ({n // (1024 * 1024)} MB)"),
+                                   auth=r.auth, **kwargs)
+                except JobError as page:
+                    # "accept all links" (ADR-145): a link to some other site's web page, not a file, gets a second try through the
+                    # extractor; when that finds no video either, the original answer ("not a video file") stands
+                    if r.provider != "direct" or page.code != "NOT_A_MEDIA_FILE":
+                        raise
+                    try:
+                        x = by_extractor()
+                    except JobError as e2:
+                        if e2.code in ("UNSUPPORTED_LINK", "EXTRACTOR_MISSING", "EXTRACT_FAILED"):
+                            raise page from e2
+                        raise
+                    r = Resolved("page", extractor=True, title=x["title"], license=x["license"], author=x["author"], source_page=x["source_page"])
+                    got = {"bytes": x["bytes"]}
         except JobError as e:
             return settle_failure(runner, job, store, video_id, None, "FAILED", e.code, str(e))
         except OSError as e:

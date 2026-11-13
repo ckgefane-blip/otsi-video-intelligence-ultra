@@ -193,10 +193,9 @@ describe("isolation", () => {
 describe("link imports", () => {
   const imp = (m: Member, url: string, k = key()) => call(m, "POST", "/v1/imports", { project_id: projectA, url }, { "idempotency-key": k });
 
-  it("refuses provider pages, local or private addresses, other schemes and embedded credentials at once", async () => {
+  it("refuses token-less Vimeo/Drive, local or private addresses, other schemes and embedded credentials at once", async () => {
     for (const [url, code] of [
-      ["https://www.youtube.com/watch?v=abc", "UNSUPPORTED_PROVIDER"], ["https://vimeo.com/123456", "AUTH_REQUIRED"], ["https://drive.google.com/file/d/abcdefghijk/view", "AUTH_REQUIRED"],
-      ["https://www.instagram.com/reel/abc", "UNSUPPORTED_PROVIDER"],
+      ["https://vimeo.com/123456", "AUTH_REQUIRED"], ["https://drive.google.com/file/d/abcdefghijk/view", "AUTH_REQUIRED"],
       ["http://127.0.0.1/a.mp4", "BLOCKED_DESTINATION"], ["http://169.254.169.254/latest", "BLOCKED_DESTINATION"], ["http://[::1]/a.mp4", "BLOCKED_DESTINATION"],
       ["http://nas.local/a.mp4", "BLOCKED_DESTINATION"], ["http://localhost:8080/a.mp4", "BLOCKED_DESTINATION"],
       ["ftp://files.example.com/a.mp4", "INVALID_URL"], ["https://u:p@media.example.com/a.mp4", "INVALID_URL"], ["not a link at all", "INVALID_URL"],
@@ -232,7 +231,10 @@ describe("provider imports", () => {
   it("publish the import policy: what works, what needs the user's authorization, what is refused and the alternative", async () => {
     const r = await call(a, "GET", "/v1/import-providers");
     const byId = Object.fromEntries(r.body.map((p: { id: string }) => [p.id, p]));
-    expect(byId.youtube).toMatchObject({ status: "unsupported", alternative: expect.stringContaining("YouTube Studio") });
+    // owner 2026-11-13 (ADR-145): video sites are accepted through the extractor, YouTube and VK included
+    expect(byId.youtube).toMatchObject({ status: "supported", via: "extractor" });
+    expect(byId.vk).toMatchObject({ status: "supported", via: "extractor" });
+    expect(r.body.filter((p: { status: string }) => p.status === "unsupported")).toEqual([]);
     expect(byId.vimeo.status).toBe("needs_authorization");
     expect(byId.wikimedia.status).toBe("supported");
     expect(r.body[0].hosts).toBeUndefined();

@@ -1,7 +1,7 @@
 """Provider adapters for link imports (ADR-027). A local stand-in server answers with the official APIs' response shapes, so every adapter
 runs end to end offline: Commons and Internet Archive resolution, Vimeo and Google Drive with a user's token (sent only to the API host,
-sealed at rest, deleted after use), HLS assembly (encrypted and live streams refused), Dropbox's documented direct-download form, and the
-refusal of providers whose terms or APIs do not allow imports. Live checks against the real services are in test_providers_live.py."""
+sealed at rest, deleted after use), HLS assembly (encrypted and live streams refused), Dropbox's documented direct-download form, and
+video-page links (YouTube, VK, …) routed to the extractor (ADR-145; the extractor itself is stood in here, see test_extractor.py). Live checks against the real services are in test_providers_live.py."""
 from __future__ import annotations
 
 import base64
@@ -174,12 +174,14 @@ def test_hls_picks_the_best_stream_and_refuses_live_and_encrypted_streams(endpoi
         assert e.value.code == code
 
 
-@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=abc", "https://youtu.be/abc", "https://www.instagram.com/reel/x", "https://www.hudl.com/video/1",
-                                 "https://www.tiktok.com/@a/video/1", "https://x.com/a/status/1", "https://1drv.ms/v/s!abc"])
-def test_providers_without_a_permitted_import_method_are_refused_with_an_alternative(url):
-    with pytest.raises(JobError) as e:
-        providers.resolve(url, token=None, guard=GUARD)
-    assert e.value.code == "UNSUPPORTED_PROVIDER" and ("upload" in str(e.value).lower())
+@pytest.mark.parametrize("url,pid", [("https://www.youtube.com/watch?v=abc", "youtube"), ("https://youtu.be/abc", "youtube"),
+                                     ("https://vk.com/video-1_2", "vk"), ("https://vkvideo.ru/video-1_2", "vk"), ("https://rutube.ru/video/x/", "rutube"),
+                                     ("https://ok.ru/video/1", "ok_ru"), ("https://www.instagram.com/reel/x", "facebook_instagram"),
+                                     ("https://www.hudl.com/video/1", "hudl_wyscout_veo"), ("https://www.tiktok.com/@a/video/1", "tiktok"),
+                                     ("https://x.com/a/status/1", "x_twitter"), ("https://1drv.ms/v/s!abc", "onedrive")])
+def test_video_page_links_are_accepted_and_go_to_the_extractor(url, pid):
+    r = providers.resolve(url, token=None, guard=GUARD)
+    assert r.extractor and r.provider == pid and r.download_url is None and r.source_page == url
 
 
 # ------------------------------------------------------------------ whole jobs
@@ -202,8 +204,27 @@ def credential_key(monkeypatch):
     monkeypatch.setenv("OTSI_VIE_CREDENTIAL_KEY", base64.b64encode(os.urandom(32)).decode())
 
 
-def run(stack):
-    return JobRunner(stack["dsn"], "t", ["INGEST_URL"]).run_one({"INGEST_URL": functools.partial(handle_ingest_url, address_ok=LOCAL_OK)})
+def run(stack, **extra):
+    return JobRunner(stack["dsn"], "t", ["INGEST_URL"]).run_one({"INGEST_URL": functools.partial(handle_ingest_url, address_ok=LOCAL_OK, **extra)})
+
+
+def fake_extract(clip: Path, info: dict | None = None, error: JobError | None = None):
+    """stands in for yt-dlp: saves the clip in the job's folder as the extractor would, or refuses like it would"""
+    calls = []
+
+    def extract(url, work, max_bytes, on_progress, *, ffmpeg_dir=None):
+        calls.append(url)
+        if error:
+            raise error
+        out = Path(work) / "extracted.mp4"
+        out.write_bytes(clip.read_bytes())
+        on_progress(out.stat().st_size, out.stat().st_size)
+        return {"path": out, "bytes": out.stat().st_size, "license": None, **(info or {})}
+    extract.calls = calls
+    return extract
+
+
+PUBLIC = lambda h, p: ["93.184.215.14"]                                     # noqa: E731 - offline stand-in for DNS
 
 
 def source_meta(root, video):
@@ -234,14 +255,32 @@ def test_an_hls_stream_is_assembled_segment_by_segment_and_verified(stack, root,
     assert v["state"] == "INGESTED" and meta["sniffed"] == "mpeg-ts" and meta["provenance"]["provider"] == "hls"
 
 
-def test_a_youtube_link_is_refused_with_the_reason_and_the_alternative(stack, root, seed, endpoints):
-    s = import_job(root, seed, "https://www.youtube.com/watch?v=abc123")
-    assert run(stack) == "succeeded"
+@pytest.mark.parametrize("url,pid", [("https://www.youtube.com/watch?v=abc123", "youtube"), ("https://vk.com/video-1_2", "vk")])
+def test_a_youtube_or_vk_link_is_imported_through_the_extractor_and_verified_like_an_upload(stack, root, seed, media, url, pid):
+    s = import_job(root, seed, url)
+    x = fake_extract(media["mp4"], {"title": "Cup final", "author": "Club TV", "source_page": url})
+    assert run(stack, resolve=PUBLIC, extract=x) == "succeeded"
+    v, meta = source_meta(root, s["video"])
+    assert x.calls == [url]
+    assert v["state"] == "INGESTED" and v["title"] == "Cup final"
+    assert meta["provenance"] == {"provider": pid, "source_page": url, "author": "Club TV", "title": "Cup final"}
+    assert meta["malware_scan"]["result"] in ("clean", "not_scanned")
+
+
+def test_a_private_or_sign_in_video_fails_with_the_services_reason(stack, root, seed, media):
+    s = import_job(root, seed, "https://www.youtube.com/watch?v=private1")
+    x = fake_extract(media["mp4"], error=JobError("NOT_DOWNLOADABLE", "This video is private."))
+    assert run(stack, resolve=PUBLIC, extract=x) == "succeeded"
     v, _ = source_meta(root, s["video"])
-    assert v["state"] == "FAILED" and v["failure_code"] == "UNSUPPORTED_PROVIDER"
-    with root.cursor() as cur:
-        cur.execute("SELECT failure_detail FROM video_sources WHERE id = %s", (s["video"],))
-        assert "YouTube Studio" in cur.fetchone()["failure_detail"]
+    assert v["state"] == "FAILED" and v["failure_code"] == "NOT_DOWNLOADABLE"
+
+
+def test_a_video_page_on_a_private_address_is_refused_before_the_extractor_runs(stack, root, seed, media):
+    s = import_job(root, seed, "https://www.youtube.com/watch?v=abc123")
+    x = fake_extract(media["mp4"])
+    assert run(stack, resolve=lambda h, p: ["10.0.0.5"], extract=x) == "succeeded"
+    v, _ = source_meta(root, s["video"])
+    assert v["state"] == "FAILED" and v["failure_code"] == "BLOCKED_DESTINATION" and x.calls == []
 
 
 def test_a_token_sealed_for_another_video_does_not_open(stack, root, seed, endpoints, credential_key):

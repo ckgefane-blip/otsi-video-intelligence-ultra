@@ -16,10 +16,10 @@
  *   - Tier cards: the three tiers with their limits; the current tier (from useTierLimit) is highlighted. A paid plan the owner has not
  *     yet mapped to Pro/Enterprise (PLAN_TIER) shows Free as the tier — the limit is the server's own maximum.
  *   - Add from a link: the UrlImport logic (URL input, the provider policy, the access token for Vimeo / Google Drive). The Accepted /
- *     Refused chips are the SOT's short labels for the IMPORT_PROVIDERS policy (supported + needs_authorization = Accepted; unsupported
- *     = Refused, struck through). The SOT lists Hudl and Wyscout as two chips; the policy has one Hudl / Wyscout / Veo provider, so it
- *     renders as two chips from that provider. Dailymotion, OneDrive / SharePoint, Streamable and Veo are also refused by the policy but
- *     are not in the SOT's mock, so they are not chips here — a pasted link from one still shows the refusal.
+ *     Refused chips are short labels for the IMPORT_PROVIDERS policy (supported + needs_authorization = Accepted; unsupported = Refused,
+ *     struck through). Owner 2026-11-13 (ADR-145): "The app should be able to accept all links especially YouTube and VK" — every video
+ *     site is now Accepted (video-page links go through the yt-dlp extractor), plus "Any other video page"; the Refused column shows only
+ *     while the policy still refuses something (nothing at present), so the SOT's struck-through YouTube/Facebook/… chips are gone.
  *   - Ingest queue: the transfers in progress (top) + the videos (newest first). File / Size / Duration / Match / Rights / Status.
  *     Duration is "—" until the media probe measures it. Match is the linked match's title, "—" when unlinked. Rights is the recorded
  *     grant's uses (GET /v1/videos/:id/rights), "—" until read. Status is the video's real state (videoStatusText).
@@ -68,8 +68,9 @@ const TIERS: UploadTier[] = ["Free", "Pro", "Enterprise"];
 const PROVIDER_LABEL: Record<string, string[]> = {
   direct: ["Direct link"], hls: ["HLS stream"], wikimedia: ["Wikimedia"], archive_org: ["Internet Archive"], dropbox: ["Dropbox"],
   vimeo: ["Vimeo · your token"], google_drive: ["Google Drive · your token"],
-  youtube: ["YouTube"], facebook_instagram: ["Facebook"], tiktok: ["TikTok"], x_twitter: ["X"], twitch: ["Twitch"],
-  hudl_wyscout_veo: ["Hudl", "Wyscout"],
+  youtube: ["YouTube"], vk: ["VK"], rutube: ["Rutube"], ok_ru: ["OK.ru"], facebook_instagram: ["Facebook", "Instagram"], tiktok: ["TikTok"],
+  x_twitter: ["X"], twitch: ["Twitch"], dailymotion: ["Dailymotion"], hudl_wyscout_veo: ["Hudl", "Wyscout", "Veo"], onedrive: ["OneDrive"],
+  streamable: ["Streamable"],
 };
 
 /** the profile a manual Start analysis posts: Recommended has no concrete profile, so it starts with Standard (the server's automatic
@@ -201,8 +202,7 @@ export function MediaStage() {
   const accepted = IMPORT_PROVIDERS.filter((p) => p.status !== "unsupported");
   // the SOT's Refused list shows only YouTube, Facebook, TikTok, X, Twitch, Hudl and Wyscout — Dailymotion, OneDrive /
   // SharePoint and Streamable are refused by the policy but are not chips here (a pasted link from one still shows the refusal).
-  const REFUSED_HIDDEN = new Set(["dailymotion", "onedrive", "streamable"]);
-  const refused = IMPORT_PROVIDERS.filter((p) => p.status === "unsupported" && !REFUSED_HIDDEN.has(p.id));
+  const refused = IMPORT_PROVIDERS.filter((p) => p.status === "unsupported");
 
   const [title, body] = error ? splitError(error) : ["", ""];
 
@@ -241,7 +241,7 @@ export function MediaStage() {
           <div role="alert" className="alert">
             <AlertTriangle className="i h-5 w-5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <span className="block font-semibold">{title}</span>
+              <span className="block font-normal">{title}</span>
               <span className="sm block text-ink2">{body}</span>
             </div>
             <button type="button" aria-label={dict.common.close} onClick={() => setDismissed(error)} className="vie-ib h-7 w-7 shrink-0"><X className="h-4 w-4" /></button>
@@ -289,21 +289,22 @@ export function MediaStage() {
               </div>
             )}
             {linkMsg && <p role={linkMsg.ok ? "status" : "alert"} className={`text-xs ${linkMsg.ok ? "text-ok" : "text-danger"}`}>{linkMsg.text}</p>}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
+            <div className={`grid gap-4 ${refused.length ? "md:grid-cols-2" : ""}`}>
+              <div className="flex flex-col gap-2" data-link-accepted>
                 <span className="eb">{d.mdAccepted}</span>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
                   {accepted.flatMap((p) => (PROVIDER_LABEL[p.id] ?? [p.name]).map((label) => <span key={`${p.id}-${label}`} className="t-small">{label}</span>))}
+                  <span className="t-small text-muted">{d.mdAnyVideoPage}</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
+              {refused.length > 0 && <div className="flex flex-col gap-2" data-link-refused>
                 <span className="eb">{d.mdRefused}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {refused.flatMap((p) => (PROVIDER_LABEL[p.id] ?? [p.name]).map((label) => (
                     <span key={`${p.id}-${label}`} className="t-small" style={{ color: "rgb(var(--muted))", textDecoration: "line-through" }}>{label}</span>
                   )))}
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
         </section>
@@ -367,7 +368,7 @@ export function MediaStage() {
                   className={`radio ${on ? "on" : ""}`} style={{ padding: "9px 10px", alignItems: "center" }}>
                   <span className="o" style={{ margin: 0 }} />
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{label}{k === "RECOMMENDED" && <span className="mu xs font-normal"> {d.mdRecommendedDefault}</span>}</span>
+                    <span className="block font-normal">{label}{k === "RECOMMENDED" && <span className="mu xs font-normal"> {d.mdRecommendedDefault}</span>}</span>
                     <span className="mu xs block">{why}</span>
                   </span>
                 </button>
@@ -385,7 +386,7 @@ export function MediaStage() {
             <div key={key}>
               <button type="button" aria-expanded={openGroup === key} onClick={() => setOpenGroup(openGroup === key ? null : key)}
                 className="lr flex w-full items-center gap-2 border-b border-line bg-transparent px-3.5 text-left" style={{ minHeight: 36 }}>
-                <span className="min-w-0 flex-1 font-medium">{label}</span>
+                <span className="min-w-0 flex-1 font-normal">{label}</span>
                 <span className="mu xs">{status}</span>
                 <ChevronRight className="h-4 w-4 text-muted transition-transform" style={openGroup === key ? { transform: "rotate(90deg)" } : undefined} />
               </button>
@@ -418,7 +419,7 @@ export function MediaStage() {
           <div className="flex items-start gap-2.5">
             <button type="button" role="switch" aria-checked={minor} aria-labelledby="md-minor" onClick={() => setMinor((v) => !v)} className="vie-sw" />
             <div>
-              <div id="md-minor" className="sm font-medium">{d.mdMinor}</div>
+              <div id="md-minor" className="sm font-normal">{d.mdMinor}</div>
               <div className="hint">{d.mdMinorHint}</div>
             </div>
           </div>

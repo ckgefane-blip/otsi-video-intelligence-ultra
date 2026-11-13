@@ -29,7 +29,6 @@ def test_only_public_addresses_are_reachable(ip, public):
 @pytest.mark.parametrize("url,code", [
     ("ftp://example.com/a.mp4", "INVALID_URL"), ("file:///etc/passwd", "INVALID_URL"), ("javascript:alert(1)", "INVALID_URL"),
     ("https://user:pw@example.com/a.mp4", "INVALID_URL"), ("https://example.com:22/a.mp4", "BLOCKED_DESTINATION"),
-    ("https://www.youtube.com/watch?v=x", "UNSUPPORTED_PROVIDER"), ("https://youtu.be/x", "UNSUPPORTED_PROVIDER"), ("https://m.facebook.com/v", "UNSUPPORTED_PROVIDER"),
     ("http://127.0.0.1:8080/a.mp4", "BLOCKED_DESTINATION"), ("http://169.254.169.254/latest/meta-data", "BLOCKED_DESTINATION"),
     ("http://[::1]/a.mp4", "BLOCKED_DESTINATION"), ("http://[::ffff:192.168.0.1]/a.mp4", "BLOCKED_DESTINATION"), ("http://" + "a" * 2050, "URL_TOO_LONG"),
 ])
@@ -37,6 +36,12 @@ def test_refused_links(url, code):
     with pytest.raises(JobError) as e:
         check_url(url, resolve=lambda h, p: ["93.184.215.14"])
     assert e.value.code == code
+
+
+@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=x", "https://youtu.be/x", "https://vk.com/video-1_2", "https://m.facebook.com/v"])
+def test_video_site_links_pass_the_guard(url):
+    # ADR-145: no video site is refused by name any more; the address checks still apply
+    assert check_url(url, resolve=lambda h, p: ["93.184.215.14"]).ip == "93.184.215.14"
 
 
 def test_a_name_that_resolves_to_any_private_address_is_refused():

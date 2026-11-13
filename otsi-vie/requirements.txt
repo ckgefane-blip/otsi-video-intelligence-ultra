@@ -49,3 +49,4 @@ typing_extensions==4.16.0
 urllib3==2.8.0
 openvino==2025.3.0
 openvino-telemetry==2025.2.0
+yt-dlp==2026.10.21   # video-page link import (YouTube, VK, ...), ADR-145; Unlicense (public domain), free

@@ -56,12 +56,17 @@ describe("Media (SOT)", () => {
     expect(screen.getByText("64 GB")).toBeInTheDocument();
     // add from a link
     expect(screen.getByRole("heading", { name: "Add from a link" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/direct file, HLS/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/YouTube, VK, direct file, HLS/)).toBeInTheDocument();
     expect(screen.getByText("Accepted")).toBeInTheDocument();
     expect(screen.getByText("Direct link")).toBeInTheDocument();
     expect(screen.getByText("Dropbox")).toBeInTheDocument();
-    expect(screen.getByText("Refused — platform terms do not allow it")).toBeInTheDocument();
-    expect(screen.getByText("YouTube")).toBeInTheDocument();
+    // owner 2026-11-13 (ADR-145): every video site is accepted, YouTube and VK included; nothing is refused, so no Refused column
+    const accepted = document.querySelector("[data-link-accepted]") as HTMLElement;
+    for (const site of ["YouTube", "VK", "Rutube", "Facebook", "TikTok", "X", "Twitch", "Hudl", "Wyscout", "Any other video page"]) {
+      expect(within(accepted).getByText(site)).toBeInTheDocument();
+    }
+    expect(screen.queryByText("Refused — platform terms do not allow it")).toBeNull();
+    expect(document.querySelector("[data-link-refused]")).toBeNull();
     // ingest queue with the real video
     expect(screen.getByRole("heading", { name: "Ingest queue" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("Nart v Ercakhu – round 2")).toBeInTheDocument());
@@ -71,7 +76,7 @@ describe("Media (SOT)", () => {
     expect(screen.getByText("Analysis profile")).toBeInTheDocument();
     expect(screen.getByText("Recommended")).toBeInTheDocument();
     expect(screen.getByText("Balanced passes for most footage")).toBeInTheDocument();
-    expect(screen.getByText("High Accuracy")).toBeInTheDocument();
+    expect(screen.getByText("High accuracy")).toBeInTheDocument();
     expect(screen.getByText("Visual filters")).toBeInTheDocument();
     expect(screen.getByText("Overlays")).toBeInTheDocument();
     expect(screen.getByText("Ingest switches")).toBeInTheDocument();
@@ -109,11 +114,11 @@ describe("Media (SOT)", () => {
     expect(screen.getByText("Standard")).toBeInTheDocument();
     expect(screen.getByText("Fewer passes, faster results")).toBeInTheDocument();
     expect(screen.getByText("Extra tracking and identity passes")).toBeInTheDocument();
-    expect(screen.getByText("Ultra-Sensitive")).toBeInTheDocument();
+    expect(screen.getByText("Ultra-sensitive")).toBeInTheDocument();
     expect(screen.getByText("Distant or small players, slowest")).toBeInTheDocument();
   });
 
-  it("the SOT's queue headers, tier row, refused list and visual-filters default (user report A26/A31)", async () => {
+  it("the SOT's queue headers, tier row, accepted list and visual-filters default (user report A26/A31)", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole("heading", { name: "Add match videos" })).toBeInTheDocument());
     // queue columns: File | Size | Duration | Match | Rights | Status (the SOT's headers) — six cells,
@@ -125,15 +130,15 @@ describe("Media (SOT)", () => {
     expect(within(header as HTMLElement).getByText("Duration")).toBeInTheDocument();
     expect(within(header as HTMLElement).getByText("Match")).toBeInTheDocument();
     // the old headers are gone
-    expect(screen.queryByText("File Name")).toBeNull();
-    expect(screen.queryByText("File Size")).toBeNull();
+    expect(screen.queryByText("File name")).toBeNull();
+    expect(screen.queryByText("File size")).toBeNull();
     // the tier row is one plain row (not three cards): the current tier carries "· your tier"
     expect(screen.getByText("· your tier")).toBeInTheDocument();
-    // the three extra refused chips are gone (the policy still refuses them on paste)
-    expect(screen.queryByText("Dailymotion")).toBeNull();
-    expect(screen.queryByText("OneDrive / SharePoint")).toBeNull();
-    expect(screen.queryByText("Streamable")).toBeNull();
-    expect(screen.getByText("YouTube")).toBeInTheDocument();
+    // no struck-through chips: Dailymotion, OneDrive and Streamable are accepted too
+    expect(screen.getByText("Dailymotion").style.textDecoration).toBe("");
+    expect(screen.getByText("OneDrive")).toBeInTheDocument();
+    expect(screen.getByText("Streamable")).toBeInTheDocument();
+    expect(document.querySelector('[style*="line-through"]')).toBeNull();
     // the orange "Choose or create a project first" line is gone
     expect(screen.queryByText("Choose or create a project first.")).toBeNull();
     // Visual filters and Overlays are Off by default (the SOT's default); Ingest shows Defaults

@@ -1,5 +1,5 @@
 {
-  "_comment": "Video-link providers (ADR-027). ONE policy for the API (instant answer) and the worker (authoritative). status: supported = imported through an official, permitted method; needs_authorization = imported only with the user's own access token for that service; unsupported = refused with the reason and the authorised alternative. Never bypass DRM, access controls or provider terms.",
+  "_comment": "Video-link providers (ADR-027, widened by ADR-145 on the owner's instruction 2026-11-13: accept all links, especially YouTube and VK). ONE policy for the API (instant answer) and the worker (authoritative). status: supported = imported (via extractor = video-page links fetched with yt-dlp); needs_authorization = imported only with the user's own access token for that service; unsupported = refused with the reason and the alternative (none at present). Never bypass DRM or sign-in: protected, private and live videos fail with the reason. The user still declares the footage rights before analysis.",
   "providers": [
     {
       "id": "direct",
@@ -57,77 +57,17 @@
       "method": "Google Drive API (files.get, alt=media) with the user's OAuth access token for an account that can open the file",
       "examples": ["https://drive.google.com/file/d/FILE_ID/view"]
     },
-    {
-      "id": "youtube",
-      "name": "YouTube",
-      "status": "unsupported",
-      "hosts": ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"],
-      "reason": "YouTube's Terms of Service allow downloading only through YouTube's own download features, and the official YouTube API offers no video-file download. OTSI VIE does not extract streams around those restrictions.",
-      "alternative": "If it is your video, download it from YouTube Studio (Content > ... > Download) and upload the file here. Otherwise ask the rights holder for the original file."
-    },
-    {
-      "id": "facebook_instagram",
-      "name": "Facebook / Instagram",
-      "status": "unsupported",
-      "hosts": ["facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch", "instagram.com", "www.instagram.com"],
-      "reason": "Meta provides no API for third-party apps to download video files.",
-      "alternative": "Download your own video with Meta's 'Download your information' or the original file, and upload it."
-    },
-    {
-      "id": "tiktok",
-      "name": "TikTok",
-      "status": "unsupported",
-      "hosts": ["tiktok.com", "www.tiktok.com", "vm.tiktok.com"],
-      "reason": "TikTok's developer APIs do not provide video-file downloads to third-party apps.",
-      "alternative": "Save the original file from the creator's device or account and upload it."
-    },
-    {
-      "id": "x_twitter",
-      "name": "X (Twitter)",
-      "status": "unsupported",
-      "hosts": ["twitter.com", "x.com", "www.x.com", "mobile.twitter.com"],
-      "reason": "The X API does not offer media downloads for import into other applications under its standard terms.",
-      "alternative": "Upload the original file."
-    },
-    {
-      "id": "twitch",
-      "name": "Twitch",
-      "status": "unsupported",
-      "hosts": ["twitch.tv", "www.twitch.tv", "clips.twitch.tv"],
-      "reason": "Twitch's API does not provide video downloads to third-party apps.",
-      "alternative": "Download your VOD from the Twitch creator dashboard and upload it."
-    },
-    {
-      "id": "dailymotion",
-      "name": "Dailymotion",
-      "status": "unsupported",
-      "hosts": ["dailymotion.com", "www.dailymotion.com", "dai.ly"],
-      "reason": "Dailymotion's API does not provide original-file downloads to third-party apps.",
-      "alternative": "Upload the original file."
-    },
-    {
-      "id": "hudl_wyscout_veo",
-      "name": "Hudl / Wyscout / Veo",
-      "status": "unsupported",
-      "hosts": ["hudl.com", "www.hudl.com", "wyscout.com", "platform.wyscout.com", "veo.co", "app.veo.co", "veocdn.com"],
-      "reason": "These are licensed football platforms; importing needs a partner integration agreement, which does not exist yet.",
-      "alternative": "Use the platform's own export/download for footage you hold the rights to, then upload the file."
-    },
-    {
-      "id": "onedrive",
-      "name": "OneDrive / SharePoint",
-      "status": "unsupported",
-      "hosts": ["onedrive.live.com", "1drv.ms", "sharepoint.com"],
-      "reason": "Microsoft requires a registered app and user sign-in (Microsoft Graph) for file downloads; that integration is not built yet.",
-      "alternative": "Download the file from OneDrive and upload it."
-    },
-    {
-      "id": "streamable",
-      "name": "Streamable",
-      "status": "unsupported",
-      "hosts": ["streamable.com"],
-      "reason": "No official download API for third-party apps.",
-      "alternative": "Upload the original file."
-    }
+{"id": "youtube", "name": "YouTube", "status": "supported", "via": "extractor", "hosts": ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "youtube-nocookie.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://www.youtube.com/watch?v=VIDEO_ID", "https://youtu.be/VIDEO_ID"]},
+    {"id": "vk", "name": "VK Video", "status": "supported", "via": "extractor", "hosts": ["vk.com", "m.vk.com", "vk.ru", "vkvideo.ru", "m.vkvideo.ru", "vk.video"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://vk.com/video-123_456", "https://vkvideo.ru/video-123_456"]},
+    {"id": "rutube", "name": "Rutube", "status": "supported", "via": "extractor", "hosts": ["rutube.ru"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://rutube.ru/video/ID/"]},
+    {"id": "ok_ru", "name": "OK.ru", "status": "supported", "via": "extractor", "hosts": ["ok.ru", "m.ok.ru"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://ok.ru/video/123"]},
+    {"id": "facebook_instagram", "name": "Facebook / Instagram", "status": "supported", "via": "extractor", "hosts": ["facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch", "instagram.com", "www.instagram.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://www.facebook.com/watch/?v=123"]},
+    {"id": "tiktok", "name": "TikTok", "status": "supported", "via": "extractor", "hosts": ["tiktok.com", "www.tiktok.com", "vm.tiktok.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://www.tiktok.com/@club/video/123"]},
+    {"id": "x_twitter", "name": "X (Twitter)", "status": "supported", "via": "extractor", "hosts": ["twitter.com", "x.com", "www.x.com", "mobile.twitter.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://x.com/club/status/123"]},
+    {"id": "twitch", "name": "Twitch", "status": "supported", "via": "extractor", "hosts": ["twitch.tv", "www.twitch.tv", "clips.twitch.tv"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://www.twitch.tv/videos/123"]},
+    {"id": "dailymotion", "name": "Dailymotion", "status": "supported", "via": "extractor", "hosts": ["dailymotion.com", "www.dailymotion.com", "dai.ly"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://www.dailymotion.com/video/x123"]},
+    {"id": "hudl_wyscout_veo", "name": "Hudl / Wyscout / Veo", "status": "supported", "via": "extractor", "hosts": ["hudl.com", "www.hudl.com", "wyscout.com", "platform.wyscout.com", "veo.co", "app.veo.co", "veocdn.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason. Footage these platforms show only after signing in cannot be fetched; use the platform's own download for it.", "examples": ["https://www.hudl.com/video/..."]},
+    {"id": "onedrive", "name": "OneDrive / SharePoint", "status": "supported", "via": "extractor", "hosts": ["onedrive.live.com", "1drv.ms", "sharepoint.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason. Works only for links shared publicly ('anyone with the link').", "examples": ["https://1drv.ms/v/s!..."]},
+    {"id": "streamable", "name": "Streamable", "status": "supported", "via": "extractor", "hosts": ["streamable.com"], "method": "Video page link: fetched with the open-source extractor yt-dlp (public domain, free). No sign-in or cookies are used, so private, members-only, DRM-protected and live videos fail with the service's reason.", "examples": ["https://streamable.com/abc123"]}
   ]
 }

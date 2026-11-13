@@ -8,6 +8,8 @@ provider's official, permitted method; anything else is refused with the reason 
   dropbox       shared link -> Dropbox's documented direct-download form (dl=1)
   vimeo         Vimeo API with the user's personal access token -> a download link the API offers to that account
   google_drive  Drive API (files.get alt=media) with the user's OAuth access token
+  extractor     video-page links (YouTube, VK, Rutube, OK.ru, Facebook/Instagram, TikTok, X, Twitch, Dailymotion, …): yt-dlp, no sign-in,
+                no DRM, no live (extractor.py, ADR-145). A direct link that turns out to be a web page falls back to it too (ingest.py).
 """
 from __future__ import annotations
 
@@ -42,6 +44,7 @@ class Resolved:
     license: str | None = None
     author: str | None = None
     source_page: str | None = None
+    extractor: bool = False                                  # fetched with yt-dlp (extractor.py) instead of a plain download
 
 
 def resolve(url: str, *, token: str | None, guard: Guard) -> Resolved:
@@ -50,6 +53,8 @@ def resolve(url: str, *, token: str | None, guard: Guard) -> Resolved:
     pid = p["id"] if p else ("hls" if u.path.lower().endswith(".m3u8") else "direct")
     if p and p["status"] == "unsupported":
         raise JobError("UNSUPPORTED_PROVIDER", f"{p['name']}: {p['reason']} {p['alternative']}")
+    if p and p.get("via") == "extractor":
+        return Resolved(pid, extractor=True, source_page=url)
     if pid == "hls":
         return _hls(url, guard)
     if pid == "direct":

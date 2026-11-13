@@ -180,6 +180,8 @@ import providerPolicy from "./providers.json";
 
 export type ImportProvider = {
   id: string; name: string; status: "supported" | "needs_authorization" | "unsupported"; hosts: string[];
+  /** "extractor": a video-page link fetched with yt-dlp by the worker (ADR-145) */
+  via?: "extractor";
   method?: string; examples?: string[]; reason?: string; alternative?: string;
 };
 /** One policy for API, worker and UI (ADR-027). */

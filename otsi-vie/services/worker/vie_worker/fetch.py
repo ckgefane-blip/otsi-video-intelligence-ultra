@@ -5,7 +5,7 @@
     IPv4-mapped/compat or 6to4/Teredo forms of those); the connection goes to that vetted IP (Host header and TLS SNI keep the name),
     so a second DNS answer cannot redirect it (DNS rebinding)
   * redirects are followed by hand, at most 5, each one re-checked; https -> http downgrades are refused
-  * links to providers whose terms or APIs do not allow imports are refused with the reason (providers.json)
+  * links to providers marked unsupported in providers.json are refused with the reason (none at present, ADR-145)
   * a user's access token is sent ONLY to the hosts named for it (the provider's own API) and never after a redirect to another host
   * every response has a media-type allow-list and a size cap; connect and idle time-outs; nothing from the server's environment is sent
 """
