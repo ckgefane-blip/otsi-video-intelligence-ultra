@@ -21,10 +21,11 @@
  * worker reports progress, not the minute it is on. The token cost is the exact charge the server makes (1 token per started minute
  * for analysis, 10 for a render), so the number here is the number that left the wallet. The four API actions cost 10 tokens each at
  * enqueue and show the same committed number. When a charged job or activity fails, the line stays up for 15 minutes and says what
- * happened to its tokens: refunded, with the amount from the ledger, or committed with no refund recorded yet (the worker does not
- * call the refund yet — ADR-140 §7, known gap — so the line only claims a refund when a REFUND row actually exists). A free action
- * that fails (an upload) just says it failed. No estimate is shown as a countdown: estimate_s is an estimate, so it is labelled
- * "about". Every user-facing word is an i18n key (wallet group); nothing here is English-only.
+ * happened to its tokens: refunded, with the amount from the ledger, or committed with no refund recorded yet (the line only claims
+ * a refund when a REFUND row actually exists — the Jobs Center list refunds a failed analysis or render when it is next read,
+ * ADR-140 §7, so a refund lands within seconds of the failure). A free action that fails (an upload) just says it failed. No estimate
+ * is shown as a countdown: estimate_s is an estimate, so it is labelled "about". Every user-facing word is an i18n key (wallet
+ * group); nothing here is English-only.
  */
 import type { Job, Video, WalletLedgerEntry, WalletJobType } from "@otsi-vie/contracts";
 import { analysisCostTokens } from "@otsi-vie/contracts";

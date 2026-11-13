@@ -190,7 +190,9 @@ export class WalletService {
    * no expiry (ADR-140 §5): the expiry of the credit they came from is not tracked per token, and a refund is
    * an owner-visible ledger row, so silently extending an expiry by a refund is the documented trade-off.
    * The worker that marks a run/render FAILED is the Python worker (services/worker), not this API — it does not
-   * call this yet (ADR-140 §7, known gap). The API paths that fail synchronously call it directly.
+   * call this. The API paths that fail synchronously call it directly, and the Jobs Center list reconciles
+   * the worker's failures (JobsService.reconcileFailedRefunds, ADR-140 §7): a FAILED analysis or render that
+   * was charged is refunded when the list is next read, so the refund lands within seconds of the failure.
    */
   async refundForJob(
     ex: Executor,

@@ -137,3 +137,39 @@ describe("finished jobs (Home, tray)", () => {
     expect(jobs[0]!.stage).toBeNull();
   });
 });
+
+describe("a charged job that fails is refunded (ADR-140 §7)", () => {
+  it("reading the job list refunds a failed analysis in full, once, so the ActivityLine can say refunded", async () => {
+    const { runId, jobId } = await analysisJob(a);
+    // the charge at enqueue, as the real analysis run writes it: the 60-second video costs 1 token.
+    // (the charge path itself is covered by the analysis and wallet tests; here the ledger state is the fixture.)
+    const purchaseId = uuidv7();
+    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, idempotency_key, invoice_ref, reason) VALUES (?, ?, 'PURCHASE', 100, 100, ?, 'INV-TEST-REFUND', 'Test funding')",
+      [purchaseId, a.orgId, `test-purchase:${purchaseId}`]);
+    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, job_type, job_id, idempotency_key, reason) VALUES (?, ?, 'SPEND', -1, 99, 'ANALYSIS', ?, ?, 'Test analysis charge')",
+      [uuidv7(), a.orgId, runId, `spend:ANALYSIS:${runId}`]);
+    // the worker marks the run FAILED directly in the database and never calls the API.
+    await root.query("UPDATE worker_jobs SET state = 'FAILED', finished_at = UTC_TIMESTAMP(6) WHERE id = ?", [jobId]);
+    await root.query("UPDATE pipeline_runs SET status = 'FAILED' WHERE id = ?", [runId]);
+
+    const r = await call(a, "GET", "/v1/jobs");
+    expect(r.status).toBe(200);
+    const [refunds] = await root.query<RowDataPacket[]>(
+      "SELECT kind, amount, balance_after, job_type, job_id, idempotency_key, created_at FROM wallet_ledger WHERE organization_id = ? AND kind = 'REFUND'",
+      [a.orgId]);
+    expect(refunds).toHaveLength(1);
+    expect(refunds[0]).toMatchObject({ kind: "REFUND", amount: 1, balance_after: 100, job_type: "ANALYSIS", job_id: runId, idempotency_key: `refund:ANALYSIS:${runId}` });
+    // the refund must land after the failure and within the 5-minute window the ActivityLine reads
+    // (tokenCost.refundForJob), or the line could not say "refunded".
+    const [[job]] = await root.query<RowDataPacket[]>("SELECT finished_at FROM worker_jobs WHERE id = ?", [jobId]);
+    const finished = new Date(job!.finished_at as string).getTime();
+    const refunded = new Date(refunds[0]!.created_at as string).getTime();
+    expect(refunded).toBeGreaterThanOrEqual(finished);
+    expect(refunded).toBeLessThanOrEqual(finished + 5 * 60 * 1000);
+
+    // a second read does not refund twice.
+    await call(a, "GET", "/v1/jobs");
+    const [again] = await root.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM wallet_ledger WHERE organization_id = ? AND kind = 'REFUND'", [a.orgId]);
+    expect(again[0]!.n).toBe(1);
+  });
+});

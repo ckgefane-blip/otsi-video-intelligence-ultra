@@ -16,7 +16,7 @@
  * it works on; a job in a project hidden from the person is left out, and a change needs the Editor permission there.
  */
 import { Body, Controller, Get, HttpCode, Injectable, Param, Post, Query, UseGuards } from "@nestjs/common";
-import { CreateAnalysisRequest, CreateRenderRequest, Job, JobAction, JobKind, JobList, JobPriority, SetJobPriorityRequest } from "@otsi-vie/contracts";
+import { CreateAnalysisRequest, CreateRenderRequest, Job, JobAction, JobKind, JobList, JobPriority, SetJobPriorityRequest, WalletJobType } from "@otsi-vie/contracts";
 import { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { isHidden } from "../../core/access";
@@ -32,6 +32,7 @@ import { MediaService } from "../media/media";
 import { uuidParam } from "../players/players.controller";
 import { PROJECT_WRITERS } from "../projects/projects";
 import { ReelsService } from "../reels/reels";
+import { WalletService } from "../wallet/wallet";
 
 export const KIND_LABEL: Record<JobKind, string> = {
   INGEST_UPLOAD: "Upload check", INGEST_URL: "Link import", PROXY: "Playback copy", ASSESS: "Footage check", ANALYZE: "Analysis",
@@ -83,7 +84,8 @@ const json = <T>(v: unknown): T | null => (v == null ? null : typeof v === "stri
 @Injectable()
 export class JobsService {
   constructor(private readonly db: Db, private readonly analysis: AnalysisService, private readonly reels: ReelsService, private readonly media: MediaService,
-    private readonly assessment: AssessmentService, private readonly ball: BallMarksService, private readonly lineups: LineupsService) {}
+    private readonly assessment: AssessmentService, private readonly ball: BallMarksService, private readonly lineups: LineupsService,
+    private readonly wallet: WalletService) {}
 
   private canWrite(r: JobRow, p: Principal): boolean {
     if (!(PROJECT_WRITERS as readonly string[]).includes(p.role)) return false;
@@ -128,6 +130,36 @@ export class JobsService {
     return !isHidden(p, r.project_id) && !isHidden(p, r.reel_project) && (active || !r.removed_at);
   }
 
+  /** Auto-refund (ADR-140 §7, the refund-on-failure fix): the Python worker marks a run/render FAILED
+   *  directly in the database and never calls the API, so no API code runs at the moment of failure to
+   *  refund the charge — the cancel paths only refund a job cancelled before it started. The Jobs Center
+   *  list is the observation point (polled every few seconds by the ActivityLine and the Jobs Center):
+   *  when it sees a FAILED analysis or render that was charged, it refunds the full committed tokens via
+   *  WalletService.refundForJob. That method is idempotent — it returns null when the job was never
+   *  charged or was already refunded — so calling it on every poll is safe; a failure here never breaks
+   *  the list (the next poll retries). Only the two charged kinds the worker runs are reconciled here;
+   *  player reports, AI analysis and export packs fail inside the API and already refund synchronously.
+   *  The refund is written as the system (actor null), not as the user who happened to list the jobs. */
+  private async reconcileFailedRefunds(p: Principal, rows: JobRow[]): Promise<void> {
+    for (const r of rows) {
+      if (r.state !== "FAILED") continue;
+      const job: { type: WalletJobType; id: string; reason: string } | null =
+        r.kind === "ANALYZE" && r.subject_type === "analysis_run"
+          ? { type: "ANALYSIS", id: r.subject_id, reason: "Analysis failed while running, so its tokens were returned." }
+          : r.kind === "RENDER" && r.subject_type === "render_job"
+          ? { type: "REEL_RENDER", id: r.subject_id, reason: "Render failed while running, so its tokens were returned." }
+          : null;
+      if (!job) continue;
+      try {
+        await this.db.tx(async (c) => {
+          await this.wallet.refundForJob(c, p.organizationId, null, job);
+        });
+      } catch {
+        // a transient failure must not break the job list; the next poll retries the refund.
+      }
+    }
+  }
+
   async list(p: Principal, videoId?: string): Promise<JobList> {
     const where = videoId ? "HAVING vid = ?"
       : "AND (j.state IN ('QUEUED', 'RUNNING', 'PAUSED') OR j.finished_at >= CURRENT_TIMESTAMP(6) - INTERVAL 1 DAY OR j.created_at >= CURRENT_TIMESTAMP(6) - INTERVAL 1 DAY)";
@@ -136,6 +168,8 @@ export class JobsService {
         ORDER BY CASE x.state WHEN 'RUNNING' THEN 0 WHEN 'QUEUED' THEN 1 WHEN 'PAUSED' THEN 1 ELSE 2 END,
                  IF(x.state IN ('QUEUED', 'PAUSED'), x.priority, 0), COALESCE(x.finished_at, x.created_at) DESC LIMIT ${videoId ? 100 : 60}`,
       videoId ? [p.organizationId, videoId, p.organizationId] : [p.organizationId, p.organizationId]);
+    // auto-refund for charged jobs the worker marked FAILED (ADR-140 §7): see reconcileFailedRefunds.
+    await this.reconcileFailedRefunds(p, rows);
     // the footage check's per-profile estimate for this video's analyses (A.4 "estimate vs actual"); none without a finished check
     let estimate: ((profile: string) => number | null) | null = null;
     if (videoId) {
