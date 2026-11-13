@@ -5,7 +5,7 @@
  *
  *   node scripts/compile-bytecode.js
  *
- * Input: main.js, backend.js, licence.js, hardware.js, components.js.
+ * Input: main.js, backend.js, licence.js, hardware.js, components.js, windowmenu.js.
  * Output (.local/bytecode/, staging only — never committed):
  *   main.js        a two-line loader: require('bytenode') + require('./main.jsc')
  *   main.jsc, backend.jsc, licence.jsc, hardware.jsc, components.jsc
@@ -30,7 +30,7 @@ const bytenode = require('bytenode');
 
 const DESKTOP = path.resolve(__dirname, '..');
 const OUT = path.join(DESKTOP, '.local', 'bytecode');
-const FILES = ['main.js', 'backend.js', 'licence.js', 'hardware.js', 'components.js'];
+const FILES = ['main.js', 'backend.js', 'licence.js', 'hardware.js', 'components.js', 'windowmenu.js'];
 
 async function main() {
   const electronPath = require('electron'); // the Electron binary path

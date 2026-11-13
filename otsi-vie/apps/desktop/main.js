@@ -23,12 +23,13 @@
  * installer), and installs on quit.
  */
 
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const backend = require('./backend');
 const components = require('./components');
+const { installWindowMenu, PAGES } = require('./windowmenu');
 
 let autoUpdater = null;
 try {
@@ -169,38 +170,34 @@ function createLoadingWindow() {
 /* application menu                                                    */
 /* ------------------------------------------------------------------ */
 
-// The window's own menu bar (Go / View / Help): navigation to the engine's
-// pages, reload, developer tools for a closer look, and quit. Without it
-// the window only has the bare Windows system menu (Restore / Move /
-// Size / Minimize / Maximize / Close) and no way to move around the app
-// except the in-page navigation.
-function buildAppMenu() {
-  const go = (label, route) => ({
-    label,
-    click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + route); },
+// The window's own menu bar (Go to / View / Help), hidden until Alt is pressed: the rail's pages, reload,
+// zoom, full screen, developer tools for a closer look, and updates. The same pages and commands are in the
+// Windows menu under the app icon (windowmenu.js). Labels in sentence case, like the rest of the app.
+function goTo(route) {
+  if (mainWin) void mainWin.loadURL(backend.WEB_URL + route);
+}
+
+function showAbout() {
+  const win = mainWin || undefined;
+  void dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'About OTSI VIE',
+    message: 'OTSI VIE',
+    detail: `Video Intelligence Engine\nVersion ${app.getVersion()}\nElectron ${process.versions.electron} · Chromium ${process.versions.chrome}\n\n`
+      + 'Copyright © Osio & Tee Solutions International Ltd',
+    buttons: ['OK'],
+    noLink: true,
   });
+}
+
+function buildAppMenu() {
   return Menu.buildFromTemplate([
     {
-      label: 'Go',
+      label: 'Go to',
       submenu: [
-        go('Dashboard', '/dashboard'),
-        go('Analysis', '/analysis'),
-        go('Timeline', '/studio'),
-        go('Reel Builder', '/reels'),
-        go('Player Reports', '/reports'),
-        go('Library', '/library'),
-        go('Export', '/exports'),
-        go('Players', '/players'),
+        ...PAGES.map(([label, route]) => ({ label, click: () => goTo(route) })),
         { type: 'separator' },
-        {
-          label: 'Settings',
-          submenu: [
-            go('Team', '/settings/team'),
-            go('Security', '/settings/security'),
-            go('Token Wallet', '/settings/wallet'),
-            go('Admin', '/settings/admin'),
-          ],
-        },
+        { label: 'Keyboard shortcuts', click: () => goTo('/shortcuts') },
       ],
     },
     {
@@ -208,28 +205,52 @@ function buildAppMenu() {
       submenu: [
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => { if (mainWin) mainWin.webContents.reload(); } },
         { type: 'separator' },
-        { label: 'Toggle Developer Tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => { if (mainWin) mainWin.webContents.toggleDevTools(); } },
+        { role: 'zoomIn', label: 'Zoom in' },
+        { role: 'zoomOut', label: 'Zoom out' },
+        { role: 'resetZoom', label: 'Actual size' },
         { type: 'separator' },
-        { role: 'zoomIn', label: 'Zoom In' },
-        { role: 'zoomOut', label: 'Zoom Out' },
-        { role: 'resetZoom', label: 'Reset Zoom' },
+        { role: 'togglefullscreen', label: 'Full screen' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Toggle Full Screen' },
+        { label: 'Developer tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => { if (mainWin) mainWin.webContents.toggleDevTools(); } },
       ],
     },
     {
       label: 'Help',
       submenu: [
-        { label: 'About OTSI VIE', click: () => { if (mainWin) void mainWin.loadURL(backend.WEB_URL + '/dashboard'); } },
-        { type: 'separator' },
+        { label: 'Keyboard shortcuts', click: () => goTo('/shortcuts') },
         {
-          label: 'Check for Updates…',
-          enabled: !!autoUpdater,
+          label: 'Check for updates…',
+          enabled: !!autoUpdater && app.isPackaged,
           click: () => { if (autoUpdater) void checkForUpdates(); },
         },
+        { type: 'separator' },
+        { label: 'About OTSI VIE', click: showAbout },
       ],
     },
   ]);
+}
+
+// The extra items in the Windows menu under the app icon (windowmenu.js): what each one does, and its check mark.
+function addWindowMenuItems(win) {
+  const wc = win.webContents;
+  const refresh = installWindowMenu(win, {
+    go: (item) => goTo(item.route),
+    reload: () => wc.reload(),
+    zoomIn: () => wc.setZoomLevel(Math.min(wc.getZoomLevel() + 0.5, 5)),
+    zoomOut: () => wc.setZoomLevel(Math.max(wc.getZoomLevel() - 0.5, -5)),
+    zoomReset: () => wc.setZoomLevel(0),
+    fullScreen: () => win.setFullScreen(!win.isFullScreen()),
+    onTop: () => win.setAlwaysOnTop(!win.isAlwaysOnTop()),
+    updates: () => { if (autoUpdater) void checkForUpdates(); },
+    about: showAbout,
+  }, {
+    checked: (name) => (name === 'fullScreen' ? win.isFullScreen() : name === 'onTop' ? win.isAlwaysOnTop() : false),
+    enabled: (name) => (name === 'updates' ? !!autoUpdater && app.isPackaged : true),
+  }, pushLog);
+  // F11, Esc or the View menu change full screen too: keep the check mark true
+  win.on('enter-full-screen', refresh);
+  win.on('leave-full-screen', refresh);
+  win.on('always-on-top-changed', refresh);
 }
 
 function createMainWindow() {
@@ -252,6 +273,7 @@ function createMainWindow() {
   // loading window has none.
   mainWin.setMenu(buildAppMenu());
   mainWin.setMenuBarVisibility(false);
+  addWindowMenuItems(mainWin);
   // Keep the window title "OTSI VIE" even when the web app sets its own.
   mainWin.on('page-title-updated', (event) => event.preventDefault());
   // Developer tools, for when something needs a closer look.

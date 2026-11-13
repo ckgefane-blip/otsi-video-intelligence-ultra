@@ -29,6 +29,10 @@ directories:
 # scripts/after-pack.js). The main-process code inside it is V8 bytecode,
 # not readable source (see scripts/compile-bytecode.js).
 asar: true
+# koffi's native binary (the Windows-menu items, windowmenu.js) is loaded from disk, not from inside the ASAR
+asarUnpack:
+  - node_modules/koffi/**
+  - node_modules/@koromix/koffi-win32-x64/**
 afterPack: ./scripts/after-pack.js
 files:
   # Main-process code, compiled to V8 bytecode (bytenode) on the build
