@@ -115,25 +115,31 @@ test('no file = local mode: with no central.json and no env, the desktop is loca
 
 test('running from code: the repo central.json wins even when process.resourcesPath is set', () => {
   clearEnv();
-  centralConfig.resetConfigCache();
   // process.resourcesPath is set even when the app runs from code (not packaged), so a staging run
   // from code used to read the packaged path (no file there) and start in local mode. The repo file
   // must win when it exists.
-  const repoFile = path.join(__dirname, '..', 'resources', 'central.json');
+  // The test must NEVER touch the real repo resources/central.json: on a staging machine that file
+  // holds the live staging config, and an earlier version of this test overwrote then deleted it.
+  // So the test runs a COPY of central-config.js from a temp folder (its __dirname is the temp
+  // folder), with a temp repo central.json and a temp packaged folder. Everything lives in temp
+  // folders and is deleted afterwards; the real repo file is never written or removed.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'otsi-central-repo-'));
+  const fakePackaged = fs.mkdtempSync(path.join(os.tmpdir(), 'otsi-packaged-resources-'));
   const savedResourcesPath = process.resourcesPath;
-  const fakePackaged = path.join(os.tmpdir(), 'otsi-packaged-resources');
-  fs.mkdirSync(fakePackaged, { recursive: true });
-  fs.writeFileSync(repoFile, JSON.stringify(STAGING), 'utf8');
-  process.resourcesPath = fakePackaged;
   try {
-    assert.equal(centralConfig.defaultConfigPath(), repoFile);
-    assert.equal(centralConfig.loadConfig().central_server_url, 'https://accounts.otsi.cc');
+    fs.copyFileSync(path.join(__dirname, '..', 'central-config.js'), path.join(dir, 'central-config.js'));
+    fs.mkdirSync(path.join(dir, 'resources'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'resources', 'central.json'), JSON.stringify(STAGING), 'utf8');
+    process.resourcesPath = fakePackaged;
+    const copy = require(path.join(dir, 'central-config.js'));
+    const repoFile = path.join(dir, 'resources', 'central.json');
+    assert.equal(copy.defaultConfigPath(), repoFile);
+    assert.equal(copy.loadConfig().central_server_url, 'https://accounts.otsi.cc');
   } finally {
-    fs.rmSync(repoFile, { force: true });
     if (savedResourcesPath === undefined) delete process.resourcesPath;
     else process.resourcesPath = savedResourcesPath;
+    fs.rmSync(dir, { recursive: true, force: true });
     fs.rmSync(fakePackaged, { recursive: true, force: true });
-    centralConfig.resetConfigCache();
   }
 });
 
