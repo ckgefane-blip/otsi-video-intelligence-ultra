@@ -117,6 +117,9 @@ def _sqlite_path_from_dsn(dsn: str) -> Path:
         raise ValueError(f"SQLite DSN must be sqlite:///<absolute path> or sqlite:///:memory:, got {dsn!r}")
     if not u.path.startswith("/"):
         raise ValueError(f"SQLite DSN must be sqlite:///<absolute path> or sqlite:///:memory:, got {dsn!r}")
+    # Windows: sqlite:///D:/data/x.db parses to "/D:/data/x.db" - the slash before the drive letter is the URL's, not the path's
+    if len(u.path) > 3 and u.path[2] == ":" and u.path[1].isalpha() and u.path[3] in "/\\":
+        return Path(unquote(u.path[1:]))
     return Path(u.path)
 
 

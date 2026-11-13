@@ -208,8 +208,9 @@ class JobRunner:
         # Licence (ADR-144 1.5): paid work is refused at job start when the licence does not verify - no token in central
         # mode, or a token whose signature, expiry or organisation fails (see vie_worker/licence.py). Not retried: a licence
         # refusal cannot succeed until the shell has refreshed the token and this worker has restarted with the new environment.
+        # On a linked desktop (ADR-146) the licence and the job's ticket are read from the database instead.
         try:
-            check_licence_for_job(job)
+            check_licence_for_job(job, conn=self.conn)
         except LicenceError as e:
             return self.fail(job, e.code, str(e), retryable=False)
         stop = threading.Event()

@@ -98,6 +98,20 @@
   the proof). The offline grace applies (`OTSI_VIE_LICENCE_GRACE_DAYS`).
 - The desktop shell's own `signInToCentral` (licence.js) is not used by this flow: the local API holds the central session.
 
+## 7b. Worker ticket check as built (step 4, 2026-11-13)
+
+- `services/worker/vie_worker/licence.py`: on a linked desktop the worker reads the organisation's licence from
+  `central_links` and, for the kinds charged per job, the job's row in `linked_job_tickets` (ANALYZE = the ANALYSIS charge
+  of its run, RENDER = the REEL_RENDER charge of its render; the job's subject id is the charged id). An ONLINE ticket's
+  Ed25519 token must verify (audience `otsi-vie-ticket`) and name this organisation, job type and job id; an OFFLINE spend
+  is accepted as recorded; a refunded job or one with no ticket fails `TICKET_REQUIRED`, not retried. Other paid kinds
+  (pitch, ball, line-ups, snapshots, beat grids) need the licence only.
+- **Grace (decision, from §4–§5):** on a linked desktop the worker honours the offline grace
+  (`OTSI_VIE_LICENCE_GRACE_DAYS`, default 14), the same rule as the API's gate. The older environment-token path
+  (local-only or central mode) keeps its strict expiry, unchanged.
+- Fixed on the way: the worker refused Windows SQLite paths given as `sqlite:///D:/...` (the URL's slash was kept in front
+  of the drive letter); three existing worker licence tests failed on Windows because of it.
+
 ## 8. Alternatives considered
 
 - **Keep the balance on the laptop and sync it** — rejected: restoring an old copy or editing the file brings tokens back.

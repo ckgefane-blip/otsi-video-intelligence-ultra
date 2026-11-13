@@ -29,9 +29,11 @@ from vie_worker.jobs import Job, JobRunner
 from vie_worker.db import connect
 from vie_worker.licence import (
     LICENCE_AUDIENCE,
+    TICKET_AUDIENCE,
     LicenceError,
     check_licence_for_job,
     verify_licence_token,
+    verify_ticket_token,
 )
 
 import sqlite_support
@@ -255,3 +257,170 @@ def test_run_one_runs_a_paid_job_with_a_valid_licence():
             restore()
     finally:
         _drop(stack)
+
+
+# ---- linked desktop (ADR-146): the licence and the job's ticket come from the database ----------------------------------
+
+LINKED_ENV = {"OTSI_VIE_CENTRAL_SERVER_URL": "https://accounts.test.otsi.invalid"}
+LINKED_TABLES = """
+CREATE TABLE IF NOT EXISTS central_links (
+  user_id TEXT NOT NULL, organization_id TEXT NOT NULL, central_url TEXT NOT NULL, refresh_sealed TEXT NOT NULL,
+  licence_token TEXT, licence_expires_at INTEGER, PRIMARY KEY (user_id, organization_id)
+) STRICT;
+CREATE TABLE IF NOT EXISTS linked_job_tickets (
+  id TEXT PRIMARY KEY, organization_id TEXT NOT NULL, job_type TEXT NOT NULL, job_id TEXT NOT NULL, amount INTEGER NOT NULL,
+  source TEXT NOT NULL, state TEXT NOT NULL, ticket_token TEXT, UNIQUE (organization_id, job_type, job_id)
+) STRICT;
+"""
+
+
+def _mint_ticket(private, org, job_type, job_id, *, exp_offset=3600, amount=30, audience=TICKET_AUDIENCE):
+    """A job ticket minted the way the central server mints one (tickets.ts)."""
+    now = int(time.time())
+    exp = now + exp_offset
+    header = {"alg": "EdDSA", "typ": "JWT"}
+    payload = {"organization_id": org, "job_type": job_type, "job_id": job_id, "amount": amount,
+               "expires_at": datetime.fromtimestamp(exp, timezone.utc).isoformat().replace("+00:00", "Z"),
+               "iss": "https://accounts.test.otsi.invalid", "aud": audience, "sub": org, "iat": now, "exp": exp, "jti": str(uuid.uuid4())}
+    signing_input = f"{_b64(json.dumps(header).encode())}.{_b64(json.dumps(payload).encode())}"
+    return f"{signing_input}.{_b64(private.sign(signing_input.encode('ascii')))}"
+
+
+class _Linked:
+    """A throwaway SQLite stack with the two linked-desktop tables, one organisation and its licence."""
+
+    def __init__(self, licence_offset=3600, with_licence=True):
+        self.private, self.pem = _keypair()
+        self.stack = _stack()
+        self.org = str(uuid.uuid4())
+        self.conn = connect(self.stack["dsn"])
+        with self.conn.cursor() as cur:
+            for stmt in [x for x in LINKED_TABLES.split(";") if x.strip()]:
+                cur.execute(stmt)
+            cur.execute("INSERT INTO organizations (id, name, slug) VALUES (%s, %s, %s)", (self.org, "Linked FC", "linked-" + self.org))
+            if with_licence:
+                cur.execute("INSERT INTO central_links (user_id, organization_id, central_url, refresh_sealed, licence_token, licence_expires_at)"
+                            " VALUES (%s, %s, %s, %s, %s, %s)",
+                            (str(uuid.uuid4()), self.org, "https://accounts.test.otsi.invalid", "v1.x.y",
+                             _mint(self.private, self.org, exp_offset=licence_offset), int(time.time() * 1000)))
+        self.env = {**LINKED_ENV, "OTSI_VIE_LICENCE_PUBLIC_KEY_PEM": self.pem}
+
+    def ticket(self, job_type, job_id, *, source="ONLINE", state="ACTIVE", token=None):
+        if source == "ONLINE" and token is None:
+            token = _mint_ticket(self.private, self.org, job_type, job_id)
+        with self.conn.cursor() as cur:
+            cur.execute("INSERT INTO linked_job_tickets (id, organization_id, job_type, job_id, amount, source, state, ticket_token)"
+                        " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (str(uuid.uuid4()), self.org, job_type, job_id, 30, source, state, token))
+
+    def job(self, kind="ANALYZE", subject=None):
+        return Job(str(uuid.uuid4()), self.org, kind, "pipeline_run", subject or str(uuid.uuid4()), {}, 1, 3, "tok")
+
+    def check(self, job):
+        return check_licence_for_job(job, self.env, conn=self.conn)
+
+    def close(self):
+        self.conn.close()
+        _drop(self.stack)
+
+
+def test_linked_without_a_licence_is_refused():
+    L = _Linked(with_licence=False)
+    try:
+        _raises_code(lambda: L.check(L.job()), "LICENCE_REQUIRED")
+    finally:
+        L.close()
+
+
+def test_linked_paid_job_needs_its_ticket():
+    L = _Linked()
+    try:
+        _raises_code(lambda: L.check(L.job("ANALYZE")), "TICKET_REQUIRED")
+        _raises_code(lambda: L.check(L.job("RENDER")), "TICKET_REQUIRED")
+        run = str(uuid.uuid4())
+        L.ticket("ANALYSIS", run)
+        assert L.check(L.job("ANALYZE", run))["organization_id"] == L.org
+        render = str(uuid.uuid4())
+        L.ticket("REEL_RENDER", render)
+        assert L.check(L.job("RENDER", render))["organization_id"] == L.org
+    finally:
+        L.close()
+
+
+def test_linked_ticket_must_name_this_job_and_verify():
+    L = _Linked()
+    try:
+        run, other = str(uuid.uuid4()), str(uuid.uuid4())
+        L.ticket("ANALYSIS", run, token=_mint_ticket(L.private, L.org, "ANALYSIS", other))       # signed for another job
+        _raises_code(lambda: L.check(L.job("ANALYZE", run)), "TICKET_INVALID")
+        forged_key, _ = _keypair()
+        run2 = str(uuid.uuid4())
+        L.ticket("ANALYSIS", run2, token=_mint_ticket(forged_key, L.org, "ANALYSIS", run2))       # not central's key
+        _raises_code(lambda: L.check(L.job("ANALYZE", run2)), "TICKET_INVALID")
+        run3 = str(uuid.uuid4())
+        L.ticket("ANALYSIS", run3, token=_mint(L.private, L.org))                                # a licence is not a ticket
+        _raises_code(lambda: L.check(L.job("ANALYZE", run3)), "TICKET_INVALID")
+        run4 = str(uuid.uuid4())
+        L.ticket("ANALYSIS", run4, token=_mint_ticket(L.private, L.org, "ANALYSIS", run4, exp_offset=-60))
+        _raises_code(lambda: L.check(L.job("ANALYZE", run4)), "TICKET_EXPIRED")
+    finally:
+        L.close()
+
+
+def test_linked_offline_spend_runs_and_a_refunded_job_does_not():
+    L = _Linked()
+    try:
+        run = str(uuid.uuid4())
+        L.ticket("ANALYSIS", run, source="OFFLINE", state="ACTIVE", token=None)
+        assert L.check(L.job("ANALYZE", run))["organization_id"] == L.org
+        settled = str(uuid.uuid4())
+        L.ticket("ANALYSIS", settled, source="OFFLINE", state="SETTLED", token=None)
+        assert L.check(L.job("ANALYZE", settled))["organization_id"] == L.org
+        refunded = str(uuid.uuid4())
+        L.ticket("REEL_RENDER", refunded, state="REFUNDED")
+        _raises_code(lambda: L.check(L.job("RENDER", refunded)), "TICKET_REQUIRED")
+    finally:
+        L.close()
+
+
+def test_linked_licence_grace_and_unticketed_paid_kinds():
+    L = _Linked(licence_offset=-3 * 86400)            # expired three days ago: inside the 14-day grace
+    try:
+        assert L.check(L.job("CALIBRATE_PITCH"))["organization_id"] == L.org   # paid kind, not charged per job: licence only
+        assert check_licence_for_job(L.job("PROXY"), L.env, conn=L.conn) is None
+        _raises_code(lambda: check_licence_for_job(L.job("CALIBRATE_PITCH"), {**L.env, "OTSI_VIE_LICENCE_GRACE_DAYS": "2"}, conn=L.conn), "LICENCE_EXPIRED")
+    finally:
+        L.close()
+
+
+def test_verify_ticket_token_claims():
+    private, pem = _keypair()
+    org, job_id = str(uuid.uuid4()), str(uuid.uuid4())
+    claims = verify_ticket_token(_mint_ticket(private, org, "ANALYSIS", job_id, amount=12), public_key_pem=pem)
+    assert (claims["organization_id"], claims["job_type"], claims["job_id"], claims["amount"]) == (org, "ANALYSIS", job_id, 12)
+    _raises_code(lambda: verify_ticket_token(_mint_ticket(private, org, "ANALYSIS", job_id, audience=LICENCE_AUDIENCE), public_key_pem=pem), "TICKET_INVALID")
+
+
+def test_run_one_on_a_linked_desktop_runs_a_ticketed_job_and_refuses_one_without():
+    L = _Linked()
+    restore = _run_one_env({**L.env})
+    try:
+        good, bad = str(uuid.uuid4()), str(uuid.uuid4())
+        L.ticket("ANALYSIS", good)
+        ids = {}
+        with L.conn.cursor() as cur:
+            for subject in (good, bad):
+                jid = str(uuid.uuid4())
+                ids[subject] = jid
+                cur.execute("INSERT INTO worker_jobs (id, organization_id, kind, subject_type, subject_id, dedupe_key, payload)"
+                            " VALUES (%s, %s, 'ANALYZE', 'pipeline_run', %s, %s, %s)", (jid, L.org, subject, "l:" + jid, json.dumps({})))
+        ran = []
+        runner = JobRunner(L.stack["dsn"], "w1", ["ANALYZE"])
+        outcomes = [runner.run_one({"ANALYZE": lambda r, j: ran.append(j.subject_id) or {}}) for _ in range(2)]
+        assert sorted(outcomes) == ["failed", "succeeded"]
+        assert ran == [good]
+        assert _job_row(L.stack, ids[good])["state"] == "SUCCEEDED"
+        row = _job_row(L.stack, ids[bad])
+        assert (row["state"], row["error_code"]) == ("FAILED", "TICKET_REQUIRED")
+    finally:
+        restore()
+        L.close()
