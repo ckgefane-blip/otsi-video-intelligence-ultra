@@ -249,7 +249,7 @@ describe("bank-transfer billing", () => {
     const subId = confirmed.body.subscription_id as string;
     // move the subscription so it expires in 3 days: a renewal order is due
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
-    const run1 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    const run1 = await call(company, "POST", "/v1/admin/billing/renewals/run");
     expect(run1.status).toBe(201);
     expect(run1.body.renewals_created).toBe(1);
     expect(run1.body.renewal_order_ids).toHaveLength(1);
@@ -258,12 +258,12 @@ describe("bank-transfer billing", () => {
     expect(renewals[0]).toMatchObject({ plan_code: "CLUB", period_months: 1, amount_minor: 6_000_000, currency: "NGN", status: "ORDERED" });
     expect(renewals[0]?.reference).not.toBe(created.order.reference);
     // a second run creates no duplicate renewal
-    const run2 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    const run2 = await call(company, "POST", "/v1/admin/billing/renewals/run");
     expect(run2.body.renewals_created).toBe(0);
     // move the subscription 20 days past its end (grace is 14 days): it drops to the free tier, projects kept
     await root.query("UPDATE subscriptions SET period_end = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 20 DAY) WHERE id = ?", [subId]);
     const [projectsBefore] = await root.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM projects WHERE organization_id = ?", [m.orgId]);
-    const run3 = await call(m, "POST", "/v1/admin/billing/renewals/run");
+    const run3 = await call(company, "POST", "/v1/admin/billing/renewals/run");
     expect(run3.body.downgraded_to_free).toBe(1);
     const sub = await subscriptionOf(m.orgId);
     expect(sub?.state).toBe("CANCELED");
@@ -282,8 +282,8 @@ describe("bank-transfer billing", () => {
     const subId = confirmed.body.subscription_id as string;
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subId]);
     const [runA, runB] = await Promise.all([
-      call(m, "POST", "/v1/admin/billing/renewals/run"),
-      call(m, "POST", "/v1/admin/billing/renewals/run"),
+      call(company, "POST", "/v1/admin/billing/renewals/run"),
+      call(company, "POST", "/v1/admin/billing/renewals/run"),
     ]);
     expect(runA.status).toBe(201);
     expect(runB.status).toBe(201);
@@ -317,7 +317,7 @@ describe("bank-transfer billing", () => {
       billing.startRenewalScheduler(50);
       await sleep(250);
       billing.stopRenewalScheduler();
-      const manual = await call(m, "POST", "/v1/admin/billing/renewals/run");
+      const manual = await call(company, "POST", "/v1/admin/billing/renewals/run");
       expect(manual.body.renewals_created).toBe(0);
       const [after] = await root.query<mysql.RowDataPacket[]>("SELECT * FROM bank_transfer_orders WHERE renews_subscription_id = ?", [subId]);
       expect(after).toHaveLength(1);

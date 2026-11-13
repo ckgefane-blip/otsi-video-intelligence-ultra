@@ -174,6 +174,52 @@ describe("company-organisation guard", () => {
     expect(topped.body).toMatchObject({ kind: "PURCHASE", amount: 50 });
   });
 
+  it("a customer's owner cannot refund a wallet; the company owner can", async () => {
+    const m = await seedBareMember();
+    const topped = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/topup`,
+      { amount: 20, reason: "Bank transfer received", invoice_ref: "INV-2026-103" });
+    expect(topped.status).toBe(201);
+    const refused = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/refund`,
+      { amount: 10, reason: "Goodwill refund" });
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("COMPANY_ORG_ONLY");
+    const refunded = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/refund`,
+      { amount: 10, reason: "Goodwill refund" });
+    expect(refunded.status).toBe(201);
+    expect(refunded.body).toMatchObject({ kind: "REFUND", amount: 10 });
+  });
+
+  it("a customer's owner cannot adjust a wallet; the company owner can", async () => {
+    const m = await seedBareMember();
+    const refused = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`,
+      { amount: 5, reason: "Correction" });
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("COMPANY_ORG_ONLY");
+    const adjusted = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`,
+      { amount: 5, reason: "Correction" });
+    expect(adjusted.status).toBe(201);
+    expect(adjusted.body).toMatchObject({ kind: "ADJUSTMENT", amount: 5 });
+  });
+
+  it("a customer's owner cannot expire credits; the company owner can", async () => {
+    const m = await seedBareMember();
+    const refused = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/expire`);
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("COMPANY_ORG_ONLY");
+    const expired = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/expire`);
+    expect(expired.status).toBe(201);
+    expect(expired.body).toMatchObject({ organization_id: m.orgId, expired: 0 });
+  });
+
+  it("a customer's owner cannot run renewals; the company owner can", async () => {
+    const refused = await call(customer, "POST", "/v1/admin/billing/renewals/run");
+    expect(refused.status).toBe(403);
+    expect(refused.body.code).toBe("COMPANY_ORG_ONLY");
+    const ran = await call(company, "POST", "/v1/admin/billing/renewals/run");
+    expect(ran.status).toBe(201);
+    expect(ran.body).toMatchObject({ renewals_created: 0 });
+  });
+
   it("a customer's owner can still order, upload proof and see their own orders", async () => {
     const order = await awaitingOrder(customer);
     const mine = await call(customer, "GET", "/v1/billing/orders");

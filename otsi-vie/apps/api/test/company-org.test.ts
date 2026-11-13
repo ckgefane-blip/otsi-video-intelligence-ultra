@@ -2,7 +2,8 @@
  * Company-organisation guard (ADR-140 §8, the bank-account/order fix): only a member of the organisation
  * named by the server setting (OTSI_VIE_COMPANY_ORG_ID) may do the company billing actions — change bank
  * accounts, confirm / part-pay / reject / refund a plan order, invoice or confirm a token pack, top up a
- * wallet. Fail closed: a missing setting refuses everybody, never every admin.
+ * wallet, refund or adjust a wallet, expire credits, run the renewal job. Fail closed: a missing setting
+ * refuses everybody, never every admin.
  *
  * Pure-function test: no database, no app. It runs here (SQLite global setup) as well as on the host.
  */

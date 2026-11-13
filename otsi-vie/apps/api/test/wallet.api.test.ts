@@ -144,13 +144,16 @@ describe("token wallet", () => {
     expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 10, reason: "x", invoice_ref: "INV-X" })).status).toBe(403);
     const topped = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 10, reason: "Company top-up", invoice_ref: "INV-X" });
     expect(topped.body).toMatchObject({ kind: "PURCHASE", amount: 10, balance_after: 10 });
-    // refund and adjust are NOT covered by the company-org lock (owner to decide), so the wallet's own
-    // owner can still do them here.
-    const refund = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/refund`, { amount: 10, reason: "Goodwill refund" });
+    // refund and adjust are company actions (ADR-140 §8): only the company organisation may do them.
+    // The wallet's own owner is refused, and so is another customer's owner; the company owner succeeds.
+    expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/refund`, { amount: 10, reason: "Goodwill refund" })).status).toBe(403);
+    expect((await call(owner, "POST", `/v1/admin/wallet/${m.orgId}/refund`, { amount: 10, reason: "Goodwill refund" })).status).toBe(403);
+    const refund = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/refund`, { amount: 10, reason: "Goodwill refund" });
     expect(refund.body).toMatchObject({ kind: "REFUND", amount: 10, balance_after: 20 });
-    const adjust = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back 4 tokens for a refunded payment" });
+    expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back" })).status).toBe(403);
+    const adjust = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back 4 tokens for a refunded payment" });
     expect(adjust.body).toMatchObject({ kind: "ADJUSTMENT", amount: -4, balance_after: 16 });
-    expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: 5, reason: "" })).status).toBe(400);
+    expect((await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: 5, reason: "" })).status).toBe(400);
     const adminLedger = await call(m, "GET", `/v1/admin/wallet/${m.orgId}/ledger`);
     expect(adminLedger.body.balance).toMatchObject({ balance: 16 });
     expect((await call(viewer, "GET", `/v1/admin/wallet/${m.orgId}/ledger`)).status).toBe(403);

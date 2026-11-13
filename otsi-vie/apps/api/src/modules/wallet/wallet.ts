@@ -50,12 +50,10 @@ export const INSUFFICIENT_TOKENS = "INSUFFICIENT_TOKENS";
 
 /** ADR-140 §8: this codebase has no platform-wide owner role — Admin is the organization's own OWNER / ADMIN
  *  (the same scoping as AdminController). Wallet Admin therefore acts only on the caller's own organization,
- *  EXCEPT the company billing actions (invoice or confirm a token pack, top up a wallet): those are the
- *  company organisation's alone. The company organisation is the one named by the server setting
- *  OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses everybody else, and refuses
- *  everybody at all when the setting is missing (fail closed). NOT locked here (owner to decide): the wallet
- *  admin refund, adjustment and expiry endpoints still use ownOrgOrDeny, so a customer's owner/admin can
- *  refund or adjust their own wallet — the same hole, one decision away from the same fix. */
+ *  EXCEPT the company billing actions (invoice or confirm a token pack, top up a wallet, refund or adjust a
+ *  wallet, expire credits): those are the company organisation's alone. The company organisation is the one
+ *  named by the server setting OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses
+ *  everybody else, and refuses everybody at all when the setting is missing (fail closed). */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "WALLET_ADMIN_OTHER_ORG", "Wallet Admin acts only on your own organization.");
 }
@@ -256,9 +254,10 @@ export class WalletService {
     });
   }
 
-  /** Write off credits that have expired and are still unspent, as EXPIRY rows (scope §3: no refund on expiry). */
+  /** Write off credits that have expired and are still unspent, as EXPIRY rows (scope §3: no refund on expiry).
+   *  A company job: only the company organisation may expire credits, for any organisation. */
   async expireCredits(p: Principal, organizationId: string): Promise<{ organization_id: string; expired: number }> {
-    ownOrgOrDeny(p, organizationId);
+    requireCompanyOrg(p, this.companyOrgId);
     return this.db.tx(async (c) => {
       await this.lockWallet(c, organizationId);
       const entries = await this.ledgerRows(organizationId, c);
@@ -418,9 +417,10 @@ export class WalletService {
     });
   }
 
-  /** Owner refund to the wallet (e.g. a failed job the worker could not refund): a REFUND row. */
+  /** Owner refund to the wallet (e.g. a failed job the worker could not refund): a REFUND row.
+   *  A company action: only the company organisation may refund a wallet, for any organisation. */
   async adminRefund(p: Principal, organizationId: string, body: AdminWalletCreditRequest): Promise<WalletLedgerEntry> {
-    ownOrgOrDeny(p, organizationId);
+    requireCompanyOrg(p, this.companyOrgId);
     return this.db.tx(async (c) => {
       const entry = await this.credit(c, organizationId, p.userId, {
         kind: "REFUND", amount: body.amount, idempotencyKey: `admin-refund:${organizationId}:${uuidv7()}`,
@@ -432,9 +432,10 @@ export class WalletService {
   }
 
   /** Owner correction, either sign, always with a reason. A money refund that claws tokens back is a negative
-   *  adjustment with the refund stated in the reason (scope §5: refunds are manual and owner-approved). */
+   *  adjustment with the refund stated in the reason (scope §5: refunds are manual and owner-approved).
+   *  A company action: only the company organisation may adjust a wallet, for any organisation. */
   async adminAdjust(p: Principal, organizationId: string, body: AdminWalletAdjustmentRequest): Promise<WalletLedgerEntry> {
-    ownOrgOrDeny(p, organizationId);
+    requireCompanyOrg(p, this.companyOrgId);
     return this.db.tx(async (c) => {
       const entry = await this.credit(c, organizationId, p.userId, {
         kind: "ADJUSTMENT", amount: body.amount, idempotencyKey: `adjust:${organizationId}:${uuidv7()}`, reason: body.reason,

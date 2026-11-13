@@ -94,13 +94,12 @@ const RENEWAL_JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** ADR-140 §8: this codebase has no platform-wide owner role — Admin is the organization's own OWNER / ADMIN.
  *  Billing Admin therefore acts only on the caller's own organization, EXCEPT the company billing actions
- *  (change bank accounts, confirm / part-pay / reject / refund a plan order): those are the company
- *  organisation's alone. The company organisation is the one named by the server setting
+ *  (change bank accounts, confirm / part-pay / reject / refund a plan order, run the renewal job): those are
+ *  the company organisation's alone. The company organisation is the one named by the server setting
  *  OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses everybody else, and refuses
- *  everybody at all when the setting is missing (fail closed). The one exception is the renewal run
- *  (POST /v1/admin/billing/renewals/run): it is the daily-job trigger and processes every organization,
- *  because renewals cannot wait for each organization to ask — in multi-tenant use it needs the same
- *  company-org check, the same known limit as the wallet Admin. */
+ *  everybody at all when the setting is missing (fail closed). The renewal run's HTTP endpoint requires the
+ *  company org; the internal daily scheduler (startRenewalScheduler) calls runRenewals() directly, so the
+ *  daily job is unaffected by the endpoint guard. */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "BILLING_ADMIN_OTHER_ORG", "Billing Admin acts only on your own organization.");
 }
@@ -905,6 +904,14 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
       downgraded_to_free: expiries.downgraded_to_free,
     });
   }
+
+  /** The manual trigger for the daily run (POST /v1/admin/billing/renewals/run): a company job, so only the
+   *  company organisation may call it. The internal daily scheduler (startRenewalScheduler) calls
+   *  runRenewals() directly and is unaffected by this guard. */
+  async runRenewalsManual(p: Principal): Promise<RenewalRunResult> {
+    requireCompanyOrg(p, this.companyOrgId);
+    return this.runRenewals();
+  }
 }
 
 @Controller("v1")
@@ -1006,11 +1013,11 @@ export class AdminBillingController {
    * Trigger the daily billing run by hand: renewal orders for subscriptions expiring within 7 days, then
    * expiry / grace handling. In central mode the API runs this daily on its own (BillingService
    * .startRenewalScheduler — once at start-up, then every 24 h); this endpoint is the manual trigger,
-   * so the owner can run it on demand. It runs org-wide (see the scoping note on ownOrgOrDeny): in
-   * multi-tenant use it needs a platform-owner role.
+   * so the owner can run it on demand. It runs org-wide, and it is a company job: only the company
+   * organisation may call it (the internal scheduler is unaffected — it calls runRenewals() directly).
    */
   @Post("billing/renewals/run")
-  runRenewals(): Promise<RenewalRunResult> {
-    return this.billing.runRenewals();
+  runRenewals(@CurrentPrincipal() p: Principal): Promise<RenewalRunResult> {
+    return this.billing.runRenewalsManual(p);
   }
 }
