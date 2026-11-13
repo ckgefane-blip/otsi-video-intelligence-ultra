@@ -13,7 +13,8 @@
  *   the API always returns a configured value (owner 2026-11-13).
  *
  * Decisions (SOT rebuild 2026-11-13): POST /v1/overview/inbox/decisions with the row's stable id
- * ("<KIND>:<video-or-reel-uuid>"). APPROVE works for all four kinds. REJECT is deliberately unsupported
+ * ("<KIND>:<video-or-reel-uuid>"). APPROVE works for TEAM_SHEET, STALE_REEL and FAILED_JOB; an IDENTITY row is never
+ * approved in bulk (the API answers 422 IDENTITY_NOT_IN_BULK; each moment is confirmed in Analysis). REJECT is deliberately unsupported
  * for STALE_REEL and FAILED_JOB (the endpoint answers 422 DECISION_NOT_SUPPORTED) — those rows show no
  * working Reject. After a decision the inbox is re-fetched: the returned inbox may still list a FAILED_JOB
  * row for a moment, because the retry is queued through the outbox and clears the row when the dispatcher
@@ -381,7 +382,8 @@ export function PlatformHealth() {
                     </button>
                     <button
                       type="button"
-                      disabled={deciding !== null}
+                      disabled={deciding !== null || item.kind === "IDENTITY"}
+                      title={item.kind === "IDENTITY" ? a.healthApproveInAnalysis : undefined}
                       onClick={() => void decideReview(item, "APPROVE", null)}
                       className="vie-btn vie-btn-pri vie-btn-sm"
                     >

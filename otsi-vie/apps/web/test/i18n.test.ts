@@ -647,7 +647,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     // SOT rebuild reconciliation (2026-11-13): +2 home, +5 studio, +2 library,
     // +1 players, +5 upload, +1 tactics, +8 admin, +2 settings, +9 shell.
-    expect(bodyKeys("home").length).toBe(127);
+    expect(bodyKeys("home").length).toBe(154);   // +27: Home audit fixes (owner 2026-11-13)
     expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(276);
     expect(bodyKeys("studio").length).toBe(781);
@@ -668,7 +668,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // Group E (2026-11-11): Admin + Settings + Wallet + Shell + Auth, and
     // the Home extension (KPI cards, capability tiles, hero metrics, hero
     // player card, review inbox, active jobs).
-    expect(bodyKeys("admin").length).toBe(282);
+    expect(bodyKeys("admin").length).toBe(283);   // +1 healthApproveInAnalysis (owner 2026-11-13)
     expect(bodyKeys("settings").length).toBe(141);
     expect(bodyKeys("wallet").length).toBe(287);
     expect(bodyKeys("shell").length).toBe(292);

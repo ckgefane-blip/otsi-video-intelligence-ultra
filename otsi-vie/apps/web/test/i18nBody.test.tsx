@@ -2,14 +2,18 @@
  * Page-body translations through the provider (ADR-139 follow-up).
  * A wired component reads its strings from the dictionary the provider
  * supplies: with Russian stored, it shows Russian body strings; with
- * nothing stored it shows English. The TrustStrip is the probe — it is
- * purely presentational (no API call), so the test proves the wiring,
- * not the network.
+ * nothing stored it shows English. A small probe of Home's own strings is
+ * the second check — purely presentational (no API call), so the test
+ * proves the wiring, not the network.
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LOCALE_STORAGE_KEY, LocaleProvider, useLocale } from "@/lib/i18n";
-import { TrustStrip } from "@/components/home/TrustStrip";
+
+function HomeProbe() {
+  const { t } = useLocale();
+  return <section><h2>{t.body.home.hmTitle}</h2><p>{t.body.home.hmPlayersConfirmed}</p></section>;
+}
 
 function Probe() {
   const { t } = useLocale();
@@ -82,11 +86,11 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
     localStorage.setItem(LOCALE_STORAGE_KEY, "ru");
     render(
       <LocaleProvider>
-        <TrustStrip />
+        <HomeProbe />
       </LocaleProvider>,
     );
-    expect(screen.getByText("НАДЁЖНЫЕ ПАРТНЁРЫ")).toBeDefined();
-    expect(screen.getByText("Создано для клубов, академий и скаутов")).toBeDefined();
+    expect(screen.getByText("Футбольная видеоаналитика")).toBeDefined();
+    expect(screen.getByText("Подтверждённые игроки")).toBeDefined();
   });
 
   it("Group B strings read from the stored locale (Russian)", () => {

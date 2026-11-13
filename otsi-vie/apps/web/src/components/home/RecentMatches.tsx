@@ -3,15 +3,15 @@
  * Home — Recent Matches: the four most recently analysed match videos (GET /v1/overview/recent-matches: a finished analysis run). A row
  * shows the video's real thumbnail (GET /v1/videos/:id/thumbnail, the frame stored beside its source) — or, when it has none, an honest
  * empty thumbnail that says so — its real length, the linked match (home vs away, competition, kick-off date, score) when someone linked
- * one, otherwise the video's own title and "Not linked to a match". The score only when both were recorded. A row opens the video in the
- * Analysis workspace; View all opens the Library. Nothing analysed: the empty state. A failed read says so and retries.
+ * one, otherwise the video's own title and "Not linked to a match" (in the person's language). The score only when both were recorded. A
+ * row opens the video in the Analysis workspace; View all opens Matches (owner 2026-11-13). Nothing analysed: the empty state. A failed read says so and retries.
  */
 import type { RecentMatch } from "@otsi-vie/contracts";
 import { ChevronRight, ImageOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 
 /** a duration as m:ss, minutes running past the hour for a full match (138:10) */
 export const clock = (us: number | null) => {
@@ -19,15 +19,15 @@ export const clock = (us: number | null) => {
   const t = Math.round(us / 1e6);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
 };
-const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null);
+const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null);
 
-function title(m: RecentMatch) {
+function title(t: Dictionary, m: RecentMatch) {
   if (m.match) return `${m.match.home ?? "—"} vs ${m.match.away ?? "—"}`;
-  return m.video_title ?? "Untitled video";
+  return m.video_title ?? t.body.home.hmUntitled;
 }
-function subtitle(m: RecentMatch) {
-  if (!m.match) return "Not linked to a match";
-  return [m.match.competition, day(m.match.kickoff_at)].filter(Boolean).join(" • ") || "No competition or date yet (Upload › Set match details)";
+function subtitle(t: Dictionary, m: RecentMatch) {
+  if (!m.match) return t.body.home.hmNotLinked;
+  return [m.match.competition, day(m.match.kickoff_at)].filter(Boolean).join(" • ") || t.body.home.hmNoCompetition;
 }
 const score = (m: RecentMatch) =>
   m.match && m.match.home_score !== null && m.match.away_score !== null ? `${m.match.home_score} - ${m.match.away_score}` : null;
@@ -62,7 +62,7 @@ export function RecentMatches() {
     <section aria-label="Recent matches" className="min-w-0 border-t border-line pt-3" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
       <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{t.body.home.recentMatchesSot}</h2>
-        <Link href="/library" className="t-small text-primary hover:underline" aria-label="View all matches in the Library">
+        <Link href="/matches" className="t-small text-primary hover:underline" aria-label={t.body.home.hmViewAllMatches}>
           {t.body.home.viewAllSot}
         </Link>
       </div>
@@ -79,11 +79,11 @@ export function RecentMatches() {
         {list?.slice(0, 4).map((m) => (
           <li key={m.video_id}>
             <Link href={`/videos/${m.video_id}/analyze`} className="flex items-center gap-3 rounded px-1.5 py-1.5 hover:bg-raised"
-              aria-label={`${title(m)}, ${subtitle(m)}: open in the Analysis workspace`}>
+              aria-label={`${title(t, m)}, ${subtitle(t, m)}`}>
               <Thumb m={m} />
               <span className="min-w-0 flex-1">
-                <span className="t-body block truncate font-normal">{title(m)}</span>
-                <span className="t-small block truncate text-muted">{subtitle(m)}</span>
+                <span className="t-body block truncate font-normal">{title(t, m)}</span>
+                <span className="t-small block truncate text-muted">{subtitle(t, m)}</span>
               </span>
               {score(m) && <span className="t-metric text-[12px]">{score(m)}</span>}
               <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />

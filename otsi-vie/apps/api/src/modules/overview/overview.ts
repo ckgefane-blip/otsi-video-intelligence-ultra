@@ -3,6 +3,7 @@
  *
  *   GET /v1/overview/stats            matches analysed, players tracked (confirmed), reels generated, reports created
  *   GET /v1/overview/recent-matches   the 4 most recently analysed match videos (finished run), with the linked match if any
+ *   GET /v1/overview/featured-reel    the newest rendered reel that may be shared now (rights and identities checked), for Home
  *   GET /v1/overview/latest-player    the player most recently confirmed by a person on a track (merged players resolve to the survivor)
  *   GET /v1/system/resources          the analysis workers' machine as last measured (CPU, memory, GPU name); not connected after 20 s
  *
@@ -10,15 +11,16 @@
  * of these totals is kept yet, so the cards show "—" for change.
  */
 import { Controller, Get, Injectable, UseGuards } from "@nestjs/common";
-import type { HeroMoment, LatestConfirmedPlayer, OverviewStats, RecentMatch, SystemResources } from "@otsi-vie/contracts";
+import { FeaturedReelPick, type HeroMoment, type LatestConfirmedPlayer, type OverviewStats, type RecentMatch, type SystemResources } from "@otsi-vie/contracts";
 import { RowDataPacket } from "mysql2/promise";
 import { AuthGuard, CurrentPrincipal, Principal } from "../../core/auth";
 import { notHidden, reelNotHidden, reportNotHidden } from "../../core/access";
 import { Db } from "../../core/db";
+import { SharingService } from "../sharing/sharing";
 
 @Injectable()
 export class OverviewService {
-  constructor(private readonly db: Db) {}
+  constructor(private readonly db: Db, private readonly sharing: SharingService) {}
 
   async stats(p: Principal): Promise<OverviewStats> {
     const org = p.organizationId;
@@ -30,9 +32,9 @@ export class OverviewService {
             JOIN tracks t ON t.id = ci.track_id JOIN video_sources v ON v.id = t.video_id
            WHERE v.organization_id = ? AND v.removed_at IS NULL${notHidden(p, "v.project_id")} AND ci.state = 'CONFIRMED') AS players_tracked,
          (SELECT COUNT(DISTINCT j.reel_id) FROM render_jobs j
-           WHERE j.organization_id = ?${reelNotHidden(p, "j.reel_id")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND j.removed_at IS NULL) AS reels_generated,
+           WHERE j.organization_id = ?${reelNotHidden(p, "j.reel_id")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND j.removed_at IS NULL AND EXISTS (SELECT 1 FROM reel_projects lr WHERE lr.id = j.reel_id AND lr.removed_at IS NULL)) AS reels_generated,
          (SELECT COUNT(*) FROM report_jobs j
-           WHERE j.organization_id = ?${reportNotHidden(p, "j")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL) AS reports_created`,
+           WHERE j.organization_id = ?${reportNotHidden(p, "j")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND (j.video_id IS NULL OR EXISTS (SELECT 1 FROM video_sources lv WHERE lv.id = j.video_id AND lv.removed_at IS NULL))) AS reports_created`,
       [org, org, org, org]);
     // when each counted item was FIRST counted (first finished analysis of a match, first confirmation of a player, first render of a
     // reel, the report's creation), bucketed into five 7-day windows ending now
@@ -44,9 +46,9 @@ export class OverviewService {
        SELECT 'players_tracked', MIN(ci.decided_at) FROM v_track_current_identity ci JOIN tracks t ON t.id = ci.track_id JOIN video_sources v ON v.id = t.video_id
          WHERE v.organization_id = ? AND v.removed_at IS NULL${notHidden(p, "v.project_id")} AND ci.state = 'CONFIRMED' GROUP BY ci.player_id
        UNION ALL
-       SELECT 'reels_generated', MIN(j.completed_at) FROM render_jobs j WHERE j.organization_id = ?${reelNotHidden(p, "j.reel_id")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND j.removed_at IS NULL GROUP BY j.reel_id
+       SELECT 'reels_generated', MIN(j.completed_at) FROM render_jobs j WHERE j.organization_id = ?${reelNotHidden(p, "j.reel_id")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND j.removed_at IS NULL AND EXISTS (SELECT 1 FROM reel_projects lr WHERE lr.id = j.reel_id AND lr.removed_at IS NULL) GROUP BY j.reel_id
        UNION ALL
-       SELECT 'reports_created', j.created_at FROM report_jobs j WHERE j.organization_id = ?${reportNotHidden(p, "j")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL`,
+       SELECT 'reports_created', j.created_at FROM report_jobs j WHERE j.organization_id = ?${reportNotHidden(p, "j")} AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND (j.video_id IS NULL OR EXISTS (SELECT 1 FROM video_sources lv WHERE lv.id = j.video_id AND lv.removed_at IS NULL))`,
       [org, org, org, org]);
     const now = Date.now(), WEEK = 7 * 864e5;
     const weekly = { matches_analyzed: [0, 0, 0, 0, 0], players_tracked: [0, 0, 0, 0, 0], reels_generated: [0, 0, 0, 0, 0], reports_created: [0, 0, 0, 0, 0] };
@@ -122,6 +124,28 @@ export class OverviewService {
     };
   }
 
+  /** The newest rendered reel (latest finished render per reel) that may be shared now; reels whose rights or identities block sharing
+   *  are skipped and counted. Looks at the 20 most recent renders. */
+  async featuredReel(p: Principal): Promise<FeaturedReelPick> {
+    const rows = await this.db.rows<RowDataPacket>(
+      `SELECT j.id, j.reel_id FROM render_jobs j JOIN reel_projects r ON r.id = j.reel_id AND r.organization_id = j.organization_id
+        WHERE j.organization_id = ? AND j.state = 'SUCCEEDED' AND j.output_asset_id IS NOT NULL AND j.removed_at IS NULL
+          AND r.removed_at IS NULL${notHidden(p, "r.project_id")}
+        ORDER BY j.completed_at DESC, j.id DESC LIMIT 20`, [p.organizationId]);
+    const seen = new Set<string>();
+    let blocked = 0;
+    for (const r of rows) {
+      const reel = String(r.reel_id);
+      if (seen.has(reel)) continue;
+      seen.add(reel);
+      if ((await this.sharing.shareBlockers(String(r.id), p.organizationId)).length === 0) {
+        return FeaturedReelPick.parse({ reel_id: reel, render_id: String(r.id), rendered_not_cleared: blocked });
+      }
+      blocked++;
+    }
+    return FeaturedReelPick.parse({ reel_id: null, render_id: null, rendered_not_cleared: blocked });
+  }
+
   async recentMatches(p: Principal): Promise<RecentMatch[]> {
     const rows = await this.db.rows<RowDataPacket>(
       `SELECT v.id, v.title, v.original_filename, v.duration_us, v.thumbnail_asset_id, r.analysed_at,
@@ -159,6 +183,11 @@ export class OverviewController {
   @Get("overview/recent-matches")
   recentMatches(@CurrentPrincipal() p: Principal) {
     return this.overview.recentMatches(p);
+  }
+
+  @Get("overview/featured-reel")
+  featuredReel(@CurrentPrincipal() p: Principal) {
+    return this.overview.featuredReel(p);
   }
 
   @Get("overview/hero-moment")

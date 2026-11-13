@@ -24,7 +24,7 @@ describe("Recent matches (SOT)", () => {
     render(<RecentMatches />);
     await waitFor(() => expect(screen.getByText("Nart v Ercakhu – round 2")).toBeInTheDocument());
     expect(screen.getByRole("heading", { name: "Recent matches" })).toBeInTheDocument();
-    const viewAll = screen.getByRole("link", { name: "View all matches in the Library" });
+    const viewAll = screen.getByRole("link", { name: "View all matches" });
     expect(viewAll).toHaveTextContent("View all");
     expect(viewAll.querySelector("svg")).toBeNull();
     expect(screen.queryByText("Recent Matches")).toBeNull();

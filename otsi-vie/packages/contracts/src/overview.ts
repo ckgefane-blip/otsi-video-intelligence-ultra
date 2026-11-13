@@ -81,3 +81,13 @@ export const HeroMoment = z.object({
   boxes: z.array(HeroBox),
 }).nullable();
 export type HeroMoment = z.infer<typeof HeroMoment>;
+
+/** GET /v1/overview/featured-reel: the newest reel render whose sharing is allowed now (the same rule as a share link: a finished file,
+ *  its identities still the confirmed ones, and the source video's rights allow sharing). Null ids: none is cleared yet; then
+ *  `rendered_not_cleared` says how many rendered reels wait for rights or a refresh. */
+export const FeaturedReelPick = z.object({
+  reel_id: z.string().uuid().nullable(),
+  render_id: z.string().uuid().nullable(),
+  rendered_not_cleared: z.number().int().nonnegative(),
+});
+export type FeaturedReelPick = z.infer<typeof FeaturedReelPick>;

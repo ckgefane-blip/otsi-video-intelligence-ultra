@@ -1,71 +1,88 @@
 "use client";
 /**
- * Home — SOT rebuild (page 11, alphabetical).
- * The SOT's Home (Main.dc.html) inside the app shell: the slim accuracy line (AccuracyBanner, the SOT's first
- * row of the page body) above a three-column row (Start | live picture | Featured reel), a
- * four-number KPI row, and a three-panel row (Recent matches | Review inbox |
- * Active jobs). The old page's Sample Reels, Capabilities, How It Works and
- * TrustStrip are not in the SOT, so they are not here (those components
- * remain in the repo, unrouted by this page).
+ * Home — the SOT layout (Main.dc.html) inside the app shell: the accuracy line, a three-column row (Start | live picture | Featured
+ * reel), a four-number KPI row, and a three-panel row (Recent matches | Review inbox | Active jobs). Home audit fixes, owner 2026-11-13.
  *
- * Everything is real data from the same endpoints the old page used:
- *   Start — the inbox's next action (GET /v1/overview/inbox), the upload
- *     tier limit for the note; the live picture is HeroLive (the rotating
- *     real frame, GET /v1/overview/hero-moment, a new confirmed moment
- *     every 12 s) with the SOT's caption; Featured reel — the newest
- *     rendered reel (GET /v1/reels), the quality select shows the four
- *     sizes with the rendered one marked, Play opens the reel and Share
- *     copies its link; KPIs — GET /v1/overview/stats, the delta is the
- *     most recent week; Recent matches — the existing component (GET
- *     /v1/overview/recent-matches, real thumbnails); Review inbox — the
- *     inbox items, each with a Review button; Active jobs — GET /v1/jobs.
- * A failed read is named, never shown as empty.
+ * Everything is real data:
+ *   Start — the upload note names the organization's real plan and the real per-video limit (useTierLimit: the plan's limit, never more
+ *     than the server accepts); link sources are checked on the Upload page, so none are promised here. The next action comes from
+ *     GET /v1/overview/inbox, worded in the person's language from its kind.
+ *   Live picture — HeroLive (a confirmed player's real frame, GET /v1/overview/hero-moment).
+ *   Featured reel — GET /v1/overview/featured-reel: the newest rendered reel that may be shared now (rights and identities checked by the
+ *     same rule as a share link). It plays here (VideoPlayer, the render's signed address). Share makes a real share link (POST
+ *     /v1/renders/:id/share-links: view only, 7 days; the API refuses it with the reason when sharing is not allowed). None cleared:
+ *     says so, and how many rendered reels wait for rights or a refresh.
+ *   KPIs — GET /v1/overview/stats (reels and reports in Trash do not count); each opens its list; "+n this week" only when there is one.
+ *   Recent matches — RecentMatches; Review inbox — the inbox rows (the reel's own player only), all of them on "See all";
+ *   Active jobs — GET /v1/jobs, naming the job that is actually running.
+ * A failed read is named, never shown as empty or as endless loading.
  */
-import type { JobList, OverviewStats } from "@otsi-vie/contracts";
-import { ArrowRight, Link2, Play, Upload } from "lucide-react";
+import type { CreatedShareLink, FeaturedReelPick, HomeInbox, InboxItem, JobList, NextAction, OverviewStats } from "@otsi-vie/contracts";
+import { ArrowRight, Link2, Share2, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { ApiProblem, api } from "@/lib/api";
 import { AccuracyBanner } from "@/components/evidence/AccuracyBanner";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { fill } from "@/lib/fill";
-import { formatGB, TIER_LIMIT_BYTES, useTierLimit } from "@/lib/uploadTier";
-import { useLocale } from "@/lib/i18n";
+import { formatGB, useTierLimit } from "@/lib/uploadTier";
+import { useLocale, type Dictionary } from "@/lib/i18n";
 import { HeroLive } from "./HeroLive";
 import { HomeInboxProvider, useHomeInbox } from "./HomeInbox";
 import { RecentMatches } from "./RecentMatches";
 import { codec, quality, mmss, reelSeconds, reloadRenderedReels, useReelPlayback, useRenderedReels } from "./renderedReels";
 
-type Quality = "sd" | "hd" | "fhd" | "uhd";
-const QUALITIES: Quality[] = ["sd", "hd", "fhd", "uhd"];
-/** the rendered file's quality from its height (the same bands as FeaturedReel.quality) */
-const renderedQuality = (h: number | undefined | null): Quality => (!h ? "sd" : h >= 2160 ? "uhd" : h >= 1080 ? "fhd" : h >= 720 ? "hd" : "sd");
+const cap = (code: string) => code.charAt(0) + code.slice(1).toLowerCase();
+
+/** an inbox row's title in the person's language, from its kind and count (the server's English title is the fallback) */
+export function inboxTitle(t: Dictionary, it: InboxItem): string {
+  const h = t.body.home;
+  switch (it.kind) {
+    case "IDENTITY": return fill(h.hmInboxIdentity, { a: it.player_name ?? "—", n: it.count });
+    case "TEAM_SHEET": return fill(h.hmInboxTeamSheet, { n: it.count });
+    case "STALE_REEL": return h.hmInboxStaleReel;
+    case "FAILED_JOB": return fill(h.hmInboxFailedJob, { n: it.count });
+    default: return it.title;
+  }
+}
+
+/** the next action's label in the person's language */
+export function nextLabel(t: Dictionary, n: NextAction, inbox: HomeInbox | null | undefined): string {
+  const h = t.body.home;
+  switch (n.kind) {
+    case "WATCH_PROCESSING": return h.hmNextWatch;
+    case "CONTINUE_REEL": return h.hmNextContinue;
+    case "OPEN_REPORT": return h.hmNextReport;
+    case "PICK_PLAYER": return h.hmNextPick;
+    case "REVIEW": return inbox?.items[0] ? inboxTitle(t, inbox.items[0]) : n.label;
+    default: return n.label;
+  }
+}
 
 function Start() {
   const { t } = useLocale();
+  const h = t.body.home;
   const inbox = useHomeInbox();
   const lim = useTierLimit();
-  // the note names the tier: an unverified licence or an unmapped paid plan reads as the Free tier (the status bar
-  // shows the same), so the note never reads "— tier includes 64 GB" — the SOT's "Free tier includes 2 GB".
-  const tierKey = lim?.tier ?? "Free";
-  const tier = tierKey === "Free" ? t.desktop.tierFree : tierKey === "Pro" ? t.desktop.tierPro : t.desktop.tierEnterprise;
-  const maxBytes = lim?.maxBytes ?? TIER_LIMIT_BYTES[tierKey];
   const n = inbox?.next;
+  const planName = lim?.plan ? (lim.plan === "FREE" ? t.body.plans.freeName : cap(lim.plan)) : null;
+  const note = lim?.maxBytes
+    ? planName ? fill(h.hmUploadNotePlan, { a: planName, b: formatGB(lim.maxBytes) }) : fill(h.hmUploadNoteServer, { b: formatGB(lim.maxBytes) })
+    : null;
   return (
     <section aria-label="Start" className="flex min-w-0 flex-col justify-center gap-3.5">
-      <h1 className="t-page">{t.body.home.hmTitle}</h1>
-      <p className="t-body m-0 text-muted">{t.body.home.hmSub}</p>
+      <h1 className="t-page">{h.hmTitle}</h1>
+      <p className="t-body m-0 text-muted">{h.hmSub}</p>
       <div className="flex flex-wrap gap-2">
-        <Link href="/upload?mode=file" className="vie-btn vie-btn-pri"><Upload className="h-4 w-4" aria-hidden />{t.body.home.hmUploadVideo}</Link>
-        <Link href="/upload?mode=url" className="vie-btn"><Link2 className="h-4 w-4" aria-hidden />{t.body.home.hmPasteLink}</Link>
+        <Link href="/upload?mode=file" className="vie-btn vie-btn-pri"><Upload className="h-4 w-4" aria-hidden />{h.hmUploadVideo}</Link>
+        <Link href="/upload?mode=url" className="vie-btn"><Link2 className="h-4 w-4" aria-hidden />{h.hmPasteLink}</Link>
       </div>
-      <span className="t-small text-muted">
-        {fill(t.body.home.hmUploadNote, { a: tier, b: formatGB(maxBytes) })}
-      </span>
+      {note && <span className="t-small text-muted" data-upload-note>{note}</span>}
       {n && (
         <Link href={n.href} data-cta="next-action" data-next-kind={n.kind}
           className="flex items-center gap-2.5 border-t border-line py-2.5 text-ink hover:text-primary">
           <ArrowRight className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-          <span className="t-body min-w-0 flex-1 truncate font-normal">{n.label}{n.detail ? <span className="font-normal text-muted">{` · ${n.detail}`}</span> : null}</span>
+          <span className="t-body min-w-0 flex-1 truncate font-normal">{nextLabel(t, n, inbox)}{n.detail ? <span className="font-normal text-muted">{` · ${n.detail}`}</span> : null}</span>
         </Link>
       )}
     </section>
@@ -74,94 +91,103 @@ function Start() {
 
 function FeaturedReel() {
   const { t } = useLocale();
+  const h = t.body.home;
   const reels = useRenderedReels();
-  const reel = reels === undefined ? undefined : (reels?.[0] ?? null);
-  const failed = reels === null;
-  const src = useReelPlayback(failed ? null : reel);
+  const [pick, setPick] = useState<FeaturedReelPick | null | undefined>(undefined);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    setPick(undefined);
+    void api<FeaturedReelPick>("/v1/overview/featured-reel").then((x) => { if (live) setPick(x); }, () => { if (live) setPick(null); });
+    return () => { live = false; };
+  }, [tick]);
+  const failed = reels === null || pick === null;
+  const loading = !failed && (reels === undefined || pick === undefined);
+  const reel = !loading && !failed && pick?.reel_id ? (reels ?? []).find((r) => r.id === pick.reel_id) ?? null : null;
+  const src = useReelPlayback(loading ? undefined : reel);
   const result = (reel?.last_good_render?.result ?? {}) as { height?: number };
-  const rendered = renderedQuality(result.height);
-  const [selected, setSelected] = useState<Quality>(rendered);
+
   const [note, setNote] = useState<string | null>(null);
+  const [made, setMade] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => { setSelected(rendered); }, [rendered]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-  const flash = (s: string) => { setNote(s); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), 2000); };
-  const qualityLabel = (q: Quality) => ({ sd: t.body.home.hmQualitySd, hd: t.body.home.hmQualityHd, fhd: t.body.home.hmQualityFhd, uhd: t.body.home.hmQualityUhd })[q];
-  const short = (q: Quality) => q.toUpperCase();
-  const isRendered = selected === rendered;
+  useEffect(() => { setMade(null); }, [pick?.render_id]);
+  const flash = (s: string, ms = 4000) => { setNote(s); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setNote(null), ms); };
+
+  async function share() {
+    if (!pick?.render_id) return;
+    setBusy(true);
+    try {
+      let url = made;
+      if (!url) {
+        const l = await api<CreatedShareLink>(`/v1/renders/${pick.render_id}/share-links`, { method: "POST", json: {} });
+        url = `${location.origin}${l.url}`;
+        setMade(url);
+      }
+      try {
+        if (!navigator.clipboard) throw new Error("no clipboard");
+        await navigator.clipboard.writeText(url);
+        flash(h.hmShareCopied);
+      } catch { flash(fill(h.hmShareMade, { a: url }), 15000); }
+    } catch (e) {
+      flash(e instanceof ApiProblem ? e.message : h.hmShareFailed, 8000);
+    } finally { setBusy(false); }
+  }
+
+  const empty = failed ? { title: h.couldntLoadReels, body: h.featuredLoadFailed }
+    : { title: h.hmFeaturedNoneCleared, body: pick?.rendered_not_cleared ? fill(h.hmFeaturedWaiting, { n: pick.rendered_not_cleared }) : h.hmFeaturedHint };
   return (
-    <section aria-label="Featured reel" className="flex min-w-0 flex-col gap-2.5" data-featured={reel ? reel.id : reel === null ? "none" : "loading"}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="t-body">{t.body.home.hmFeaturedReel}</span>
-        <select aria-label={t.body.home.hmQuality} value={selected} onChange={(e) => setSelected(e.target.value as Quality)}
-          className="h-7 w-auto rounded-ctl border border-line2 bg-panel px-2 t-small text-ink outline-none focus:border-primary">
-          {QUALITIES.map((q) => (
-            <option key={q} value={q}>{qualityLabel(q)} · {q === rendered ? t.body.home.hmRendered : t.body.home.hmNotRendered}</option>
-          ))}
-        </select>
-      </div>
-      {failed ? (
-        <button type="button" className="t-body text-left text-primary hover:underline" onClick={() => reloadRenderedReels()}>
-          {t.body.home.featuredLoadFailed}
+    <section aria-label="Featured reel" className="flex min-w-0 flex-col gap-2.5" data-featured={reel ? reel.id : loading ? "loading" : failed ? "error" : "none"}>
+      <span className="t-body">{h.hmFeaturedReel}</span>
+      <VideoPlayer src={reel ? src : loading ? undefined : null} label={`${h.hmFeaturedReel}: ${reel?.name ?? ""}`} empty={empty} />
+      {failed && (
+        <button type="button" className="t-small text-left text-primary hover:underline" onClick={() => { reloadRenderedReels(); setTick((x) => x + 1); }}>
+          {h.featuredLoadFailed}
         </button>
-      ) : reel ? (
+      )}
+      {reel && (
         <>
-          <Link href={`/reels/${reel.id}`} className="relative grid aspect-video place-items-center overflow-hidden rounded-md bg-black text-ink"
-            aria-label={`${t.body.reelstage.playBtn}: ${reel.name}`}>
-            {src ? <video src={src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" /> : null}
-            <span className="relative grid h-11 w-11 place-items-center rounded-full bg-white/10"><Play className="h-5 w-5" aria-hidden /></span>
-            <span className="t-mono absolute bottom-2 right-2 rounded-sm bg-black/70 px-1.5 text-[11px] leading-5">{mmss(reelSeconds(reel))}</span>
-          </Link>
-          <span className="t-body block truncate font-normal">{reel.name}</span>
-          <span className="t-small block truncate text-muted">
-            {[fill(t.desktop.featuredClips, { n: reel.clips.length }), reel.aspect, codec(reel), quality(result.height)].join(" · ")}
+          <Link href={`/reels/${reel.id}`} className="t-body block truncate font-normal hover:text-primary" title={h.hmOpenReel}>{reel.name}</Link>
+          <span className="t-small block truncate text-muted" data-reel-facts>
+            {[fill(t.desktop.featuredClips, { n: reel.clips.length }), reel.aspect, codec(reel), quality(result.height), mmss(reelSeconds(reel))].join(" · ")}
           </span>
-          <span className="t-small text-muted">
-            {isRendered ? fill(t.body.home.hmPlaying, { a: short(selected) }) : <>{qualityLabel(selected)} · {t.body.home.hmNotRendered}. <Link href="/exports" className="text-primary hover:underline">{t.nav.export}</Link></>}
-          </span>
-          <div className="flex gap-2">
-            <Link href={`/reels/${reel.id}`} className="vie-btn vie-btn-sm">{t.body.reelstage.playBtn}</Link>
-            <button type="button" className="vie-btn vie-btn-sm"
-              onClick={() => { void navigator.clipboard?.writeText(`${location.origin}/reels/${reel.id}`).then(() => flash("Link copied"), () => flash("Copy failed")); }}>
-              {t.body.library.share}
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/reels/${reel.id}`} className="vie-btn vie-btn-sm">{h.hmOpenReel}</Link>
+            <button type="button" className="vie-btn vie-btn-sm" disabled={busy} onClick={() => void share()} data-share>
+              <Share2 className="h-4 w-4" aria-hidden />{t.body.library.share}
             </button>
           </div>
-          {note && <p role="status" className="t-small text-primary">{note}</p>}
         </>
-      ) : (
-        <div className="grid aspect-video place-items-center rounded-md border border-line bg-p0 px-4 text-center" data-featured-empty>
-          <div>
-            <p className="t-body">{reel === null ? t.body.home.noFeaturedReel : t.common.loading}</p>
-            {reel === null && <p className="t-small mt-1 text-muted">{t.body.home.publishedReelsHere}</p>}
-          </div>
-        </div>
       )}
+      {note && <p role="status" className="t-small break-all text-primary">{note}</p>}
     </section>
   );
 }
 
 function KpiRow() {
   const { t } = useLocale();
+  const h = t.body.home;
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     void api<OverviewStats>("/v1/overview/stats").then((x) => { setStats(x); setFailed(false); }, () => setFailed(true));
   }, []);
-  const delta = (arr: number[]) => arr[arr.length - 1] ?? 0;
-  const rows: [string, number, number][] = stats ? [
-    [t.body.home.hmMatchesAnalysed, stats.matches_analyzed, delta(stats.weekly.matches_analyzed)],
-    [t.body.home.hmPlayersTracked, stats.players_tracked, delta(stats.weekly.players_tracked)],
-    [t.body.home.hmReelsGenerated, stats.reels_generated, delta(stats.weekly.reels_generated)],
-    [t.body.home.hmReportsCreated, stats.reports_created, delta(stats.weekly.reports_created)],
+  const week = (arr: number[]) => arr[arr.length - 1] ?? 0;
+  const rows: [string, number, number, string][] = stats ? [
+    [h.hmMatchesAnalysed, stats.matches_analyzed, week(stats.weekly.matches_analyzed), "/matches"],
+    [h.hmPlayersConfirmed, stats.players_tracked, week(stats.weekly.players_tracked), "/players"],
+    [h.hmReelsGenerated, stats.reels_generated, week(stats.weekly.reels_generated), "/reels"],
+    [h.hmReportsCreated, stats.reports_created, week(stats.weekly.reports_created), "/reports"],
   ] : [];
   return (
-    <div className="grid grid-cols-2 gap-6 border-y border-line py-3 md:grid-cols-4" aria-label={t.body.home.kpiStripAria}>
-      {failed && <p className="t-small col-span-full text-danger">{fill(t.body.home.kpiAriaFailed, { label: t.body.home.kpiStripAria })}</p>}
-      {rows.map(([label, value, d]) => (
-        <div key={label}>
+    <div className="grid grid-cols-2 gap-6 border-y border-line py-3 md:grid-cols-4" aria-label={h.kpiStripAria}>
+      {failed && <p className="t-small col-span-full text-danger">{fill(h.kpiAriaFailed, { label: h.kpiStripAria })}</p>}
+      {rows.map(([label, value, d, href]) => (
+        <Link key={label} href={href} className="rounded px-1 hover:bg-raised" aria-label={fill(h.hmKpiOpen, { a: label })} data-kpi={href}>
           <span className="t-small block text-muted">{label}</span>
-          <div className="t-body mt-0.5">{stats ? value : "—"} <span className="text-muted">· +{d}</span></div>
-        </div>
+          <span className="t-body mt-0.5 block">{value}{d > 0 && <span className="text-muted"> · {fill(h.hmThisWeek, { n: d })}</span>}</span>
+        </Link>
       ))}
       {!stats && !failed && <p className="t-small col-span-full text-muted">{t.common.loading}</p>}
     </div>
@@ -170,60 +196,70 @@ function KpiRow() {
 
 function ReviewInboxPanel() {
   const { t } = useLocale();
+  const h = t.body.home;
   const inbox = useHomeInbox();
+  const [all, setAll] = useState(false);
   const items = inbox?.items ?? [];
+  const shown = all ? items : items.slice(0, 5);
   return (
-    <section aria-label={t.body.home.hmReviewInbox} className="min-w-0 border-t border-line pt-3">
+    <section aria-label={h.hmReviewInbox} className="min-w-0 border-t border-line pt-3">
       <div className="flex items-center justify-between gap-2 pb-1">
-        <h2 className="t-panel">{t.body.home.hmReviewInbox}</h2>
-        <span className="t-small text-muted">
-          {inbox === undefined ? t.common.loading : inbox === null ? t.body.home.matchesLoadFailed : items.length ? t.body.home.inboxToDo.replace("{a}", String(items.length)) : t.body.home.inboxAllClear}
+        <h2 className="t-panel">{h.hmReviewInbox}</h2>
+        <span className={`t-small ${inbox === null ? "text-danger" : "text-muted"}`}>
+          {inbox === undefined ? t.common.loading : inbox === null ? h.hmInboxFailed : items.length ? h.inboxToDo.replace("{a}", String(items.length)) : h.inboxAllClear}
         </span>
       </div>
-      {items.length === 0 && inbox !== undefined && inbox !== null && <p className="t-small py-2 text-muted">{t.body.home.inboxNothingWaits}</p>}
+      {items.length === 0 && inbox && <p className="t-small py-2 text-muted">{h.inboxNothingWaits}</p>}
       <ul className="flex flex-col">
-        {items.slice(0, 5).map((it, i) => (
-          <li key={`${it.kind}-${i}`}>
+        {shown.map((it) => (
+          <li key={it.id}>
             <Link href={it.href} data-inbox={it.kind} className="flex min-h-[52px] items-center gap-3 rounded px-2 py-2 hover:bg-raised">
               <span className="min-w-0 flex-1">
-                <span className="t-body block truncate font-normal">{it.title}</span>
+                <span className="t-body block truncate font-normal">{inboxTitle(t, it)}</span>
                 <span className="t-small block truncate text-muted">{it.detail ?? ""}</span>
               </span>
-              <span className="vie-btn vie-btn-sm">{t.body.home.hmReview}</span>
+              <span className="vie-btn vie-btn-sm">{h.hmReview}</span>
             </Link>
           </li>
         ))}
       </ul>
+      {items.length > 5 && (
+        <button type="button" className="t-small px-2 py-1 text-primary hover:underline" onClick={() => setAll((x) => !x)} data-inbox-all>
+          {all ? h.hmShowFewer : fill(h.hmSeeAll, { n: items.length })}
+        </button>
+      )}
     </section>
   );
 }
 
 function ActiveJobsPanel() {
   const { t } = useLocale();
-  const [list, setList] = useState<JobList | null>(null);
+  const h = t.body.home;
+  const [list, setList] = useState<JobList | null | undefined>(undefined);
   useEffect(() => {
     let live = true;
-    const load = () => void api<JobList>("/v1/jobs").then((x) => { if (live) setList(x); }, () => undefined);
+    const load = () => void api<JobList>("/v1/jobs").then((x) => { if (live) setList(x); }, () => { if (live) setList((cur) => cur ?? null); });
     load();
     const timer = window.setInterval(() => { if (document.visibilityState !== "hidden") load(); }, 5000);
     return () => { live = false; window.clearInterval(timer); };
   }, []);
   const waiting = list ? list.active - list.running : 0;
+  const current = list ? list.jobs.find((j) => j.state === "RUNNING") ?? list.jobs.find((j) => j.state === "QUEUED" || j.state === "PAUSED") ?? null : null;
   return (
-    <section aria-label={t.body.home.hmActiveJobs} className="min-w-0 border-t border-line pt-3">
+    <section aria-label={h.hmActiveJobs} className="min-w-0 border-t border-line pt-3">
       <div className="flex items-center justify-between gap-2 pb-1">
-        <h2 className="t-panel">{t.body.home.hmActiveJobs}</h2>
-        <Link href="/processing" className="t-small text-primary hover:underline">
-          {t.desktop.jobsCenter}
-        </Link>
+        <h2 className="t-panel">{h.hmActiveJobs}</h2>
+        <Link href="/processing" className="t-small text-primary hover:underline">{t.desktop.jobsCenter}</Link>
       </div>
       <div className="flex min-h-[52px] flex-col justify-center py-2">
-        <span className="t-body">
-          {list ? fill(t.body.home.inboxRunning, { a: String(list.running), b: String(waiting) }) : t.common.loading}
-        </span>
-        <span className="t-small text-muted">
-          {list && list.active === 0 ? t.body.home.inboxNoJobs : list?.jobs[0]?.subject_title ?? ""}
-        </span>
+        {list === null ? <span className="t-small text-danger" role="status">{h.hmJobsFailed}</span> : (
+          <>
+            <span className="t-body">{list ? fill(h.inboxRunning, { a: String(list.running), b: String(waiting) }) : t.common.loading}</span>
+            <span className="t-small truncate text-muted" data-current-job>
+              {list && list.active === 0 ? h.inboxNoJobs : current ? `${current.kind_label}${current.subject_title ? ` · ${current.subject_title}` : ""}` : ""}
+            </span>
+          </>
+        )}
       </div>
     </section>
   );
@@ -241,10 +277,7 @@ function HomeContent() {
       </div>
       <KpiRow />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <section aria-label={t.body.home.hmRecentMatches} className="min-w-0">
-          <RecentMatches />
-          <p className="t-small mt-1.5 text-muted">{t.body.home.hmThumbNote}</p>
-        </section>
+        <section aria-label={t.body.home.hmRecentMatches} className="min-w-0"><RecentMatches /></section>
         <ReviewInboxPanel />
         <ActiveJobsPanel />
       </div>

@@ -138,6 +138,11 @@ export class SharingService {
     return { render, reel, staleTargets: Number(stale?.n ?? 0), grant };
   }
 
+  /** Why this render may not be shared now (empty: it may). Read-only: nothing is recorded. Home's Featured reel uses it. */
+  async shareBlockers(renderId: string, org: string): Promise<string[]> {
+    return decide(await this.subject(renderId, org), false);
+  }
+
   private async recordDecision(ex: Executor | undefined, org: string, action: string, resourceType: string, resourceId: string, actor: string | null, reasons: string[], grantId: string | null) {
     await this.db.rows(`INSERT INTO policy_decisions (id, organization_id, action, resource_type, resource_id, actor_id, decision, rule_version, grant_ids, reason_codes)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

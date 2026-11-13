@@ -98,6 +98,10 @@ describe("Platform health review-inbox decisions", () => {
     const reject = screen.getAllByRole("button", { name: "Reject…" });
     expect(reject).toHaveLength(4);
     expect(reject[0]).toBeEnabled();
+    // an identity is never approved in bulk: its Approve is off and says where to confirm
+    const approve = screen.getAllByRole("button", { name: "Approve" });
+    expect(approve[0]).toBeDisabled();
+    expect(approve[0]).toHaveAttribute("title", "Confirm each moment in Analysis");
     expect(reject[1]).toBeEnabled();
     expect(reject[2]).toBeDisabled();
     expect(reject[3]).toBeDisabled();

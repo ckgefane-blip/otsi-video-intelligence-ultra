@@ -28,6 +28,15 @@ afterAll(async () => {
   await root?.end();
 });
 
+/** a reel of one player on one video (inserted directly, like the bell test) */
+async function reelOf(m: Member, videoId: string, playerId: string, name: string): Promise<string> {
+  const id = uuidv7();
+  const [[v]] = await root.query<mysql.RowDataPacket[]>("SELECT project_id FROM video_sources WHERE id = ?", [videoId]);
+  await root.query("INSERT INTO reel_projects (id, organization_id, project_id, video_id, name, created_by, player_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [id, m.orgId, v!.project_id, videoId, name, m.userId, playerId]);
+  return id;
+}
+
 describe("home inbox", () => {
   it("is empty for a new organization: no next action, first-run guidance stays", async () => {
     const m = await seedMember(root, "OWNER");
@@ -47,9 +56,13 @@ describe("home inbox", () => {
 
     const player = await call(m, "POST", "/v1/players", { display_name: "Inbox Player" }, { "idempotency-key": key() });
     expect((await call(m, "POST", `/v1/tracks/${track}/identity-decisions`, { state: "CANDIDATE", player_id: player.body.player_id })).status).toBe(201);
+    // a suggestion with no reel of that player is not a Home task (naming is per reel player)
+    expect((await call(m, "GET", "/v1/overview/inbox")).body.items).toEqual([]);
+    const reel = await reelOf(m, videoId, player.body.player_id, "Inbox Reel");
     r = (await call(m, "GET", "/v1/overview/inbox")).body;
-    expect(r.items).toEqual([{ id: `IDENTITY:${videoId}`, kind: "IDENTITY", title: "Check 1 identity suggestion", detail: "Inbox Match", count: 1, href: `/analysis?video=${videoId}`, video_id: videoId }]);
-    expect(r.next).toMatchObject({ kind: "REVIEW", label: "Check 1 identity suggestion" });
+    expect(r.items).toEqual([{ id: `IDENTITY:${reel}`, kind: "IDENTITY", title: "Is this Inbox Player? 1 moment to check", detail: "Inbox Reel", count: 1,
+      href: `/analysis?video=${videoId}`, video_id: videoId, player_name: "Inbox Player" }]);
+    expect(r.next).toMatchObject({ kind: "REVIEW", label: "Is this Inbox Player? 1 moment to check" });
 
     const other = await seedMember(root, "OWNER");
     expect((await call(other, "GET", "/v1/overview/inbox")).body).toEqual({ next: null, items: [], completed_match: false });
@@ -93,27 +106,27 @@ describe("inbox decisions", () => {
   const decide = (m: Member, itemId: string, decision: string, reason?: string) =>
     call(m, "POST", "/v1/overview/inbox/decisions", { item_id: itemId, decision, ...(reason ? { reason } : {}) });
 
-  it("confirms suggested identities on approve, rejects them on reject, and the row clears", async () => {
+  it("never confirms identities in bulk; reject declines only the reel player's suggestions, and the row clears", async () => {
     const m = await seedMember(root, "OWNER");
     const viewer = await seedMember(root, "VIEWER", m.orgId);
     const { videoId, trackIds: [track] } = await seedTracks(root, m);
     const player = await call(m, "POST", "/v1/players", { display_name: "Decide Player" }, { "idempotency-key": key() });
     expect((await call(m, "POST", `/v1/tracks/${track}/identity-decisions`, { state: "CANDIDATE", player_id: player.body.player_id })).status).toBe(201);
-    expect((await decide(viewer, `IDENTITY:${videoId}`, "APPROVE")).status).toBe(403);      // a viewer reviews nothing
+    const reel = await reelOf(m, videoId, player.body.player_id, "Decide Reel");
+    expect((await decide(viewer, `IDENTITY:${reel}`, "APPROVE")).status).toBe(403);      // a viewer reviews nothing
     expect((await decide(m, "not-an-item", "APPROVE")).body.code).toBe("INBOX_ITEM_NOT_FOUND");
     expect((await decide(m, `IDENTITY:${uuidv7()}`, "APPROVE")).body.code).toBe("INBOX_ITEM_GONE");
-    const r = await decide(m, `IDENTITY:${videoId}`, "APPROVE", "looks right");
-    expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ item_id: `IDENTITY:${videoId}`, kind: "IDENTITY", decision: "APPROVE", applied: 1, failures: [] });
-    expect(r.body.inbox.items).toEqual([]);
-    expect((await call(m, "GET", `/v1/tracks/${track}/identity`)).body.state).toBe("CONFIRMED");
-    expect((await decide(m, `IDENTITY:${videoId}`, "APPROVE")).body.code).toBe("INBOX_ITEM_GONE");   // decided once: the row is gone
+    const r = await decide(m, `IDENTITY:${reel}`, "APPROVE", "looks right");
+    expect(r.status).toBe(422);
+    expect(r.body.code).toBe("IDENTITY_NOT_IN_BULK");
+    expect((await call(m, "GET", `/v1/tracks/${track}/identity`)).body.state).toBe("CANDIDATE");   // nothing confirmed
     const { videoId: v2, trackIds: [t2] } = await seedTracks(root, m);
     expect((await call(m, "POST", `/v1/tracks/${t2}/identity-decisions`, { state: "CANDIDATE", player_id: player.body.player_id })).status).toBe(201);
-    const rej = await decide(m, `IDENTITY:${v2}`, "REJECT", "wrong player");
+    const reel2 = await reelOf(m, v2, player.body.player_id, "Second Reel");
+    const rej = await decide(m, `IDENTITY:${reel2}`, "REJECT", "wrong player");
     expect(rej.body).toMatchObject({ decision: "REJECT", applied: 1, failures: [] });
     expect((await call(m, "GET", `/v1/tracks/${t2}/identity`)).body.state).toBe("REJECTED");
-    expect(rej.body.inbox.items).toEqual([]);
+    expect(rej.body.inbox.items.map((i: { id: string }) => i.id)).not.toContain(`IDENTITY:${reel2}`);
   });
 
   it("applies proposed team sheets on approve and dismisses them on reject", async () => {

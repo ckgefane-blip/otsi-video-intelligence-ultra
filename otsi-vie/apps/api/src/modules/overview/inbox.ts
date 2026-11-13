@@ -4,17 +4,18 @@
  *   GET  /v1/overview/inbox                 the next action and the Review inbox
  *   POST /v1/overview/inbox/decisions       decide one inbox row (OWNER / ADMIN / ANALYST): APPROVE does what the row asks
  *                                           for, REJECT declines it; the decision is logged with its reason and the updated
- *                                           inbox is returned. APPROVE: IDENTITY confirms every suggested identity on the
- *                                           video, TEAM_SHEET applies the proposed cards (first HOME, second AWAY by frame —
+ *                                           inbox is returned. APPROVE: IDENTITY is refused (422 IDENTITY_NOT_IN_BULK: a
+ *                                           player is confirmed moment by moment in Analysis, never in bulk), TEAM_SHEET applies the proposed cards (first HOME, second AWAY by frame —
  *                                           the same default the Analysis team-sheet dialog offers), STALE_REEL refreshes
  *                                           the reel's targets, FAILED_JOB runs the failed jobs again. REJECT: IDENTITY
  *                                           rejects the suggestions, TEAM_SHEET dismisses the cards. A stale reel or a failed
  *                                           job cannot be rejected from here (422): open the reel to refresh it, or retry
  *                                           the job, or leave it — the row clears when a newer run of the same kind exists.
+ *                                           IDENTITY REJECT declines only the suggestions of the reel's own player.
  *
  * Review inbox rows, each opening the exact page:
- *   IDENTITY    tracks whose current identity is a CANDIDATE (a person or the engine proposed a player; nobody confirmed it), per video
- *               -> Analysis of that video (the identity is decided there; nothing is confirmed here)
+ *   IDENTITY    per reel with a player: tracks of the reel's video suggested as THAT player and not decided yet ("Is this him?";
+ *               naming is per reel player, never everyone in the video) -> Analysis of that video (decided there, moment by moment)
  *   TEAM_SHEET  lineup cards read from the video and still PROPOSED, per video -> Analysis of that video (the team sheet panel)
  *   STALE_REEL  reels following an identity that has since changed (they cannot render until refreshed) -> that reel
  *   FAILED_JOB  engine jobs that failed in the last 24 hours and were not run again -> Processing of their video
@@ -50,12 +51,16 @@ export class HomeInboxService {
     const items: InboxItem[] = [];
 
     const identity = await this.db.rows<RowDataPacket>(
-      `SELECT v.id, v.title, v.original_filename, COUNT(*) AS n
-         FROM v_track_current_identity ci JOIN tracks t ON t.id = ci.track_id JOIN video_sources v ON v.id = t.video_id
-        WHERE ci.state = 'CANDIDATE' AND v.organization_id = ? AND v.removed_at IS NULL${vh}
-        GROUP BY v.id, v.title, v.original_filename ORDER BY n DESC LIMIT 5`, [org]);
+      `SELECT r.id, r.name, r.video_id, pi.display_name, COUNT(DISTINCT ci.track_id) AS n
+         FROM reel_projects r JOIN video_sources v ON v.id = r.video_id AND v.organization_id = r.organization_id
+         JOIN tracks t ON t.video_id = r.video_id JOIN v_track_current_identity ci ON ci.track_id = t.id
+         JOIN v_player_identity pi ON pi.player_id = r.player_id
+        WHERE r.organization_id = ? AND r.removed_at IS NULL AND v.removed_at IS NULL AND r.player_id IS NOT NULL
+          AND ci.state = 'CANDIDATE' AND ci.player_id = r.player_id${rh}${vh}
+        GROUP BY r.id, r.name, r.video_id, pi.display_name ORDER BY n DESC LIMIT 5`, [org]);
     for (const r of identity) {
-      items.push({ id: `IDENTITY:${r.id}`, kind: "IDENTITY", title: `Check ${plural(Number(r.n), "identity suggestion")}`, detail: title(r), count: Number(r.n), href: `/analysis?video=${r.id}`, video_id: r.id as string });
+      items.push({ id: `IDENTITY:${r.id}`, kind: "IDENTITY", title: `Is this ${r.display_name as string}? ${plural(Number(r.n), "moment")} to check`,
+        detail: r.name as string, count: Number(r.n), href: `/analysis?video=${r.video_id}`, video_id: r.video_id as string, player_name: r.display_name as string });
     }
 
     const sheets = await this.db.rows<RowDataPacket>(
@@ -64,7 +69,7 @@ export class HomeInboxService {
         WHERE l.state = 'PROPOSED' AND l.organization_id = ? AND v.removed_at IS NULL${vh}
         GROUP BY v.id, v.title, v.original_filename ORDER BY n DESC LIMIT 5`, [org]);
     for (const r of sheets) {
-      items.push({ id: `TEAM_SHEET:${r.id}`, kind: "TEAM_SHEET", title: `Approve ${plural(Number(r.n), "team sheet")}`, detail: title(r), count: Number(r.n), href: `/analysis?video=${r.id}`, video_id: r.id as string });
+      items.push({ id: `TEAM_SHEET:${r.id}`, kind: "TEAM_SHEET", title: `Approve ${plural(Number(r.n), "team sheet")}`, detail: title(r), count: Number(r.n), href: `/analysis?video=${r.id}`, video_id: r.id as string, player_name: null });
     }
 
     const stale = await this.db.rows<RowDataPacket>(
@@ -74,7 +79,7 @@ export class HomeInboxService {
                        WHERE rt.reel_id = r.id AND NOT ((ci.decision_id = rt.identity_decision_id OR (ci.decision_id IS NULL AND rt.identity_decision_id IS NULL)) AND ci.state = 'CONFIRMED' AND (ci.player_id = rt.player_id OR (ci.player_id IS NULL AND rt.player_id IS NULL))))
         ORDER BY r.updated_at DESC LIMIT 5`, [org]);
     for (const r of stale) {
-      items.push({ id: `STALE_REEL:${r.id}`, kind: "STALE_REEL", title: "Refresh a reel: a player identity it follows changed", detail: r.name as string, count: 1, href: `/reels/${r.id}`, video_id: null });
+      items.push({ id: `STALE_REEL:${r.id}`, kind: "STALE_REEL", title: "Refresh a reel: a player identity it follows changed", detail: r.name as string, count: 1, href: `/reels/${r.id}`, video_id: null, player_name: null });
     }
 
     // a failed job counts while it is the latest of its kind on that video (a retry that ran since clears it)
@@ -93,7 +98,7 @@ export class HomeInboxService {
                            AND k.subject_type = j.subject_type AND (k.subject_id = j.subject_id OR j.subject_type <> 'video'))
         GROUP BY v.id, v.title, v.original_filename LIMIT 5`, [org]);
     for (const r of failed) {
-      items.push({ id: `FAILED_JOB:${r.id}`, kind: "FAILED_JOB", title: `${plural(Number(r.n), "engine job")} failed`, detail: title(r), count: Number(r.n), href: `/processing?video=${r.id}`, video_id: r.id as string });
+      items.push({ id: `FAILED_JOB:${r.id}`, kind: "FAILED_JOB", title: `${plural(Number(r.n), "engine job")} failed`, detail: title(r), count: Number(r.n), href: `/processing?video=${r.id}`, video_id: r.id as string, player_name: null });
     }
 
     const done = await this.db.one<RowDataPacket>(
@@ -119,16 +124,20 @@ export class HomeInboxService {
     const failed = (subject: string, x: unknown) => failures.push({ subject, message: x instanceof Error ? x.message : "Not decided." });
 
     if (kind === "IDENTITY") {
+      // a player is confirmed moment by moment in Analysis, never in bulk (unknown beats wrong); declining is safe in bulk
+      if (body.decision === "APPROVE") throw new ApiError(422, "IDENTITY_NOT_IN_BULK", "A player is confirmed moment by moment: open Analysis and check each one.");
       const vh = notHidden(p, "v.project_id");
       const candidates = await this.db.rows<RowDataPacket>(
         `SELECT t.id AS track_id, ci.decision_id, ci.player_id
-           FROM v_track_current_identity ci JOIN tracks t ON t.id = ci.track_id JOIN video_sources v ON v.id = t.video_id
-          WHERE ci.state = 'CANDIDATE' AND v.id = ? AND v.organization_id = ? AND v.removed_at IS NULL${vh}`, [subjectId, org]);
+           FROM reel_projects r JOIN video_sources v ON v.id = r.video_id AND v.organization_id = r.organization_id
+           JOIN tracks t ON t.video_id = r.video_id JOIN v_track_current_identity ci ON ci.track_id = t.id
+          WHERE r.id = ? AND r.organization_id = ? AND r.removed_at IS NULL AND v.removed_at IS NULL${vh}
+            AND ci.state = 'CANDIDATE' AND ci.player_id = r.player_id`, [subjectId, org]);
       for (const c of candidates) {
         try {
           await this.tracks.decide(String(c.track_id), {
-            state: body.decision === "APPROVE" ? "CONFIRMED" : "REJECTED",
-            player_id: body.decision === "APPROVE" ? (c.player_id as string | null) : null,
+            state: "REJECTED",
+            player_id: null,
             supersedes_id: c.decision_id as string, reason: body.reason ?? null, evidence_id: null,
           }, p);
           applied++;

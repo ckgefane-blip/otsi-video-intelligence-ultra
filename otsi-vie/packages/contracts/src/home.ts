@@ -20,6 +20,8 @@ export const InboxItem = z.object({
   /** the video the row concerns (IDENTITY, TEAM_SHEET, FAILED_JOB); null for a reel row (STALE_REEL).
    *  The review inbox acts on it from here: a team sheet is approved or rejected for this video. */
   video_id: z.string().uuid().nullable(),
+  /** IDENTITY: the reel's own player the suggestions are about (naming is per reel player); null for the other kinds */
+  player_name: z.string().nullable().default(null),
 });
 export type InboxItem = z.infer<typeof InboxItem>;
 
