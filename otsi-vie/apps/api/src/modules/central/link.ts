@@ -61,7 +61,7 @@ const SYNC_EVERY_MS = 5 * 60_000;
 /** A licence older than this is refreshed by the background sync (it is good for 30 days). */
 const LICENCE_REFRESH_AFTER_MS = 24 * 3_600_000;
 
-interface CentralReply { status: number; body: any; setCookie: string[] }
+interface CentralReply { status: number; body: any; setCookie: string[]; rawBody?: Buffer; contentType?: string | null; contentDisposition?: string | null }
 interface Link { userId: string; organizationId: string; refreshSealed: string; licenceToken: string | null; updatedAt: number }
 export interface LicenceState { state: "valid" | "in-grace" | "none"; claims: LicenceClaims | null }
 
@@ -116,8 +116,9 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
 
   // ---- HTTP to central ------------------------------------------------------------------------------------------
 
-  /** One request to central. A network failure or timeout is CentralUnreachable; any HTTP answer is returned. */
-  async http(method: string, path: string, opts: { json?: unknown; raw?: { body: Buffer; headers: Record<string, string> }; bearer?: string; orgId?: string; refresh?: string; csrf?: boolean } = {}): Promise<CentralReply> {
+  /** One request to central. A network failure or timeout is CentralUnreachable; any HTTP answer is returned.
+   *  With `rawResponse` the answer is returned as bytes (a receipt download is a file, not JSON). */
+  async http(method: string, path: string, opts: { json?: unknown; raw?: { body: Buffer; headers: Record<string, string> }; bearer?: string; orgId?: string; refresh?: string; csrf?: boolean; rawResponse?: boolean } = {}): Promise<CentralReply> {
     if (!this.url) throw new ApiError(404, "NOT_FOUND", "Not found.");
     const headers: Record<string, string> = { accept: "application/json" };
     if (opts.json !== undefined) headers["content-type"] = "application/json";
@@ -135,10 +136,14 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
     } catch {
       throw new CentralUnreachable(`central server ${this.url} could not be reached`);
     }
-    const text = await res.text();
+    const text = opts.rawResponse ? null : await res.text();
     let body: unknown = null;
     try { body = text ? JSON.parse(text) : null; } catch { body = null; }
     const setCookie = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [res.headers.get("set-cookie") ?? ""];
+    if (opts.rawResponse) {
+      return { status: res.status, body: null, setCookie, rawBody: Buffer.from(await res.arrayBuffer()),
+        contentType: res.headers.get("content-type"), contentDisposition: res.headers.get("content-disposition") };
+    }
     return { status: res.status, body, setCookie };
   }
 
@@ -273,10 +278,10 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
 
   /** Call central as a member of `orgId`. 401 once: the token is renewed and the call repeated. */
   async call(orgId: string, userId: string | null, method: string, path: string, json?: unknown, ex?: Executor,
-             raw?: { body: Buffer; headers: Record<string, string> }): Promise<CentralReply> {
+             raw?: { body: Buffer; headers: Record<string, string> }, rawResponse = false): Promise<CentralReply> {
     const link = await this.link(orgId, userId, ex);
     if (!link) throw SIGN_IN_FIRST();
-    const send = async () => this.http(method, path, { bearer: await this.accessToken(link), orgId, ...(json !== undefined ? { json } : {}), ...(raw ? { raw } : {}) });
+    const send = async () => this.http(method, path, { bearer: await this.accessToken(link), orgId, ...(json !== undefined ? { json } : {}), ...(raw ? { raw } : {}), rawResponse });
     let r = await send();
     if (r.status === 401) {
       this.access.delete(link.userId);
@@ -298,6 +303,25 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
     }
     if (r.status >= 400) this.fail(r);
     return { status: r.status, body: r.body };
+  }
+
+  /** Forward a receipt download to central and return its bytes (a proof is a file, not JSON). An error answer
+   *  from central is surfaced with its own code and message, not sent as a file. */
+  async forwardBytes(orgId: string, userId: string, method: string, pathAndQuery: string): Promise<{ status: number; body: Buffer; contentType: string | null; contentDisposition: string | null }> {
+    let r: CentralReply;
+    try {
+      r = await this.call(orgId, userId, method, pathAndQuery, undefined, undefined, undefined, true);
+    } catch (e) {
+      if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", "Your OTSI account cannot be reached. Check the internet connection.");
+      throw e;
+    }
+    if (r.status >= 400) {
+      let parsed: unknown = null;
+      try { parsed = r.rawBody ? JSON.parse(r.rawBody.toString("utf8")) : null; } catch { parsed = null; }
+      this.fail({ status: r.status, body: parsed, setCookie: [] });
+    }
+    if (!r.rawBody) throw new ApiError(502, "CENTRAL_ERROR", "The OTSI account server sent no receipt.");
+    return { status: r.status, body: r.rawBody, contentType: r.contentType ?? null, contentDisposition: r.contentDisposition ?? null };
   }
 
   // ---- the licence ----------------------------------------------------------------------------------------------

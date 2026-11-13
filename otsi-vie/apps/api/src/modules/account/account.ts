@@ -7,6 +7,7 @@ import { Account, AccountOnly, AuthGuard, CurrentAccount } from "../../core/auth
 import { CONFIG, type Config } from "../../core/config";
 import { Db } from "../../core/db";
 import { ApiError } from "../../core/problem";
+import { CentralLinkService } from "../central/link";
 
 @Injectable()
 export class AccountService {
@@ -17,6 +18,7 @@ export class AccountService {
   constructor(
     private readonly db: Db,
     @Inject(CONFIG) cfg: Config,
+    private readonly central: CentralLinkService,
   ) {
     this.companyOrgId = cfg.companyOrganizationId;
   }
@@ -28,9 +30,27 @@ export class AccountService {
     const ms = await this.db.rows<RowDataPacket>(
       `SELECT m.organization_id, o.name AS organization_name, m.role FROM memberships m JOIN organizations o ON o.id = m.organization_id
         WHERE m.user_id = ? AND m.status = 'ACTIVE' ORDER BY o.name`, [userId]);
+    const companyOrgId = await this.companyOrgIdFor(userId, ms);
     return Me.parse({ user: { id: u.id, email: u.email, display_name: u.display_name, avatar_updated_at: u.avatar_updated_at ? new Date(u.avatar_updated_at).toISOString() : null,
       onboarded_at: u.onboarded_at ? new Date(u.onboarded_at).toISOString() : null },
-      memberships: ms.map((m) => ({ ...m, is_company_org: String(m.organization_id) === this.companyOrgId })) });
+      memberships: ms.map((m) => ({ ...m, is_company_org: String(m.organization_id) === companyOrgId })) });
+  }
+
+  /** The company organisation for this engine: the local setting, else — on a linked desktop — what the
+   *  account server says (it holds the setting). Central is asked once per Me read; anything wrong with
+   *  the ask (no link, no internet, a refused token) falls back to the local setting, never an error —
+   *  sign-in and the Me page must never fail because central could not be asked. Without either, nobody
+   *  is the company organisation (fail closed). */
+  private async companyOrgIdFor(userId: string, ms: RowDataPacket[]): Promise<string | undefined> {
+    if (this.companyOrgId) return this.companyOrgId;
+    if (!this.central.linked || ms.length === 0) return undefined;
+    try {
+      const r = await this.central.call(String(ms[0]!.organization_id), userId, "GET", "/v1/me");
+      if (r.status !== 200) return undefined;
+      const parsed = Me.safeParse(r.body);
+      if (!parsed.success) return undefined;
+      return parsed.data.memberships.find((m) => m.is_company_org)?.organization_id;
+    } catch { return undefined; }
   }
 
   /** a person's own name and the end of their welcome tour (never anyone else's account) */

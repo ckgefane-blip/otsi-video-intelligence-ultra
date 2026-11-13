@@ -112,6 +112,21 @@
 - Fixed on the way: the worker refused Windows SQLite paths given as `sqlite:///D:/...` (the URL's slash was kept in front
   of the drive letter); three existing worker licence tests failed on Windows because of it.
 
+## 7c. Company billing on a linked desktop as built (staging plan A, 2026-11-13)
+
+- The forwarder (`modules/central/forward.ts`) also answers `/v1/admin/billing/...` from central: the company
+  organisation's pages (bank details, every customer's orders, confirmations, refunds, the revenue summary and the
+  manual renewal run). Central enforces the company rule on every one of those endpoints, so a customer asking here
+  gets central's 403; the local engine does not decide it. The local OWNER/ADMIN role guard still runs first.
+- A receipt download (`GET /v1/admin/billing/orders/:id/proof`) is a file, not JSON: the link fetches it as bytes
+  (`CentralLinkService.forwardBytes`) and the interceptor passes central's file headers (content type, file name)
+  through. An error answer from central is surfaced with its own code and message, never sent as a file.
+- The company pages only appear when the signed-in membership is the company organisation (`Me.is_company_org`).
+  That flag comes from the local `OTSI_VIE_COMPANY_ORG_ID` setting, which a linked desktop does not set — so on a
+  linked desktop `AccountService.me` asks central's `/v1/me` for the flags instead (one call, per Me read; no link,
+  no internet or a refused token falls back to the local setting, never an error). The local company guards on
+  non-forwarded endpoints still use the local setting only (fail closed).
+
 ## 8. Alternatives considered
 
 - **Keep the balance on the laptop and sync it** — rejected: restoring an old copy or editing the file brings tokens back.
