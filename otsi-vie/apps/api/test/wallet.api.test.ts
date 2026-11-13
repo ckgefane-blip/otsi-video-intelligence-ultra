@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import type mysql from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { BANK_TRANSFER_REFERENCE } from "@otsi-vie/contracts";
 import { Member, key, rootDb, seedMember, seedRights, startApi, token } from "./helpers";
 
 let app: NestFastifyApplication;
@@ -96,26 +97,36 @@ describe("token wallet", () => {
     expect(ledger.body.entries[0].kind).toBe("FREE_GRANT");
   });
 
-  it("runs the bank-transfer pack flow: request -> invoice -> confirm receipt -> PURCHASE with invoice ref", async () => {
+  it("runs the top-up flow: Top up -> invoiced at once with a reference -> confirm receipt -> PURCHASE with that reference", async () => {
     const m = await seedBareMember();
+    // pay on the spot (owner 2026-11-13): the invoice and its reference are issued with the order, against OTSI's bank account
+    const bank = await call(company, "POST", "/v1/admin/billing/bank-accounts", { currency: "NGN", account_name: "OTSI", bank_name: "Test Bank", account_number: "1234567890", swift_iban: null, is_active: true });
+    expect(bank.status).toBe(201);
     // the caller says only how many blocks; the server prices them at the caller's plan rate (no plan = ₦3,000 a block)
     expect((await call(m, "POST", "/v1/wallet/packs/request", { blocks: 0, currency: "NGN" })).status).toBe(422);
     expect((await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "SEASON", currency: "NGN" })).status).toBe(422);
     const req = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 5, currency: "NGN" });
     expect(req.status).toBe(201);
-    expect(req.body).toMatchObject({ pack_code: "FREE", currency: "NGN", amount_minor: 1_500_000, tokens: 500, status: "REQUESTED" });
-    const invoiced = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-2026-001" });
-    expect(invoiced.body).toMatchObject({ status: "INVOICED", invoice_ref: "INV-2026-001" });
+    expect(req.body).toMatchObject({ pack_code: "FREE", currency: "NGN", amount_minor: 1_500_000, tokens: 500, status: "INVOICED" });
+    expect(req.body.invoice_ref).toMatch(BANK_TRANSFER_REFERENCE);
+    const ref = req.body.invoice_ref as string;
+    // the bank details are readable at once
+    const pay = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);
+    expect(pay.body.bank_account).toMatchObject({ bank_name: "Test Bank", account_number: "1234567890", currency: "NGN" });
+    // the tokens still wait for OTSI: nothing is credited on order
+    expect(await balance(m)).toMatchObject({ balance: 0 });
+    // already invoiced: the old manual invoice step refuses it
+    expect((await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-X" })).status).toBe(409);
     // only the company organisation may confirm receipt (ADR-140 §8): neither another customer's owner
     // nor the pack's own owner can — the pack's own owner confirming it would be free tokens.
-    expect((await call(owner, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(403);
-    expect((await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(403);
-    expect((await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(201);
+    expect((await call(owner, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: ref })).status).toBe(403);
+    expect((await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: ref })).status).toBe(403);
+    expect((await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: ref })).status).toBe(201);
     const paid = await call(m, "GET", "/v1/wallet/packs/requests");
-    expect(paid.body[0]).toMatchObject({ status: "PAID", invoice_ref: "INV-2026-001" });
+    expect(paid.body[0]).toMatchObject({ status: "PAID", invoice_ref: ref });
     expect(await balance(m)).toMatchObject({ balance: 500, spendable_balance: 500, low_balance: false });
     const ledger = await call(m, "GET", "/v1/wallet/ledger");
-    expect(ledger.body.entries[0]).toMatchObject({ kind: "PURCHASE", amount: 500, invoice_ref: "INV-2026-001", balance_after: 500 });
+    expect(ledger.body.entries[0]).toMatchObject({ kind: "PURCHASE", amount: 500, invoice_ref: ref, balance_after: 500 });
   });
 
   it("refuses an analysis the wallet cannot cover, with 402 and nothing charged", async () => {

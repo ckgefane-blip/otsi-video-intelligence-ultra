@@ -44,7 +44,6 @@ import {
   BankTransferOrder,
   ConfirmOrderRequest,
   CreateOrderRequest,
-  formatBankTransferReference,
   MarkPaidRequest,
   ORDER_EXPIRY_DAYS,
   OrderWithInvoice,
@@ -75,6 +74,7 @@ import path from "node:path";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
+import { nextBankTransferReference } from "../../core/reference";
 import { recordChange, serviceActor, userActor } from "../../core/audit";
 import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
@@ -314,12 +314,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
    * (migration 0075): the sequence row is created if this is the year's first order, then read locked and
    * incremented, so two concurrent orders can never share a reference and a reference is never reused.
    */
-  private async nextReference(ex: Executor, year: number): Promise<string> {
-    await ex.query("INSERT IGNORE INTO bank_transfer_reference_seq (`year`, next_seq) VALUES (?, 0)", [year]);
-    const row = await this.db.one<RowDataPacket>("SELECT next_seq FROM bank_transfer_reference_seq WHERE `year` = ? FOR UPDATE", [year], ex);
-    const seq = Number(row?.next_seq ?? 0) + 1;
-    await ex.query("UPDATE bank_transfer_reference_seq SET next_seq = ? WHERE `year` = ?", [seq, year]);
-    return formatBankTransferReference(year, seq);
+  private nextReference(ex: Executor, year: number): Promise<string> {
+    return nextBankTransferReference(this.db, ex, year);
   }
 
   /**

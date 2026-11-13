@@ -205,14 +205,17 @@ export class NotificationsService {
           href: "/settings/admin/billing" });
       }
       const packs = await this.db.rows<RowDataPacket>(
-        `SELECT k.id, k.pack_code, k.tokens, k.amount_minor, k.currency, k.created_at, g.name AS org_name
+        `SELECT k.id, k.pack_code, k.tokens, k.amount_minor, k.currency, k.status, k.invoice_ref, k.created_at, g.name AS org_name
            FROM wallet_pack_requests k JOIN organizations g ON g.id = k.organization_id
-          WHERE k.organization_id <> ? AND k.status = 'REQUESTED' AND k.created_at >= ${WINDOW}
+          WHERE k.organization_id <> ? AND k.status IN ('REQUESTED', 'INVOICED') AND k.created_at >= ${WINDOW}
           ORDER BY k.created_at DESC LIMIT ${L}`, [org]);
       for (const k of packs) {
         items.push({ id: `company-pack:${k.id}:requested`, kind: "BILLING", at: new Date(k.created_at),
-          title: `${k.org_name as string} wants a token pack — send the invoice`,
-          detail: `${k.pack_code as string} · ${Number(k.tokens).toLocaleString("en-GB")} tokens · ${money(Number(k.amount_minor), String(k.currency))}`,
+          // a top-up is invoiced at once (pay on the spot, 2026-11-13): the owner watches for the transfer; an older
+          // request still waiting for its invoice keeps the "send the invoice" alert
+          title: k.status === "INVOICED" ? `${k.org_name as string} ordered a token top-up — watch for the transfer`
+            : `${k.org_name as string} wants a token pack — send the invoice`,
+          detail: `${k.invoice_ref ? `${k.invoice_ref as string} · ` : ""}${k.pack_code as string} · ${Number(k.tokens).toLocaleString("en-GB")} tokens · ${money(Number(k.amount_minor), String(k.currency))}`,
           href: "/settings/admin/billing" });
       }
     }

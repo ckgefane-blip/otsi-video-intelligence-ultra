@@ -115,6 +115,10 @@ describe("bank-transfer billing", () => {
     const r = await call(m, "POST", "/v1/billing/orders", { plan_code: "CLUB", period_months: 1, currency: "USD" });
     expect(r.status).toBe(409);
     expect(r.body.code).toBe("BANK_ACCOUNT_NOT_CONFIGURED");
+    // a top-up shows the bank details at once (pay on the spot), so it is refused the same way
+    const t = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 1, currency: "USD" });
+    expect(t.status).toBe(409);
+    expect(t.body.code).toBe("BANK_ACCOUNT_NOT_CONFIGURED");
   });
 
   it("refuses to confirm an order before it is awaiting confirmation, and activates nothing", async () => {
@@ -418,23 +422,21 @@ describe("bank-transfer billing", () => {
     expect((await call(viewer, "GET", "/v1/admin/billing/revenue")).status).toBe(403);
   });
 
-  it("shows a pack request's payment details to its own organization only, and only after invoicing", async () => {
+  it("shows a top-up's payment details to its own organization only, at once (pay on the spot)", async () => {
     const m = await seedBareMember();
     await seedBankAccount("NGN");
     const req = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 5, currency: "NGN" });
     expect(req.status).toBe(201);
-    // requested, not yet invoiced: no bank details, only the pay-reference note
-    const before = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);
-    expect(before.status).toBe(200);
-    expect(before.body).toMatchObject({ request: { id: req.body.id, status: "REQUESTED", invoice_ref: null }, bank_account: null });
-    expect(before.body.pay_reference_note).toBeTruthy();
-    // after the invoice, the bank details the owner saved are on the read
-    const invoiced = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-2026-777" });
-    expect(invoiced.status).toBe(201);
+    // invoiced with the order: the reference (same sequence as plan orders) and the saved bank details at once
     const after = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);
     expect(after.status).toBe(200);
+    expect(after.body.request).toMatchObject({ id: req.body.id, status: "INVOICED" });
+    expect(after.body.request.invoice_ref).toMatch(new RegExp(`^OTSI-INV-${year}-\\d{6}$`));
     expect(after.body.bank_account).toMatchObject({ bank_name: "Zenith Bank", account_number: "1234567890", currency: "NGN" });
-    expect(after.body.request.invoice_ref).toBe("INV-2026-777");
+    expect(after.body.pay_reference_note).toBeTruthy();
+    // a plan order after it takes the next reference: one sequence, never shared
+    const order = await createOrder(m, "STARTER");
+    expect(order.order.reference > after.body.request.invoice_ref).toBe(true);
     // another organization, and a viewer in it, cannot read it. The read looks the request up by
     // (id, organization), so another org gets "not found" rather than "refused" — either is safe,
     // and 404 reveals nothing about the request's existence.

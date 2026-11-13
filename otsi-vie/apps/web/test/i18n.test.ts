@@ -678,7 +678,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("settings").length).toBe(141);
     // grassroots price list (2026-11-13): +9 wallet keys (upload per video, no plan limit, top-up rate, free claim,
     // "from" price, contact us, Enterprise note, your rate, Enterprise top-ups)
-    expect(bodyKeys("wallet").length).toBe(296);
+    // pay on the spot (2026-11-13): +1 "Pay now to finish your top-up"
+    expect(bodyKeys("wallet").length).toBe(297);
     expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
     // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org

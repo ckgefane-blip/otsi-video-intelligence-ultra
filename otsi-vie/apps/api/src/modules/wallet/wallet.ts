@@ -45,6 +45,7 @@ import { recordChange, userActor } from "../../core/audit";
 import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
 import { currentPlanCode } from "../../core/plan";
+import { nextBankTransferReference } from "../../core/reference";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 
@@ -283,11 +284,14 @@ export class WalletService {
     });
   }
 
-  // -- packs: request -> owner issues invoice -> org pays by bank transfer -> owner confirms -> PURCHASE --
+  // -- top-ups: Top up -> invoice issued at once (reference + bank details) -> org pays by transfer -> owner confirms -> PURCHASE --
 
   /** A top-up: `blocks` of 100 tokens at the organisation's OWN plan rate (owner, approved 2026-11-13). The server sets the
    *  price from the plan; the caller only says how many blocks. Enterprise top-ups are agreed with OTSI, so they are refused
-   *  here with a clear message rather than priced at a guess. `pack_code` records the plan whose rate priced the request. */
+   *  here with a clear message rather than priced at a guess. `pack_code` records the plan whose rate priced the request.
+   *  Pay on the spot (owner, 2026-11-13): the invoice is issued at once — the request is created INVOICED with a bank
+   *  transfer reference from the same sequence as plan orders, so the payer sees the reference and OTSI's bank details
+   *  immediately and pays. The tokens still arrive only when the company owner confirms the money (confirmReceipt). */
   async requestPack(p: Principal, body: RequestPackRequest): Promise<PackRequest> {
     const ratePlan = topUpRatePlan(await currentPlanCode(this.db, p.organizationId));
     const price = topUpPrice(ratePlan, body.blocks);
@@ -295,11 +299,22 @@ export class WalletService {
       throw new ApiError(409, "TOPUP_AGREED_WITH_OTSI", "Enterprise top-ups are agreed with OTSI. Contact OTSI to add tokens.");
     }
     const amountMinor = body.currency === "NGN" ? price.ngn_minor : price.usd_minor;
+    const account = await this.db.one<RowDataPacket>("SELECT id FROM bank_accounts WHERE currency = ? AND is_active = true", [body.currency]);
+    if (!account) {
+      throw new ApiError(409, "BANK_ACCOUNT_NOT_CONFIGURED",
+        `OTSI has not set up a bank account for ${body.currency} yet, so this top-up cannot be paid in that currency. Try the other currency, or contact OTSI.`);
+    }
     const id = uuidv7();
-    await this.db.rows(
-      "INSERT INTO wallet_pack_requests (id, organization_id, pack_code, currency, amount_minor, tokens, requested_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [id, p.organizationId, ratePlan, body.currency, amountMinor, price.tokens, p.userId],
-    );
+    await this.db.tx(async (c) => {
+      await this.lockWallet(c, p.organizationId);
+      const reference = await nextBankTransferReference(this.db, c, new Date().getUTCFullYear());
+      await c.query(
+        "INSERT INTO wallet_pack_requests (id, organization_id, pack_code, currency, amount_minor, tokens, status, invoice_ref, requested_by) VALUES (?, ?, ?, ?, ?, ?, 'INVOICED', ?, ?)",
+        [id, p.organizationId, ratePlan, body.currency, amountMinor, price.tokens, reference, p.userId],
+      );
+      await recordChange(c, userActor(p), { action: "wallet.topup_ordered", entityType: "organization", entityId: p.organizationId,
+        after: { pack_request_id: id, invoice_ref: reference, tokens: price.tokens, amount_minor: amountMinor, currency: body.currency } });
+    });
     return this.packRequest(id, p.organizationId);
   }
 

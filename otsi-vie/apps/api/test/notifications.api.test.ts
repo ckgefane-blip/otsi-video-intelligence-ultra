@@ -166,7 +166,7 @@ describe("company bell (owner 2026-11-13): OTSI hears when a customer pays", () 
     const mine = (await bell(company)).items.filter((i) => i.id.startsWith("company-") && (i.id.includes(order.id) || i.id.includes(pack.body.id)));
     expect(mine.map((i) => [i.title, i.href, i.unread])).toEqual(expect.arrayContaining([
       [`${name} paid — confirm the money`, "/settings/admin/billing", true],
-      [`${name} wants a token pack — send the invoice`, "/settings/admin/billing", true],
+      [`${name} ordered a token top-up — watch for the transfer`, "/settings/admin/billing", true],
     ]));
     expect(mine.find((i) => i.id.includes(order.id))!.detail).toContain(order.reference);
     // the customer's own bell and another customer's bell carry no company alerts

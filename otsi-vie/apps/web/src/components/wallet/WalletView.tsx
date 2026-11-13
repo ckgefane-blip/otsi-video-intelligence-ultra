@@ -53,6 +53,8 @@ export function WalletView() {
   const [payFor, setPayFor] = useState<string | null>(null);
   const [pay, setPay] = useState<PackRequestPayment | null>(null);
   const [payLoading, setPayLoading] = useState(false);
+  // the top-up just ordered: its reference and OTSI's bank details, shown at once under the cards (pay on the spot)
+  const [ordered, setOrdered] = useState<PackRequestPayment | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,6 +99,63 @@ export function WalletView() {
     } finally {
       setPayLoading(false);
     }
+  }
+
+  /** Top up (owner, 2026-11-13: pay on the spot): the server prices the blocks at the plan's rate and issues the
+   *  invoice at once, so the reference and the bank details are shown straight away — no waiting for OTSI. The tokens
+   *  arrive when OTSI confirms the transfer. */
+  async function topUp(blocks: number, label: string, price: string) {
+    setBusy(`request-${blocks}`);
+    setNotice(null);
+    setError(null);
+    setOrdered(null);
+    try {
+      const r = await api<PackRequest>("/v1/wallet/packs/request", { method: "POST", json: { blocks, currency } });
+      setOrdered(await api<PackRequestPayment>(`/v1/wallet/packs/requests/${r.id}`));
+      setNotice(w.requested.replace("{a}", label).replace("{b}", price));
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** Where and how to pay one top-up: its reference, the amount and OTSI's bank details for its currency. */
+  function payDetails(p: PackRequestPayment) {
+    return (
+      <div className="border-t border-line pt-2">
+        <p className="t-small">{w.wlPayHow}</p>
+        <dl className="kv mt-1">
+          <dt>{w.blReference}</dt>
+          <dd className="font-normal">{p.request.invoice_ref ?? "—"}</dd>
+          <dt>{w.blAmountToPay}</dt>
+          <dd>{money(p.request.amount_minor, p.request.currency)}</dd>
+          {p.bank_account ? (
+            <>
+              <dt>{w.blAccountName}</dt>
+              <dd>{p.bank_account.account_name}</dd>
+              <dt>{w.blBank}</dt>
+              <dd>{p.bank_account.bank_name}</dd>
+              <dt>{w.blAccountNumber}</dt>
+              <dd>{p.bank_account.account_number}</dd>
+              {p.bank_account.swift_iban && (
+                <>
+                  <dt>{w.blSwift}</dt>
+                  <dd>{p.bank_account.swift_iban}</dd>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <dt>{w.blBankDetails}</dt>
+              <dd>{p.request.status === "REQUESTED" ? w.wlInvoicePending : w.wlBankNotSet}</dd>
+            </>
+          )}
+        </dl>
+        <p className="sm mu mt-2">{p.pay_reference_note}</p>
+      </div>
+    );
   }
 
   async function act(label: string, fn: () => Promise<unknown>, done: string) {
@@ -212,15 +271,20 @@ export function WalletView() {
                         <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
                         <div className="t-body">{price}</div>
                       </div>
-                      <button type="button" disabled={busy !== null} className="btn sm"
-                        onClick={() => void act(`request-${pack.blocks}`, () => api("/v1/wallet/packs/request", { method: "POST", json: { blocks: pack.blocks, currency } }),
-                          w.requested.replace("{a}", pack.label).replace("{b}", price))}>
+                      <button type="button" disabled={busy !== null} className="btn pri sm"
+                        onClick={() => void topUp(pack.blocks, pack.label, price)}>
                         {busy === `request-${pack.blocks}` ? w.requesting : w.wlRequest}
                       </button>
                     </div>
                   );
                 })}
               </div>
+              {ordered && (
+                <div className="rounded-lg border border-primary/60 bg-canvas p-3.5" data-pay-now role="region" aria-label={w.wlPayNowTitle}>
+                  <p className="t-body">{w.wlPayNowTitle}</p>
+                  {payDetails(ordered)}
+                </div>
+              )}
             </>
           )}
         </section>
@@ -261,37 +325,7 @@ export function WalletView() {
                     payLoading || !pay ? (
                       <p className="sm mu">{t.common.loading}</p>
                     ) : (
-                      <div className="border-t border-line pt-2">
-                        <p className="t-small">{w.wlPayHow}</p>
-                        <dl className="kv mt-1">
-                          <dt>{w.blReference}</dt>
-                          <dd className="font-normal">{pay.request.invoice_ref ?? "—"}</dd>
-                          <dt>{w.blAmountToPay}</dt>
-                          <dd>{money(pay.request.amount_minor, pay.request.currency)}</dd>
-                          {pay.bank_account ? (
-                            <>
-                              <dt>{w.blAccountName}</dt>
-                              <dd>{pay.bank_account.account_name}</dd>
-                              <dt>{w.blBank}</dt>
-                              <dd>{pay.bank_account.bank_name}</dd>
-                              <dt>{w.blAccountNumber}</dt>
-                              <dd>{pay.bank_account.account_number}</dd>
-                              {pay.bank_account.swift_iban && (
-                                <>
-                                  <dt>{w.blSwift}</dt>
-                                  <dd>{pay.bank_account.swift_iban}</dd>
-                                </>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <dt>{w.blBankDetails}</dt>
-                              <dd>{r.status === "REQUESTED" ? w.wlInvoicePending : w.wlBankNotSet}</dd>
-                            </>
-                          )}
-                        </dl>
-                        <p className="sm mu mt-2">{pay.pay_reference_note}</p>
-                      </div>
+                      payDetails(pay)
                     )
                   )}
                 </li>

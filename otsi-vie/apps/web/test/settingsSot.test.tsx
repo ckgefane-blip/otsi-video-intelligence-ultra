@@ -216,14 +216,14 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     // the old invented "Free / Pro / Enterprise" strip is gone: the real plan and a link to Plans and pricing (owner 2026-11-13)
     expect(screen.queryByText("Pro · 24 GB")).toBeNull();
     expect(screen.getByRole("link", { name: "See plans and pricing" })).toHaveAttribute("href", "/settings/billing");
-    expect(screen.getByText("Request a top-up")).toBeInTheDocument();
+    expect(screen.getByText("Choose how many 100s")).toBeInTheDocument();
     // no plan: the Free / Player rate, ₦3,000 per 100 tokens, in blocks of 100
     expect(screen.getByText("Your rate: ₦3,000 per 100 tokens (Free plan)")).toBeInTheDocument();
-    expect(screen.getByText("Invoice sent")).toBeInTheDocument();
+    expect(screen.getByText("Pay details shown")).toBeInTheDocument();
     expect(screen.getByText("Pay by transfer")).toBeInTheDocument();
-    expect(screen.getByText("Owner confirms")).toBeInTheDocument();
+    expect(screen.getByText("OTSI confirms")).toBeInTheDocument();
     expect(screen.getByText("Wallet topped up")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Request" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: "Top up" })).toHaveLength(4);
     expect(screen.getByText("Pack requests")).toBeInTheDocument();
     expect(screen.getByText("No pack requests")).toBeInTheDocument();
     expect(screen.getByText("Requests wait here until paid.")).toBeInTheDocument();
@@ -250,5 +250,29 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     fireEvent.click(screen.getByRole("button", { name: "$ Dollar" }));
     expect(screen.getByText("$6.00")).toBeInTheDocument();
     expect(screen.queryByText("₦9,000")).not.toBeInTheDocument();
+  });
+
+  it("Top up orders at once and shows the reference and OTSI's bank details straight away (pay on the spot)", async () => {
+    mockApi();
+    const base = api.getMockImplementation()!;
+    const req = { id: "0190a000-0000-7000-8000-0000000000aa", organization_id: ORG, organization_name: null, pack_code: "FREE", currency: "NGN",
+      amount_minor: 300_000, tokens: 100, status: "INVOICED", invoice_ref: "OTSI-INV-2026-000042", requested_by: "0190a000-0000-7000-8000-000000000002",
+      created_at: "2026-11-13T10:00:00.000Z", updated_at: "2026-11-13T10:00:00.000Z" };
+    api.mockImplementation((url: string, opts?: { method?: string; json?: unknown }) => {
+      if (url === "/v1/wallet/packs/request" && opts?.method === "POST") return Promise.resolve(req);
+      if (url === `/v1/wallet/packs/requests/${req.id}`) return Promise.resolve({ request: req, pay_reference_note: "Put this reference in your transfer description.",
+        bank_account: { account_name: "OTSI Ltd", bank_name: "Test Bank", account_number: "1234567890", swift_iban: null, currency: "NGN" } });
+      return base(url, opts);
+    });
+    render(<WalletView />);
+    await waitFor(() => expect(screen.getByText("Top up tokens")).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole("button", { name: "Top up" })[0]!);
+    const box = await screen.findByRole("region", { name: "Pay now to finish your top-up" });
+    expect(api).toHaveBeenCalledWith("/v1/wallet/packs/request", { method: "POST", json: { blocks: 1, currency: "NGN" } });
+    expect(box).toHaveTextContent("OTSI-INV-2026-000042");
+    expect(box).toHaveTextContent("₦3,000");
+    expect(box).toHaveTextContent("Test Bank");
+    expect(box).toHaveTextContent("1234567890");
+    expect(screen.getByRole("status")).toHaveTextContent("Top-up ordered: Player pack (₦3,000). Pay to the account below, with your reference.");
   });
 });

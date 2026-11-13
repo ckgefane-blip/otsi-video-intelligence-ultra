@@ -51,12 +51,12 @@ async function awaitingOrder(m: Member) {
   return created.body.order as { id: string; amount_minor: number };
 }
 
-/** A fresh token-pack request (STARTER, NGN, REQUESTED). */
+/** A fresh top-up (1 block, NGN): invoiced at once with its reference (pay on the spot, 2026-11-13). */
 async function packRequest(m: Member) {
   const req = await call(m, "POST", "/v1/wallet/packs/request", { blocks: 1, currency: "NGN" });
   expect(req.status).toBe(201);
-  expect(req.body.status).toBe("REQUESTED");
-  return req.body as { id: string };
+  expect(req.body.status).toBe("INVOICED");
+  return req.body as { id: string; invoice_ref: string };
 }
 
 beforeAll(async () => {
@@ -143,23 +143,20 @@ describe("company-organisation guard", () => {
     expect(refunded.body).toMatchObject({ status: "REFUNDED" });
   });
 
-  it("a customer's owner cannot invoice a token pack; the company owner can", async () => {
+  it("a customer's owner cannot invoice a token pack; a top-up is already invoiced when ordered", async () => {
     const req = await packRequest(customer);
     const refused = await call(customer, "POST", `/v1/admin/wallet/pack-requests/${req.id}/invoice`,
       { invoice_ref: "INV-2026-100" });
     expect(refused.status).toBe(403);
     expect(refused.body.code).toBe("COMPANY_ORG_ONLY");
-    const invoiced = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.id}/invoice`,
+    const again = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.id}/invoice`,
       { invoice_ref: "INV-2026-100" });
-    expect(invoiced.status).toBe(201);
-    expect(invoiced.body).toMatchObject({ status: "INVOICED", invoice_ref: "INV-2026-100" });
+    expect(again.status).toBe(409);
+    expect(again.body.code).toBe("PACK_REQUEST_NOT_OPEN");
   });
 
   it("a customer's owner cannot confirm a token pack receipt; the company owner can", async () => {
     const req = await packRequest(customer);
-    const invoiced = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.id}/invoice`,
-      { invoice_ref: "INV-2026-101" });
-    expect(invoiced.status).toBe(201);
     const refused = await call(customer, "POST", `/v1/admin/wallet/pack-requests/${req.id}/confirm-receipt`,
       { invoice_ref: "INV-2026-101" });
     expect(refused.status).toBe(403);
