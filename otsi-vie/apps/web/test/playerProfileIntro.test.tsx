@@ -1,5 +1,5 @@
 /**
- * Player Profile Intro (ADR-130): the preview shows real numbers when measured and "Not measured" / "Not entered" / "Unconfirmed"
+ * Player profile intro (ADR-130): the preview shows real numbers when measured and "Not measured" / "Not entered" / "Unconfirmed"
  * everywhere else — never a placeholder number; the verified badge only when verified; user-entered fields carry their provenance mark
  * and the team sheet's club beats the user-entered one; the details form sends only what changed; the photo upload sends raw bytes.
  */
@@ -19,7 +19,7 @@ import { buildDetailsPatch, PlayersList } from "@/components/players/PlayersList
 
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = vi.fn() as never;
 
-const RULE = "Player Identity Verified means: the player is registered with his permanent OTSI Player ID, a person confirmed at least one track as him, and (for a reel) the reel's targets are still current.";
+const RULE = "Player identity verified means: the player is registered with his permanent OTSI Player ID, a person confirmed at least one track as him, and (for a reel) the reel's targets are still current.";
 const ASSISTS_REASON = "The engine does not link a pass to a goal.";
 const FORM_REASON = "No per-match rating model yet.";
 
@@ -71,11 +71,11 @@ describe("PlayerProfileIntroView", () => {
 
   it("shows the verified badge only when verified, and the unconfirmed note when not", () => {
     const { unmount } = render(<PlayerProfileIntroView intro={intro({ verified: true })} />);
-    expect(screen.getByText("Player Identity Verified")).toBeTruthy();
+    expect(screen.getByText("Player identity verified")).toBeTruthy();
     expect(screen.queryByText("Identity unconfirmed")).toBeNull();
     unmount();
     render(<PlayerProfileIntroView intro={intro({ verified: false })} />);
-    expect(screen.queryByText("Player Identity Verified")).toBeNull();
+    expect(screen.queryByText("Player identity verified")).toBeNull();
     expect(screen.getByText("Identity unconfirmed")).toBeTruthy();
     expect(screen.getByText(RULE)).toBeTruthy();
   });
@@ -83,12 +83,12 @@ describe("PlayerProfileIntroView", () => {
   it("marks user-entered fields, and the team sheet's club beats the user-entered one", () => {
     render(<PlayerProfileIntroView intro={intro()} />);
     expect(screen.getByText("Central midfielder · Real Madrid")).toBeTruthy();   // header
-    expect(screen.getByText("Real Madrid")).toBeTruthy();        // Club & League
+    expect(screen.getByText("Real Madrid")).toBeTruthy();        // Club & league
     expect(screen.queryByText("Rayo Vallecano")).toBeNull();
     expect(screen.getAllByText("Entered by user")).toHaveLength(7);  // photo, height, weight, strengths, summary, league, international
     expect(screen.getByText("1.82 m")).toBeTruthy();
     expect(screen.getByText("73 kg")).toBeTruthy();
-    expect(screen.getByText("France · 32 Caps")).toBeTruthy();
+    expect(screen.getByText("France · 32 caps")).toBeTruthy();
   });
 
   it("shows the user-entered club with its mark when there is no team sheet, and 'Unconfirmed' with no OTSI Player ID", () => {
@@ -98,7 +98,7 @@ describe("PlayerProfileIntroView", () => {
     });
     render(<PlayerProfileIntroView intro={i} />);
     expect(screen.getByText("Central midfielder · Rayo Vallecano")).toBeTruthy();   // header
-    expect(screen.getByText("Rayo Vallecano")).toBeTruthy();        // Club & League
+    expect(screen.getByText("Rayo Vallecano")).toBeTruthy();        // Club & league
     expect(screen.getByText("Unconfirmed — no OTSI Player ID yet")).toBeTruthy();
   });
 
@@ -125,7 +125,7 @@ describe("PlayerProfileIntroView", () => {
     render(<PlayerProfileIntroView intro={intro()} onContinue={() => undefined} />);
     // left: photo + verified badge with the PIN
     expect(screen.getByRole("img", { name: "Photo of Sugh" })).toBeTruthy();
-    expect(screen.getByText("Player Identity Verified")).toBeTruthy();
+    expect(screen.getByText("Player identity verified")).toBeTruthy();
     expect(screen.getByText("OTSI-FRA-2026-000123")).toBeTruthy();
     // centre: profile header + facts + stat tiles + strengths
     expect(screen.getByText("Player profile")).toBeTruthy();
@@ -155,13 +155,13 @@ describe("PlayerProfileIntroView", () => {
     expect(screen.getByText("Measured by the engine. Where something was not measured, it says so.")).toBeTruthy();
     expect(screen.getByRole("img", { name: "OTSI" })).toHaveAttribute("src", "/brand/otsi-logo.png");
     expect(screen.queryByText("OTSI")).toBeNull();
-    expect(screen.getByText("Continue to Reel")).toBeTruthy();
+    expect(screen.getByText("Continue to reel")).toBeTruthy();
   });
 
-  it("calls onContinue from 'Continue to Reel'", () => {
+  it("calls onContinue from 'Continue to reel'", () => {
     const onContinue = vi.fn();
     render(<PlayerProfileIntroView intro={intro()} onContinue={onContinue} />);
-    fireEvent.click(screen.getByText("Continue to Reel"));
+    fireEvent.click(screen.getByText("Continue to reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 });
@@ -176,7 +176,7 @@ describe("PlayerProfileIntroPanel and dialog", () => {
     render(<ProfileIntroDialog playerId="0193132e-5034-7bc3-9565-df048bb01001" reelId="0193132e-5034-7bc3-9565-df048bb01e01" open onContinue={onContinue} onClose={() => undefined} />);
     expect(await screen.findByText("Sugh")).toBeTruthy();
     expect(api).toHaveBeenCalledWith("/v1/players/0193132e-5034-7bc3-9565-df048bb01001/profile-intro?reel_id=0193132e-5034-7bc3-9565-df048bb01e01");
-    fireEvent.click(screen.getByText("Continue to Reel"));
+    fireEvent.click(screen.getByText("Continue to reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
@@ -205,17 +205,17 @@ function mockReelApi(reel: Reel, introValue: unknown = intro()) {
 }
 
 describe("Reel Builder profile step", () => {
-  it("lists Profile Intro first in the steps, and the preview's Continue advances", async () => {
+  it("lists Profile intro first in the steps, and the preview's Continue advances", async () => {
     const reel = reelFixture();
     mockReelApi(reel);
     const onContinue = vi.fn();
     render(<ReelBuilder reelId={reel.id}><ReelSteps /><ReelProfileIntro onContinue={onContinue} /></ReelBuilder>);
     expect(await screen.findByText("Sugh — highlights")).toBeTruthy();
     const steps = document.querySelectorAll("[data-reel-step]");
-    expect([...steps].map((li) => li.getAttribute("data-reel-step"))[0]).toBe("Profile Intro");
+    expect([...steps].map((li) => li.getAttribute("data-reel-step"))[0]).toBe("Profile intro");
     expect(screen.getByText(/opens the reel: Sugh/)).toBeTruthy();
     expect(await screen.findByText("Player profile")).toBeTruthy();
-    fireEvent.click(screen.getByText("Continue to Reel"));
+    fireEvent.click(screen.getByText("Continue to reel"));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
@@ -232,7 +232,7 @@ describe("Reel Builder profile step", () => {
     const reel = reelFixture();
     mockReelApi(reel);
     render(<ReelBuilder reelId={reel.id}><ReelOverlays /></ReelBuilder>);
-    const box = await screen.findByLabelText(/Player Profile Intro/);
+    const box = await screen.findByLabelText(/Player profile intro/);
     expect((box as HTMLInputElement).checked).toBe(true);
     fireEvent.click(box);
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${reel.id}`,

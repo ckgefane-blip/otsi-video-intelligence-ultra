@@ -55,7 +55,7 @@ function CodeBoxes({ value, onChange, disabled, autoFocus }: { value: string[]; 
   return (
     <div className="grid grid-cols-6 gap-1.5" role="group" aria-label="6-digit code" onPaste={onPaste}>
       {value.map((d, i) => (
-        <input key={i} ref={(el) => { refs.current[i] = el; }} className="in mono h-12 p-0 text-center text-sm font-semibold"
+        <input key={i} ref={(el) => { refs.current[i] = el; }} className="in mono h-12 p-0 text-center text-sm font-normal"
           aria-label={`Digit ${i + 1}`} inputMode="numeric" autoComplete="one-time-code" maxLength={1}
           value={d} disabled={disabled} autoFocus={autoFocus && i === 0}
           onChange={(e) => set(i, e.target.value)} onKeyDown={(e) => onKey(i, e)} />

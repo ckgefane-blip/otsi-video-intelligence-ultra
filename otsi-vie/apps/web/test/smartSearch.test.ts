@@ -32,7 +32,7 @@ describe("Smart Search rules", () => {
   });
 });
 
-describe("Smart Bins in the Media Bin (B.11)", () => {
+describe("Smart bins in the Media bin (B.11)", () => {
   it("keeps the suggested moments that hold one of the bin's moments or markers on this video", async () => {
     const { binMoments } = await import("@otsi-vie/contracts");
     const v = "01a18837-dbfd-719b-93e0-2916132bac92", w = "01a18837-dbfd-719b-93e0-2916132bac93";

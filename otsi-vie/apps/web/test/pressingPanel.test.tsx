@@ -92,10 +92,10 @@ describe("PressingPanel (v3 Phase E.7, ADR-121)", () => {
       );
     });
 
-    expect(screen.getByText("Pressing Map")).toBeTruthy();
-    expect(screen.getByText("High Press Success")).toBeTruthy();
-    expect(screen.getByText("Final Third Regains")).toBeTruthy();
-    expect(screen.getByText("Avg Press Height")).toBeTruthy();
+    expect(screen.getByText("Pressing map")).toBeTruthy();
+    expect(screen.getByText("High press success")).toBeTruthy();
+    expect(screen.getByText("Final third regains")).toBeTruthy();
+    expect(screen.getByText("Avg press height")).toBeTruthy();
 
     // Check aggregated values across both teams
     // High press: 3+1 = 4 regains out of 4+2 = 6 high pressures -> 66.7% (4/6)

@@ -1,10 +1,10 @@
 "use client";
 /**
- * Single Match Spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B).
+ * Single match spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B).
  *
- * The paid offer as one named export bundle, from the Export page: the highlight reel (Player Profile Intro
- * first, then the moments per Best Moment Rule v2.1), the player report, and the AI Analyst brief when it is
- * published — as one ZIP with a manifest. A Single Match Spotlight is the Pack for one match's reel; the same
+ * The paid offer as one named export bundle, from the Export page: the highlight reel (Player profile intro
+ * first, then the moments per Best moment rule v2.1), the player report, and the AI Analyst brief when it is
+ * published — as one ZIP with a manifest. A Single match spotlight is the Pack for one match's reel; the same
  * bundle over a cross-match reel covers all his matches. The dialog shows the Pack's manifest — what is inside,
  * which match(es), the rule version stamped, and which items are included or excluded and why — and downloads
  * the finished ZIP. A draft Analyst brief is never in a Pack: the manifest says so, in words.
@@ -58,8 +58,8 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
         <Dialog.Content data-dialog="scouting-pack" className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(680px,96vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-xl">
           <Dialog.Title className="text-base font-normal">Scouting Pack — {SCOUTING_PACK_SOURCE_LABELS[source]}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">
-            One named bundle for the club: the highlight reel (Player Profile Intro first, then the best moments
-            under Best Moment Rule v2.1), the player report, and the AI Analyst brief when it is published — as one
+            One named bundle for the club: the highlight reel (Player profile intro first, then the best moments
+            under Best moment rule v2.1), the player report, and the AI Analyst brief when it is published — as one
             download with a manifest. {SCOUTING_PACK_COST_TOKENS} tokens for the whole Pack; nothing inside it is
             charged again.
           </Dialog.Description>
@@ -70,8 +70,8 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
               <div data-scouting-pack-reel className="mb-3 rounded border border-line bg-raised p-2.5 text-xs">
                 <div className="font-normal">{reel.name} · {player.display_name}{player.canonical_otsi_id ? ` · ${player.canonical_otsi_id}` : ""}</div>
                 <div className="text-muted">
-                  {source === "SINGLE_MATCH" ? "Single Match Spotlight — one match, one reel, one report." : "All matches — the cross-match reel, every match he was tracked in."}
-                  {reel.best_moments_rule_version ? ` Best Moment Rule v${reel.best_moments_rule_version}.` : " Best Moment Rule v2.1."}
+                  {source === "SINGLE_MATCH" ? "Single match spotlight — one match, one reel, one report." : "All matches — the cross-match reel, every match he was tracked in."}
+                  {reel.best_moments_rule_version ? ` Best moment rule v${reel.best_moments_rule_version}.` : " Best moment rule v2.1."}
                 </div>
               </div>
               <div className="mb-3 flex flex-wrap gap-4 text-xs">
@@ -107,7 +107,7 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
                         <span className="font-normal">{p.manifest.name}</span>
                         <span style={{ color: p.state === "READY" ? "#3ee6a8" : p.state === "FAILED" ? "#ff8a8a" : "#f5b82e" }}>{p.state}</span>
                       </div>
-                      <div className="text-muted">Best Moment Rule v{p.manifest.best_moments_rule_version} · {p.manifest.match_titles.join(" · ")} · {p.cost_tokens} tokens · {p.created_at.slice(0, 10)}</div>
+                      <div className="text-muted">Best moment rule v{p.manifest.best_moments_rule_version} · {p.manifest.match_titles.join(" · ")} · {p.cost_tokens} tokens · {p.created_at.slice(0, 10)}</div>
                       <ul className="mt-1.5 space-y-1">
                         {p.manifest.items.map((it) => (
                           <li key={it.kind} data-pack-item={it.kind} data-pack-item-state={it.state} className="flex justify-between gap-3">

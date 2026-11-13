@@ -1,4 +1,4 @@
-/** Reel Builder (SOT, Page 20): the settings sidebar, the summary + budget bar, the Sequence with the Profile Intro fixed first,
+/** Reel Builder (SOT, Page 20): the settings sidebar, the summary + budget bar, the Sequence with the Profile intro fixed first,
  *  and the Clip inspector */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -58,7 +58,7 @@ describe("Reel Builder (SOT)", () => {
   it("shows the settings sidebar, the header, the summary and the budget bar", async () => {
     await open();
     expect(screen.getByText("Reel settings")).toBeInTheDocument();
-    expect(screen.getByText("Best Moment Rule v2.1")).toBeInTheDocument();
+    expect(screen.getByText("Best moment rule v2.1")).toBeInTheDocument();
     expect(screen.getByText("Moments from")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "This match" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Length")).toBeInTheDocument();
@@ -83,13 +83,13 @@ describe("Reel Builder (SOT)", () => {
     expect(screen.getByText("5:00 cap — never exceeded")).toBeInTheDocument();
     // the SOT's right column is clip details only, and the centre ends at the Sequence: no Spotlight/Overlays/Branding
     // inspector, no Suggested Moments, no Timeline, no second budget bar, no cross-match creation flow
-    expect(screen.queryByText("Spotlight Controls")).toBeNull();
-    expect(screen.queryByText("Generate Reel")).toBeNull();
+    expect(screen.queryByText("Spotlight controls")).toBeNull();
+    expect(screen.queryByText("Generate reel")).toBeNull();
     expect(screen.queryByText(/Suggested Key Moments/)).toBeNull();
     expect(screen.queryByText("Create all-matches reel")).toBeNull();
     expect(screen.queryByText(/Remove all/)).toBeNull();
-    // the Profile Intro is a card in the Sequence, never an auto-opening dialog on this page
-    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
+    // the Profile intro is a card in the Sequence, never an auto-opening dialog on this page
+    expect(screen.queryByRole("dialog", { name: "Player profile intro" })).toBeNull();
   });
 
   it("the length seg switches the per-match cap and the budget target", async () => {
@@ -100,10 +100,10 @@ describe("Reel Builder (SOT)", () => {
     expect(screen.getByText("5:00 target")).toBeInTheDocument();
   });
 
-  it("the Sequence shows the Profile Intro fixed first and the clip, and selecting it fills the Clip inspector", async () => {
+  it("the Sequence shows the Profile intro fixed first and the clip, and selecting it fills the Clip inspector", async () => {
     await open();
     const seq = screen.getByLabelText("Sequence");
-    expect(within(seq).getByText("Profile Intro")).toBeInTheDocument();
+    expect(within(seq).getByText("Profile intro")).toBeInTheDocument();
     expect(within(seq).getByText("16:9 · always first")).toBeInTheDocument();
     expect(within(seq).getByText("Goal")).toBeInTheDocument();
     expect(screen.getByText("No clip selected")).toBeInTheDocument();
@@ -181,8 +181,8 @@ describe("Reel Builder (SOT)", () => {
     expect(screen.getAllByRole("button", { name: "Play" })).toHaveLength(2);
     expect(screen.getByText("00:00 / --:--")).toBeInTheDocument();
     expect(screen.queryByText(/Suggested Key Moments/)).toBeNull();
-    expect(screen.queryByText("Spotlight Controls")).toBeNull();
-    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
+    expect(screen.queryByText("Spotlight controls")).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Player profile intro" })).toBeNull();
   });
 
   it("without a reel id it opens the first reel on its own", async () => {

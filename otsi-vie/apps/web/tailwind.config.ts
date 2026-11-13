@@ -29,7 +29,13 @@ export default {
         ok: v("ok"),
         danger: v("danger"),
       },
-      fontFamily: { sans: ['"Segoe UI Variable Text"', '"Segoe UI"', "system-ui", "-apple-system", '"Inter Variable"', "Inter", "sans-serif"] },
+      // DaVinci Resolve's own UI font and sizes (owner 2026-11-13); every weight class renders regular: no bold anywhere
+      fontFamily: { sans: ['"Open Sans"', '"Segoe UI"', "system-ui", "-apple-system", "sans-serif"] },
+      fontSize: {
+        xs: ["11px", "16px"], sm: ["12px", "18px"], base: ["12px", "18px"], lg: ["13px", "18px"], xl: ["14px", "20px"],
+        "2xl": ["16px", "22px"], "3xl": ["18px", "24px"],
+      },
+      fontWeight: { medium: "400", semibold: "400", bold: "400", extrabold: "400", black: "400" },
       borderRadius: { card: "12px", ctl: "8px" },
       boxShadow: { glow: "0 0 0 1px rgb(var(--primary) / 0.35), 0 0 24px rgb(var(--primary) / 0.25)" },
     },

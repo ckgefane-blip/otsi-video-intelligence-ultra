@@ -70,7 +70,7 @@ describe("PlayersList SOT (Page 18)", () => {
     // identity filter seg
     expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
     // intro preview for the selected player (Modric, first row)
-    await waitFor(() => expect(screen.getByText("Profile Intro preview")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Profile intro preview")).toBeInTheDocument());
     expect(screen.getByRole("link", { name: "Open full 16:9 intro" })).toBeInTheDocument();
     // inspector: the selected player's form
     expect(screen.getByLabelText("Position")).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("PlayersList SOT (Page 18)", () => {
     await waitFor(() => expect(screen.getByLabelText("Nationality")).toHaveValue("DEU"));
   });
 
-  it("position is the SOT's five options, and the intro link opens the Player Profile Intro page", async () => {
+  it("position is the SOT's five options, and the intro link opens the Player profile intro page", async () => {
     mockApi();
     render(<PlayersList />);
     await screen.findAllByText("Luka Modric");

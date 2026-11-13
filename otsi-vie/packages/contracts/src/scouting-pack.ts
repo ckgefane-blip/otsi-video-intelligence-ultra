@@ -4,11 +4,11 @@ import { BEST_MOMENTS_RULE_VERSION } from "./cross-match";
 import { TOKEN_COSTS } from "./wallet";
 
 /**
- * Single Match Spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B).
+ * Single match spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B).
  *
- * The paid offer as one named export bundle: the highlight reel (Player Profile Intro first, then the moments
- * picked by the Best Moment Rule v2.1), the player report, and the AI Analyst brief — packaged as ONE export
- * with a clear manifest. The "Single Match Spotlight" is the single-match version of the offer (one reel + one
+ * The paid offer as one named export bundle: the highlight reel (Player profile intro first, then the moments
+ * picked by the Best moment rule v2.1), the player report, and the AI Analyst brief — packaged as ONE export
+ * with a clear manifest. The "Single match spotlight" is the single-match version of the offer (one reel + one
  * report for one match); the Scouting Pack is the same bundle shape and may also cover a cross-match reel (all
  * matches). The bundle is generic over the reel source — single-match or cross-match — and the choice is
  * recorded in the manifest.
@@ -18,7 +18,7 @@ import { TOKEN_COSTS } from "./wallet";
  * that one charge and are never charged again (the report is made with charge: false, the brief is a read of
  * an already-paid assessment, the reel is an already-rendered file).
  *
- * Honesty rules (ADR-124, ADR-141 Rule 4): the manifest states the Best Moment Rule version and that every
+ * Honesty rules (ADR-124, ADR-141 Rule 4): the manifest states the Best moment rule version and that every
  * included item comes from measured/verified data only. The AI Analyst brief is included ONLY when the
  * assessment is PUBLISHED — this file calls the Piece 3 hook `publishedScoutBriefForPack` and never
  * re-implements the publish gate. A draft brief is never included, never silently: the manifest records it as
@@ -29,11 +29,11 @@ import { TOKEN_COSTS } from "./wallet";
 /** A Scouting Pack costs 10 tokens — the export-pack cost (ADR-140, Token Wallet scope). */
 export const SCOUTING_PACK_COST_TOKENS = TOKEN_COSTS.exportPack;
 
-/** Which reel the Pack is built from: one match (Single Match Spotlight) or all matches (cross-match). */
+/** Which reel the Pack is built from: one match (Single match spotlight) or all matches (cross-match). */
 export const ScoutingPackReelSource = z.enum(["SINGLE_MATCH", "CROSS_MATCH"]);
 export type ScoutingPackReelSource = z.infer<typeof ScoutingPackReelSource>;
 export const SCOUTING_PACK_SOURCE_LABELS: Record<ScoutingPackReelSource, string> = {
-  SINGLE_MATCH: "Single Match Spotlight",
+  SINGLE_MATCH: "Single match spotlight",
   CROSS_MATCH: "Scouting Pack (all matches)",
 };
 
@@ -41,7 +41,7 @@ export const SCOUTING_PACK_SOURCE_LABELS: Record<ScoutingPackReelSource, string>
 export const ScoutingPackItemKind = z.enum(["REEL", "PLAYER_REPORT", "AI_ANALYST_BRIEF"]);
 export type ScoutingPackItemKind = z.infer<typeof ScoutingPackItemKind>;
 export const SCOUTING_PACK_ITEM_LABELS: Record<ScoutingPackItemKind, string> = {
-  REEL: "Highlight reel (Player Profile Intro first)",
+  REEL: "Highlight reel (Player profile intro first)",
   PLAYER_REPORT: "Player report",
   AI_ANALYST_BRIEF: "AI Analyst brief",
 };
@@ -54,7 +54,7 @@ export type ScoutingPackItemState = z.infer<typeof ScoutingPackItemState>;
 export const ScoutingPackManifestItem = z.object({
   kind: ScoutingPackItemKind,
   state: ScoutingPackItemState,
-  /** what the item is, in the club's terms (for the reel: Profile Intro first, then the moments) */
+  /** what the item is, in the club's terms (for the reel: Profile intro first, then the moments) */
   detail: z.string(),
   /** why an item is not in the Pack, or null when it is included */
   reason: z.string().nullable(),
@@ -71,9 +71,9 @@ export const ScoutingPackManifest = z.object({
   reel_id: z.string().uuid(),
   reel_name: z.string(),
   reel_source: ScoutingPackReelSource,
-  /** one title for a Single Match Spotlight; every match for a cross-match Pack */
+  /** one title for a Single match spotlight; every match for a cross-match Pack */
   match_titles: z.array(z.string()),
-  /** the Best Moment Rule version the reel was built with (ADR-131 v2.1), stamped on the Pack */
+  /** the Best moment rule version the reel was built with (ADR-131 v2.1), stamped on the Pack */
   best_moments_rule_version: z.literal(BEST_MOMENTS_RULE_VERSION),
   /** 10 tokens — the one charge that covers the whole Pack */
   cost_tokens: z.literal(SCOUTING_PACK_COST_TOKENS),
@@ -85,7 +85,7 @@ export const ScoutingPackManifest = z.object({
 export type ScoutingPackManifest = z.infer<typeof ScoutingPackManifest>;
 
 export const MEASURED_ONLY_STATEMENT =
-  "Every item in this Pack comes from measured engine data only (ADR-124): the reel follows the Best Moment Rule " +
+  "Every item in this Pack comes from measured engine data only (ADR-124): the reel follows the Best moment rule " +
   "v2.1 on moments the engine measured for this player under his verified OTSI PIN, the report shows his measured " +
   "numbers, and the AI Analyst brief — when included — is a published assessment whose every claim cites measured " +
   "evidence. Nothing in this Pack is invented; anything not measured is labelled Not measured, and anything not " +
@@ -155,8 +155,8 @@ export function buildScoutingPackManifest(input: BuildScoutingPackManifestInput,
   const name = `Scouting Pack — ${input.display_name} — ${input.reel_source === "SINGLE_MATCH" ? matches : "All matches"}`;
   const items: ScoutingPackManifestItem[] = [
     input.reel_rendered
-      ? { kind: "REEL", state: "INCLUDED", detail: `Player Profile Intro first, then the best moments (Best Moment Rule v${BEST_MOMENTS_RULE_VERSION}). ${scope}: ${matches}.`, reason: null }
-      : { kind: "REEL", state: "FAILED", detail: "Highlight reel (Player Profile Intro first).", reason: "The reel has no finished render yet — render it first." },
+      ? { kind: "REEL", state: "INCLUDED", detail: `Player profile intro first, then the best moments (Best moment rule v${BEST_MOMENTS_RULE_VERSION}). ${scope}: ${matches}.`, reason: null }
+      : { kind: "REEL", state: "FAILED", detail: "Highlight reel (Player profile intro first).", reason: "The reel has no finished render yet — render it first." },
   ];
   if (!input.include_report) {
     items.push({ kind: "PLAYER_REPORT", state: "EXCLUDED", detail: "Player report.", reason: "Not requested for this Pack." });

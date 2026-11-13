@@ -113,7 +113,7 @@ describe("AdminConsole (v3 Phase D.3, ADR-111)", () => {
       organization: { organization_id: "org-1", role: "VIEWER" },
     });
     render(<AdminConsole />);
-    expect(screen.getByText("Administrator Access Required")).toBeDefined();
+    expect(screen.getByText("Administrator access required")).toBeDefined();
   });
 
   it("loads dashboard and switches across tabs for OWNER", async () => {
@@ -146,26 +146,26 @@ describe("AdminConsole (v3 Phase D.3, ADR-111)", () => {
     render(<AdminConsole />);
 
     // Check overview tab content
-    expect(await screen.findByText("Active Worker Groups")).toBeDefined();
+    expect(await screen.findByText("Active worker groups")).toBeDefined();
     expect(screen.getByText("100 MB")).toBeDefined();
 
-    // Switch to Members & Roles
-    fireEvent.click(screen.getByRole("button", { name: /Members & Roles/i }));
+    // Switch to Members & roles
+    fireEvent.click(screen.getByRole("button", { name: /Members & roles/i }));
     expect(await screen.findByText("Lead Owner")).toBeDefined();
     expect(screen.getByText("Match Analyst")).toBeDefined();
 
-    // Switch to Model Registry
-    fireEvent.click(screen.getByRole("button", { name: /Model Registry/i }));
+    // Switch to Model registry
+    fireEvent.click(screen.getByRole("button", { name: /Model registry/i }));
     expect(await screen.findByText("yolov8x-player-detection")).toBeDefined();
     expect(screen.getByText("Ready")).toBeDefined();
 
-    // Switch to Concurrency & Workers
-    fireEvent.click(screen.getByRole("button", { name: /Concurrency & Workers/i }));
-    expect(await screen.findByText("Worker Job Concurrency Caps")).toBeDefined();
-    expect(screen.getByRole("button", { name: /Apply Concurrency Caps/i })).toBeDefined();
+    // Switch to Concurrency & workers
+    fireEvent.click(screen.getByRole("button", { name: /Concurrency & workers/i }));
+    expect(await screen.findByText("Worker job concurrency caps")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Apply concurrency caps/i })).toBeDefined();
 
-    // Switch to Security & Audit
-    fireEvent.click(screen.getByRole("button", { name: /Security & Audit/i }));
+    // Switch to Security & audit
+    fireEvent.click(screen.getByRole("button", { name: /Security & audit/i }));
     expect(await screen.findByText("concurrency.update")).toBeDefined();
   });
 
@@ -205,9 +205,9 @@ describe("AdminConsole (v3 Phase D.3, ADR-111)", () => {
     });
 
     render(<AdminConsole />);
-    fireEvent.click(await screen.findByRole("button", { name: /Concurrency & Workers/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Concurrency & workers/i }));
 
-    const applyBtn = screen.getByRole("button", { name: /Apply Concurrency Caps/i });
+    const applyBtn = screen.getByRole("button", { name: /Apply concurrency caps/i });
     fireEvent.click(applyBtn);
 
     await vi.waitFor(() => {
@@ -267,13 +267,13 @@ describe("AdminConsole (v3 Phase D.3, ADR-111)", () => {
     });
 
     render(<AdminConsole />);
-    fireEvent.click(await screen.findByRole("button", { name: /Retention & Privacy/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Retention & privacy/i }));
 
-    expect(await screen.findByText("Data Retention Schedules")).toBeDefined();
+    expect(await screen.findByText("Data retention schedules")).toBeDefined();
     expect(screen.getByText(/GDPR Data Subject Erasure/i)).toBeDefined();
 
-    // Click Save Retention Policy
-    const saveBtn = screen.getByRole("button", { name: /Save Retention Policy/i });
+    // Click Save retention policy
+    const saveBtn = screen.getByRole("button", { name: /Save retention policy/i });
     fireEvent.click(saveBtn);
 
     await vi.waitFor(() => {
@@ -372,13 +372,13 @@ describe("AdminConsole (v3 Phase D.3, ADR-111)", () => {
     });
 
     render(<AdminConsole />);
-    expect(await screen.findByText("Active Worker Groups")).toBeDefined();
+    expect(await screen.findByText("Active worker groups")).toBeDefined();
 
     // Click release gates tab
     const gatesTab = screen.getByRole("button", { name: /Release Gates/i });
     fireEvent.click(gatesTab);
 
-    expect(await screen.findByText("Release Gates (G01–G15) Status")).toBeDefined();
+    expect(await screen.findByText("Release gates (G01–G15) status")).toBeDefined();
     expect(screen.getByText("Database Architecture")).toBeDefined();
     expect(screen.getByText("Detection Accuracy")).toBeDefined();
   });

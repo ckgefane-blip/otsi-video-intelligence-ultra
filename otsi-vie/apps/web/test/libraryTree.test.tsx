@@ -29,7 +29,7 @@ describe("Library tree", () => {
     expect(c.folders.map((f) => [f.name, f.item_count])).toEqual([["Academy", 1], ["U19 scouting", 0]]);
   });
 
-  it("opens the whole Library, a folder, Shared With Me and the Trash; says the Trash count", async () => {
+  it("opens the whole Library, a folder, Shared with me and the Trash; says the Trash count", async () => {
     const bin = { id: "0190a000-0000-7000-8000-000000000009", name: "Confirmed goals", q: "event:goal is:confirmed", count: 3, more: false, created_at: "2026-11-07T10:00:00.000Z" };
     api.mockImplementation(async (path: string) => (path === "/v1/smart-bins" ? [bin] : [{ id: "t1" }, { id: "t2" }]));
     const setFolder = vi.fn(), setTab = vi.fn(), openTrash = vi.fn(), newFolder = vi.fn(), say = vi.fn();
@@ -40,7 +40,7 @@ describe("Library tree", () => {
     expect(document.querySelector("[data-tree=all]")).not.toHaveAttribute("aria-current");
     fireEvent.click(screen.getByTitle("Academy"));
     expect(setFolder).toHaveBeenLastCalledWith("f1");
-    fireEvent.click(screen.getByTitle("Shared With Me"));
+    fireEvent.click(screen.getByTitle("Shared with me"));
     expect(setFolder).toHaveBeenLastCalledWith(null);
     expect(setTab).toHaveBeenLastCalledWith(SHARED_TAB);
     fireEvent.click(screen.getByTitle("All assets"));
@@ -49,9 +49,9 @@ describe("Library tree", () => {
     expect(openTrash).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByLabelText("New folder"));
     expect(newFolder).toHaveBeenCalledTimes(1);
-    // B.11 (ADR-087): the person's Smart Bins with what each holds now
+    // B.11 (ADR-087): the person's Smart bins with what each holds now
     await waitFor(() => expect(document.querySelector(`[data-tree=bin-${bin.id}]`)).toHaveTextContent("Confirmed goals3"));
-    expect(screen.getByLabelText("New Smart Bin")).toBeInTheDocument();
+    expect(screen.getByLabelText("New smart bin")).toBeInTheDocument();
   });
 
   it("a viewer is told why there is no New folder; an unreadable Trash shows no count", async () => {

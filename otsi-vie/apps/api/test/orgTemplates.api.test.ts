@@ -57,7 +57,7 @@ describe("organization templates API", () => {
     const rAll = await call(a, "GET", "/v1/templates");
     expect(rAll.status).toBe(200);
     expect(rAll.body.length).toBeGreaterThanOrEqual(3);
-    expect(rAll.body.some((t: any) => t.name === "Broadcast Gold")).toBe(true);
+    expect(rAll.body.some((t: any) => t.name === "Broadcast gold")).toBe(true);
 
     const rSpotlight = await call(a, "GET", "/v1/templates?kind=SPOTLIGHT");
     expect(rSpotlight.status).toBe(200);

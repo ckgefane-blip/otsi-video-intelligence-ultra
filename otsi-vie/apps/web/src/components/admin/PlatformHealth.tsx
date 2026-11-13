@@ -305,7 +305,7 @@ export function PlatformHealth() {
             {queues.map((q) => (
               <div key={q.key} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{q.label}</span>
+                  <span className="font-normal">{q.label}</span>
                   <span className="flex items-center gap-3">
                     {/* the real limit the API returns (owner 2026-11-13: real values, never the SOT's placeholder "Not set") */}
                     <span className="text-xs text-muted" data-concurrency-value>{q.value}</span>
@@ -364,7 +364,7 @@ export function PlatformHealth() {
                 <div key={item.id} className="flex min-h-16 flex-col gap-2 px-4 py-3">
                   <div className="flex min-h-16 items-center gap-3">
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="font-semibold">{item.title}</span>
+                      <span className="font-normal">{item.title}</span>
                       {item.detail && <span className="t-small text-muted">{item.detail}</span>}
                     </div>
                     <button

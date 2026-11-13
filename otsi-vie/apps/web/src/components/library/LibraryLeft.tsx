@@ -83,7 +83,7 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
         <div className="relative">
           <button type="button" aria-label={dict.body.analysis.match} aria-expanded={menuOpen} aria-haspopup="menu"
             onClick={() => setMenuOpen((v) => !v)}
-            className="in flex h-10 w-full items-center justify-between gap-2" style={{ fontWeight: 600, textAlign: "left", cursor: "pointer" }}>
+            className="in flex h-10 w-full items-center justify-between gap-2" style={{ fontWeight: 400, textAlign: "left", cursor: "pointer" }}>
             <span className="min-w-0 truncate">{match ? matchTitle(match) : d.noMatchSelected}</span>
             <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
           </button>
@@ -136,7 +136,7 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
               <button key={t} type="button" role="radio" aria-checked={on} onClick={() => pickTeam(t)}
                 className={`radio ${on ? "on" : ""}`} style={{ padding: "4px 8px", gap: 8, alignItems: "center" }}>
                 <span className="o" style={{ margin: 0 }} />
-                <span style={{ fontWeight: 500 }}>{l}</span>
+                <span style={{ fontWeight: 400 }}>{l}</span>
               </button>
             );
           })}
@@ -153,7 +153,7 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
                 onClick={() => pickRange(k)}
                 className={`radio ${on ? "on" : ""} ${off ? "opacity-60" : ""}`} style={{ padding: "4px 8px", gap: 8, alignItems: "center" }}>
                 <span className="o" style={{ margin: 0 }} />
-                <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>{l}</span>
+                <span style={{ fontWeight: 400, whiteSpace: "nowrap" }}>{l}</span>
               </button>
             );
           })}

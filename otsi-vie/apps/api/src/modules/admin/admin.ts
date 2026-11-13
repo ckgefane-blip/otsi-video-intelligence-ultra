@@ -536,7 +536,7 @@ export class AdminService {
         name: "Billing & Delivery Workflow",
         category: "GOVERNANCE" as const,
         status: "PASSED" as const,
-        what: "Option B Managed Service: Single Match Spotlight & Scouting Pack invoicing",
+        what: "Option B Managed Service: Single match spotlight & Scouting Pack invoicing",
         evidence_required: "Human-verified reports delivered by bank transfer; zero unauthorized leaks",
         release_rule: "Human signoff required on all customer-facing PDF exports",
         evidence_reference: "Option B Managed Service Roadmap",

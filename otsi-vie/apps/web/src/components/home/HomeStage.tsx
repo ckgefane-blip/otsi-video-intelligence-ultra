@@ -110,7 +110,7 @@ function FeaturedReel() {
             aria-label={`${t.body.reelstage.playBtn}: ${reel.name}`}>
             {src ? <video src={src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" /> : null}
             <span className="relative grid h-11 w-11 place-items-center rounded-full bg-white/10"><Play className="h-5 w-5" aria-hidden /></span>
-            <span className="t-mono absolute bottom-2 right-2 rounded-sm bg-black/70 px-1.5 text-[12px] leading-5">{mmss(reelSeconds(reel))}</span>
+            <span className="t-mono absolute bottom-2 right-2 rounded-sm bg-black/70 px-1.5 text-[11px] leading-5">{mmss(reelSeconds(reel))}</span>
           </Link>
           <span className="t-body block truncate font-normal">{reel.name}</span>
           <span className="t-small block truncate text-muted">

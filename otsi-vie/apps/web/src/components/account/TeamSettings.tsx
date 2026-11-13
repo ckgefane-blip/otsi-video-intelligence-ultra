@@ -119,7 +119,7 @@ export function TeamSettings() {
               <p className="t-panel">{s.sendLink.replace("{a}", created.invitation.email)}</p>
               <p className="mt-1 text-xs text-muted">{s.linkOnce.replace("{a}", day(created.invitation.expires_at))}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <input readOnly value={link} aria-label={s.inviteLinkAria} className="in mono flex-1" style={{ fontSize: 12, minWidth: "16rem" }} onFocus={(e) => e.currentTarget.select()} />
+                <input readOnly value={link} aria-label={s.inviteLinkAria} className="in mono flex-1" style={{ fontSize: 11, minWidth: "16rem" }} onFocus={(e) => e.currentTarget.select()} />
                 <a href={mail} className="btn sm"><Mail className="h-4 w-4" /> {s.openEmail}</a>
               </div>
             </div>

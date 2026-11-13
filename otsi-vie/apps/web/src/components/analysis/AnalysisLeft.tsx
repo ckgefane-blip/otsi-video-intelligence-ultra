@@ -95,7 +95,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
               >
                 <span aria-hidden className="h-7 w-[3px] shrink-0 rounded-full" style={{ background: on ? "rgb(var(--primary))" : "transparent" }} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{t.label.split(" · ")[0]}</span>
+                  <span className="truncate font-normal">{t.label.split(" · ")[0]}</span>
                   <span className="t-small truncate text-muted">{sub}</span>
                 </span>
                 <span className="t-small shrink-0 text-muted"><span className={chip.dot} aria-hidden>•</span> {chip.label}</span>
@@ -128,7 +128,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
 
       <div className="mt-auto flex flex-col gap-2 border-t border-line px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="t-body font-medium">{a.anTeamSheet}</span>
+          <span className="t-body font-normal">{a.anTeamSheet}</span>
           {teamSheetState && <span className="t-small text-muted"><span className={teamSheetState.dot} aria-hidden>•</span> {teamSheetState.label}</span>}
         </div>
         <button type="button" onClick={() => setLineupsOpen(true)} className="vie-btn w-full">

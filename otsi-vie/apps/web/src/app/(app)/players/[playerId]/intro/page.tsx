@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PlayerProfileIntroPanel } from "@/components/reels/PlayerProfileIntro";
 import { isUuid } from "@/lib/identity";
 
-export const metadata: Metadata = { title: "Player Profile Intro" };
+export const metadata: Metadata = { title: "Player profile intro" };
 
 /**
  * The Player Profile Intro on its own page (SOT, Players.dc.html "Open full 16:9 intro"): the 16:9 opening

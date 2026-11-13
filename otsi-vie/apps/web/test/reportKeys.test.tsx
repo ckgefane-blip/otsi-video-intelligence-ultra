@@ -1,4 +1,4 @@
-/** Player Reports: [ / ] move between the SOT's tabs, only while the page is open and never while typing */
+/** Player reports: [ / ] move between the SOT's tabs, only while the page is open and never while typing */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -35,7 +35,7 @@ async function open() {
   await waitFor(() => expect(screen.getByRole("heading", { name: "Test Player" })).toBeInTheDocument());
 }
 
-describe("Player Reports section keys", () => {
+describe("Player reports section keys", () => {
   it("] moves to the next tab and [ back to the previous one", async () => {
     await open();
     fireEvent.keyDown(window, { key: "]" });

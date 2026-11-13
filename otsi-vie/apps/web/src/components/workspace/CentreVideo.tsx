@@ -197,7 +197,7 @@ export function CentreVideo({ s }: { s: Shared }) {
                 : { left: u(1717 + dw - F.x), top: u(680 - F.y), width: u(265), height: u(158), boxSizing: "border-box", border: `${u(2)} solid #19a0ff`, borderRadius: u(6), overflow: "hidden", boxShadow: "0 0 12px #19a0ff" }}>
                 <PitchMinimap calibrated={calibrated}
                   dots={placed.map(({ o }) => ({ x: o.pitch_x as number, y: o.pitch_y as number, group: (o.kit_group ?? tracks.get(o.track_id)?.kit_group ?? null) as number | null, chosen: o.track_id === ws?.selectedId }))} />
-                {fs ? <span style={{ position: "absolute", left: 0, right: 0, bottom: 2, textAlign: "center", fontSize: 13, color: "#d7efe0", textShadow: "0 0 3px #000" }}>{note}</span>
+                {fs ? <span style={{ position: "absolute", left: 0, right: 0, bottom: 2, textAlign: "center", fontSize: 12, color: "#d7efe0", textShadow: "0 0 3px #000" }}>{note}</span>
                   : <T o={[1717, 680]} x={1850} y={826} size={14} color="#d7efe0" align="center" style={{ textShadow: "0 0 3px #000" }}>{note}</T>}
               </div>
             );

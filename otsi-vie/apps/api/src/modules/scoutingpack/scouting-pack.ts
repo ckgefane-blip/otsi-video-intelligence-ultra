@@ -1,13 +1,13 @@
 /**
- * Single Match Spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B, Nigeria first).
+ * Single match spotlight + Scouting Pack (ADR-142, ultra-only; Roadmap Phase 4, Option B, Nigeria first).
  *
  *   POST /v1/players/:playerId/scouting-packs            build one Pack for the player's reel (10 tokens)
  *   GET  /v1/players/:playerId/scouting-packs            the player's Packs, newest first, with download links
  *   GET  /v1/players/:playerId/scouting-packs/:packId    one Pack, with its manifest
  *
- * A Pack is the paid offer as ONE named export bundle: the highlight reel (Player Profile Intro first, then the
- * moments per Best Moment Rule v2.1), the player report, and the AI Analyst brief — as one ZIP with a manifest.
- * The reel source is read from the reel and recorded: a MATCH reel is a Single Match Spotlight (one reel + one
+ * A Pack is the paid offer as ONE named export bundle: the highlight reel (Player profile intro first, then the
+ * moments per Best moment rule v2.1), the player report, and the AI Analyst brief — as one ZIP with a manifest.
+ * The reel source is read from the reel and recorded: a MATCH reel is a Single match spotlight (one reel + one
  * report for one match); an ALL_MATCHES reel is the same bundle over a cross-match reel (all matches).
  *
  * Cost (ADR-140, Token Wallet scope): a Pack is an export pack — 10 tokens, charged at enqueue in the same
@@ -18,7 +18,7 @@
  * refundForJob, EXPORT_PACK) and left FAILED.
  *
  * Honesty (ADR-124, ADR-141 Rule 4): the manifest is built by buildScoutingPackManifest in contracts — it
- * stamps the Best Moment Rule version and says what is inside and what is not, with why. The Analyst brief
+ * stamps the Best moment rule version and says what is inside and what is not, with why. The Analyst brief
  * reaches the ZIP ONLY through the Piece 3 hook publishedScoutBriefForPack: a draft is recorded as EXCLUDED
  * ("AI Analyst brief: not included (draft, not published)") and never written into the ZIP. A report that
  * cannot be made does not stop the Pack: it is recorded FAILED with its reason, like one companion failing in
@@ -159,7 +159,7 @@ export class ScoutingPackService {
     // charges nothing. The pieces inside are covered by this charge, never charged again.
     const planned = buildScoutingPackManifest({ ...base, report: { state: "INCLUDED", reason: null } });
     await this.db.tx(async (c) => {
-      await this.wallet.charge(c, p.organizationId, p.userId, { type: "EXPORT_PACK", id, amount: TOKEN_COSTS.exportPack, reason: `Scouting Pack for ${reel.player!.display_name} (${reelSource === "SINGLE_MATCH" ? "Single Match Spotlight" : "all matches"}; 10 tokens).` });
+      await this.wallet.charge(c, p.organizationId, p.userId, { type: "EXPORT_PACK", id, amount: TOKEN_COSTS.exportPack, reason: `Scouting Pack for ${reel.player!.display_name} (${reelSource === "SINGLE_MATCH" ? "Single match spotlight" : "all matches"}; 10 tokens).` });
       await c.query(`INSERT INTO scouting_packs (id, organization_id, player_id, reel_id, reel_source, state, manifest, cost_tokens, requested_by)
                      VALUES (?, ?, ?, ?, ?, 'CREATED', ?, ?, ?)`,
         [id, p.organizationId, playerId, reel.id, reelSource, JSON.stringify(planned), SCOUTING_PACK_COST_TOKENS, p.userId]);

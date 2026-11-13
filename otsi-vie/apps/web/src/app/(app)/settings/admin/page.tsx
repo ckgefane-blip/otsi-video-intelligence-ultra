@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PlatformHealth } from "@/components/admin/PlatformHealth";
 import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
-export const metadata: Metadata = { title: "Platform Health" };
+export const metadata: Metadata = { title: "Platform health" };
 
 /**
  * Admin Console > Platform Health (SOT, Admin.dc.html): review inbox,

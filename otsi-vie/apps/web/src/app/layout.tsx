@@ -1,4 +1,4 @@
-import "@fontsource-variable/inter";
+import "@fontsource/open-sans/400.css";   // DaVinci Resolve's UI font (SIL OFL), regular only: no bold anywhere
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";

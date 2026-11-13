@@ -5,7 +5,7 @@ import { AnalysisWorkspace, useAnalysisWorkspace } from "@/components/analysis/A
 import { OverlaySync } from "@/components/analysis/WorkspacePlayer";
 import { isUuid } from "@/lib/identity";
 
-export const metadata: Metadata = { title: "Analysis Workspace" };
+export const metadata: Metadata = { title: "Analysis workspace" };
 
 /** Applies the viewer's overlay preference to this workspace, so the Drop 1 OverlayToggles below drive the boxes shown. */
 function Sync() {

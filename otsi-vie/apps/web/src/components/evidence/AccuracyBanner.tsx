@@ -34,7 +34,7 @@ export function AccuracyBanner() {
   };
   return (
     <div role="note" aria-label="Accuracy not yet measured" data-accuracy-line
-      className="flex items-center gap-3 border-b border-line py-2 text-[13px] leading-5">
+      className="flex items-center gap-3 border-b border-line py-2 text-[12px] leading-5">
       <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber" />
       <span className="min-w-0 flex-1">
         {lead} <span className="text-muted">{rest}</span>

@@ -116,11 +116,11 @@ export function SmartBinsTree() {
       <div className={treeHead}>
         <span>{dict.body.library.smartBins}</span>
         <button type="button" data-tree="new-bin" onClick={() => setMaking(true)} aria-label={dict.body.library.newSmartBin} title={dict.body.library.binTreeNewTitle}
-          style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: 13, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
+          style={{ border: 0, background: "transparent", color: "#33a8ff", font: "inherit", fontSize: 12, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>+ New</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }} data-smart-bins>
-        {bins === null ? <li style={{ fontSize: 13, color: "#8ea3bf", padding: "4px 12px" }}>{dict.common.loading}</li>
-          : bins.length === 0 ? <li style={{ fontSize: 13, color: "#8ea3bf", padding: "4px 12px", whiteSpace: "normal" }}>{dict.body.library.binsEmpty}</li>
+        {bins === null ? <li style={{ fontSize: 12, color: "#8ea3bf", padding: "4px 12px" }}>{dict.common.loading}</li>
+          : bins.length === 0 ? <li style={{ fontSize: 12, color: "#8ea3bf", padding: "4px 12px", whiteSpace: "normal" }}>{dict.body.library.binsEmpty}</li>
           : bins.map((b) => (
             <li key={b.id}>
               <button type="button" onClick={() => setOpen(b)} className={treeRow(open?.id === b.id)} data-tree={`bin-${b.id}`} title={b.q}>

@@ -1,6 +1,6 @@
 /**
  * SOT rebuild, worker 8 (group B unowned pages): Jobs Center, Welcome tour, First run, Accept invite, Player Profile
- * Intro, Admin Models & AI, Admin Release Control, Admin Security & Compliance, Token counter (page 30 is the shell
+ * Intro, Admin Models & AI, Admin Release control, Admin Security & compliance, Token counter (page 30 is the shell
  * worker's chip — asserted in pages29-31Sot.test.tsx — so this file covers the other eight pages' rebuilt behaviour).
  */
 import { render, screen } from "@testing-library/react";
@@ -166,7 +166,7 @@ describe("Admin — Models & AI (SOT page 2)", () => {
   });
 });
 
-describe("Admin — Release Control (SOT page 3)", () => {
+describe("Admin — Release control (SOT page 3)", () => {
   it("shows '○ Not started' for gates nothing has ever measured, even when the server reports MEASURING", async () => {
     render(<ReleaseControl />);
     expect(await screen.findByText("Gates passed")).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe("Admin — Release Control (SOT page 3)", () => {
   });
 });
 
-describe("Admin — Security & Compliance (SOT page 4)", () => {
+describe("Admin — Security & compliance (SOT page 4)", () => {
   it("the erase button is the filled secondary button with red text, and the audit log shows readable wording, not raw keys", async () => {
     render(<Compliance />);
     expect(await screen.findByText("Audit log")).toBeInTheDocument();

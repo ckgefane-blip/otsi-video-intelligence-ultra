@@ -1,4 +1,4 @@
-/** Platform Health review-inbox decisions: POST /v1/overview/inbox/decisions with the row's stable id,
+/** Platform health review-inbox decisions: POST /v1/overview/inbox/decisions with the row's stable id,
  *  APPROVE for every kind, REJECT disabled for STALE_REEL / FAILED_JOB (422 DECISION_NOT_SUPPORTED),
  *  and the inbox re-fetched after a decision. */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -58,7 +58,7 @@ const renderHealth = () => {
   render(<PlatformHealth />);
 };
 
-describe("Platform Health review-inbox decisions", () => {
+describe("Platform health review-inbox decisions", () => {
   // braces: a beforeEach that returns a function registers it as a cleanup — api.mockClear() returns the mock itself
   beforeEach(() => { api.mockClear(); });
 

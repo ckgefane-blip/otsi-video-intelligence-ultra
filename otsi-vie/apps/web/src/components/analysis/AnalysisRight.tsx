@@ -109,7 +109,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
         <div className="flex gap-3">
           <TrackThumb trackId={t.track_id} has={t.has_thumbnail} size={60} />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{jersey != null ? `#${jersey}` : "—"}{position ? ` · ${position}` : ""}</p>
+            <p className="font-normal">{jersey != null ? `#${jersey}` : "—"}{position ? ` · ${position}` : ""}</p>
             <p className="t-small text-muted">{[club, nationality].filter(Boolean).join(" · ") || "—"}</p>
             <p className="t-small" style={{ color: "rgb(var(--primary))" }}>{pin ?? dict.body.analysis.provisionalBadge}</p>
           </div>

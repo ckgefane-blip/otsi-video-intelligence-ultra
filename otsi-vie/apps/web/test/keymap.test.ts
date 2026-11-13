@@ -17,7 +17,7 @@ describe("keyboard map", () => {
     for (const k of ["Ctrl + K", "?", "Ctrl + ,"]) expect(has(EVERYWHERE_KEYS, k)).toBe(true);
     // Reel Builder: the same undo / redo keys as Clip Studio, for the reel's own History
     for (const k of ["Ctrl + Z", "Ctrl + Shift + Z or Ctrl + Y"]) expect(has(REELS_KEYS, k)).toBe(true);
-    // Player Reports: [ / ] move between the rail's sections
+    // Player reports: [ / ] move between the rail's sections
     for (const k of ["[ / ]"]) expect(has(REPORTS_KEYS, k)).toBe(true);
     // L is play now; no single key does two things on one page
     const single = (list: { keys: string }[]) => list.flatMap((s) => s.keys.split(" / ")).filter((k) => /^[A-Z]$/.test(k));

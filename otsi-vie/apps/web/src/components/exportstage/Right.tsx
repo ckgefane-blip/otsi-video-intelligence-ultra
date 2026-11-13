@@ -166,7 +166,7 @@ export function Right() {
       </section>
 
       <section id="p10-branding" aria-label="Branded overlays" data-section="p10-s08" className={`vie-panel p-3 ${e.focus === "p10-branding" ? "border-primary" : ""}`}>
-        <h2 className="t-panel">Branded Overlays</h2>
+        <h2 className="t-panel">Branded overlays</h2>
         <Branding />
       </section>
 
@@ -204,7 +204,7 @@ export function ExportBottom() {
       <SharePanel focus={e.focus === "p10-delivery"} />
 
       <section aria-label="Team collaboration" data-section="p10-s12" className="vie-panel p-3">
-        <h2 className="t-panel">Team Collaboration</h2>
+        <h2 className="t-panel">Team collaboration</h2>
         <Team />
         {([["Notify team when ready", o.notifyTeam, o.setNotifyTeam], ["Notify client", o.notifyClient, o.setNotifyClient]] as const).map(([l, on, set]) => (
           <div key={l} data-notify={l} data-on={String(on)} className="mt-2 flex items-center justify-between gap-2 text-sm">
@@ -242,7 +242,7 @@ function ClearAll({ finished }: { finished: number }) {
           if (!e.canEdit) return setMsg("Your role can look, not change the queue");
           if (!finished) return setMsg("No finished render in the queue");
           run();
-        }} className="text-sm text-primary hover:underline">Clear All</button>
+        }} className="text-sm text-primary hover:underline">Clear all</button>
     </span>
   );
 }

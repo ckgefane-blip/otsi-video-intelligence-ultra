@@ -47,7 +47,7 @@ function input(over: Partial<BuildScoutingPackManifestInput> = {}): BuildScoutin
 const item = (m: ReturnType<typeof buildScoutingPackManifest>, kind: string) => m.items.find((i) => i.kind === kind)!;
 
 describe("buildScoutingPackManifest", () => {
-  it("stamps the Best Moment Rule version and the 10-token Pack cost", () => {
+  it("stamps the Best moment rule version and the 10-token Pack cost", () => {
     const m = buildScoutingPackManifest(input());
     expect(m.best_moments_rule_version).toBe(BEST_MOMENTS_RULE_VERSION);
     expect(m.best_moments_rule_version).toBe("2.1");
@@ -56,13 +56,13 @@ describe("buildScoutingPackManifest", () => {
     expect(m.measured_only_statement).toContain("measured");
   });
 
-  it("records the Single Match Spotlight source and its one match", () => {
+  it("records the Single match spotlight source and its one match", () => {
     const m = buildScoutingPackManifest(input());
     expect(m.reel_source).toBe("SINGLE_MATCH");
     expect(m.match_titles).toEqual(["Nart v Ercakhu"]);
     expect(m.name).toContain("Nart v Ercakhu");
-    expect(item(m, "REEL").detail).toContain("Player Profile Intro first");
-    expect(item(m, "REEL").detail).toContain("Best Moment Rule v2.1");
+    expect(item(m, "REEL").detail).toContain("Player profile intro first");
+    expect(item(m, "REEL").detail).toContain("Best moment rule v2.1");
   });
 
   it("records a cross-match Pack over all matches", () => {

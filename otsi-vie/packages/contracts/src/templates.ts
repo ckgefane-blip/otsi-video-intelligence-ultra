@@ -104,7 +104,7 @@ export const BUILTIN_ORG_TEMPLATES: OrgTemplate[] = [
   {
     id: "00000000-0000-4000-8000-000000000001",
     organization_id: "00000000-0000-0000-0000-000000000000",
-    name: "Broadcast Gold",
+    name: "Broadcast gold",
     description: "Golden highlight ring with television match styling and standard audio mix",
     kind: "FULL",
     spec: {
@@ -150,7 +150,7 @@ export const BUILTIN_ORG_TEMPLATES: OrgTemplate[] = [
   {
     id: "00000000-0000-4000-8000-000000000002",
     organization_id: "00000000-0000-0000-0000-000000000000",
-    name: "Dynamic Cyan",
+    name: "Dynamic cyan",
     description: "High-contrast spotlight with vivid cyan tracker ring and responsive auto-framing",
     kind: "SPOTLIGHT",
     spec: {
@@ -175,7 +175,7 @@ export const BUILTIN_ORG_TEMPLATES: OrgTemplate[] = [
   {
     id: "00000000-0000-4000-8000-000000000003",
     organization_id: "00000000-0000-0000-0000-000000000000",
-    name: "Cinematic Warm",
+    name: "Cinematic warm",
     description: "Subtle film look with vignette and elegant lower third tags",
     kind: "STYLE",
     spec: {

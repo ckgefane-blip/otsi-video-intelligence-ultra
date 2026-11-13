@@ -2,14 +2,14 @@
 /**
  * Page 06 Reel Builder, rebuilt to the SOT (Page 20, Reels.dc.html).
  *
- * Three columns inside a viewport-height row, like the SOT: the left Reel settings sidebar (Best Moment Rule v2.1 — moments source,
+ * Three columns inside a viewport-height row, like the SOT: the left Reel settings sidebar (Best moment rule v2.1 — moments source,
  * length with the per-match caps, tier legend, Build reel pinned in the footer), the centre (Reel Builder header, the reel summary, the
- * budget bar, the preview capped at 700 px, the Sequence with the Profile Intro fixed first), and the right Clip inspector (the selected
+ * budget bar, the preview capped at 700 px, the Sequence with the Profile intro fixed first), and the right Clip inspector (the selected
  * clip's details, or "No clip selected"). The row is constrained to the height AppMain gives it, so each column scrolls on its own and
  * the Build reel footer stays visible; the page chrome (header, summary, Budget, Sequence) renders with honest empty values when no reel
  * is open. There is no Spotlight/Overlays/Branding inspector, no Suggested Moments or Timeline section, no render-confirmation dialog
- * (Build reel starts the render directly), no cross-match creation flow, no auto-opening Profile Intro modal, and no preview overlays.
- * The Profile Intro lives in the Sequence as a card.
+ * (Build reel starts the render directly), no cross-match creation flow, no auto-opening Profile intro modal, and no preview overlays.
+ * The Profile intro lives in the Sequence as a card.
  *
  * With a reel id it works on that reel through the Reel Builder context (clips, moments, render); without one it shows the builder's
  * empty state and the organization's reels to open. The stage carries the draft (spotlight settings + name, saved by the inspector),
@@ -33,7 +33,7 @@ const mss = (us: number) => `${Math.floor(us / 6e7)}:${String(Math.floor(us / 1e
 /** the render state as a word in the current language (API states are codes, never shown raw) */
 const renderWord = (state: string | null | undefined, d: Dictionary["body"]["reels"]) =>
   state === "SUCCEEDED" ? d.renderStateSucceeded : state === "FAILED" ? d.renderStateFailed : state === "QUEUED" ? d.renderStateQueued : state === "RUNNING" ? d.renderStateRunning : d.renderStateNotRendered;
-/** the per-match cap for a target length (Best Moment Rule v2.1): 90 s → 3, 3 min → 4, 5 min → 5; Tier S is exempt */
+/** the per-match cap for a target length (Best moment rule v2.1): 90 s → 3, 3 min → 4, 5 min → 5; Tier S is exempt */
 const capOf = (s: ReelLengthS) => (s === 90 ? 3 : s === 300 ? 5 : 4);
 
 /* ------------------------------------------------------------------ left: Reel settings */
@@ -104,7 +104,7 @@ function ReelSettingsSidebar() {
             const on = mode === "ALL_MATCHES" ? crossLength === s : lengthS === s;
             return (
               <button key={s} type="button" className={on ? "on" : ""} aria-pressed={on} disabled={lengthFixed || !reel || creating}
-                style={{ fontSize: 12, padding: "0 4px" }}
+                style={{ fontSize: 11, padding: "0 4px" }}
                 onClick={() => { if (mode === "ALL_MATCHES") setCrossLength(s); else setLengthS(s); }}>{label}</button>
             );
           })}
@@ -181,7 +181,7 @@ function ReelSummaryBar({ reelCount }: { reelCount: number | null }) {
   );
 }
 
-/** Best Moment Rule v2.1 budget bar: the clips' total against the 5:00 hard cap, with the target-length marker (3:00 by default) */
+/** Best moment rule v2.1 budget bar: the clips' total against the 5:00 hard cap, with the target-length marker (3:00 by default) */
 function BudgetBarSot() {
   const { t: dict } = useLocale();
   const { r, lengthS } = useStage();
@@ -196,7 +196,7 @@ function BudgetBarSot() {
     <section aria-label={d.rbBudget} style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8, background: "transparent", border: 0, borderRadius: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span className="lab">{d.rbBudget}</span>
-        <span><span className="mono" style={{ fontWeight: 600 }}>{mss(totalUs)}</span> <span className="sm mu">of</span> <span className="mono" style={{ fontWeight: 600 }}>5:00</span></span>
+        <span><span className="mono" style={{ fontWeight: 400 }}>{mss(totalUs)}</span> <span className="sm mu">of</span> <span className="mono" style={{ fontWeight: 400 }}>5:00</span></span>
       </div>
       <div style={{ position: "relative" }}>
         <div className="bud" role="meter" aria-label={d.rbBudget} aria-valuemin={0} aria-valuemax={300} aria-valuenow={Math.round(totalUs / 1e6)}>
@@ -240,7 +240,7 @@ function SequencePanel() {
             <span style={{ aspectRatio: "16/9", borderRadius: 4, background: "rgb(var(--canvas))", border: "1px solid rgb(var(--line))", display: "grid", placeItems: "center" }}>
               <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 20, height: 20, color: "rgb(var(--primary))" }} fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
             </span>
-            <span className="sm" style={{ fontWeight: 600 }}>{d.stepProfileIntro}</span>
+            <span className="sm" style={{ fontWeight: 400 }}>{d.stepProfileIntro}</span>
             <span className="sm mu">{d.rbIntroAlways}</span>
           </li>
         )}
@@ -256,9 +256,9 @@ function SequencePanel() {
             <li key={c.id} data-clip={i} style={{ flex: "0 0 160px", borderRadius: 8, border: on ? "1.5px solid rgb(var(--primary))" : "1px solid rgb(var(--line))", background: on ? "rgba(43,212,176,.06)" : "rgb(var(--p0))", padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
               <button type="button" onClick={() => r?.setSelectedClip(on ? null : c.id)} aria-pressed={on} aria-label={`${i + 1}. ${c.label ?? d.rbClip} · ${mss(c.in_pts_us)} – ${mss(c.out_pts_us)}`} style={{ all: "unset", cursor: "pointer", display: "contents" }}>
                 <span style={{ aspectRatio: "16/9", borderRadius: 4, background: "rgb(var(--canvas))", border: "1px solid rgb(var(--line))", display: "grid", placeItems: "center" }}>
-                  <span className="mono" style={{ fontSize: 12, color: "rgb(var(--muted))" }}>{`${i + 1} · ${dur.toFixed(1)}s`}</span>
+                  <span className="mono" style={{ fontSize: 11, color: "rgb(var(--muted))" }}>{`${i + 1} · ${dur.toFixed(1)}s`}</span>
                 </span>
-                <span className="sm" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.label ?? `${d.rbClip} ${i + 1}`}</span>
+                <span className="sm" style={{ fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.label ?? `${d.rbClip} ${i + 1}`}</span>
                 <span className="sm mu">{`${mss(c.in_pts_us)} – ${mss(c.out_pts_us)}`}</span>
               </button>
             </li>
@@ -316,7 +316,7 @@ function ClipInspector() {
 
 /* ------------------------------------------------------------------ the page */
 const TAB_OF: Record<string, number> = { "p06-spotlight": 0, "p06-overlays": 1, "p06-branding": 2 };
-/** Best Moment Rule v2.1: a single-match reel's target length is remembered per reel in this browser (like the worked step) */
+/** Best moment rule v2.1: a single-match reel's target length is remembered per reel in this browser (like the worked step) */
 const LENGTH_KEY = (id: string) => `otsi.reel-length.${id}`;
 
 function Sections({ r }: { r: ReelState | null }) {
@@ -332,7 +332,7 @@ function Sections({ r }: { r: ReelState | null }) {
   useEffect(() => { if (reel) { setDraft(reel.settings); setName(reel.name); } else { setDraft(null); setName(""); } }, [reelId, version]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setMode("clip"); }, [reelId]);
   const dirty = useDirty(reel, draft, name);
-  // Best Moment Rule v2.1 target length: a cross-match reel's was fixed when it was made; a single-match reel's is chosen here
+  // Best moment rule v2.1 target length: a cross-match reel's was fixed when it was made; a single-match reel's is chosen here
   const lengthFixed = reel?.source === "ALL_MATCHES" && !!reel.cross_match_length_s;
   const [lengthSState, setLengthSState] = useState<ReelLengthS>(180);
   useEffect(() => {
@@ -365,7 +365,7 @@ function Sections({ r }: { r: ReelState | null }) {
       return null;
     }
   }, [reel, draft, name, r]);
-  // the SOT has no Profile Intro dialog on this page: the intro is a card in the Sequence, so opening it is a no-op here
+  // the SOT has no Profile intro dialog on this page: the intro is a card in the Sequence, so opening it is a no-op here
   const openProfileIntro = useCallback(() => {}, []);
   /** Build reel (after the confirmation): unsaved edits are saved first, then the H.264 render starts — it spends tokens,
    *  so the sidebar button always opens ConfirmRender before this runs (owner 2026-11-13) */

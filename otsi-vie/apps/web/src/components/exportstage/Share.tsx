@@ -97,7 +97,7 @@ export function SharePanel({ focus }: { focus: boolean }) {
 
       <div data-share="password" className="mt-2 flex items-center gap-2 text-sm">
         <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-        {password === null ? <span className="flex-1">Password Protection</span> : (
+        {password === null ? <span className="flex-1">Password protection</span> : (
           <input aria-label="Password for the link (8 or more characters)" type="password" autoComplete="new-password" value={password} maxLength={128} autoFocus
             onChange={(x) => setPassword(x.target.value)} placeholder="Password (8+ characters)"
             className="min-w-0 flex-1 rounded-ctl border border-primary bg-canvas px-2 py-1 text-sm text-ink outline-none" />
@@ -114,13 +114,13 @@ export function SharePanel({ focus }: { focus: boolean }) {
       </div>
       <div data-share="download" title={canDownload ? undefined : "The video's rights do not allow downloads"} className="mt-2 flex items-center gap-2 text-sm">
         <Download className={`h-4 w-4 shrink-0 ${canDownload ? "text-muted" : "text-muted/50"}`} aria-hidden />
-        <span className={`flex-1 ${canDownload ? "" : "text-muted"}`}>Allow Download</span>
+        <span className={`flex-1 ${canDownload ? "" : "text-muted"}`}>Allow download</span>
         <button type="button" role="switch" aria-checked={download && canDownload} aria-label="Allow download" className="vie-sw"
           onClick={() => (canDownload ? setDownload((d) => !d) : setNote("The video's rights do not allow downloads"))} />
       </div>
       <div data-share="comments" className="mt-2 flex items-center gap-2 text-sm">
         <StickyNote className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-        <span className="flex-1">Allow Comments</span>
+        <span className="flex-1">Allow comments</span>
         <button type="button" role="switch" aria-checked={comments} aria-label="Allow comments" className="vie-sw"
           onClick={() => (e.canEdit ? setComments((c) => !c) : setNote("Your role can look, not share"))} />
       </div>

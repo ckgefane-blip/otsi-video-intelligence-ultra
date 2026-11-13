@@ -62,7 +62,7 @@ export const LibraryTree = memo(function LibraryTree({ all, folder, setFolder, t
         <span>{dict.body.library.treeFolders}</span>
         <button type="button" data-tree="new-folder" onClick={() => (canWrite ? newFolder() : say(dict.body.library.newFolderRoleSay))}
           aria-label={dict.body.library.newFolder} title={canWrite ? dict.body.library.treeMakeFolder : dict.body.library.treeRoleNoFolders}
-          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: 13, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>{dict.body.library.treeNew}</button>
+          style={{ border: 0, background: "transparent", color: canWrite ? "#33a8ff" : "#5d7699", font: "inherit", fontSize: 12, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>{dict.body.library.treeNew}</button>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {c.folders.length === 0 && <li className="px-3 py-1 text-sm text-muted">{dict.body.library.treeNoFolders}{canWrite ? dict.body.library.treeNoFoldersHint : ""}</li>}

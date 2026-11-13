@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Compliance } from "@/components/admin/Compliance";
 import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
-export const metadata: Metadata = { title: "Security & Compliance" };
+export const metadata: Metadata = { title: "Security & compliance" };
 
 /**
  * Admin Console > Security & Compliance (SOT, AdminCompliance.dc.html):

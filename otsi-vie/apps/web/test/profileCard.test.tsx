@@ -47,9 +47,9 @@ describe("analysis profile card", () => {
     expect(screen.getByRole("radio", { name: /Recommended/ })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: /^Standard/ }));
     expect(page.setPrefs).toHaveBeenLastCalledWith(expect.objectContaining({ profile: "STANDARD", stabilize: false }));
-    fireEvent.click(screen.getByRole("radio", { name: /Ultra-Sensitive/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Ultra-sensitive/ }));
     expect(page.setPrefs).toHaveBeenLastCalledWith(expect.objectContaining({ profile: "ULTRA_SENSITIVE", stabilize: true }));
-    expect(screen.getByText(/Choose a video in Recent Uploads/)).toBeInTheDocument();
+    expect(screen.getByText(/Choose a video in Recent uploads/)).toBeInTheDocument();
     expect(screen.getByText(/never below High accuracy/)).toBeInTheDocument();
   });
 
@@ -59,10 +59,10 @@ describe("analysis profile card", () => {
     render(<ProfileCard y={800} />);
     expect(api).toHaveBeenCalledWith("/v1/videos/v1/assessments/latest");
     await waitFor(() => expect(document.querySelector("[data-footage-check]")).toHaveAttribute("data-footage-check", "SUCCEEDED"));
-    // the label is the SOT's "High Accuracy" (contracts PROFILES); the mock detail keeps its own words
-    expect(document.querySelector("[data-auto-profile]")).toHaveTextContent("Analysed with High Accuracy. The footage check recommended High accuracy.");
+    // the label is the SOT's "High accuracy" (contracts PROFILES); the mock detail keeps its own words
+    expect(document.querySelector("[data-auto-profile]")).toHaveTextContent("Analysed with High accuracy. The footage check recommended High accuracy.");
     expect(document.querySelector("[data-issue=BLUR]")).toHaveTextContent("Many frames are blurred.");
-    expect(document.querySelector("[data-estimate]")).toHaveTextContent("High Accuracy: about 1 h 22 min on this computer · up to 3.0 GB memory (estimate)");
+    expect(document.querySelector("[data-estimate]")).toHaveTextContent("High accuracy: about 1 h 22 min on this computer · up to 3.0 GB memory (estimate)");
   });
 
   it("a video never checked: a writer can check it; a viewer is told why not", async () => {

@@ -84,7 +84,7 @@ describe("dictionaries (ADR-139)", () => {
     // Words that are legitimately identical to English in a locale: genuine
     // cognates / loanwords in the video-editing and football domain ("Zoom",
     // "Clip", "Audio", "Standard", "Team", "Match", "Corner" in French…),
-    // product terms ("Reels", "Media Bin", "Smart Bin"), keyboard key names
+    // product terms ("Reels", "Media bin", "Smart Bin"), keyboard key names
     // ("Escape"), and placeholder-only templates ("{a} · {b}", "{n} fps").
     // Every same-as-English leaf must be on this list — a new one means a
     // translation was left as an English copy. Group B (2026-11-11) added
@@ -651,9 +651,9 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("exports").length).toBe(90);
     expect(bodyKeys("players").length).toBe(149);
     expect(bodyKeys("matches").length).toBe(108);
-    expect(bodyKeys("upload").length).toBe(490);
+    expect(bodyKeys("upload").length).toBe(491);
     expect(bodyKeys("processing").length).toBe(325);
-    // Group B (2026-11-11): Tactical Intelligence + workspace shell.
+    // Group B (2026-11-11): Tactical intelligence + workspace shell.
     // SOT UI rebuild Pages 29-31 (2026-11-12): +34 tactics keys.
     expect(bodyKeys("tactics").length).toBe(207);
     expect(bodyKeys("workspace").length).toBe(730);

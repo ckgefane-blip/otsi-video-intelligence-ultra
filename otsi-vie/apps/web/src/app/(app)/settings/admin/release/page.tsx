@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ReleaseControl } from "@/components/admin/ReleaseControl";
 import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
-export const metadata: Metadata = { title: "Release Control" };
+export const metadata: Metadata = { title: "Release control" };
 
 /**
  * Admin Console > Release Control (SOT, AdminRelease.dc.html): the

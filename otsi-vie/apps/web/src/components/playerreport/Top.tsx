@@ -80,7 +80,7 @@ const KPI_EVIDENCE: Record<string, EvidenceLevel> = {
 
 function RailInner({ r }: { r: Report }) {
   const { t: dict } = useLocale();
-  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
+  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[12px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   return (
     <aside aria-label="Report sections" data-section="p08-s02" className="w-full shrink-0 lg:w-60">

@@ -71,7 +71,7 @@ const clock = (us: number) => {
   const s = Math.max(0, Math.floor(us / 1e6)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}` : `${m}:${String(x).padStart(2, "0")}`;
 };
-const btn: CSSProperties = { background: "transparent", border: 0, color: "#fff", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: "6px 10px", fontFamily: "inherit", minWidth: 40 };
+const btn: CSSProperties = { background: "transparent", border: 0, color: "#fff", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "6px 10px", fontFamily: "inherit", minWidth: 40 };
 
 /** the controls inside a full-screen player: play / pause, time, position, mute, exit. They fade after 3 s without the mouse while playing. */
 export function FullscreenBar({ playing, onPlay, now, total, onSeek, muted, onMute, onExit, extra }: {
@@ -103,7 +103,7 @@ export function FullscreenBar({ playing, onPlay, now, total, onSeek, muted, onMu
         style={{ flex: 1, accentColor: "#1e90ff", cursor: "pointer" }} />
       {extra}
       {onMute && <button type="button" aria-label={muted ? "Unmute" : "Mute"} onClick={onMute} style={btn}>{muted ? "🔇" : "🔊"}</button>}
-      <button type="button" aria-label="Exit full screen" title="Exit full screen (Esc)" onClick={onExit} style={{ ...btn, fontSize: 15, border: "1px solid rgba(255,255,255,.5)", borderRadius: 6 }}>Exit full screen</button>
+      <button type="button" aria-label="Exit full screen" title="Exit full screen (Esc)" onClick={onExit} style={{ ...btn, fontSize: 12, border: "1px solid rgba(255,255,255,.5)", borderRadius: 6 }}>Exit full screen</button>
     </div>
   );
 }

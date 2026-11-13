@@ -77,11 +77,11 @@ function StatTile({ name, value, note }: { name: string; value: string | null; n
   const { t: dict } = useLocale();
   return (
     <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-      <span className="eb" style={{ fontSize: 12 }}>{name}</span>
+      <span className="eb" style={{ fontSize: 11 }}>{name}</span>
       {value != null ? (
-        <span className="mono" style={{ fontSize: 32, lineHeight: 1 }}>{value}</span>
+        <span className="mono" style={{ fontSize: 26, lineHeight: 1 }}>{value}</span>
       ) : (
-        <span style={{ fontSize: 15, ...notMeasured }}>{dict.body.reports.notMeasured}{note ? ` — ${note}` : ""}</span>
+        <span style={{ fontSize: 12, ...notMeasured }}>{dict.body.reports.notMeasured}{note ? ` — ${note}` : ""}</span>
       )}
     </div>
   );
@@ -151,7 +151,7 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
                   <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 56, height: 56, strokeWidth: 1.1, fill: "none", stroke: "currentColor" }}>
                     <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
                   </svg>
-                  <span style={{ fontSize: 14 }}>{d.piNoPhoto}</span>
+                  <span style={{ fontSize: 12 }}>{d.piNoPhoto}</span>
                 </>
               )}
             </div>
@@ -164,8 +164,8 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
                 </svg>
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>{intro.verified ? d.piVerified : d.unconfirmedBadge}</span>
-                <span className="mono" style={{ fontSize: 13, color: intro.verified ? "var(--ac)" : "var(--amber)" }}>
+                <span style={{ fontSize: 14, fontWeight: 400 }}>{intro.verified ? d.piVerified : d.unconfirmedBadge}</span>
+                <span className="mono" style={{ fontSize: 12, color: intro.verified ? "var(--ac)" : "var(--amber)" }}>
                   {intro.player.canonical_otsi_id ?? d.pinUnconfirmed}
                 </span>
               </div>
@@ -175,21 +175,21 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
           {/* centre: profile + facts + stats + strengths */}
           <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 30, minWidth: 0, paddingTop: 6 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <span className="eb" style={{ fontSize: 13, letterSpacing: ".16em", color: "var(--ac)" }}>{d.piPlayerProfile}</span>
+              <span className="eb" style={{ fontSize: 12, letterSpacing: ".16em", color: "var(--ac)" }}>{d.piPlayerProfile}</span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 22 }}>
-                {team?.jersey_number != null && <span className="mono" style={{ fontSize: 52, fontWeight: 500, lineHeight: 1, color: "var(--ac)" }}>{team.jersey_number}</span>}
-                <h1 style={{ fontSize: 44, fontWeight: 600, lineHeight: 1.05, letterSpacing: "-.03em", whiteSpace: "nowrap" }}>{intro.player.display_name}</h1>
+                {team?.jersey_number != null && <span className="mono" style={{ fontSize: 52, fontWeight: 400, lineHeight: 1, color: "var(--ac)" }}>{team.jersey_number}</span>}
+                <h1 style={{ fontSize: 44, fontWeight: 400, lineHeight: 1.05, letterSpacing: "-.03em", whiteSpace: "nowrap" }}>{intro.player.display_name}</h1>
               </div>
-              <span style={{ fontSize: 20, color: "var(--tx2)" }}>{[position, club].filter(Boolean).join(" · ") || d.notEntered}</span>
+              <span style={{ fontSize: 16, color: "var(--tx2)" }}>{[position, club].filter(Boolean).join(" · ") || d.notEntered}</span>
             </div>
 
             <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "22px 28px", padding: "24px 0", borderTop: "1px solid var(--ln)", borderBottom: "1px solid var(--ln)" }}>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piNationality}</dt><dd style={{ margin: "6px 0 0", fontSize: 18 }}>{p.nationality?.name ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piAgeDob}</dt><dd style={{ margin: "6px 0 0", fontSize: 18, whiteSpace: "nowrap" }}>{ageDob ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piPreferredFoot}</dt><dd style={{ margin: "6px 0 0", fontSize: 18 }}>{foot ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piHeight}</dt><dd className="mono" style={{ margin: "6px 0 0", fontSize: 18 }}>{height ?? <span style={notMeasured}>{d.notEntered}</span>}{height && <UserEntered />}</dd></div>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piWeight}</dt><dd className="mono" style={{ margin: "6px 0 0", fontSize: 18 }}>{weight ?? <span style={notMeasured}>{d.notEntered}</span>}{weight && <UserEntered />}</dd></div>
-              <div><dt className="eb" style={{ fontSize: 12 }}>{d.piMainPosition}</dt><dd style={{ margin: "6px 0 0", fontSize: 17, ...notMeasured }}>{dict.body.reports.notMeasured}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piNationality}</dt><dd style={{ margin: "6px 0 0", fontSize: 15 }}>{p.nationality?.name ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piAgeDob}</dt><dd style={{ margin: "6px 0 0", fontSize: 15, whiteSpace: "nowrap" }}>{ageDob ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piPreferredFoot}</dt><dd style={{ margin: "6px 0 0", fontSize: 15 }}>{foot ?? <span style={notMeasured}>{d.notEntered}</span>}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piHeight}</dt><dd className="mono" style={{ margin: "6px 0 0", fontSize: 15 }}>{height ?? <span style={notMeasured}>{d.notEntered}</span>}{height && <UserEntered />}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piWeight}</dt><dd className="mono" style={{ margin: "6px 0 0", fontSize: 15 }}>{weight ?? <span style={notMeasured}>{d.notEntered}</span>}{weight && <UserEntered />}</dd></div>
+              <div><dt className="eb" style={{ fontSize: 11 }}>{d.piMainPosition}</dt><dd style={{ margin: "6px 0 0", fontSize: 17, ...notMeasured }}>{dict.body.reports.notMeasured}</dd></div>
             </dl>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
@@ -200,11 +200,11 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <span className="eb" style={{ fontSize: 12 }}>{d.piStrengths}{det && det.strengths.length > 0 && <UserEntered />}</span>
+              <span className="eb" style={{ fontSize: 11 }}>{d.piStrengths}{det && det.strengths.length > 0 && <UserEntered />}</span>
               {det && det.strengths.length > 0 ? (
-                <ul style={{ fontSize: 15, margin: 0, paddingLeft: 18 }}>{det.strengths.map((s) => <li key={s}>{s}</li>)}</ul>
+                <ul style={{ fontSize: 12, margin: 0, paddingLeft: 18 }}>{det.strengths.map((s) => <li key={s}>{s}</li>)}</ul>
               ) : (
-                <span style={{ fontSize: 15, ...notMeasured }}>{d.piNotSet}</span>
+                <span style={{ fontSize: 12, ...notMeasured }}>{d.piNotSet}</span>
               )}
             </div>
           </div>
@@ -213,35 +213,35 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
           <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
             <div style={{ padding: 18, borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span className="eb" style={{ fontSize: 12 }}>{d.piHeatmapMainPos}</span>
+                <span className="eb" style={{ fontSize: 11 }}>{d.piHeatmapMainPos}</span>
                 <span className="mono sm mu">{d.piVideosCount.replace("{a}", String(videos ?? 0))}</span>
               </div>
               {intro.heat ? <HeatPitch zones={intro.heat} label={d.heatMapOf.replace("{a}", intro.player.display_name)} /> : <PitchOutline />}
-              {!intro.heat && <span style={{ alignSelf: "center", fontSize: 14, ...notMeasured }}>{d.piHeatmapNotMeasured}</span>}
+              {!intro.heat && <span style={{ alignSelf: "center", fontSize: 12, ...notMeasured }}>{d.piHeatmapNotMeasured}</span>}
             </div>
             <div style={{ padding: 18, borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", flexDirection: "column", gap: 10 }}>
-              <span className="eb" style={{ fontSize: 12 }}>{d.piSummary}{det?.summary && <UserEntered />}</span>
-              {det?.summary ? <p style={{ fontSize: 15, margin: 0 }}>{det.summary}</p> : <p style={{ fontSize: 15, margin: 0, ...notMeasured }}>{d.piNotSet}</p>}
+              <span className="eb" style={{ fontSize: 11 }}>{d.piSummary}{det?.summary && <UserEntered />}</span>
+              {det?.summary ? <p style={{ fontSize: 12, margin: 0 }}>{det.summary}</p> : <p style={{ fontSize: 12, margin: 0, ...notMeasured }}>{d.piNotSet}</p>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
               <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", flexDirection: "column", gap: 8 }}>
-                <span className="eb" style={{ fontSize: 12 }}>{d.piRecentForm}</span>
-                <span style={{ fontSize: 15, ...notMeasured }}>{dict.body.reports.notMeasured}</span>
+                <span className="eb" style={{ fontSize: 11 }}>{d.piRecentForm}</span>
+                <span style={{ fontSize: 12, ...notMeasured }}>{dict.body.reports.notMeasured}</span>
               </div>
               <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", flexDirection: "column", gap: 8 }}>
-                <span className="eb" style={{ fontSize: 12 }}>{d.piInternational}{intl && <UserEntered />}</span>
+                <span className="eb" style={{ fontSize: 11 }}>{d.piInternational}{intl && <UserEntered />}</span>
                 {intl ? (
-                  <span style={{ fontSize: 15 }}>{intl.country}{intl.caps != null ? ` · ${d.capsLine.replace("{a}", String(intl.caps))}` : ""}</span>
+                  <span style={{ fontSize: 12 }}>{intl.country}{intl.caps != null ? ` · ${d.capsLine.replace("{a}", String(intl.caps))}` : ""}</span>
                 ) : (
-                  <span style={{ fontSize: 15, ...notMeasured }}>{d.piNotSet}</span>
+                  <span style={{ fontSize: 12, ...notMeasured }}>{d.piNotSet}</span>
                 )}
               </div>
             </div>
             <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--p0)", border: "1px solid var(--ln)", display: "flex", alignItems: "center", gap: 16 }}>
               <span style={{ width: 40, height: 40, borderRadius: 8, background: "var(--p2)", border: "1px solid var(--ln2)", flex: "none" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-                <span className="eb" style={{ fontSize: 12 }}>{d.piClubLeague}</span>
-                <span style={{ fontSize: 15 }}>
+                <span className="eb" style={{ fontSize: 11 }}>{d.piClubLeague}</span>
+                <span style={{ fontSize: 12 }}>
                   <span>{club ?? <span style={notMeasured}>{d.notEntered}</span>}{club && !clubFromRoster && <UserEntered />}</span>
                   {" · "}
                   <span>{det?.league ? <>{det.league}<UserEntered /></> : <span style={notMeasured}>{d.piLeagueNotSet}</span>}</span>
@@ -256,19 +256,19 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
               {/* SOT: the footer carries the logo image, not the "OTSI" text */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/brand/otsi-logo.png" alt="OTSI" style={{ height: 28, width: "auto", display: "block" }} draggable={false} />
-              <span style={{ color: "var(--mu)", fontWeight: 500, letterSpacing: ".14em", fontSize: 12 }}>VIE</span>
+              <span style={{ color: "var(--mu)", fontWeight: 400, letterSpacing: ".14em", fontSize: 11 }}>VIE</span>
             </span>
-            <span style={{ fontSize: 13, color: "var(--mu)" }}>{d.piMeasuredBy}</span>
+            <span style={{ fontSize: 12, color: "var(--mu)" }}>{d.piMeasuredBy}</span>
             <span style={{ flex: 1, height: 2, borderRadius: 1, background: "var(--p2)", overflow: "hidden" }}>
               <span style={{ display: "block", width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%`, height: "100%", background: "var(--ac)" }} />
             </span>
             {onContinue ? (
-              <button type="button" onClick={onContinue} className="btn pri lg" style={{ height: 48, padding: "0 24px", fontSize: 15 }}>
+              <button type="button" onClick={onContinue} className="btn pri lg" style={{ height: 48, padding: "0 24px", fontSize: 12 }}>
                 {d.piContinueToReel}
                 <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </button>
             ) : (
-              <Link href={`/players?player=${intro.player.player_id}`} className="btn pri lg" style={{ height: 48, padding: "0 24px", fontSize: 15, textDecoration: "none" }}>
+              <Link href={`/players?player=${intro.player.player_id}`} className="btn pri lg" style={{ height: 48, padding: "0 24px", fontSize: 12, textDecoration: "none" }}>
                 {dict.body.reelstage.openPlayerProfile}
               </Link>
             )}

@@ -50,7 +50,7 @@ describe("C.10 Organization Templates (ADR-109)", () => {
   });
 
   it("applies modular template sections selectively", () => {
-    const goldTemplate = BUILTIN_ORG_TEMPLATES.find((t) => t.name === "Broadcast Gold")!;
+    const goldTemplate = BUILTIN_ORG_TEMPLATES.find((t) => t.name === "Broadcast gold")!;
     expect(goldTemplate).toBeDefined();
 
     // Selectively apply SPOTLIGHT from Broadcast Gold (ring_color #F5D02E)
@@ -69,7 +69,7 @@ describe("C.10 Organization Templates (ADR-109)", () => {
     expect(s2.match_card).toBe(true);
 
     // Apply specific SPOTLIGHT template
-    const cyanTemplate = BUILTIN_ORG_TEMPLATES.find((t) => t.name === "Dynamic Cyan")!;
+    const cyanTemplate = BUILTIN_ORG_TEMPLATES.find((t) => t.name === "Dynamic cyan")!;
     const { settings: s3, applied: a3 } = applyTemplateSpec(s2, cyanTemplate);
     expect(a3).toEqual(["SPOTLIGHT"]);
     expect(s3.ring_color).toBe("#17D1F8");

@@ -549,7 +549,7 @@ export function Preview({ st, ui }: { st: Studio; ui: Ui }) {
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitText(); } else if (e.key === "Escape") setTextAt(null); }}
               onBlur={() => commitText()}
               style={{ position: "absolute", left: textAt.dx, top: textAt.dy, transform: "translate(-50%, -50%)", minWidth: 140, zIndex: 3,
-                padding: "4px 8px", borderRadius: 4, border: "1px solid rgb(var(--primary))", background: "rgba(6,22,48,.92)", color: "#fff", fontSize: 14, outline: "none" }} />
+                padding: "4px 8px", borderRadius: 4, border: "1px solid rgb(var(--primary))", background: "rgba(6,22,48,.92)", color: "#fff", fontSize: 12, outline: "none" }} />
           )}
         </div>}
         {message && (src ? (

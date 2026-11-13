@@ -84,16 +84,16 @@ describe("ShapePanels Formation display & confirmation (ADR-123)", () => {
     const formationText = await screen.findByText("4-3-3");
     expect(formationText).toBeDefined();
 
-    const confirmBtn = screen.getByRole("button", { name: "Inferred (Confirm?)" });
+    const confirmBtn = screen.getByRole("button", { name: "Inferred (confirm?)" });
     expect(confirmBtn).toBeDefined();
 
-    // Verify Formation Stability 82 %
+    // Verify Formation stability 82 %
     expect(screen.getByText("82 %")).toBeDefined();
 
     // Verify Def. Line Height 41.5 m
     expect(screen.getByText("41.5 m")).toBeDefined();
 
-    // Verify Build-up Shape & Defensive Shape
+    // Verify Build-up shape & Defensive shape
     expect(screen.getByText("3-2-4-1")).toBeDefined();
     expect(screen.getByText("4-5-1")).toBeDefined();
 

@@ -88,8 +88,8 @@ export function WelcomeTour() {
         <ol aria-label={t.body.auth.tourTitle} className="flex w-[230px] shrink-0 flex-col gap-1 border-r border-line bg-p0 px-[18px] py-[22px]">
           <li className="eb px-2 pb-2.5">{t.body.auth.tourTitle}</li>
           {[t.body.auth.yourName, t.body.auth.tourStepContext, t.body.auth.tourStepUpload, t.body.auth.tourStepIdentity, t.body.auth.tourStepReels, t.body.auth.tourStepEvidence].map((s, i) => (
-            <li key={s} className={`flex h-[34px] items-center gap-2.5 rounded-md px-2 ${i === step ? "bg-raised font-medium" : "text-muted"}`}>
-              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs ${i === step ? "bg-primary font-semibold text-primary-ink" : "border border-line2"}`}>{i + 1}</span>
+            <li key={s} className={`flex h-[34px] items-center gap-2.5 rounded-md px-2 ${i === step ? "bg-raised font-normal" : "text-muted"}`}>
+              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs ${i === step ? "bg-primary font-normal text-primary-ink" : "border border-line2"}`}>{i + 1}</span>
               <span className={i === step ? "" : "text-muted"}>{s}</span>
             </li>
           ))}

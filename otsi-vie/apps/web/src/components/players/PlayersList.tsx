@@ -3,7 +3,7 @@
  * The Players list — SOT UI rebuild Page 18 of 31 (Players.dc.html).
  *
  * The SOT's page: a header (Players, search "Search name, number or PIN", identity filter All / Confirmed / Unconfirmed), a player
- * table (OTSI PIN | Player | No. | Club | Pos. | Tracks | Coverage | Identity), a Profile Intro preview (a compact 16:9 card of the
+ * table (OTSI PIN | Player | No. | Club | Pos. | Tracks | Coverage | Identity), a Profile intro preview (a compact 16:9 card of the
  * selected player, from GET /v1/players/:id/profile-intro), and a right inspector that edits the selected player's profile in place
  * (Basics, Club & international, Summary, Strengths, photo) with Discard / Save profile. One Save profile writes everything that
  * changed: the basics through PATCH /v1/players/:id/profile, the intro details through PATCH /v1/players/:id/profile-details.
@@ -72,7 +72,7 @@ export function buildDetailsPatch(saved: PlayerProfileDetails | null, draft: Det
   return body;
 }
 
-/** the compact 16:9 Profile Intro preview for the selected player, from GET /v1/players/:id/profile-intro */
+/** the compact 16:9 Profile intro preview for the selected player, from GET /v1/players/:id/profile-intro */
 function IntroPreview({ entry }: { entry: PlayerListEntry | null }) {
   const { t: dict } = useLocale();
   const [intro, setIntro] = useState<PlayerProfileIntro | null | undefined>(undefined);

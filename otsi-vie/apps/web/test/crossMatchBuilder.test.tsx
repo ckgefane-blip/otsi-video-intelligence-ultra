@@ -1,6 +1,6 @@
 /**
  * Cross-match highlight reel (ADR-131 Build B), rebuilt to the SOT (Page 20, Reels.dc.html): the Reel Builder page itself has no
- * cross-match creation flow, no Best Moments section and no auto-opening Profile Intro dialog — the Sequence IS the moments list,
+ * cross-match creation flow, no Best Moments section and no auto-opening Profile intro dialog — the Sequence IS the moments list,
  * and the preview is the clip's footage with no scoreboard or render-mode toggle. The full source choice (ReelSourceChoice, which
  * does create a cross-match reel) is tested on its own; the read-only summary of a cross-match reel stays in the settings sidebar.
  */
@@ -82,7 +82,7 @@ const intro = () => ({
       updated_by_name: "Ana", updated_at: "2026-11-10T00:00:00.000Z" },
     editable: true,
   },
-  verified: true, verified_rule: "Player Identity Verified means: registered, a person confirmed a track, targets current.", reel_id: null,
+  verified: true, verified_rule: "Player identity verified means: registered, a person confirmed a track, targets current.", reel_id: null,
   stats: { games_analysed: 8, minutes_seen: 712, goals: 2, assists: null, basis: "Measured from his confirmed tracks.", assists_reason: "The engine does not link a pass to a goal." },
   heat: null, recent_form: { ratings: null, reason: "No per-match rating model yet." },
 });
@@ -206,19 +206,19 @@ describe("Cross-match preview", () => {
       last_good_render: { id: "render-1", has_output: true },
     });
     await openCross(rendered);
-    expect(screen.queryByLabelText("Preview Render")).toBeNull();
+    expect(screen.queryByLabelText("Preview render")).toBeNull();
     const preview = screen.getByRole("region", { name: "Cinematic spotlight preview" });
     expect(within(preview).queryByText("All matches")).toBeNull();
   });
 });
 
-describe("Cross-match Profile Intro", () => {
-  it("does not auto-open the Profile Intro dialog; the intro is a card in the Sequence", async () => {
+describe("Cross-match Profile intro", () => {
+  it("does not auto-open the Profile intro dialog; the intro is a card in the Sequence", async () => {
     await openCross();
-    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Player profile intro" })).toBeNull();
     expect(api.mock.calls.some(([u]) => String(u).includes("/profile-intro"))).toBe(false);
     const seq = screen.getByLabelText("Sequence");
-    expect(within(seq).getByText("Profile Intro")).toBeInTheDocument();
+    expect(within(seq).getByText("Profile intro")).toBeInTheDocument();
     expect(within(seq).getByText("16:9 · always first")).toBeInTheDocument();
   });
 });

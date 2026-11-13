@@ -106,7 +106,7 @@ export function AppRail() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[13px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
+  const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[12px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   const settingsActive = /^\/settings(\/|$)/.test(path) && !/^\/settings\/admin/.test(path);
   const adminActive = /^\/settings\/admin(\/|$)/.test(path);

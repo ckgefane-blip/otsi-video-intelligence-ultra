@@ -134,7 +134,7 @@ export default function SetupPage() {
               {already && <Link href="/login" className="underline">{t.body.auth.signIn}</Link>}
             </p>
           )}
-          <button type="submit" disabled={busy} className="h-11 w-full rounded-ctl bg-primary t-body font-medium text-primary-ink hover:brightness-110 disabled:opacity-70">
+          <button type="submit" disabled={busy} className="h-11 w-full rounded-ctl bg-primary t-body font-normal text-primary-ink hover:brightness-110 disabled:opacity-70">
             {busy ? t.body.auth.saving : t.body.auth.setupSubmit}
           </button>
           <p className="t-small text-muted">{t.body.auth.setupNote}</p>

@@ -142,7 +142,7 @@ describe("Welcome tour (SOT page 31)", () => {
     // to the last step, then finish
     for (let i = 0; i < 5; i++) fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("6 / 6")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Get Started" }));
+    fireEvent.click(screen.getByRole("button", { name: "Get started" }));
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith("/v1/me", expect.objectContaining({ method: "PATCH",
       json: { display_name: "Awore", onboarding_done: true } })));
   });
@@ -232,7 +232,7 @@ describe("Tactical (SOT page 29)", () => {
       expect(clicks[0]!.href).toBe("blob:fake");
       // off the Team shape view there is no pitch to export
       fireEvent.click(screen.getByRole("button", { name: "Pass networks" }));
-      expect(await screen.findByText("Pass Network")).toBeInTheDocument();
+      expect(await screen.findByText("Pass network")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Export image" })).toBeDisabled();
     } finally {
       global.Image = origImage;
@@ -247,9 +247,9 @@ describe("Tactical (SOT page 29)", () => {
     render(<TacticsStage />);
     await screen.findByText("No tactical data yet");
     fireEvent.click(screen.getByRole("button", { name: "Pass networks" }));
-    expect(await screen.findByText("Pass Network")).toBeInTheDocument();
+    expect(await screen.findByText("Pass network")).toBeInTheDocument();
     expect(screen.queryByText("No tactical data yet")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Compare two players" }));
-    expect(await screen.findByText("Player Comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Player comparison")).toBeInTheDocument();
   });
 });

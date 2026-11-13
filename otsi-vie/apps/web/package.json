@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.1.1",
+    "@fontsource/open-sans": "5.2.7",
     "@otsi-vie/contracts": "workspace:*",
     "@radix-ui/react-dialog": "1.1.4",
     "@simplewebauthn/browser": "14.0.0",

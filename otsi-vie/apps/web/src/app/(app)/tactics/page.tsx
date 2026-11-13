@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { TacticsStage } from "@/components/tactics/TacticsStage";
 
-export const metadata: Metadata = { title: "Tactical Intelligence" };
+export const metadata: Metadata = { title: "Tactical intelligence" };
 
 /**
  * Page 05 Tactical Intelligence on the approved composition (corrected reference 05_TACTICAL_INTELLIGENCE), section by section:

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ProcessingStage } from "@/components/processing/ProcessingStage";
 
-export const metadata: Metadata = { title: "AI Processing" };
+export const metadata: Metadata = { title: "AI processing" };
 
 /**
  * Page 03 AI Processing on the approved composition (corrected reference 03_AI_PROCESSING), section by section: 01 header (shared

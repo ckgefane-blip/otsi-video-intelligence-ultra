@@ -31,17 +31,17 @@ describe("dual timeline keyboard control", () => {
   it("starts from a baseline reference, and B snapshots the active cut", () => {
     const { st, ui } = stub();
     render(<DualTimeline st={st} ui={ui} onClose={() => {}} />);
-    expect(screen.getByText(/Baseline Reference/)).toBeTruthy();
+    expect(screen.getByText(/Baseline reference/)).toBeTruthy();
 
     fireEvent.keyDown(window, { key: "b" });
-    expect(screen.getByText(/Current Snapshot/)).toBeTruthy();
+    expect(screen.getByText(/Current snapshot/)).toBeTruthy();
     expect(ui.say).toHaveBeenCalledWith("Captured current timeline as reference Cut B");
   });
 
   it("Shift+B applies Cut B: the trimmed clip is restored to its reference in/out", () => {
     const { st, ui } = stub();
     const { rerender } = render(<DualTimeline st={st} ui={ui} onClose={() => {}} />);
-    expect(screen.getByText(/Baseline Reference/)).toBeTruthy();
+    expect(screen.getByText(/Baseline reference/)).toBeTruthy();
 
     // the active cut is trimmed after the snapshot was taken
     const trimmed = stub([clip("c1", 0, 5_000_000)]);
@@ -56,7 +56,7 @@ describe("dual timeline keyboard control", () => {
     const { st, ui, say } = stub();
     render(<><input data-testid="field" /><DualTimeline st={st} ui={ui} onClose={() => {}} /></>);
     fireEvent.keyDown(screen.getByTestId("field"), { key: "b" });
-    expect(screen.getByText(/Baseline Reference/)).toBeTruthy();
+    expect(screen.getByText(/Baseline reference/)).toBeTruthy();
     expect(say).not.toHaveBeenCalled();
   });
 });

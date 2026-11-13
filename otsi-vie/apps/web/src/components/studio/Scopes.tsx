@@ -245,7 +245,7 @@ export function ScopesPanel({ videoRef, onClose }: ScopesProps) {
   const chipStyle = (active: boolean) => ({
     padding: "3px 10px",
     borderRadius: 5,
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "inherit",
     fontWeight: 400,
     cursor: "pointer",

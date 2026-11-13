@@ -189,7 +189,7 @@ export function ShapePanels({ focus, runId = null, videoId = null, kits = null, 
               ) : (
                 <button type="button" onClick={() => void confirmFormation(currentFormation.formation)}
                   className="rounded bg-[rgba(168,85,247,0.18)] px-1.5 py-0.5 text-xs font-normal text-[#a855f7]"
-                  title={dict.body.tactics.clickConfirmFormation}>Inferred (Confirm?)</button>
+                  title={dict.body.tactics.clickConfirmFormation}>Inferred (confirm?)</button>
               )}
             </span>
           ) : (

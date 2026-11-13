@@ -49,7 +49,7 @@ describe("Export (SOT)", () => {
     expect(screen.getByRole("heading", { name: "Scouting Pack" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Render only" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Render & send" })).toBeInTheDocument();
-    expect(screen.getByText("Best Moment Rule")).toBeInTheDocument();
+    expect(screen.getByText("Best moment rule")).toBeInTheDocument();
     expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
   });
 

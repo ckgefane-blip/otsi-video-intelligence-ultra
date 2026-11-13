@@ -2,7 +2,7 @@
 /**
  * Page 07 Clip Studio — the studio bin (SOT, Studio.dc.html).
  *
- * Clips: the reel's own clips (Segment 0, the Profile Intro, is locked at
+ * Clips: the reel's own clips (Segment 0, the Profile intro, is locked at
  * the top), searchable by label; click a clip to select it. The SOT's
  * bin is the reel's clips, not the suggested moments — clips come from
  * the Reel Builder, so the footer says so and links there. Looks: the
@@ -56,7 +56,7 @@ export function MediaBin({ r, st, say, binTab, setBinTab }: { r: ReelState | nul
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
         {tab === 0 && (
           <>
-            {/* the Profile Intro is the reel's own first segment. The line reads "— · 16:9" with no player
+            {/* the Profile intro is the reel's own first segment. The line reads "— · 16:9" with no player
                 (user's audit A27) — the name slot is the player's name when one is recorded, else a dash. */}
             <div className="flex items-center gap-2.5">
               <div className="grid aspect-[16/9] w-24 shrink-0 place-items-center rounded-[5px] border-[1.5px] bg-canvas" style={{ borderColor: "rgb(var(--primary))" }}>
@@ -65,7 +65,7 @@ export function MediaBin({ r, st, say, binTab, setBinTab }: { r: ReelState | nul
                 </svg>
               </div>
               <span className="flex flex-col">
-                <span className="font-medium">{s.csProfileIntro}</span>
+                <span className="font-normal">{s.csProfileIntro}</span>
                 <span className="t-small text-muted">{reel?.player?.display_name ?? "—"} · {reel?.aspect ?? "16:9"}</span>
               </span>
             </div>

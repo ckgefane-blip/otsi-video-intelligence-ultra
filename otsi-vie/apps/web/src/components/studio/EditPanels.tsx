@@ -115,7 +115,7 @@ export function BlocksPanel({ st, ui, placed, can, why }: { st: Studio; ui: Ui; 
       .then(() => { setName(""); ui.say(dict.body.studio.blockSaved.replace("{a}", String(a)).replace("{b}", String(b))); return load(); }, () => ui.say(dict.body.studio.blockNotSaved));
   };
   const at = (() => { const h = locate(st.items, st.playhead); return h && st.playhead < st.total ? h.p.index : null; })();
-  const sel = { height: 32, fontSize: 13, color: "#fff", background: "#041022", border: "1.5px solid #17406f", borderRadius: 6 };
+  const sel = { height: 32, fontSize: 12, color: "#fff", background: "#041022", border: "1.5px solid #17406f", borderRadius: 6 };
   return (
     <div data-blocks-panel="" className="flex flex-col gap-2 pb-2.5">
       {n > 0 ? (

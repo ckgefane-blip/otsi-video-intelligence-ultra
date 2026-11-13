@@ -121,7 +121,7 @@ export function ReelSteps() {
   if (!reel) return <p className="flex items-center gap-2 t-body text-muted"><Loader2 className="h-4 w-4 animate-spin" /> {dict.body.reels.loadingReel}</p>;
   const r = reel.latest_render;
   const steps: [string, string, boolean, string][] = [
-    ["Profile Intro", dict.body.reels.stepProfileIntro, reel.settings.profile_intro && !!reel.player, reel.settings.profile_intro ? (reel.player ? dict.body.reels.stepIntroOpens.replace("{a}", reel.player.display_name) : dict.body.reels.stepIntroNoPlayer) : dict.body.reels.stepIntroOff],
+    ["Profile intro", dict.body.reels.stepProfileIntro, reel.settings.profile_intro && !!reel.player, reel.settings.profile_intro ? (reel.player ? dict.body.reels.stepIntroOpens.replace("{a}", reel.player.display_name) : dict.body.reels.stepIntroNoPlayer) : dict.body.reels.stepIntroOff],
     ["Player", dict.body.reels.stepPlayer, !!reel.player && !reel.stale, reel.player ? `${reel.player.display_name}${reel.stale ? dict.body.reels.stepPlayerStaleSuffix : ""}` : dict.body.reels.stepPlayerNone],
     ["Clips", dict.body.reels.stepClips, reel.clips.length > 0, reel.clips.length ? (reel.clips.length === 1 ? dict.body.reels.stepClipsOne : dict.body.reels.stepClipsMany).replace("{a}", String(reel.clips.length)).replace("{b}", sec(reel.duration_us, dict.body.reelstage.durationSec)) : dict.body.reels.stepClipsAdd],
     ["Spotlight", dict.body.reels.stepSpotlight, true, `${dict.body.reels.stepSpotlightBase.replace("{a}", String(Math.round(reel.settings.dim * 100)))}${reel.settings.ring ? dict.body.reels.stepSpotlightRing : ""}${reel.settings.name_caption ? dict.body.reels.stepSpotlightName : ""}`],
@@ -148,7 +148,7 @@ export function ReelSteps() {
   );
 }
 
-/* ------------------------------------------------------------------ section 1b: the Player Profile Intro (ADR-130) */
+/* ------------------------------------------------------------------ section 1b: the Player profile intro (ADR-130) */
 /** The first step of the Reel Builder flow: the intro preview for the reel's player, "Continue to Reel" advancing to the reel steps.
  *  Nothing when there is no player, or when the intro is off for this reel (Overlays). */
 export function ReelProfileIntro({ onContinue }: { onContinue?: () => void }) {

@@ -1,4 +1,4 @@
-/** Player Report SOT (Page 17 of 31): the header, ten tabs, stat tiles, Heatmap / Events panels and the AI Analyst brief / Clips / Notes & tags sidebar */
+/** Player report SOT (Page 17 of 31): the header, ten tabs, stat tiles, Heatmap / Events panels and the AI Analyst brief / Clips / Notes & tags sidebar */
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,7 +44,7 @@ function mockApi() {
 
 beforeEach(() => { api.mockReset(); push.mockReset(); });
 
-describe("Player Report SOT", () => {
+describe("Player report SOT", () => {
   it("renders the SOT header, tabs, stat tiles, Heatmap / Events and the sidebar", async () => {
     mockApi();
     render(<ReportStage playerRef={id} />);

@@ -1,5 +1,5 @@
 /**
- * AI Analyst panel (ADR-141): the Player Report panel shows the assessment with evidence links and confidence,
+ * AI Analyst panel (ADR-141): the Player report panel shows the assessment with evidence links and confidence,
  * labels recommendations as suggestions, gates publishing behind a person, and says plainly when the feature is
  * not configured or there is no assessment yet. The API is mocked; the guardrail logic itself is unit-tested in
  * aiAnalyst.test.ts.

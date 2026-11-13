@@ -13,18 +13,18 @@ export function HomeHero() {
         <p className="mt-2 t-page">
           Professional Football <span className="block text-primary">Video Intelligence</span>
         </p>
-        <p className="mt-3 max-w-xl text-[15px] text-ink/85">
+        <p className="mt-3 max-w-xl text-[12px] text-ink/85">
           Upload matches, analyze every visible player, create reels and share insights, built for analysts, scouts and agencies.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link href="/upload?mode=file" className="flex items-center gap-3 rounded-ctl bg-primary px-5 py-3 font-normal text-white shadow-glow hover:brightness-110">
           <Upload className="h-5 w-5" />
-          <span>Upload Video</span>
+          <span>Upload video</span>
         </Link>
         <Link href="/upload?mode=url" className="flex items-center gap-3 rounded-ctl border border-line bg-panel px-5 py-3 font-normal hover:border-primary/60">
           <Link2 className="h-5 w-5" />
-          <span>Paste Link</span>
+          <span>Paste link</span>
         </Link>
       </div>
       <p className="text-[11px] text-muted">The stadium visual of the approved design is an owner-supplied, licensed asset (not yet provided).</p>

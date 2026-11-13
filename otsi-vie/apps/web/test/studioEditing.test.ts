@@ -22,7 +22,7 @@ describe("snap", () => {
 });
 
 describe("lane heights", () => {
-  it("normal is the approved layout; tall makes Video Clips tall and the rest compact, without overlap", () => {
+  it("normal is the approved layout; tall makes Video clips tall and the rest compact, without overlap", () => {
     expect(laneGeometry("normal").map((g) => g.y)).toEqual([...LANE_Y]);
     const t = laneGeometry("tall");
     expect(t[0]!.h).toBe(92);

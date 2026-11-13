@@ -1,6 +1,6 @@
 /**
  * v3 Phase E.6 (ADR-124): Event evidence rules Web Tests.
- * Ensures that tiles and panels across Analysis Workspace and Tactics Stage
+ * Ensures that tiles and panels across Analysis workspace and Tactics Stage
  * honestly mark unmeasured metrics with clear explanations and never fabricate values.
  */
 import { act, render, screen } from "@testing-library/react";
@@ -62,7 +62,7 @@ describe("Event Evidence Rules UI (v3 Phase E.6, ADR-124)", () => {
     expect(ppdaMetric.textContent).toContain("—");
   });
 
-  it("AnalysisPanels renders Off-Ball Runs with honest evidence explanation tooltips", () => {
+  it("AnalysisPanels renders Off-ball runs with honest evidence explanation tooltips", () => {
     render(
       <AnalysisPanels
         focus="p05-s08"
@@ -76,19 +76,19 @@ describe("Event Evidence Rules UI (v3 Phase E.6, ADR-124)", () => {
 
     const totalRuns = screen.getByTitle(/requires pitch-plane player tracking and sustained velocity >= 18 km\/h without the ball/);
     expect(totalRuns).toBeInTheDocument();
-    expect(totalRuns.textContent).toContain("Total Off-Ball Runs");
+    expect(totalRuns.textContent).toContain("Total off-ball runs");
     expect(totalRuns.textContent).toContain("—");
 
     const progRuns = screen.getByTitle(/requires calibrated pitch positions and forward run progress towards opponent goal line/);
     expect(progRuns).toBeInTheDocument();
-    expect(progRuns.textContent).toContain("Progressive Runs");
+    expect(progRuns.textContent).toContain("Progressive runs");
 
     const boxRuns = screen.getByTitle(/requires calibrated penalty box boundary intersection tracking/);
     expect(boxRuns).toBeInTheDocument();
-    expect(boxRuns.textContent).toContain("Runs Into Box");
+    expect(boxRuns.textContent).toContain("Runs into box");
 
     const avgDist = screen.getByTitle(/requires calibrated pitch-plane coordinates for run start and end points/);
     expect(avgDist).toBeInTheDocument();
-    expect(avgDist.textContent).toContain("Avg Run Distance");
+    expect(avgDist.textContent).toContain("Avg run distance");
   });
 });

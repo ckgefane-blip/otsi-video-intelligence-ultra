@@ -175,7 +175,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
           <div className="grid w-full max-w-[900px] grid-cols-3 gap-2.5 max-md:grid-cols-1">
             <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <Film className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-              <span className="flex-1"><span className="block font-medium">{a.sharedReel}</span>
+              <span className="flex-1"><span className="block font-normal">{a.sharedReel}</span>
                 <span className="sm mu">{view.kind === "VIDEO" ? formatOf(view.mime) : a.sharedReportNotIncluded}</span></span>
               {view.kind === "VIDEO" && view.download_url && (
                 <a href={view.download_url} className="ib" aria-label={a.sharedDownloadReel}><Download className="h-4 w-4" aria-hidden /></a>
@@ -183,7 +183,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
             </div>
             <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <FileText className="h-5 w-5 shrink-0 text-[#4F9DFF]" aria-hidden />
-              <span className="flex-1"><span className="block font-medium">{a.sharedReportTitle}</span>
+              <span className="flex-1"><span className="block font-normal">{a.sharedReportTitle}</span>
                 <span className="sm mu">{view.kind === "REPORT" ? formatOf(view.mime) : a.sharedReportNotIncluded}</span></span>
               {view.kind === "REPORT" && view.download_url && (
                 <a href={view.download_url} className="ib" aria-label={a.sharedDownload}><Download className="h-4 w-4" aria-hidden /></a>
@@ -191,7 +191,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
             </div>
             <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <ClipboardList className="h-5 w-5 shrink-0 text-amber" aria-hidden />
-              <span className="flex-1"><span className="block font-medium">{t.body.reports.rpAiBrief}</span>
+              <span className="flex-1"><span className="block font-normal">{t.body.reports.rpAiBrief}</span>
                 <span className="sm mu">{a.sharedBriefNotIncluded}</span></span>
             </div>
           </div>

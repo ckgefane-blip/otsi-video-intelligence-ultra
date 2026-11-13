@@ -72,7 +72,7 @@ describe("clip studio (SOT)", () => {
     expect(screen.getByText("No clips loaded")).toBeInTheDocument();
     expect(screen.getByText("Open a reel from the Reel Builder.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Choose a reel to edit" })).toBeNull();
-    // the Profile Intro line is "— · 16:9" with no reel (its parts are separate JSX text nodes)
+    // the Profile intro line is "— · 16:9" with no reel (its parts are separate JSX text nodes)
     expect(screen.getByText((_c, el) => el?.textContent === "— · 16:9")).toBeInTheDocument();
   });
 

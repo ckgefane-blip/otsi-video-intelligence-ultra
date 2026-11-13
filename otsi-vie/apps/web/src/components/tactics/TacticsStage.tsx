@@ -193,7 +193,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
         <nav className="sect" aria-label={dict.body.tactics.viewsLabel}>
           {VIEWS.map((v) => (
             <button key={v} type="button" onClick={() => setView(v)} aria-current={view === v ? "page" : undefined}
-              className={`flex h-[34px] w-full items-center rounded-md px-2 text-left text-sm ${view === v ? "bg-raised font-medium" : "text-muted hover:text-ink"}`}>{viewLabels[v]}</button>
+              className={`flex h-[34px] w-full items-center rounded-md px-2 text-left text-sm ${view === v ? "bg-raised font-normal" : "text-muted hover:text-ink"}`}>{viewLabels[v]}</button>
           ))}
         </nav>
         {/* "Team shape needs" sits at the bottom of the left column (SOT: margin-top auto) */}

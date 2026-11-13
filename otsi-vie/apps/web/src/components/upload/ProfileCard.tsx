@@ -29,8 +29,8 @@ export const PROFILE_CHOICES: [UploadProfile, string, string][] = [
 /** the profile's name for a dictionary (ADR-139 Group A); without one it stays English. */
 export const profileLabel = (p: UploadProfile | null | undefined, d?: UploadDict) =>
   p === "RECOMMENDED" ? (d?.recommended ?? "Recommended")
-    : p ? PROFILE_CHOICES.find(([k]) => k === p)?.[1] ?? "Follows Stabilize Video"
-    : (d?.followsStabilize ?? "Follows Stabilize Video");
+    : p ? PROFILE_CHOICES.find(([k]) => k === p)?.[1] ?? "Follows stabilize video"
+    : (d?.followsStabilize ?? "Follows stabilize video");
 
 /** "about 14 min", "about 1 h 20 min", "under a minute" — for a dictionary, in its words. */
 export function duration(seconds: number, d?: UploadDict): string {

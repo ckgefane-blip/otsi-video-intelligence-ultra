@@ -105,7 +105,7 @@ export function MediaInfoDialog({ videoId, name, open, onOpenChange }: { videoId
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(640px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-line bg-panel p-4 text-sm shadow-2xl"
           data-dialog="media-info">
-          <Dialog.Title className="text-base font-normal">Media Info · {name}</Dialog.Title>
+          <Dialog.Title className="text-base font-normal">Media info · {name}</Dialog.Title>
           <Dialog.Description className="mb-3 text-xs text-muted">What was recorded about this file: measured by the ingest checks, never typed. &quot;—&quot; means not measured.</Dialog.Description>
           {err ? <p role="alert" className="text-danger">{err}</p> : info ? <MediaInfoBody info={info} /> : <p role="status" className="text-muted">Reading…</p>}
           <div className="mt-3 flex justify-end"><Dialog.Close className="rounded-ctl bg-primary px-3 py-1.5 font-normal text-white">Close</Dialog.Close></div>

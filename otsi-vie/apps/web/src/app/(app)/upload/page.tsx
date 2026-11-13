@@ -4,7 +4,7 @@ import { MediaStage } from "@/components/upload/MediaStage";
 import { Page02Controller } from "@/components/upload/page02";
 import { UploadWorkspace } from "@/components/upload/UploadWorkspace";
 
-export const metadata: Metadata = { title: "Upload & Ingest" };
+export const metadata: Metadata = { title: "Upload & ingest" };
 
 /**
  * SOT UI rebuild Page 15 of 31: Media — upload & ingest.

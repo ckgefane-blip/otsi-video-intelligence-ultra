@@ -57,7 +57,7 @@ export function SectionCard({ pageId, section, state, area, heading, untitled = 
         </div>
       )}
       <div className={untitled ? "sr-only" : "flex flex-wrap items-center justify-between gap-2"}>
-        <h2 id={`${id}-title`} className="flex items-center gap-2 text-[15px] font-normal">
+        <h2 id={`${id}-title`} className="flex items-center gap-2 text-[12px] font-normal">
           <span aria-hidden className="h-4 w-[3px] rounded-full bg-primary" />
           {section.title}
         </h2>

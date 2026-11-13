@@ -162,7 +162,7 @@ export function ReleaseControl() {
             {gates.map((gate) => (
               <div key={gate.id} className="flex min-h-[52px] items-center gap-3 px-4 py-3">
                 <span className="w-[52px] shrink-0 t-body">{gate.id}</span>
-                <span className="w-[110px] shrink-0 font-medium t-body">{t.body.admin[GATE_COPY[gate.id].name]}</span>
+                <span className="w-[110px] shrink-0 font-normal t-body">{t.body.admin[GATE_COPY[gate.id].name]}</span>
                 <span className="min-w-0 flex-1 t-body text-muted">{t.body.admin[GATE_COPY[gate.id].proves]}</span>
                 <span className="w-[110px] shrink-0">
                   <span className={`inline-flex items-center gap-1.5 t-body ${statusTone(gate.status)}`}>

@@ -75,7 +75,7 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
         <Probe />
       </LocaleProvider>,
     );
-    expect(screen.getByText("View All | Save Project | Position | Not measured | Download All | Recent Uploads | Jobs")).toBeDefined();
+    expect(screen.getByText("View all | Save project | Position | Not measured | Download all | Recent uploads | Jobs")).toBeDefined();
   });
 
   it("a wired page section shows its translated heading (Russian)", () => {

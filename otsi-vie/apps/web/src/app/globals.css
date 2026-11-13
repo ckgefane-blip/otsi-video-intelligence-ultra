@@ -45,10 +45,12 @@
 }
 
 html { background: rgb(var(--canvas)); }
+/* one weight everywhere (owner 2026-11-13): no bold, emphasis by colour */
+b, strong, th, h1, h2, h3, h4, h5, h6, dt, legend, summary, optgroup { font-weight: 400; }
 body {
   @apply bg-canvas text-ink font-sans antialiased;
   font-feature-settings: "tnum" 1, "cv11" 1;   /* tabular numerals for timecodes and metrics */
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
 }
 
@@ -70,19 +72,21 @@ body {
 dialog[data-player-full]::backdrop { background: #000; }
 
 /* ---------------------------------------------------------------------------------------------------------------------------
-   SOT typography lock (owner 2026-11-12, from the SOT design CSS): one font (the system UI font: Segoe UI on Windows),
-   one weight (regular 400), no capitals, no letter-spacing, three sizes — 14 for nearly everything (body, labels, buttons,
-   fields), 12 for small notes and chips, 16 for page titles only. Numbers keep even-width digits (tabular-nums).
+   Typography (owner 2026-11-13: "The texts are too big and stop using bold texts. Use the same fonts and sizes as in DaVinci
+   Resolve App"): Open Sans, the font DaVinci Resolve itself uses (found in its program files; SIL OFL, free, bundled locally
+   via @fontsource/open-sans), at Resolve's sizes: 12 px for nearly everything (body, labels, buttons, fields), 11 px for small
+   notes, chips and section labels, 14 px for page titles only. ONE weight, regular 400, everywhere, b/strong/headings included.
+   Emphasis comes from colour (ink vs muted), never from bold. Numbers keep even-width digits (tabular-nums).
    --------------------------------------------------------------------------------------------------------------------------- */
-.t-page { font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: -0.005em; }
-.t-section { font-size: 14px; line-height: 20px; font-weight: 400; }
-.t-panel { font-size: 14px; line-height: 20px; font-weight: 400; }
-.t-body { font-size: 14px; line-height: 20px; font-weight: 400; }
-.t-small { font-size: 12px; line-height: 18px; font-weight: 400; color: rgb(var(--muted)); }
-.t-label { font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
-.t-th { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.06em; color: rgb(var(--muted)); }
-.t-button { font-size: 14px; line-height: 20px; font-weight: 400; }
-.t-metric { font-size: 16px; line-height: 22px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.t-page { font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: -0.005em; }
+.t-section { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-panel { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-body { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-small { font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
+.t-label { font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
+.t-th { font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: 0.06em; color: rgb(var(--muted)); }
+.t-button { font-size: 12px; line-height: 18px; font-weight: 400; }
+.t-metric { font-size: 14px; line-height: 20px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 /* SOT typography lock (owner 2026-11-12): the SOT sets --mono to the body font, so timecodes, keycaps, ruler numbers
    and step numbers render in regular type, not JetBrains Mono. */
 .t-tc { font-family: inherit; font-size: 10px; line-height: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
@@ -100,7 +104,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
 .vie-ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 14px; border-bottom: 1px solid rgb(var(--line)); }
 .vie-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px;
-  border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 14px; line-height: 20px; font-weight: 400; font-family: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
+  border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 12px; line-height: 18px; font-weight: 400; font-family: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
 .vie-btn:hover { background: rgb(var(--line)); }
 .vie-btn[disabled] { opacity: .45; cursor: not-allowed; }
 .vie-btn-pri { background: rgb(var(--primary)); border-color: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
@@ -109,7 +113,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-btn-lg { height: 44px; padding: 0 20px; }
 .vie-ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; border: 1px solid transparent; background: transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
 .vie-ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
-.vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(var(--ink2)); white-space: nowrap; }
+.vie-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid rgb(var(--line2)); font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--ink2)); white-space: nowrap; }
 /* Evidence chips (SOT): pills only for evidence status. Dot is currentColor. */
 .vie-chip.ev::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .vie-chip.ev-c { color: rgb(var(--primary)); border-color: rgba(var(--primary), .38); background: rgba(var(--primary), .08); }
@@ -129,7 +133,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 
 /* Segmented control (SOT): two-state switch, e.g. Guided / Advanced */
 .seg { display: inline-flex; padding: 2px; border-radius: 7px; background: rgb(var(--p0)); border: 1px solid rgb(var(--line)); gap: 2px; }
-.seg button { height: 28px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: rgb(var(--muted)); font-size: 13px; line-height: 20px; font-weight: 500; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.seg button { height: 28px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: rgb(var(--muted)); font-size: 12px; line-height: 18px; font-weight: 400; font-family: inherit; cursor: pointer; white-space: nowrap; }
 .seg button:hover { color: rgb(var(--ink)); }
 .seg button.on { background: rgb(var(--raised)); color: rgb(var(--ink)); box-shadow: inset 0 0 0 1px rgb(var(--line2)); }
 .seg.f { display: flex; }
@@ -138,7 +142,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .seg.f button { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* Eyebrow section heading (SOT) */
-.eb { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; color: rgb(var(--muted)); }
+.eb { font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: .06em; color: rgb(var(--muted)); }
 
 /* List row (SOT): icon + label + trailing detail, 36px tall */
 .lr { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
@@ -156,7 +160,7 @@ dialog[data-player-full]::backdrop { background: #000; }
    (top 48px, bottom 28px); the Radix portal renders at the viewport, so fixed with the same offsets. */
 .drawer { position: fixed; top: 48px; right: 0; bottom: 28px; width: 420px; max-width: 100vw; background: rgb(var(--panel)); border-left: 1px solid rgb(var(--line2)); box-shadow: -24px 0 60px rgba(0, 0, 0, .45); z-index: 50; display: flex; flex-direction: column; }
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid rgb(var(--line)); padding: 0 8px; }
-.tab { height: 38px; padding: 0 10px; border: 0; background: transparent; color: rgb(var(--muted)); font-weight: 500; font-size: 13px; line-height: 20px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tab { height: 38px; padding: 0 10px; border: 0; background: transparent; color: rgb(var(--muted)); font-weight: 400; font-size: 12px; line-height: 18px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
 .tab.on { color: rgb(var(--ink)); border-bottom-color: rgb(var(--primary)); }
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 28px 20px; }
 .ei { width: 44px; height: 44px; border-radius: 10px; border: 1px dashed rgb(var(--line2)); display: grid; place-items: center; color: rgb(var(--muted)); margin-bottom: 2px; }
@@ -168,10 +172,10 @@ dialog[data-player-full]::backdrop { background: #000; }
 .steps { display: flex; flex-wrap: wrap; gap: 0; padding: 18px 14px 16px; list-style: none; margin: 0; }
 .stp { flex: 1 1 110px; min-width: 0; display: flex; flex-direction: column; gap: 8px; position: relative; padding-right: 10px; }
 .stp .node { display: flex; align-items: center; gap: 0; }
-.stp .dotn { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); background: rgb(var(--panel)); display: grid; place-items: center; font-size: 12px; font-weight: 400; color: rgb(var(--ink2)); }
+.stp .dotn { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); background: rgb(var(--panel)); display: grid; place-items: center; font-size: 11px; font-weight: 400; color: rgb(var(--ink2)); }
 .stp .bar { flex: 1; height: 1.5px; background: rgb(var(--line2)); margin-left: 6px; }
 .stp:last-child .bar { display: none; }
-.stp .nm2 { font-weight: 600; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stp .nm2 { font-weight: 400; font-size: 12px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stp.run .dotn { border-color: rgb(var(--cyan)); color: rgb(var(--cyan)); }
 .stp.done .dotn { border-color: rgb(var(--primary)); background: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
 .stp.fail .dotn { border-color: rgb(var(--danger)); color: rgb(var(--danger)); }
@@ -182,8 +186,8 @@ dialog[data-player-full]::backdrop { background: #000; }
 .radio.on { border-color: rgb(var(--primary)); background: rgba(43, 212, 176, .06); }
 .radio.on .o { border: 5px solid rgb(var(--primary)); }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.lab { font-size: 12px; line-height: 16px; font-weight: 500; color: rgb(var(--muted)); }
-.hint { font-size: 12px; line-height: 18px; color: rgb(var(--muted)); }
+.lab { font-size: 11px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
+.hint { font-size: 11px; line-height: 16px; color: rgb(var(--muted)); }
 .alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255, 128, 115, .45); background: rgba(255, 128, 115, .08); color: rgb(var(--ink)); }
 .alert .i { color: rgb(var(--danger)); margin-top: 1px; }
 
@@ -192,9 +196,9 @@ dialog[data-player-full]::backdrop { background: #000; }
 .ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
 .bud { position: relative; height: 10px; border-radius: 5px; background: rgb(var(--raised)); overflow: hidden; }
 .bud .used { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(var(--primary)); }
-.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; background: rgb(var(--raised)); color: rgb(var(--ink2)); }
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: .04em; background: rgb(var(--raised)); color: rgb(var(--ink2)); }
 .panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 12px; line-height: 18px; font-weight: 400; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: rgb(var(--line)); }
 .btn.pri { background: rgb(var(--primary)); border-color: rgb(var(--primary)); color: rgb(var(--primary-ink)); }
 .btn.sm { height: 30px; padding: 0 10px; }
@@ -203,11 +207,11 @@ dialog[data-player-full]::backdrop { background: #000; }
 /* SOT typography lock: .mono renders in the body font at regular weight — the SOT uses .mono for numbers, ids and
    times (token counts, gate ids, model names, log lines, PIN) but its --mono is the body font, so none of them is monospace. */
 .mono { font-family: inherit; font-weight: 400; }
-.sm { font-size: 12px; line-height: 18px; }
+.sm { font-size: 11px; line-height: 16px; }
 .mu { color: rgb(var(--muted)); }
-.h1 { font-size: 16px; font-weight: 600; letter-spacing: -.005em; line-height: 24px; }
-.h3 { font-size: 13px; font-weight: 600; line-height: 20px; }
-.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px; line-height: 16px; font-weight: 500; border: 1px solid rgb(var(--line2)); color: rgb(var(--ink2)); white-space: nowrap; background: rgb(var(--panel)); }
+.h1 { font-size: 14px; font-weight: 400; letter-spacing: -.005em; line-height: 24px; }
+.h3 { font-size: 12px; font-weight: 400; line-height: 20px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; line-height: 16px; font-weight: 400; border: 1px solid rgb(var(--line2)); color: rgb(var(--ink2)); white-space: nowrap; background: rgb(var(--panel)); }
 .content { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; }
 
 /* Guided hides the advanced screens' entries and any control marked data-advanced (data-pro kept for older markup) */
@@ -215,16 +219,16 @@ dialog[data-player-full]::backdrop { background: #000; }
 
 /* Settings pages (SOT, pages 21-24): panel body, the key/value list, the big metric number, the SOT switch and text inputs. */
 .pb { padding: 14px; }
-.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; font-size: 13px; line-height: 20px; align-items: center; margin: 0; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; font-size: 12px; line-height: 18px; align-items: center; margin: 0; }
 .kv dt { color: rgb(var(--muted)); }
 .kv dd { margin: 0; text-align: right; }
-.metric { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: rgb(var(--ink)); }
+.metric { font-size: 16px; line-height: 24px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: rgb(var(--ink)); }
 .sw { width: 32px; height: 18px; flex: none; border-radius: 999px; background: rgb(var(--line)); border: 1px solid rgb(var(--line2)); position: relative; cursor: pointer; padding: 0; }
 .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
 .sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }
 .sw[aria-checked="true"]::after { left: 16px; background: rgb(var(--primary-ink)); }
 .sw:disabled { opacity: .45; cursor: not-allowed; }
-.in { height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--p0)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-family: inherit; width: 100%; min-width: 0; outline: none; }
+.in { height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--p0)); color: rgb(var(--ink)); font-size: 12px; line-height: 18px; font-family: inherit; width: 100%; min-width: 0; outline: none; }
 .in:focus { border-color: rgb(var(--primary)); }
 .in:disabled { opacity: .55; }
 .in[readonly] { color: rgb(var(--ink2)); }
@@ -238,7 +242,7 @@ select.in { appearance: auto; }
 .ib { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 6px; background: transparent; border: 1px solid transparent; color: rgb(var(--ink2)); cursor: pointer; position: relative; }
 .ib:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
 .gh { background: transparent; border-color: transparent; color: rgb(var(--ink2)); }
-.h2 { font-size: 14px; font-weight: 600; line-height: 20px; }
+.h2 { font-size: 12px; font-weight: 400; line-height: 20px; }
 
 /* Token counter + Tactical (SOT, pages 29-31): the top-bar token counter
  * (the SOT's .tok: database icon in amber, bold tabular number, "tokens" in
@@ -247,8 +251,8 @@ select.in { appearance: auto; }
 .tok { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid rgb(var(--line2)); border-radius: 6px; background: rgb(var(--raised)); color: rgb(var(--ink)); text-decoration: none; font-size: 13px; line-height: 1; font-family: inherit; white-space: nowrap; cursor: pointer; }
 .tok:hover { border-color: rgb(var(--primary)); }
 .tok .i { width: 16px; height: 16px; stroke: rgb(var(--amber)); }
-.tok b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.tok b { font-weight: 400; font-variant-numeric: tabular-nums; }
 .tok span { color: rgb(var(--muted)); }
 .tok[aria-expanded="true"] { border-color: rgb(var(--primary)); }
 .tok.low { border-color: rgb(var(--amber)); }
-.ruler { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 400; font-family: inherit; color: rgb(var(--muted)); }
+.ruler { display: flex; justify-content: space-between; font-size: 11px; line-height: 16px; font-weight: 400; font-family: inherit; color: rgb(var(--muted)); }

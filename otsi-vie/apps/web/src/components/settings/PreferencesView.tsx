@@ -124,10 +124,10 @@ export function PreferencesView() {
               <span className="lab" id="pref-mode">{s.stPrefMode}</span>
               <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="pref-mode">
                 <button className={`radio ${mode === "guided" ? "on" : ""}`} type="button" aria-pressed={mode === "guided"} onClick={() => setMode("guided")}>
-                  <span className="o" /><span><span className="block font-semibold">{t.desktop.modeGuidedShort}</span><span className="mu sm block">{s.stPrefGuidedDesc}</span></span>
+                  <span className="o" /><span><span className="block font-normal">{t.desktop.modeGuidedShort}</span><span className="mu sm block">{s.stPrefGuidedDesc}</span></span>
                 </button>
                 <button className={`radio ${mode === "advanced" ? "on" : ""}`} type="button" aria-pressed={mode === "advanced"} onClick={() => setMode("advanced")}>
-                  <span className="o" /><span><span className="block font-semibold">{t.desktop.modeAdvancedShort}</span><span className="mu sm block">{s.stPrefAdvancedDesc}</span></span>
+                  <span className="o" /><span><span className="block font-normal">{t.desktop.modeAdvancedShort}</span><span className="mu sm block">{s.stPrefAdvancedDesc}</span></span>
                 </button>
               </div>
               <span className="hint">{t.body.admin.navBothFree}</span>
@@ -140,7 +140,7 @@ export function PreferencesView() {
           <ul>
             {rows.map((r) => (
               <li key={r.key} className="lr" style={{ minHeight: 52 }}>
-                <span style={{ flex: 1 }}><span className="block font-medium">{r.title}</span><span className="mu sm">{r.desc}</span></span>
+                <span style={{ flex: 1 }}><span className="block font-normal">{r.title}</span><span className="mu sm">{r.desc}</span></span>
                 <button className="sw" type="button" role="switch" aria-checked={prefs[r.key]} aria-label={r.title}
                   onClick={() => setPref(r.key, !prefs[r.key])} />
               </li>
@@ -176,7 +176,7 @@ export function PreferencesView() {
             <div className="field">
               <label className="lab" htmlFor="pref-lib">{s.stPrefLibraryFolder}</label>
               <div className="flex gap-2">
-                <input id="pref-lib" className="in mono" style={{ fontSize: 12 }} value={paths?.library_folder ?? "—"} readOnly />
+                <input id="pref-lib" className="in mono" style={{ fontSize: 11 }} value={paths?.library_folder ?? "—"} readOnly />
                 <button className="btn" type="button" disabled={!paths?.library_folder || busy} title={s.stPrefChangeFolderTitle}
                   onClick={changeLibraryPath}>{s.stPrefChange}</button>
               </div>
@@ -184,7 +184,7 @@ export function PreferencesView() {
             <div className="field">
               <label className="lab" htmlFor="pref-cache">{s.stPrefCacheFolder}</label>
               <div className="flex gap-2">
-                <input id="pref-cache" className="in mono" style={{ fontSize: 12 }} value={paths?.cache_folder ?? "—"} readOnly />
+                <input id="pref-cache" className="in mono" style={{ fontSize: 11 }} value={paths?.cache_folder ?? "—"} readOnly />
                 <button className="btn" type="button" disabled={busy} onClick={() => void clearCache()}>{s.stPrefClearCache}</button>
               </div>
             </div>

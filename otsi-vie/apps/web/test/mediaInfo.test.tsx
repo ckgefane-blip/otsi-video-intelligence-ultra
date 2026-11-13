@@ -1,4 +1,4 @@
-/** v3 Phase A.12 (ADR-078): the Media Info panel */
+/** v3 Phase A.12 (ADR-078): the Media info panel */
 import { render, screen } from "@testing-library/react";
 import { mediaChecks, type MediaInfo } from "@otsi-vie/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +47,7 @@ describe("media info panel", () => {
   it("the dialog reads the video's media info when opened, and shows a refusal", async () => {
     api.mockResolvedValueOnce(INFO);
     const { rerender } = render(<MediaInfoDialog videoId={INFO.video_id} name="Match" open onOpenChange={() => undefined} />);
-    expect(await screen.findByText("Media Info · Match")).toBeInTheDocument();
+    expect(await screen.findByText("Media info · Match")).toBeInTheDocument();
     expect(api).toHaveBeenCalledWith(`/v1/videos/${INFO.video_id}/media-info`);
     expect(await screen.findByText("match.mp4")).toBeInTheDocument();
     const { ApiProblem } = await import("@/lib/api");

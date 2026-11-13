@@ -42,9 +42,9 @@ export interface ProfileSpec {
 export const PROFILES: Record<AnalysisProfile, ProfileSpec> = {
   STANDARD: { label: "Standard", summary: "Fewer passes, faster results", sample_fps: 2, grids: [2], score_floor: 0.2,
     tracker: { high: 0.5, low: 0.15, min_hits: 2, distance_weight: 0, kit_gate: 0.7 }, confirm: { min_hits: 2, min_peak: 0.5 }, pitch: "STRICT", stabilize: false },
-  HIGH_ACCURACY: { label: "High Accuracy", summary: "Extra tracking and identity passes", sample_fps: 6, grids: [2], score_floor: 0.2,
+  HIGH_ACCURACY: { label: "High accuracy", summary: "Extra tracking and identity passes", sample_fps: 6, grids: [2], score_floor: 0.2,
     tracker: { high: 0.5, low: 0.15, min_hits: 2, distance_weight: 0.3, kit_gate: 0.7 }, confirm: { min_hits: 3, min_peak: 0.5 }, pitch: "STRICT", stabilize: true },
-  ULTRA_SENSITIVE: { label: "Ultra-Sensitive", summary: "Distant or small players, slowest", sample_fps: 6, grids: [2, 3], score_floor: 0.1,
+  ULTRA_SENSITIVE: { label: "Ultra-sensitive", summary: "Distant or small players, slowest", sample_fps: 6, grids: [2, 3], score_floor: 0.1,
     tracker: { high: 0.4, low: 0.1, min_hits: 3, distance_weight: 0.4 }, confirm: { min_hits: 4, min_peak: 0.4 }, pitch: "TOUCHLINE", stabilize: true },
 };
 

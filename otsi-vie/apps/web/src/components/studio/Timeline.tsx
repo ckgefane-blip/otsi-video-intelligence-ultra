@@ -267,7 +267,7 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
                 <div className="absolute inset-y-1 left-0 flex items-center gap-1.5 rounded-md px-2"
                   style={{ width: `${INTRO_W * 100}%`, background: "rgba(43,212,176,.14)", border: "1px solid rgb(var(--primary))" }}>
                   <span aria-hidden="true">🔒</span>
-                  <span className="t-small font-medium">{s.csIntro}</span>
+                  <span className="t-small font-normal">{s.csIntro}</span>
                 </div>
               )}
               {items.map((p) => {

@@ -47,11 +47,11 @@ const pack: ScoutingPack = ScoutingPack.parse({
 beforeEach(() => { api.mockReset(); });
 
 describe("ScoutingPackDialog", () => {
-  it("shows the Single Match Spotlight, the 10-token cost, and the manifest with the draft brief excluded", async () => {
+  it("shows the Single match spotlight, the 10-token cost, and the manifest with the draft brief excluded", async () => {
     api.mockResolvedValueOnce([]);
     render(<ScoutingPackDialog reel={reel} canWrite open onOpenChange={() => undefined} />);
     await waitFor(() => expect(screen.getByText("No Scouting Pack yet for this player.")).toBeTruthy());
-    expect(screen.getByText("Scouting Pack — Single Match Spotlight")).toBeTruthy();
+    expect(screen.getByText("Scouting Pack — Single match spotlight")).toBeTruthy();
     expect(screen.getByText(/10 tokens for the whole Pack/)).toBeTruthy();
     expect(screen.queryByText(/Render the reel first/)).toBeNull(); // the reel has a finished render, so building is allowed
   });
@@ -65,7 +65,7 @@ describe("ScoutingPackDialog", () => {
     expect(api).toHaveBeenCalledWith(`/v1/players/${PLAYER}/scouting-packs`, expect.objectContaining({ method: "POST" }));
     const row = screen.getByText(/Scouting Pack — Test Player/);
     expect(row).toBeTruthy();
-    expect(document.querySelector("[data-scouting-pack]")?.textContent).toContain("Best Moment Rule v2.1");
+    expect(document.querySelector("[data-scouting-pack]")?.textContent).toContain("Best moment rule v2.1");
     expect(screen.getByText(/Download the Pack/)).toBeTruthy();
     expect(document.querySelector('[data-pack-item="AI_ANALYST_BRIEF"]')?.textContent).toContain("not included (draft, not published)");
   });

@@ -54,10 +54,10 @@ describe("Library (SOT)", () => {
     await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
     // left panel: match + overlays + team + time
     expect(screen.getByText("Visual overlays")).toBeInTheDocument();
-    expect(screen.getByText("Player Boxes")).toBeInTheDocument();
-    expect(screen.getByText("Ball Tracking")).toBeInTheDocument();
-    expect(screen.getByText("All Players")).toBeInTheDocument();
-    expect(screen.getByText("Full Match")).toBeInTheDocument();
+    expect(screen.getByText("Player boxes")).toBeInTheDocument();
+    expect(screen.getByText("Ball tracking")).toBeInTheDocument();
+    expect(screen.getByText("All players")).toBeInTheDocument();
+    expect(screen.getByText("Full match")).toBeInTheDocument();
     // centre: header + player + search + table
     expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
     expect(screen.getByText("Upload a match video")).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("Library (SOT)", () => {
     }
   });
 
-  it("the Match block is a title button (not a select), with no Open in Analysis, Home/Away team filters and a working Custom Range", async () => {
+  it("the Match block is a title button (not a select), with no Open in Analysis, Home/Away team filters and a working Custom range", async () => {
     render(<LibraryStage />);
     await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
     // the SOT's title button with a chevron, opening the match menu — the left panel has no <select>
@@ -116,8 +116,8 @@ describe("Library (SOT)", () => {
     // team filter is Home team / Away team, never the team names
     expect(screen.getByRole("radio", { name: "Home team" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Away team" })).toBeInTheDocument();
-    // Custom Range is selectable (a video is selected) and shows the start / end inputs
-    const custom = screen.getByRole("radio", { name: "Custom Range" });
+    // Custom range is selectable (a video is selected) and shows the start / end inputs
+    const custom = screen.getByRole("radio", { name: "Custom range" });
     expect(custom).not.toHaveAttribute("aria-disabled");
     fireEvent.click(custom);
     expect(custom).toHaveAttribute("aria-checked", "true");

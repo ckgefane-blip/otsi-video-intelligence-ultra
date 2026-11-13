@@ -85,7 +85,7 @@ export function RecentMatches() {
                 <span className="t-body block truncate font-normal">{title(m)}</span>
                 <span className="t-small block truncate text-muted">{subtitle(m)}</span>
               </span>
-              {score(m) && <span className="t-metric text-[15px]">{score(m)}</span>}
+              {score(m) && <span className="t-metric text-[12px]">{score(m)}</span>}
               <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
             </Link>
           </li>
