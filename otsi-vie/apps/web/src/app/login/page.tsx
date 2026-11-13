@@ -9,7 +9,7 @@
  * The buttons carry no icons (the SOT has none); a spinner shows only while a press is busy.
  */
 import type { MfaChallenge } from "@otsi-vie/contracts";
-import { Loader2 } from "lucide-react";
+import { Fingerprint, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
@@ -197,7 +197,7 @@ function LoginForm() {
               the press itself says so (passkeySignIn), instead of the button hiding. */}
           <div className="flex items-center gap-3 sm mu" aria-hidden="true"><span className="div flex-1" />{t.webauthn.passkeyOr}<span className="div flex-1" /></div>
           <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy || !!challenge} className="btn lg w">
-            {passkeyBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Fingerprint className="h-5 w-5" aria-hidden />}
             {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskeyShort}
             <span className="mu sm ml-1">{t.webauthn.windowsHello}</span>
           </button>

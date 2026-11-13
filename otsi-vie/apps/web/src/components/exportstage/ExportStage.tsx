@@ -21,11 +21,10 @@
  *   produce MOV files; choosing it says so and keeps MP4.
  * - Quality: Draft / High / Master = 4 / 8 / 16 Mbps. This is the
  *   engine's bitrate.
- * - Codec: H.264 / AV1 / VP9 are the engine's codecs, and H.265 / HEVC
- *   and ProRes 422 are offered because the SOT offers them — the batch
- *   render request now accepts them (BatchRenderRequest.codec), but the
- *   worker's H.265 / ProRes rendering is unverified, so a render with
- *   one of them may still fail until the worker implements it.
+ * - Codec: H.264 / AV1 / VP9, the codecs the engine renders. The SOT's
+ *   H.265 / HEVC and ProRes 422 are not offered (owner 2026-11-13): the
+ *   worker cannot produce them and H.265 needs a patent licence, which
+ *   the zero-cost rule (ADR-030) excludes.
  * - Resolution and frame rate: the engine renders the reel's own
  *   frame at the source frame rate. The selects show the SOT's
  *   options; they do not change the render.
@@ -84,7 +83,7 @@ export function ExportStage() {
   const [exportType, setExportType] = useState<ExportType>("reel");
   const [presetChoice, setPresetChoice] = useState<PresetChoice>("club");
   const [preset, setPresetId] = useState<string>("builtin-reel");
-  const [codec, setCodec] = useState<"h264" | "av1" | "vp9" | "h265" | "prores">("h264");
+  const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
   const [bitrate, setBitrate] = useState(8);
   const [format, setFormat] = useState<FormatChoice>("mp4");
   const [resolution, setResolution] = useState("1920 × 1080");
@@ -158,7 +157,7 @@ export function ExportStage() {
       (x) => setBriefPublished((x.briefs ?? []).some((b) => b.state === "PUBLISHED")), () => setBriefPublished(null));
   }, [player]);
   const packItems = (includeReport && (reportCount ?? 0) > 0 ? 1 : 0) + (includeBrief && briefPublished ? 1 : 0);
-  const includedCount = 1 + packItems;
+  const includedCount = (reel ? 1 : 0) + packItems;
 
   const applyPreset = useCallback((c: PresetChoice) => {
     setPresetChoice(c);
@@ -282,10 +281,10 @@ export function ExportStage() {
               <div className="grid grid-cols-3 gap-2.5">
                 <label className="grid gap-1">
                   <span className="t-label text-muted">{s.exCodec}</span>
-                  <select aria-label={s.exCodec} value={codec} onChange={(e) => setCodec(e.target.value as "h264" | "av1" | "vp9" | "h265" | "prores")} disabled={!canEdit} className={field}>
+                  <select aria-label={s.exCodec} value={codec} onChange={(e) => setCodec(e.target.value as "h264" | "av1" | "vp9")} disabled={!canEdit} className={field}>
                     <option value="h264">H.264</option>
-                    <option value="h265">H.265 / HEVC</option>
-                    <option value="prores">ProRes 422</option>
+                    <option value="av1">AV1</option>
+                    <option value="vp9">VP9</option>
                   </select>
                 </label>
                 <label className="grid gap-1">
@@ -413,12 +412,13 @@ export function ExportStage() {
               <p className="t-small text-muted">{s.exPackSub}</p>
               <ul className="flex flex-col gap-1.5">
                 <li className="flex items-center gap-3 rounded-lg border border-line bg-raised p-3">
-                  <span className="flex h-5 w-5 items-center justify-center rounded border border-primary bg-primary text-xs text-white" aria-hidden>✓</span>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded border text-xs ${reel ? "border-primary bg-primary text-white" : "border-muted text-transparent"}`} aria-hidden>{reel ? "✓" : ""}</span>
                   <span className="flex-1">
                     <span className="block text-sm font-normal">{s.exHighlightReel}</span>
-                    <span className="t-small text-muted">{reel?.name ?? "—"}</span>
+                    <span className="t-small text-muted">{reel?.name ?? s.openReelToExport}</span>
                   </span>
-                  <span className="t-small" style={{ color: "rgb(var(--primary))" }}>• {dict.body.upload.ready}</span>
+                  {/* "Ready" only for a reel that is actually open (owner 2026-11-13: no false states) */}
+                  {reel && <span className="t-small" style={{ color: "rgb(var(--primary))" }}>• {dict.body.upload.ready}</span>}
                 </li>
                 <li className="flex items-center gap-3 rounded-lg border border-dashed border-line2 bg-panel p-3">
                   <button type="button" role="checkbox" aria-checked={includeReport} aria-label={s.exPlayerReport} disabled={!canEdit || (reportCount ?? 0) === 0}

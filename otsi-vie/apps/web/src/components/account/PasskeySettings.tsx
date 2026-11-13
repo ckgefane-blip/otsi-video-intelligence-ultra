@@ -1,9 +1,8 @@
 "use client";
 /**
- * Settings > Security — passkeys (SOT, Security.dc.html): the SOT's "Register this device" button enrols a
- * passkey on this device (the browser's create() call). The biometric sign-in switch (ADR-143, the user's own
- * instruction, bank-app toggle) stays beside it as a recorded deviation from the SOT — the SOT has only the
- * button. On = sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Off = it
+ * Settings > Security — passkeys (SOT, Security.dc.html). One control, as in banking apps (owner 2026-11-13: "Biometric
+ * login should exist with toggle button … with a thumb icon"): the fingerprint switch replaces the SOT's "Register this
+ * device" button (ADR-143, recorded deviation), so there are no longer two controls for the same thing. On = sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Off = it
  * doesn't. Turning it off removes every passkey on this account. The password still works everywhere — a
  * passkey is an extra way in, not a replacement. The state shown is GET /v1/auth/webauthn/credentials.
  */
@@ -87,7 +86,7 @@ export function PasskeySettings() {
 
         <div className="flex min-h-8 items-center justify-between gap-3 rounded-ctl border border-line bg-raised p-4">
           <span className="flex min-w-0 items-center gap-2 t-body">
-            <Fingerprint className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+            <Fingerprint className={`h-6 w-6 shrink-0 ${on ? "text-primary" : "text-muted"}`} aria-hidden />
             <span className="min-w-0">
               <span className="block truncate">{w.biometricToggle}</span>
               <span className="block t-small text-muted">{on ? w.biometricOn : w.biometricOff}</span>
@@ -106,8 +105,6 @@ export function PasskeySettings() {
             <span className="ei"><Fingerprint className="i" aria-hidden /></span>
             <h3>{s.stSecNoPasskeys}</h3>
             <p>{s.stSecPasskeyHint}</p>
-            {/* SOT: the "Register this device" button enrols a passkey on this device */}
-            <button className="btn sm pri" type="button" disabled={busy} onClick={() => void turnOn()}>{s.stSecRegister}</button>
           </div>
         )}
 

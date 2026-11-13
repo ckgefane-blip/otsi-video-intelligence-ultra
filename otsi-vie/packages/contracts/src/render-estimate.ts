@@ -65,7 +65,7 @@ export function renderSummary(reel: Reel, s: SpotlightSettings, codec: string, m
     ["Overlays", overlays.length ? overlays.join(", ") : "None"],
     ["Branding", brand.length ? brand.join(", ") : "None"],
     ["Music", musicName ?? "None (match sound)"],
-    ["File", codec === "h264" ? "H.264 MP4" : codec === "av1" ? "AV1 MP4" : codec === "h265" ? "H.265 MP4" : codec === "prores" ? "ProRes 422 MOV" : "VP9 WebM"],
+    ["File", codec === "h264" ? "H.264 MP4" : codec === "av1" ? "AV1 MP4" : "VP9 WebM"],
   ];
 }
 

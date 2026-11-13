@@ -192,10 +192,11 @@ describe("sign-in page (Page 27)", () => {
     const form = main.querySelector("form")!;
     const panel = screen.getByText("Enter your verification code").closest("section")!;
     expect(form.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // no icons on the buttons (the SOT has none; a spinner shows only while a press is busy)
-    for (const name of ["Sign in", /Sign in with a passkey/, "Verify"] as const) {
+    // no icons on Sign in / Verify; the passkey button carries the fingerprint, as in banking apps (owner 2026-11-13)
+    for (const name of ["Sign in", "Verify"] as const) {
       expect(screen.getByRole("button", { name }).querySelector("svg")).toBeNull();
     }
+    expect(screen.getByRole("button", { name: /Sign in with a passkey/ }).querySelector("svg.lucide-fingerprint")).not.toBeNull();
     expect(screen.getByLabelText("Email")).toHaveAttribute("placeholder", "you@club.com");
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     // SOT: "Forgot password?" is a link, not a button — and there is still no self-service reset (ADR-143)

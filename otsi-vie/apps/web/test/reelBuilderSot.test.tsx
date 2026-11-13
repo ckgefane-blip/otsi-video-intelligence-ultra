@@ -125,9 +125,12 @@ describe("Reel Builder (SOT)", () => {
     expect(within(seq).getByText("Tier S empty (0 goals, 0 assists). Build to rank 0 events.")).toBeInTheDocument();
   });
 
-  it("Build reel starts the render directly, with no confirmation dialog", async () => {
+  it("Build reel asks first (it spends tokens) and renders only on Start render", async () => {
     await open();
     fireEvent.click(screen.getByRole("button", { name: /Build reel/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Render this reel?" });
+    expect(api.mock.calls.filter(([u]) => String(u) === `/v1/reels/${ID}/renders`)).toHaveLength(0);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Start render" }));
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${ID}/renders`, expect.objectContaining({
       method: "POST", json: expect.objectContaining({ codec: "h264" }),
     })));

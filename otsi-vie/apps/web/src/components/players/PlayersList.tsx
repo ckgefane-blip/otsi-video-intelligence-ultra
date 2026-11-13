@@ -96,7 +96,9 @@ function IntroPreview({ entry }: { entry: PlayerListEntry | null }) {
       {/* the intro preview is a flat open section (SOT §B), not a boxed panel */}
       <div className="vie-ph">
         <h2 id="pl-intro-preview" className="t-panel">{dict.body.players.plIntroPreview}</h2>
-        {entry && <Link href={`/players/${entry.player_id}/intro`} className="t-small text-primary hover:underline">{dict.body.players.plOpenIntro}</Link>}
+        {/* SOT: "Open full 16:9 intro" is always there; it opens once a player is chosen */}
+        {entry ? <Link href={`/players/${entry.player_id}/intro`} className="t-small text-primary hover:underline">{dict.body.players.plOpenIntro}</Link>
+          : <span className="t-small text-muted" aria-disabled="true">{dict.body.players.plOpenIntro}</span>}
       </div>
       <div className="flex flex-1 items-center justify-center p-3.5">
         {!entry ? (
@@ -428,7 +430,7 @@ export function PlayersList() {
   }, [shown, focus, selectedId]);
   const onSaved = (p: PlayerProfile) => setList((l) => l?.map((x) => (x.player_id === selected?.player_id ? { ...x, profile: p } : x)));
   return (
-    <div className="flex min-w-0 flex-1" data-page="players" data-stage>
+    <div className="flex min-h-full min-w-0 flex-1" data-page="players" data-stage>
       <main className="flex min-w-0 flex-1 flex-col gap-3.5 p-5 px-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="t-page">{dict.body.analysis.players}</h1>

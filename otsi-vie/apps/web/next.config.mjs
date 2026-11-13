@@ -3,6 +3,10 @@
  * this app's own origin (`/api/*` is proxied to the API), so the refresh cookie stays first-party and connect-src is 'self'.
  * No third-party scripts, fonts or images are loaded at runtime.
  */
+import { readFileSync } from "node:fs";
+
+/** the app version shown in Settings > Preferences (the same number as the splash), read from this package */
+const appVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 const api = process.env.OTSI_VIE_API_INTERNAL_URL ?? "http://127.0.0.1:4520";
 const dev = process.env.NODE_ENV !== "production";
 
@@ -29,6 +33,7 @@ const config = {
   // Next.js standalone server (`.next/standalone/server.js`), started with
   // the bundled Node runtime. No `next start` / pnpm on the user's PC.
   output: 'standalone',
+  env: { NEXT_PUBLIC_APP_VERSION: appVersion },
   transpilePackages: ["@otsi-vie/contracts"],
   async headers() {
     return [{

@@ -155,7 +155,8 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest("input, select, textarea, [contenteditable]")) return;
       if (e.key === "s" || e.key === "S") { e.preventDefault(); if (r?.canEdit) st.split(); }
-      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "b" || e.key === "B")) { e.preventDefault(); setTool("blade"); }
+      // while dual compare is open, B belongs to it (capture Cut B / Shift+B apply), so it never also picks the blade
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "b" || e.key === "B") && !document.querySelector("[data-dual-timeline]")) { e.preventDefault(); setTool("blade"); }
       if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); setTool("select"); }
       if (e.key === "m" || e.key === "M") {
         e.preventDefault();

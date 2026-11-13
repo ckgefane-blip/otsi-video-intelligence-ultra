@@ -66,7 +66,8 @@ describe("Library (SOT)", () => {
     expect(screen.getByText("Name")).toBeInTheDocument();
     expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
     expect(screen.getByText("Chinazom Godwin — highlights")).toBeInTheDocument();
-    expect(screen.getAllByText("1 confirmed player · 78 events").length).toBeGreaterThan(0);
+    // the events load after the list: wait for them rather than reading them in the same tick
+    expect((await screen.findAllByText("1 confirmed player · 78 events")).length).toBeGreaterThan(0);
     expect(screen.getByText("#4 · DM · FC Ercakhu")).toBeInTheDocument();
     expect(screen.getByText("1 reel generated")).toBeInTheDocument();
     // right inspector: collections + folders + smart bins

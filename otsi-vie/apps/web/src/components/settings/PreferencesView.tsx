@@ -152,15 +152,15 @@ export function PreferencesView() {
       <div className="grid flex-1 gap-4 [grid-template-columns:repeat(auto-fit,minmax(380px,1fr))]">
         <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="lc">
           <div className="ph"><h2 id="lc" className="h3">{s.stPrefLicence}</h2>
-            <span className="t-small text-muted">• {licenceLine}</span>
+            <span data-licence-line className="t-small inline-flex items-center gap-1.5 text-muted"><span aria-hidden className={`led${verified ? " ok" : ""}`} style={verified ? undefined : { background: "rgb(var(--amber))" }} />{licenceLine}</span>
           </div>
           <div className="pb flex flex-1 flex-col gap-3.5">
             <dl className="kv">
               <dt>{s.stPrefLicenceStatus}</dt><dd>{licenceLine}</dd>
               <dt>{s.stPrefLicenceIssuedBy}</dt><dd>{s.stPrefLicenceIssuer}</dd>
               <dt>{s.stPrefLicenceChecked}</dt><dd>{s.stPrefLicenceCheckedWhen}</dd>
-              <dt>{s.stPrefLicenceGrace}</dt><dd>{grace ? s.stPrefLicenceGraceDays.replace("{a}", grace) : s.stPrefLicenceGraceDays.replace("{a}", "[n]")}</dd>
-              <dt>{s.stPrefLicenceVersion}</dt><dd className="mono">v[—]</dd>
+              <dt>{s.stPrefLicenceGrace}</dt><dd>{grace ? s.stPrefLicenceGraceDays.replace("{a}", grace) : "—"}</dd>
+              <dt>{s.stPrefLicenceVersion}</dt><dd>{process.env.NEXT_PUBLIC_APP_VERSION ? `v${process.env.NEXT_PUBLIC_APP_VERSION}` : "—"}</dd>
             </dl>
             <p className="hint">{s.stPrefLicenceOffline}</p>
             <div className="mt-auto flex gap-2">

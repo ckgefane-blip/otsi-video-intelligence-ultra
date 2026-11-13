@@ -52,7 +52,8 @@ describe("Player Report SOT", () => {
     // header: PIN chip + identity chip + sub
     expect(screen.getByText(PIN)).toBeInTheDocument();
     expect(screen.getByText("Identity confirmed")).toBeInTheDocument();
-    expect(screen.getByText("#4 · DM · FC Ercakhu · Nigeria · 2 videos analysed")).toBeInTheDocument();
+    // the video count loads after the header: wait for it rather than reading it in the same tick
+    expect(await screen.findByText("#4 · DM · FC Ercakhu · Nigeria · 2 videos analysed")).toBeInTheDocument();
     // header actions
     expect(screen.getByRole("link", { name: "Edit profile" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add to dossier" })).toBeInTheDocument();
@@ -128,9 +129,9 @@ describe("Player Report SOT", () => {
       return Promise.reject(new Error(`unexpected ${url}`));
     });
     render(<ReportStage />);
-    // the picker auto-opens over the page (SOT); the tiles behind it are empty, not loading
-    await waitFor(() => expect(screen.getByText("Choose a player")).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText("No player found.")).toBeInTheDocument());
+    // the picker does not open by itself on every visit; the tiles are empty, not loading
+    await waitFor(() => expect(screen.getByText("On camera")).toBeInTheDocument());
+    expect(screen.queryByText("Choose a player")).toBeNull();
     const tiles = screen.getByText("On camera").closest("div.grid") as HTMLElement;
     for (const label of ["On camera", "Events", "Confirmed tracks", "Evidence coverage", "Goals"]) {
       expect(within(tiles).getByText(label).parentElement).toHaveTextContent("—");

@@ -18,12 +18,14 @@
  */
 import type { Reel, SpotlightSettings } from "@otsi-vie/contracts";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReelBuilder, useReel, type ReelState } from "@/components/reels/ReelBuilder";
-import { api } from "@/lib/api";
+import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { typing } from "@/lib/keymap";
-import { StageProvider, useDirty, useStage, type ReelLengthS, type Stage } from "./shared";
+import { DEFAULTS, StageProvider, useDirty, useStage, type ReelLengthS, type Stage } from "./shared";
+import { ConfirmRender } from "./ConfirmRender";
 import { PreviewPanel } from "./PreviewPanel";
 
 /** minutes without a leading zero, for the budget bar ("0:00 of 5:00") */
@@ -37,12 +39,26 @@ const capOf = (s: ReelLengthS) => (s === 90 ? 3 : s === 300 ? 5 : 4);
 /* ------------------------------------------------------------------ left: Reel settings */
 function ReelSettingsSidebar() {
   const { t: dict } = useLocale();
-  const { r, lengthS, setLengthS, lengthFixed, buildReel } = useStage();
+  const { r, lengthS, setLengthS, lengthFixed, buildReel, setBuildOpen, buildOpen, draft, dirty } = useStage();
   const reel = r?.reel ?? null;
   const d = dict.body.reels;
-  // the SOT's "Moments from" is a plain two-button switch; picking "All matches" here creates nothing — a cross-match reel is made
-  // from the source choice (ReelBuilder), not this panel
+  const router = useRouter();
+  // "All matches" makes a NEW cross-match reel for the same player (the reel being looked at is untouched); "This match" is the reel.
+  // Owner 2026-11-13: cross-match creation stays here (the SOT rebuild had removed its only entry point).
   const [mode, setMode] = useState<"MATCH" | "ALL_MATCHES">("MATCH");
+  const [crossLength, setCrossLength] = useState<ReelLengthS>(180);
+  const [creating, setCreating] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const canEdit = !!r?.canEdit && !r.busy && !!reel;
+  const create = async () => {
+    if (!reel?.player) return;
+    setCreating(true); setErr(null);
+    try {
+      const created = await api<{ id: string }>("/v1/reels", { method: "POST",
+        json: { source: "ALL_MATCHES", length_s: crossLength, player_id: reel.player.player_id } });
+      router.push(`/reels/${created.id}`);
+    } catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.analysis.thatDidNotWork); } finally { setCreating(false); }
+  };
   const render = reel?.latest_render ?? null;
   const active = !!render && ["QUEUED", "RUNNING"].includes(render.state);
   const buildReason = !reel ? dict.body.reelstage.openReelFirst : !r?.canEdit ? dict.body.reelstage.cannotEdit : reel.stale ? dict.body.reelstage.genReasonStale
@@ -62,10 +78,19 @@ function ReelSettingsSidebar() {
         {reel?.source === "ALL_MATCHES" ? (
           <p className="t-body" data-reel-source="ALL_MATCHES">{d.crossSourceSummary.replace("{a}", reel.cross_match_length_s === 90 ? d.len90s : reel.cross_match_length_s === 300 ? d.len5min : d.len3min).replace("{b}", reel.best_moments_rule_version ?? "2.1")}</p>
         ) : (
-          <div className="seg f" role="group" aria-label={d.rbMomentsFrom}>
-            <button type="button" className={mode === "MATCH" ? "on" : ""} aria-pressed={mode === "MATCH"} onClick={() => setMode("MATCH")}>{d.sourceThisMatch}</button>
-            <button type="button" className={mode === "ALL_MATCHES" ? "on" : ""} aria-pressed={mode === "ALL_MATCHES"} disabled={!reel?.player} onClick={() => setMode("ALL_MATCHES")}>{d.sourceAllMatches}</button>
-          </div>
+          <>
+            <div className="seg f" role="group" aria-label={d.rbMomentsFrom}>
+              <button type="button" className={mode === "MATCH" ? "on" : ""} aria-pressed={mode === "MATCH"} onClick={() => setMode("MATCH")}>{d.sourceThisMatch}</button>
+              <button type="button" className={mode === "ALL_MATCHES" ? "on" : ""} aria-pressed={mode === "ALL_MATCHES"} disabled={!reel?.player} onClick={() => setMode("ALL_MATCHES")}>{d.sourceAllMatches}</button>
+            </div>
+            {mode === "ALL_MATCHES" && reel?.player && (
+              <>
+                <p className="hint">{d.sourceOneReel.replace("{a}", reel.player.display_name).replace("{b}", crossLength === 90 ? d.sourceUpTo90 : crossLength === 180 ? d.sourceUpTo180 : d.sourceUpTo300)}</p>
+                <button type="button" disabled={!canEdit || creating} onClick={() => void create()} className="btn pri w">{d.sourceCreate}</button>
+                {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+              </>
+            )}
+          </>
         )}
       </div>
       <div className="sect" style={{ gap: 8 }}>
@@ -75,11 +100,12 @@ function ReelSettingsSidebar() {
             side padding it needs 85px and reads in full in every locale — so the buttons are 12px/4px, not the shared 13px/12px. */}
         <div className="seg f" role="group" aria-label={d.rbLength}>
           {lengths.map(([s, label]) => {
-            const on = lengthS === s;
+            // for "This match" it is the reel's target length; for "All matches" it is the new cross-match reel's
+            const on = mode === "ALL_MATCHES" ? crossLength === s : lengthS === s;
             return (
-              <button key={s} type="button" className={on ? "on" : ""} aria-pressed={on} disabled={lengthFixed || !reel}
+              <button key={s} type="button" className={on ? "on" : ""} aria-pressed={on} disabled={lengthFixed || !reel || creating}
                 style={{ fontSize: 12, padding: "0 4px" }}
-                onClick={() => setLengthS(s)}>{label}</button>
+                onClick={() => { if (mode === "ALL_MATCHES") setCrossLength(s); else setLengthS(s); }}>{label}</button>
             );
           })}
         </div>
@@ -110,10 +136,12 @@ function ReelSettingsSidebar() {
         <p className="hint">{d.rbTierHint}</p>
       </div>
       <div style={{ padding: "12px 14px", borderTop: "1px solid rgb(var(--line))", background: "rgb(var(--p0))" }}>
-        <button type="button" className="btn pri w" disabled={!!buildReason || active} title={buildReason ?? undefined} onClick={() => buildReel()}>
+        <button type="button" className="btn pri w" disabled={!!buildReason || active} title={buildReason ?? undefined} onClick={() => setBuildOpen(true)}>
           {d.rbBuildReel}<span className="mono" style={{ marginLeft: "auto", opacity: .8 }}>{d.rbTokens10}</span>
         </button>
       </div>
+      {/* Build reel spends tokens: it asks first, with what the render holds (owner 2026-11-13) */}
+      {reel && <ConfirmRender reel={reel} settings={draft ?? DEFAULTS} codec="h264" dirty={dirty} open={buildOpen} onOpenChange={setBuildOpen} onStart={buildReel} />}
     </aside>
   );
 }
@@ -339,14 +367,18 @@ function Sections({ r }: { r: ReelState | null }) {
   }, [reel, draft, name, r]);
   // the SOT has no Profile Intro dialog on this page: the intro is a card in the Sequence, so opening it is a no-op here
   const openProfileIntro = useCallback(() => {}, []);
-  /** Build reel starts the render directly (SOT: a plain button, no confirmation dialog) — H.264, the reel's saved settings */
+  /** Build reel (after the confirmation): unsaved edits are saved first, then the H.264 render starts — it spends tokens,
+   *  so the sidebar button always opens ConfirmRender before this runs (owner 2026-11-13) */
   const buildReel = useCallback(() => {
     if (!reel || !r) return;
     r.run(async () => {
-      await api(`/v1/reels/${reel.id}/renders`, { method: "POST", json: { codec: "h264", bitrate_mbps: 8 }, headers: { "idempotency-key": `render-${reel.id}-${reel.version}-h264-${Date.now()}` } });
+      let cur: Reel = reel;
+      if (dirty && draft) cur = await api<Reel>(`/v1/reels/${reel.id}`, { method: "PATCH", json: { version: reel.version, ...(name.trim() && name.trim() !== reel.name ? { name: name.trim() } : {}), settings: draft } });
+      await api(`/v1/reels/${reel.id}/renders`, { method: "POST", json: { codec: "h264", bitrate_mbps: 8 }, headers: { "idempotency-key": `render-${cur.id}-${cur.version}-h264-${Date.now()}` } });
+      return cur;
     }, dict.body.reels.renderStarted);
-  }, [reel, r, dict]);
-  /** the render confirmation used to live here; the sidebar's Build reel button now starts the render directly */
+  }, [reel, r, dict, dirty, draft, name]);
+  /** the render confirmation's open state (the sidebar's Build reel button opens it) */
   const [buildOpen, setBuildOpen] = useState(false);
   /** how many reels this player has (the header's "1 reel generated") */
   const [reelCount, setReelCount] = useState<number | null>(null);

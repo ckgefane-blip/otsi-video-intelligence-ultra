@@ -7,12 +7,10 @@
  * Owners and Admins.
  *
  * One honest note, visible here, not hidden:
- * - Concurrency shows the SOT's "Not set" text (no numeric value) with
- *   a Pause button per queue; the track under it is still the working
- *   1–8 control — drag it to change the limit, the value is in the
- *   control's title. The API always returns a configured value
- *   (defaults 1 / 2 / 2), so "Not set" is the SOT's label, not a live
- *   unset state.
+ * - Concurrency shows each queue's real limit from the API (defaults
+ *   1 / 2 / 2) with a Pause button per queue; the track under it is the
+ *   working 1–8 control. The SOT's "Not set" label is not used because
+ *   the API always returns a configured value (owner 2026-11-13).
  *
  * Decisions (SOT rebuild 2026-11-13): POST /v1/overview/inbox/decisions with the row's stable id
  * ("<KIND>:<video-or-reel-uuid>"). APPROVE works for all four kinds. REJECT is deliberately unsupported
@@ -309,8 +307,8 @@ export function PlatformHealth() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">{q.label}</span>
                   <span className="flex items-center gap-3">
-                    {/* "Not set" in regular type (SOT §B), not mono */}
-                    <span className="text-xs text-muted">{t.body.reels.piNotSet}</span>
+                    {/* the real limit the API returns (owner 2026-11-13: real values, never the SOT's placeholder "Not set") */}
+                    <span className="text-xs text-muted" data-concurrency-value>{q.value}</span>
                     <button
                       type="button"
                       onClick={() =>

@@ -59,11 +59,12 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
   it("shows the side nav and the four panels, with the SOT defaults", async () => {
     mockApi();
     render(<PreferencesView />);
-    // the licence header shows the licence line as plain text with a dot; the Status row shows it bare
-    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
-    expect(screen.getByText("Free tier, no expiry")).toBeInTheDocument();
-    // the grace period reads "[n] days" when the licence carries no dates, not "—"
-    expect(screen.getByText("[n] days")).toBeInTheDocument();
+    // the licence header shows the licence line after a status LED (green when verified); the Status row shows it bare
+    await waitFor(() => expect(document.querySelector("[data-licence-line]")).toHaveTextContent("Free tier, no expiry"));
+    expect(screen.getAllByText("Free tier, no expiry").length).toBe(2);
+    expect(document.querySelector("[data-licence-line] .led.ok")).not.toBeNull();
+    // no placeholder text: the grace period and version read "—" when the server or build gives no value
+    expect(screen.queryByText("[n] days")).toBeNull();
     // "Release notes" is a button, not a link
     expect(screen.getByRole("button", { name: "Release notes" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
@@ -82,14 +83,14 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
     expect(screen.getByText("Licence & updates")).toBeInTheDocument();
     expect(screen.getByText("Storage on this computer")).toBeInTheDocument();
     expect(screen.getByText("Data stays on this computer unless exported or shared.")).toBeInTheDocument();
-    expect(screen.getByText("v[—]")).toBeInTheDocument();
+    expect(screen.queryByText("v[—]")).toBeNull();
   });
 
   it("with no licence from the server the status reads • Not verified", async () => {
     mockApi(undefined, false);
     render(<PreferencesView />);
-    await waitFor(() => expect(screen.getByText("• Not verified")).toBeInTheDocument());
-    expect(screen.getByText("Not verified")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-licence-line]")).toHaveTextContent("Not verified"));
+    expect(document.querySelector("[data-licence-line] .led.ok")).toBeNull();
   });
 
   it("shows the storage folders from GET /v1/settings/storage and enables Change… when a path is present", async () => {
@@ -106,7 +107,7 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
   it("with no paths from the server shows — and Change… stays disabled", async () => {
     mockApi(null);
     render(<PreferencesView />);
-    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("[data-licence-line]")).toHaveTextContent("Free tier, no expiry"));
     expect(screen.getAllByDisplayValue("—")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Change…" })).toBeDisabled();
   });
@@ -114,7 +115,7 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
   it("flipping a notification switch saves it and un-flipping restores the default", async () => {
     mockApi();
     render(<PreferencesView />);
-    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("[data-licence-line]")).toHaveTextContent("Free tier, no expiry"));
     const team = screen.getByRole("switch", { name: "Team changes" });
     fireEvent.click(team);
     expect(team).toHaveAttribute("aria-checked", "true");
@@ -161,7 +162,7 @@ describe("Settings — Team (SOT, Page 23)", () => {
 });
 
 describe("Settings — Security (SOT, Page 22)", () => {
-  it("shows the two-step panel with its steps and the passkeys panel with the biometric switch and Register this device", async () => {
+  it("shows the two-step panel with its steps and the passkeys panel with one biometric switch (fingerprint), no second Register button", async () => {
     mockApi();
     render(<SecurityView />);
     await waitFor(() => expect(screen.getByText("No passkeys yet")).toBeInTheDocument());
@@ -183,9 +184,9 @@ describe("Settings — Security (SOT, Page 22)", () => {
     expect(within(passkeys).getByText("Windows Hello")).toBeInTheDocument();
     expect(within(passkeys).getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "false");
     expect(within(passkeys).getByText("Sign in with Windows Hello on this computer.")).toBeInTheDocument();
-    // the SOT's passkeys section has no extra intro line and has the "Register this device" button
+    // no extra intro line; one control only, as in banking apps (owner 2026-11-13): the switch, no "Register this device" button
     expect(within(passkeys).queryByText(/Use Windows Hello \(fingerprint/)).toBeNull();
-    expect(within(passkeys).getByRole("button", { name: "Register this device" })).toBeInTheDocument();
+    expect(within(passkeys).queryByRole("button", { name: "Register this device" })).toBeNull();
   });
 
   it("the two-step panel opens the password form from Enable two-step", async () => {

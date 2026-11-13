@@ -216,7 +216,7 @@ export function ProcessingJobs() {
       </main>
 
       <aside className="insp self-stretch" aria-label={d.pjJobDetails} style={{ flex: "0 0 340px", maxWidth: 340 }}>
-        <div className="flex items-center justify-between gap-2 pb-1 pt-3" style={{ minHeight: 44 }}>
+        <div className="flex items-center justify-between gap-2 px-3.5 pb-1 pt-3" style={{ minHeight: 44 }}>
           <h2 className="t-panel">{d.pjJobDetails}</h2>
         </div>
         {selected ? (
@@ -244,7 +244,7 @@ export function ProcessingJobs() {
           </div>
         )}
         <div className="flex min-h-[200px] flex-1 flex-col border-t border-line">
-          <div className="flex items-center justify-between gap-2 pb-1 pt-3">
+          <div className="flex items-center justify-between gap-2 px-3.5 pb-1 pt-3">
             <span className="eb">{d.pjLog}</span>
             <button type="button" disabled={!selectedLines.length} className="rounded-ctl border border-line px-2 py-1 text-xs hover:bg-raised/60 disabled:opacity-50"
               onClick={() => {

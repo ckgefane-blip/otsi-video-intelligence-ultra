@@ -307,7 +307,7 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
   const ref: PlayerRef | null = playerRef ? parsePlayerRef(playerRef) : null;
   const [player, setPlayer] = useState<PlayerIdentity | null>(null);
   const [missing, setMissing] = useState<string | null>(null);
-  const [picking, setPicking] = useState(!playerRef);              // B.24 (ADR-099): the landing without a player opens the picker
+  const [picking, setPicking] = useState(false);                   // SOT: the landing without a player shows the page; a click opens the picker
   const [tab, setTab] = useState<Tab>("overview");
   const [measures, setMeasures] = useState<PlayerMeasures | null>(null);
   /** the measures read failed (null then means failed, not loading): the tiles name it instead of showing "—" */

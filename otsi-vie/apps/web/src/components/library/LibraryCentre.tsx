@@ -109,23 +109,24 @@ export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, 
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* one row as the SOT draws it: the search flexes, the filters cap at 200 px, List / Grid never wraps under */}
+      <div className="flex flex-nowrap items-center gap-2">
         <label htmlFor="lb-search" className="sr-only">{d.lbSearchPh}</label>
-        <input id="lb-search" className="in" style={{ flex: "1 1 240px", height: 32 }} placeholder={d.lbSearchPh} value={q} onChange={(e) => setQ(e.target.value)} />
-        <select aria-label={d.type} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as LibraryItemKind | "all")} className="chip" style={{ height: 30, cursor: "pointer" }}>
+        <input id="lb-search" className="in" style={{ flex: "1 1 0", minWidth: 120, height: 32 }} placeholder={d.lbSearchPh} value={q} onChange={(e) => setQ(e.target.value)} />
+        <select aria-label={d.type} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as LibraryItemKind | "all")} className="chip" style={{ height: 30, cursor: "pointer", flex: "0 1 auto", minWidth: 0, maxWidth: 200 }}>
           <option value="all">{d.type}</option>
           {(["Match", "Player", "Reel", "Report"] as const).map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
         </select>
-        <select aria-label={dict.body.analysis.match} value={matchFilter} onChange={(e) => setMatchFilter(e.target.value)} className="chip" style={{ height: 30, cursor: "pointer" }}>
+        <select aria-label={dict.body.analysis.match} value={matchFilter} onChange={(e) => setMatchFilter(e.target.value)} className="chip" style={{ height: 30, cursor: "pointer", flex: "0 1 auto", minWidth: 0, maxWidth: 200 }}>
           <option value="all">{dict.body.analysis.match}</option>
           {matches.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
         </select>
-        <select aria-label={d.lbAccess} value={accessFilter} onChange={(e) => setAccessFilter(e.target.value as "all" | "ORGANIZATION" | "RESTRICTED")} className="chip" style={{ height: 30, cursor: "pointer" }}>
+        <select aria-label={d.lbAccess} value={accessFilter} onChange={(e) => setAccessFilter(e.target.value as "all" | "ORGANIZATION" | "RESTRICTED")} className="chip" style={{ height: 30, cursor: "pointer", flex: "0 1 auto", minWidth: 0, maxWidth: 200 }}>
           <option value="all">{d.lbAccess}</option>
           <option value="ORGANIZATION">{d.accessEveryone}</option>
           <option value="RESTRICTED">{d.accessRestricted}</option>
         </select>
-        <div className="seg" role="group" aria-label={d.lbViewAria}>
+        <div className="seg" role="group" aria-label={d.lbViewAria} style={{ flex: "none" }}>
           <button type="button" className={view === "list" ? "on" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}><List className="h-3.5 w-3.5" aria-hidden />{d.lbList}</button>
           <button type="button" className={view === "grid" ? "on" : ""} aria-pressed={view === "grid"} onClick={() => setView("grid")}><LayoutGrid className="h-3.5 w-3.5" aria-hidden />{d.lbGrid}</button>
         </div>

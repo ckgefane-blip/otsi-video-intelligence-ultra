@@ -77,7 +77,9 @@ describe("Export (SOT)", () => {
 
   it("says to open a reel when the read succeeds with an empty list — and still shows the three panels, disabled and empty", async () => {
     await open([]);
-    await waitFor(() => expect(screen.getByText("Open a reel to export")).toBeInTheDocument());
+    // the line shows twice: the page message and the Highlight reel row, which is unticked with no reel (never "Ready")
+    await waitFor(() => expect(screen.getAllByText("Open a reel to export").length).toBeGreaterThan(0));
+    expect(screen.queryByText("Ready")).toBeNull();
     // the SOT always shows the three panels; with no reel they are a disabled, empty version
     expect(screen.getByRole("heading", { name: "Render" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Delivery" })).toBeInTheDocument();
@@ -92,15 +94,14 @@ describe("Export (SOT)", () => {
     expect(screen.getByRole("button", { name: "Render & send" })).toBeDisabled();
   });
 
-  it("offers H.265 and ProRes 422 as enabled codecs (the SOT's options), and the recipient email is always present", async () => {
+  it("offers only codecs the renderer makes and that are royalty-free (H.264, AV1, VP9 — ADR-030), and the recipient email is always present", async () => {
     await open();
     const codec = screen.getByLabelText("Codec") as HTMLSelectElement;
-    const h265 = within(codec).getByText("H.265 / HEVC") as HTMLOptionElement;
-    const prores = within(codec).getByText("ProRes 422") as HTMLOptionElement;
-    expect(h265.disabled).toBe(false);
-    expect(prores.disabled).toBe(false);
-    fireEvent.change(codec, { target: { value: "h265" } });
-    expect(codec.value).toBe("h265");
+    expect(Array.from(codec.options).map((o) => o.value)).toEqual(["h264", "av1", "vp9"]);
+    expect(within(codec).queryByText("H.265 / HEVC")).toBeNull();
+    expect(within(codec).queryByText("ProRes 422")).toBeNull();
+    fireEvent.change(codec, { target: { value: "av1" } });
+    expect(codec.value).toBe("av1");
     // the recipient email field is there whatever Send to is (the SOT's field, not only for Client)
     expect(screen.getByLabelText("Recipient email")).toBeInTheDocument();
     const teamBtn = screen.getByRole("button", { name: "Team member" });

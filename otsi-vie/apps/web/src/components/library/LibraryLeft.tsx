@@ -106,13 +106,12 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
             <Link href="/upload" className="btn sm gh">{d.lbLinkVideo}</Link>
           </div>
         )}
-        {match && (
-          <dl className="kv" style={{ gap: "2px 12px", gridTemplateColumns: "auto minmax(0, 1fr)" }}>
-            <dt>{d.homeTeam}</dt><dd>{match.home?.name ?? "—"}</dd>
-            <dt>{d.awayTeam}</dt><dd>{match.away?.name ?? "—"}</dd>
-            <dt>{d.lbTracking}</dt><dd>{total === null || confirmedCount === null ? "—" : `${confirmedCount === 1 ? d.lbConfirmedPlayerOne : d.lbConfirmedPlayerMany.replace("{a}", String(confirmedCount))} · ${d.lbEventsMany.replace("{a}", String(total))}`}</dd>
-          </dl>
-        )}
+        {/* SOT: the match facts are always there, with "—" until a match is chosen (owner 2026-11-13) */}
+        <dl className="kv" style={{ gap: "2px 12px", gridTemplateColumns: "auto minmax(0, 1fr)" }}>
+          <dt>{d.homeTeam}</dt><dd>{match?.home?.name ?? "—"}</dd>
+          <dt>{d.awayTeam}</dt><dd>{match?.away?.name ?? "—"}</dd>
+          <dt>{d.lbTracking}</dt><dd>{!match || total === null || confirmedCount === null ? "—" : `${confirmedCount === 1 ? d.lbConfirmedPlayerOne : d.lbConfirmedPlayerMany.replace("{a}", String(confirmedCount))} · ${d.lbEventsMany.replace("{a}", String(total))}`}</dd>
+        </dl>
         {/* "Match time: confirmed" is plain text with a dot (SOT §B), keeping the teal colour */}
         {confirmed && <span className="t-small" style={{ alignSelf: "flex-start", marginTop: 2, color: "rgb(var(--primary))" }}>• {d.lbMatchTimeConfirmed}</span>}
       </div>

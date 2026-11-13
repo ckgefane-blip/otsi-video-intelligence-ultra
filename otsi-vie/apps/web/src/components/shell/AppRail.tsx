@@ -4,7 +4,7 @@
  *
  * - 240 px with labels by default, 64 px icons-only when collapsed — fixed widths, no drag-resize handle (the SOT has none in any
  *   .dc.html; its `.rsz` CSS is dead). The Collapse toggle (and Ctrl/Cmd+B) switches between the two; the choice is remembered
- *   in this browser (localStorage `otsi-vie.rail.v2`, 240 or 64 only).
+ *   in this browser (localStorage `otsi-vie.rail.v3.work` / `.page`, 240 or 64 only), separately for the five work pages and the rest.
  * - The SOT's per-page default: the rail ships collapsed on Analysis, Tactical, Reels, Clip Studio and Library, expanded on the
  *   other shelled pages. Until the person toggles it (which stores a choice), navigating to another page takes that page's default.
  * - All eleven destinations in the SOT's order — Home, Media, Processing, Analysis, Tactical, Players, Reports, Reels, Clip Studio,
@@ -15,12 +15,12 @@
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { navItems } from "@/lib/pages";
 import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
 import { useLocale } from "@/lib/i18n";
 
-export const RAIL_STORAGE_KEY = "otsi-vie.rail.v2";
+export const RAIL_STORAGE_KEY = "otsi-vie.rail.v3";
 const MIN_W = 64, DEFAULT_W = 240;
 
 /** the SOT's five pages that ship with the rail collapsed (class="app shell rc") */
@@ -72,16 +72,19 @@ const ENTRIES: Record<string, RailEntry> = {
   Export: { key: "export", icon: ICONS.export },
 };
 
-function readRail(): number | null {
+/** the choice is remembered separately for the five work pages (SOT default: icons) and the other pages (default: labels),
+ *  so collapsing on Home never stops Analysis opening as icons, and the reverse (owner 2026-11-13) */
+const railKey = (path: string) => `${RAIL_STORAGE_KEY}.${COLLAPSED_DEFAULT.test(path) ? "work" : "page"}`;
+function readRail(path: string): number | null {
   try {
-    const raw = localStorage.getItem(RAIL_STORAGE_KEY);
+    const raw = localStorage.getItem(railKey(path));
     if (raw === null) return null;
     const v = Number(raw);
     return v === MIN_W || v === DEFAULT_W ? v : null;
   } catch { return null; }
 }
-function saveRail(w: number) {
-  try { localStorage.setItem(RAIL_STORAGE_KEY, String(w)); } catch { /* blocked storage: this visit only */ }
+function saveRail(path: string, w: number) {
+  try { localStorage.setItem(railKey(path), String(w)); } catch { /* blocked storage: this visit only */ }
 }
 
 export function AppRail() {
@@ -89,18 +92,20 @@ export function AppRail() {
   const items = navItems(path);
   const { t } = useLocale();
   const [width, setWidth] = useState(() => defaultWidth(path));
+  const pathRef = useRef(path);
+  pathRef.current = path;
   const collapsed = width <= MIN_W;
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
   // a stored choice wins; without one the page takes the SOT's per-page default (collapsed on the five rc pages)
   useEffect(() => {
-    const stored = readRail();
+    const stored = readRail(path);
     setWidth(stored ?? defaultWidth(path));
   }, [path]);
 
   const toggle = () => setWidth((w) => {
     const next = w <= MIN_W ? DEFAULT_W : MIN_W;
-    saveRail(next);
+    saveRail(pathRef.current, next);
     return next;
   });
   useEffect(() => {

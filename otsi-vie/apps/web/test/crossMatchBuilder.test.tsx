@@ -121,18 +121,21 @@ async function openCross(reel: Reel = crossReel()) {
 }
 
 describe("Cross-match source choice", () => {
-  it("the Moments-from switch is plain: picking All matches creates no reel on this page", async () => {
+  it("picking All matches creates nothing until Create; then a new 5-minute all-matches reel opens, the original untouched", async () => {
     const single = baseReel();
     mockApi(single, []);
     render(<ReelStage reelId={SINGLE_ID} />);
     await waitFor(() => expect(screen.getByRole("button", { name: "All matches" })).not.toBeDisabled());
     fireEvent.click(screen.getByRole("button", { name: "All matches" }));
     fireEvent.click(screen.getByRole("button", { name: "5 minutes" }));
-    expect(screen.getByText("5:00 target")).toBeInTheDocument();   // the Length seg still sets the reel's target length
-    expect(screen.queryByRole("button", { name: "Create all-matches reel" })).toBeNull();
-    expect(screen.queryByText(/One reel of .* best moments from all his matches/)).toBeNull();
-    expect(api.mock.calls.filter(([u, init]) => String(u) === "/v1/reels" && (init as { method?: string } | undefined)?.method === "POST")).toHaveLength(0);
-    expect(push).not.toHaveBeenCalled();
+    const posts = () => api.mock.calls.filter(([u, init]) => String(u) === "/v1/reels" && (init as { method?: string } | undefined)?.method === "POST");
+    expect(posts()).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Create all-matches reel" }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/reels", expect.objectContaining({
+      method: "POST", json: { source: "ALL_MATCHES", length_s: 300, player_id: PLAYER_ID },
+    })));
+    expect(push).toHaveBeenCalledWith(`/reels/${NEW_ID}`);
+    expect(api.mock.calls.filter(([u, init]) => String(u) === `/v1/reels/${SINGLE_ID}` && (init as { method?: string } | undefined)?.method === "PATCH")).toHaveLength(0);
   });
 
   it("the full source choice offers the fixed lengths, default 3 min", async () => {

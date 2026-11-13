@@ -63,7 +63,8 @@ export const outputLufs = (o: ExportOutput, exportLufs: number | null, reelLufs:
 
 export const BatchRenderRequest = z.object({
   outputs: z.array(ExportOutput).min(1).max(6),
-  codec: z.enum(["h264", "av1", "vp9", "h265", "prores"]).default("h264"),
+  // only the codecs the render worker produces; H.265 / ProRes are not offered (no renderer, and H.265 needs a patent licence: ADR-030)
+  codec: z.enum(["h264", "av1", "vp9"]).default("h264"),
   bitrate_mbps: z.number().min(2).max(20).default(8),
   loudness_lufs: Lufs.nullable().default(null),
 });
