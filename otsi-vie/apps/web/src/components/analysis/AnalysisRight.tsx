@@ -12,6 +12,7 @@
  * are not on this SOT page: they live on the Player Report, the Tactical
  * page and the Reel Builder.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerMeasures, PlayerProfile, TrackIdentity } from "@otsi-vie/contracts";
@@ -63,7 +64,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
     }, () => setIdentity(null));
   }, [t?.track_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!t) return <aside className="flex w-[300px] shrink-0 flex-col border-l border-line p-4"><p className="text-sm text-muted">{dict.body.analysis.clickBoxOrTrack}</p></aside>;
+  if (!t) return <SidePanel panel="analysis-right" def={300} edge="left" className="flex flex-col border-l border-line p-4"><p className="text-sm text-muted">{dict.body.analysis.clickBoxOrTrack}</p></SidePanel>;
 
   const confirmed = identity?.state === "CONFIRMED" ? identity.player : null;
   const chip = identity
@@ -99,7 +100,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
   const coverage = measures && measures.seen_s > 0 ? Math.round((100 * Math.min(measures.measured_s, measures.seen_s)) / measures.seen_s) : null;
 
   return (
-    <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-l border-line" aria-label={name}>
+    <SidePanel panel="analysis-right" def={300} edge="left" className="flex flex-col overflow-y-auto border-l border-line" aria-label={name}>
       <div className="vie-ph" style={{ minHeight: 44 }}>
         <h2 className="t-section truncate">{name}</h2>
         {chip && <span className="t-small shrink-0 text-muted"><span className={chip.dot} aria-hidden>•</span> {chip.label}</span>}
@@ -182,6 +183,6 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
           </Link>
         )}
       </div>
-    </aside>
+    </SidePanel>
   );
 }

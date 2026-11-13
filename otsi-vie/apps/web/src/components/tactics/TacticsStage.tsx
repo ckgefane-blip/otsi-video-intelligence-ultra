@@ -18,6 +18,7 @@
  * moment, with that track selected. The tab is matched by NAME, not by position — ?tab=player-comparison used to open Transitions
  * (the old stage indexed the six-name list into the seven-view list). Malformed values are ignored.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { Match, RunTeams, Video } from "@otsi-vie/contracts";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -188,7 +189,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
     // so the three columns run edge to edge — full height to the status bar — instead of floating in the gutter
     <div className="flex min-h-full w-full" data-stage="tactics">
       {/* left: the views, and what Team shape still needs (at the bottom) */}
-      <aside className="side" style={{ flex: "0 0 248px" }} aria-label={dict.body.tactics.viewsLabel}>
+      <SidePanel panel="tactics-views" def={248} edge="right" className="side" aria-label={dict.body.tactics.viewsLabel}>
         <div className="ph"><h2 className="h3">{dict.body.tactics.viewsLabel}</h2></div>
         <nav className="sect" aria-label={dict.body.tactics.viewsLabel}>
           {VIEWS.map((v) => (
@@ -208,7 +209,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
             ))}
           </div>
         </div>
-      </aside>
+      </SidePanel>
 
       {/* centre: the view itself */}
       <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]">
@@ -290,7 +291,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
       </main>
 
       {/* right: the Layers, Shape metrics and Compare inspector */}
-      <aside className="insp" style={{ flex: "0 0 300px" }} aria-label={dict.body.tactics.layersLabel}>
+      <SidePanel panel="tactics-layers" def={300} edge="left" className="insp" aria-label={dict.body.tactics.layersLabel}>
         <div className="ph"><h2 className="h3">{dict.body.tactics.layersLabel}</h2></div>
         <div className="sect flex flex-col gap-2.5">
           {([[dict.body.tactics.layerAvgPositions, layers.avg, (v: boolean) => setLayers({ ...layers, avg: v })],
@@ -338,7 +339,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
             {exporting ? "…" : dict.body.tactics.exportImage}
           </button>
         </div>
-      </aside>
+      </SidePanel>
       <VideoPicker open={picking} onOpenChange={setPicking} current={videoId} basePath="/tactics" />
     </div>
   );

@@ -14,6 +14,7 @@
  * player can change the profile (the registry is shared). Tracks and Coverage in the table come from each player's measures
  * (GET /v1/players/:id/measures); a failed read shows "—", never a guess.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { BrandRightsBasis, Country, PlayerListEntry, PlayerMeasures, PlayerProfile, PlayerProfileDetails, PlayerProfileIntro, UpdatePlayerProfileDetailsRequest } from "@otsi-vie/contracts";
 import { BRAND_MAX_BYTES } from "@otsi-vie/contracts";
 import { Camera, User } from "lucide-react";
@@ -222,7 +223,7 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
     setStrengthInput("");
   };
   return (
-    <aside className="insp" aria-label={dict.body.players.plSaveProfile} style={{ flex: "0 0 420px", maxWidth: 420 }}>
+    <SidePanel panel="players-inspector" def={420} edge="left" className="insp" aria-label={dict.body.players.plSaveProfile}>
       <div className="flex items-center gap-3.5 border-b border-line p-3.5 px-4">
         <label className="grid h-14 w-14 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-dashed border-line2 bg-raised text-muted hover:border-primary hover:text-primary">
           <input type="file" accept="image/png,image/jpeg" aria-label={dict.body.players.uploadPhoto} disabled={!can} className="hidden"
@@ -386,7 +387,7 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
         <button type="button" disabled={!can || !changed || state.busy || !!detailsError} onClick={() => void save()} className="vie-btn vie-btn-pri">
           {state.busy ? dict.body.players.saving : dict.body.players.plSaveProfile}</button>
       </div>
-    </aside>
+    </SidePanel>
   );
 }
 
@@ -500,11 +501,11 @@ export function PlayersList() {
       </main>
       {/* the inspector column stays when nothing is selected (SOT): an empty state instead of a missing column */}
       {selected ? <ProfileEditor entry={selected} countries={countries} onSaved={onSaved} /> : (
-        <aside className="insp" aria-label={dict.body.players.plSaveProfile} style={{ flex: "0 0 420px", maxWidth: 420 }}>
+        <SidePanel panel="players-inspector" def={420} edge="left" className="insp" aria-label={dict.body.players.plSaveProfile}>
           <div className="flex flex-1 items-center justify-center p-4">
             <p className="t-body text-center text-muted">{dict.body.players.plSelectPlayer}</p>
           </div>
-        </aside>
+        </SidePanel>
       )}
     </div>
   );

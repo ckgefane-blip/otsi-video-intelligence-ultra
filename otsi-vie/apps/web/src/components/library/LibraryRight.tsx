@@ -17,6 +17,7 @@
  * default (Everyone in the organisation / Only me and the owner /
  * Chosen members).
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { LibraryFolder, PlayerListEntry, SavedSearch, SmartBin } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -67,7 +68,7 @@ export function LibraryRight({ counts, collection, setCollection, folders, onNew
   };
 
   return (
-    <aside aria-label={d.lbCollections} className="flex min-w-0 flex-col overflow-auto" style={{ flex: "0 0 260px", maxWidth: 260 }}>
+    <SidePanel panel="library-right" def={260} edge="left" aria-label={d.lbCollections} className="flex min-w-0 flex-col overflow-auto">
       <div className="vie-sect" style={{ gap: 2, padding: "12px 8px" }}>
         <span className="eb" style={{ padding: "0 8px 6px" }}>{d.lbCollections}</span>
         {collRows.map(([k, l, n]) => {
@@ -140,6 +141,6 @@ export function LibraryRight({ counts, collection, setCollection, folders, onNew
           </select>
         </div>
       </div>
-    </aside>
+    </SidePanel>
   );
 }

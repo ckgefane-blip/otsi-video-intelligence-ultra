@@ -12,6 +12,7 @@
  * graphics live on the Reel Builder / Library pages, where clips are
  * assembled; this bin edits what is already in the reel.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import Link from "next/link";
 import { useState } from "react";
 import type { ReelState } from "@/components/reels/ReelBuilder";
@@ -38,7 +39,7 @@ export function MediaBin({ r, st, say, binTab, setBinTab }: { r: ReelState | nul
   const why = () => say(!r?.canEdit ? s.roleViewReel : s.savingPrevChange);
 
   return (
-    <aside className="flex w-[280px] shrink-0 flex-col border-r border-line" aria-label={s.csClips}>
+    <SidePanel panel="studio-clips" def={280} edge="right" className="flex flex-col border-r border-line" aria-label={s.csClips}>
       <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist" style={{ flexWrap: "nowrap" }}>
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`tab ${tab === i ? "on" : ""}`}>
@@ -165,6 +166,6 @@ export function MediaBin({ r, st, say, binTab, setBinTab }: { r: ReelState | nul
         <span className="t-small flex-1 text-muted">{s.csClipsFromBuilder}</span>
         <Link href="/reels" className="vie-btn vie-btn-sm">{s.csReelBuilder}</Link>
       </div>
-    </aside>
+    </SidePanel>
   );
 }

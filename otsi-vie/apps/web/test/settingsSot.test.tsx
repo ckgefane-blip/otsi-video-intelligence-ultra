@@ -294,3 +294,25 @@ describe("Settings and Admin are separate places (owner 2026-11-13)", () => {
     expect(screen.queryByRole("link", { name: "Token Wallet" })).toBeNull();
   });
 });
+
+describe("side panels are drag-resizable (owner 2026-11-13)", () => {
+  it("the Settings menu widens with its handle, keeps between its limits, and remembers the width", () => {
+    localStorage.clear();
+    const { unmount } = render(<SettingsSideNav current="preferences" />);
+    const nav = screen.getByRole("navigation", { name: "Settings" });
+    const handle = screen.getByRole("separator", { name: "Drag to resize" });
+    expect(nav.style.width).toBe("248px");
+    fireEvent.pointerDown(handle, { button: 0, clientX: 248, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 320, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 320, pointerId: 1 });
+    expect(nav.style.width).toBe("320px");
+    expect(localStorage.getItem("otsi-vie.panel.settings-nav")).toBe("320");
+    fireEvent.keyDown(handle, { key: "End" });
+    expect(nav.style.width).toBe("420px");
+    fireEvent.keyDown(handle, { key: "Home" });
+    expect(nav.style.width).toBe("180px");
+    unmount();
+    render(<SettingsSideNav current="preferences" />);
+    expect(screen.getByRole("navigation", { name: "Settings" }).style.width).toBe("180px");
+  });
+});

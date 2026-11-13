@@ -16,6 +16,7 @@
  * (GET /v1/videos/:id/events); "Match time: confirmed" shows when the
  * video's halves are confirmed (GET /v1/videos/:id/match-periods).
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { Match, MatchEvents, MatchPeriods } from "@otsi-vie/contracts";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
@@ -77,7 +78,7 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
   const pickMatch = (m: Match | null) => { setTeam("all"); onMatch(m); setMenuOpen(false); };
 
   return (
-    <aside aria-label={d.matchPanelAria} className="flex min-w-0 flex-col overflow-auto" style={{ flex: "0 0 272px", maxWidth: 272 }}>
+    <SidePanel panel="library-left" def={272} edge="right" aria-label={d.matchPanelAria} className="flex min-w-0 flex-col overflow-auto">
       <div className="vie-sect" style={{ gap: 6, padding: "10px 14px" }}>
         <span className="eb">{dict.body.analysis.match}</span>
         <div className="relative">
@@ -171,6 +172,6 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
           </div>
         )}
       </div>
-    </aside>
+    </SidePanel>
   );
 }

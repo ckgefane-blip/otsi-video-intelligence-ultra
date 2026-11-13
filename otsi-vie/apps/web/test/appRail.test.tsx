@@ -1,4 +1,4 @@
-/** The rail (SOT rebuild 2026-11-13): the SOT's labels and order, fixed 240 / 64 px widths, the per-page collapsed default,
+/** The rail (SOT rebuild 2026-11-13): the SOT's labels and order, 240 / 64 px widths (drag-resizable since 2026-11-13), the per-page collapsed default,
  *  Settings to Preferences, Admin always shown. */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -66,8 +66,29 @@ describe("rail (SOT)", () => {
     expect(screen.getByRole("complementary", { name: "Main" })).toHaveAttribute("data-rail", "expanded");
   });
 
-  it("has no resize handle", () => {
+  it("is drag-resizable (owner 2026-11-13): the handle widens it, remembers the width, and narrow snaps to icons-only", () => {
     render(<AppRail />);
-    expect(document.querySelector('[role="separator"]')).toBeNull();
+    const rail = screen.getByRole("complementary", { name: "Main" });
+    const handle = screen.getByRole("separator", { name: "Drag to resize" });
+    expect(handle).toHaveAttribute("aria-valuenow", "240");
+    fireEvent.keyDown(handle, { key: "ArrowRight", shiftKey: true });
+    expect(rail.style.width).toBe("288px");
+    expect(localStorage.getItem(RAIL_STORAGE_KEY)).toBe("288");
+    // a drag that lets go narrower than 150 px snaps to icons-only
+    fireEvent.pointerDown(handle, { button: 0, clientX: 288, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 120, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 120, pointerId: 1 });
+    expect(rail).toHaveAttribute("data-rail", "collapsed");
+    expect(localStorage.getItem(RAIL_STORAGE_KEY)).toBe("64");
+    // Enter goes back to the default width
+    fireEvent.keyDown(handle, { key: "Enter" });
+    expect(rail).toHaveAttribute("data-rail", "expanded");
+    expect(rail.style.width).toBe("240px");
+  });
+
+  it("restores a remembered dragged width", () => {
+    localStorage.setItem(RAIL_STORAGE_KEY, "300");
+    render(<AppRail />);
+    expect(screen.getByRole("complementary", { name: "Main" }).style.width).toBe("300px");
   });
 });

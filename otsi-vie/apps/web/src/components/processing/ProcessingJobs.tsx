@@ -6,6 +6,7 @@
  * with the selected job's log. The per-video processing view stays at /processing?video=<id>; this page is the jobs overview.
  * Everything comes from GET /v1/jobs (waiting, running, paused, and finished in the last 24 h); nothing is invented.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { Job, JobList, JobPriority } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -215,7 +216,7 @@ export function ProcessingJobs() {
         </section>
       </main>
 
-      <aside className="insp self-stretch" aria-label={d.pjJobDetails} style={{ flex: "0 0 340px", maxWidth: 340 }}>
+      <SidePanel panel="processing-inspector" def={340} edge="left" className="insp self-stretch" aria-label={d.pjJobDetails}>
         <div className="flex items-center justify-between gap-2 px-3.5 pb-1 pt-3" style={{ minHeight: 44 }}>
           <h2 className="t-panel">{d.pjJobDetails}</h2>
         </div>
@@ -264,7 +265,7 @@ export function ProcessingJobs() {
             </ol>
           )}
         </div>
-      </aside>
+      </SidePanel>
     </div>
   );
 }

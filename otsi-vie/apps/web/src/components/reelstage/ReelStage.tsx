@@ -16,6 +16,7 @@
  * the tab/focus jump target and the preview mode; the old inspector/moments/confirm/spotlight modules were deleted in the
  * reconciliation pass (2026-11-13), so nothing here references them.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import type { Reel, SpotlightSettings } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -71,7 +72,7 @@ function ReelSettingsSidebar() {
     ["C", d.rbTierC, "|rgb(var(--ink2))"],
   ];
   return (
-    <aside className="side" aria-label={d.rbSettings} style={{ flex: "0 0 300px", maxWidth: 300, overflowY: "auto", minHeight: 0 }}>
+    <SidePanel panel="reels-settings" def={300} edge="right" className="side" aria-label={d.rbSettings} style={{ overflowY: "auto", minHeight: 0 }}>
       <div className="ph" style={{ minHeight: 44 }}><h2 className="h3">{d.rbSettings}</h2><span className="sm mu">{d.rbRule}</span></div>
       <div className="sect" style={{ gap: 8 }}>
         <span className="eb">{d.rbMomentsFrom}</span>
@@ -142,7 +143,7 @@ function ReelSettingsSidebar() {
       </div>
       {/* Build reel spends tokens: it asks first, with what the render holds (owner 2026-11-13) */}
       {reel && <ConfirmRender reel={reel} settings={draft ?? DEFAULTS} codec="h264" dirty={dirty} open={buildOpen} onOpenChange={setBuildOpen} onStart={buildReel} />}
-    </aside>
+    </SidePanel>
   );
 }
 
@@ -287,7 +288,7 @@ function ClipInspector() {
     r.run(() => api<Reel>(`/v1/reels/${reel.id}/clips/order`, { method: "POST", json: { clip_ids: ids } }));
   };
   return (
-    <aside className="insp" aria-label={d.rbClip} style={{ flex: "0 0 280px", maxWidth: 280, overflowY: "auto", minHeight: 0 }}>
+    <SidePanel panel="reels-inspector" def={280} edge="left" className="insp" aria-label={d.rbClip} style={{ overflowY: "auto", minHeight: 0 }}>
       <div className="ph" style={{ minHeight: 44 }}><h2 className="h3">{d.rbClip}</h2></div>
       {!sel ? (
         <div className="empty" style={{ flex: 1 }}>
@@ -310,7 +311,7 @@ function ClipInspector() {
           <Link href={`/studio?reel=${reel!.id}`} className="btn sm">{d.rbOpenClipStudio}</Link>
         </div>
       )}
-    </aside>
+    </SidePanel>
   );
 }
 

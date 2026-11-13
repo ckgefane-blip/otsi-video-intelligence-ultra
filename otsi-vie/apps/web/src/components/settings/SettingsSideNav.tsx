@@ -9,6 +9,7 @@
  * Security & compliance, and Billing for the company organisation). The rail's Settings and Admin buttons
  * open one each, so the two never look like the same page.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useInterfaceMode } from "@/lib/interfaceMode";
@@ -47,8 +48,9 @@ export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }
   );
   const admin = ADMIN_PAGES.includes(current);
   return (
-    <nav aria-label={admin ? t.body.shell.adminConsole : t.desktop.navSettings} data-settings-side-nav={admin ? "admin" : "settings"}
-      className="flex w-[248px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line bg-p0 px-2.5 py-3.5">
+    <SidePanel as="nav" panel="settings-nav" def={248} edge="right" min={180} max={420}
+      aria-label={admin ? t.body.shell.adminConsole : t.desktop.navSettings} data-settings-side-nav={admin ? "admin" : "settings"}
+      className="flex flex-col gap-0.5 overflow-y-auto border-r border-line bg-p0 px-2.5 py-3.5">
       {admin ? (
         <>
           <span className={eyebrow}>{t.body.shell.adminConsole}</span>
@@ -81,6 +83,6 @@ export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }
         </div>
         <span className="t-small">{t.body.admin.navBothFree}</span>
       </div>
-    </nav>
+    </SidePanel>
   );
 }

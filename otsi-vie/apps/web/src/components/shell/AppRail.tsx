@@ -2,12 +2,13 @@
 /**
  * The left rail (SOT rebuild 2026-11-13): the SOT's shared rail, not a resizable sidebar.
  *
- * - 240 px with labels, 64 px icons-only when collapsed — fixed widths, no drag-resize handle (the SOT has none in any
- *   .dc.html; its `.rsz` CSS is dead).
+ * - 240 px with labels by default, 64 px icons-only when collapsed. Drag-resizable (owner 2026-11-13: "Why are the sidebars
+ *   not adjustable?"): drag its right edge between 64 and 360 px; let go narrower than 150 px and it snaps to icons-only. The
+ *   width is remembered (localStorage `otsi-vie.rail.v4`).
  * - Open (240 px, labels) on EVERY page by default (owner 2026-11-13: "It should always be open/visible"); this overrides the
  *   SOT's per-page collapsed default on Analysis/Tactical/Reels/Clip Studio/Library, which made the rail jump between pages.
  *   Only the person's own Collapse (or Ctrl/Cmd+B) collapses it, and that one choice holds on every page until they expand it
- *   again (localStorage `otsi-vie.rail.v4`, 240 or 64 only).
+ *   again (localStorage `otsi-vie.rail.v4`).
  * - All eleven destinations in the SOT's order — Home, Media, Processing, Analysis, Tactical, Players, Reports, Reels, Clip Studio,
  *   Library, Export — shown always; then Settings (Preferences) and Admin in the footer. The SOT has no Guided-mode gating.
  * - Icons are the SOT's own inline SVGs (stroke, 1.6), copied from reel-builder/Reels.dc.html — Media is a download tray,
@@ -16,13 +17,15 @@
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { PanelResizer, usePanelWidth } from "./SidePanel";
 import { navItems } from "@/lib/pages";
 import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
 import { useLocale } from "@/lib/i18n";
 
 export const RAIL_STORAGE_KEY = "otsi-vie.rail.v4";
-const MIN_W = 64, DEFAULT_W = 240;
+const MIN_W = 64, DEFAULT_W = 240, MAX_W = 360, SNAP_BELOW = 150;
+const snapRail = (w: number) => (w < SNAP_BELOW ? MIN_W : w);
 
 
 type NavKey = "home" | "upload" | "processing" | "analysis" | "tactical" | "players" | "reports" | "reels" | "studio" | "library" | "export";
@@ -70,41 +73,26 @@ const ENTRIES: Record<string, RailEntry> = {
   Export: { key: "export", icon: ICONS.export },
 };
 
-function readRail(): number | null {
-  try {
-    const raw = localStorage.getItem(RAIL_STORAGE_KEY);
-    if (raw === null) return null;
-    const v = Number(raw);
-    return v === MIN_W || v === DEFAULT_W ? v : null;
-  } catch { return null; }
-}
-function saveRail(w: number) {
-  try { localStorage.setItem(RAIL_STORAGE_KEY, String(w)); } catch { /* blocked storage: this visit only */ }
-}
-
 export function AppRail() {
   const path = usePathname() ?? "/";
   const items = navItems(path);
   const { t } = useLocale();
-  const [width, setWidth] = useState(DEFAULT_W);
-  const collapsed = width <= MIN_W;
+  const rail = usePanelWidth("rail", DEFAULT_W, { min: MIN_W, max: MAX_W, key: RAIL_STORAGE_KEY, snap: snapRail });
+  const width = rail.width;
+  const collapsed = width < SNAP_BELOW;
+  const widthRef = useRef(width);
+  widthRef.current = width;
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
-  // open by default; only the person's own stored Collapse keeps it collapsed, the same on every page
-  useEffect(() => { setWidth(readRail() ?? DEFAULT_W); }, []);
-
-  const toggle = () => setWidth((w) => {
-    const next = w <= MIN_W ? DEFAULT_W : MIN_W;
-    saveRail(next);
-    return next;
-  });
+  // open by default; only the person's own stored width (or Collapse) changes it, the same on every page
+  const toggle = () => rail.setWidth(widthRef.current < SNAP_BELOW ? DEFAULT_W : MIN_W);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) { e.preventDefault(); toggle(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [rail.setWidth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const link = "flex h-9 items-center gap-3 rounded-md px-2.5 text-[12px] font-normal leading-5 text-[rgb(var(--ink2))] hover:bg-raised hover:text-ink";
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
@@ -152,6 +140,7 @@ export function AppRail() {
           {!collapsed && <><span className="flex-1 text-left">{t.desktop.railCollapse}</span><span className="vie-kbd">Ctrl B</span></>}
         </button>
       </div>
+      <PanelResizer panel={rail} edge="right" wrapClassName="absolute inset-y-0 right-0 z-30 w-0" />
     </aside>
   );
 }

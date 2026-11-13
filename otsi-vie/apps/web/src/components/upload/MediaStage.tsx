@@ -44,6 +44,7 @@
  * and the rights dialog) is NOT routed by /upload any more; the files stay in the repo. The UploadRightsDialog is still rendered here,
  * because a file dropped while Send to Analysis is on still needs the four questions answered before it uploads.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import { AlertTriangle, ChevronRight, Download, Film, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -355,7 +356,7 @@ export function MediaStage() {
       </main>
 
       {/* ingest settings inspector */}
-      <aside className="insp" aria-label={d.mdIngestSettings}>
+      <SidePanel panel="media-inspector" def={320} edge="left" className="insp" aria-label={d.mdIngestSettings}>
         <div className="vie-ph" style={{ minHeight: 44 }}><h2 className="h3">{d.mdIngestSettings}</h2><span className="mu xs">{d.mdAppliesQueued}</span></div>
 
         <div className="sect">
@@ -456,7 +457,7 @@ export function MediaStage() {
           {startMsg && <p role="status" className="text-xs text-muted">{startMsg}</p>}
           {up.selected && up.selected.state !== "INGESTED" && <p className="text-xs text-muted">{dict.body.processing.notVerifiedYet.replace("{state}", up.selected.state)}</p>}
         </div>
-      </aside>
+      </SidePanel>
       <UploadRightsDialog />
     </div>
   );

@@ -15,6 +15,7 @@
  * the worker honours logo_position, so the grid's choice is stored and
  * shown, not yet rendered.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { NEUTRAL_LOOK, isNeutral, zoomAt, type LookPreset, type TransitionKind } from "@otsi-vie/contracts";
@@ -280,7 +281,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
   const where = reel ? `/reels/${reel.id}` : "/reels";
 
   return (
-    <aside className="flex w-[300px] shrink-0 flex-col border-l border-line" aria-label={s.clipInspectorAria}>
+    <SidePanel panel="studio-inspector" def={300} edge="left" className="flex flex-col border-l border-line" aria-label={s.clipInspectorAria}>
       <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist" style={{ flexWrap: "nowrap" }}>
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`tab ${tab === i ? "on" : ""}`}>
@@ -342,6 +343,6 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
           </div>
         )}
       </div>
-    </aside>
+    </SidePanel>
   );
 }

@@ -28,6 +28,7 @@ export interface Dictionary {
     navSettings: string;
     navAdmin: string;
     railCollapse: string;
+    resizePanel: string;
     railCollapseAria: string;
     railExpandAria: string;
     licence: string;
@@ -7171,6 +7172,7 @@ export const en: Dictionary = {
     navSettings: "Settings",
     navAdmin: "Admin",
     railCollapse: "Collapse",
+    resizePanel: "Drag to resize",
     railCollapseAria: "Collapse navigation",
     railExpandAria: "Expand navigation",
     licence: "Licence",
@@ -14321,6 +14323,7 @@ export const ru: DeepPartial<Dictionary> = {
     navSettings: "Настройки",
     navAdmin: "Админ",
     railCollapse: "Свернуть",
+    resizePanel: "Перетащите, чтобы изменить ширину",
     railCollapseAria: "Свернуть навигацию",
     railExpandAria: "Развернуть навигацию",
     licence: "Лицензия",
@@ -21471,6 +21474,7 @@ export const es: DeepPartial<Dictionary> = {
     navSettings: "Ajustes",
     navAdmin: "Administración",
     railCollapse: "Contraer",
+    resizePanel: "Arrastra para cambiar el ancho",
     railCollapseAria: "Contraer navegación",
     railExpandAria: "Expandir navegación",
     licence: "Licencia",
@@ -28621,6 +28625,7 @@ export const de: DeepPartial<Dictionary> = {
     navSettings: "Einstellungen",
     navAdmin: "Verwaltung",
     railCollapse: "Einklappen",
+    resizePanel: "Ziehen, um die Breite zu ändern",
     railCollapseAria: "Navigation einklappen",
     railExpandAria: "Navigation ausklappen",
     licence: "Lizenz",
@@ -35771,6 +35776,7 @@ export const fr: DeepPartial<Dictionary> = {
     navSettings: "Paramètres",
     navAdmin: "Administration",
     railCollapse: "Réduire",
+    resizePanel: "Faites glisser pour redimensionner",
     railCollapseAria: "Réduire la navigation",
     railExpandAria: "Déployer la navigation",
     licence: "Licence",
@@ -42922,6 +42928,7 @@ export const pt: DeepPartial<Dictionary> = {
     "navSettings": "Configurações",
     "navAdmin": "Administração",
     "railCollapse": "Recolher",
+    "resizePanel": "Arraste para redimensionar",
     "railCollapseAria": "Recolher navegação",
     "railExpandAria": "Expandir navegação",
     "licence": "Licença",

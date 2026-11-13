@@ -10,6 +10,7 @@
  * match is in the top bar, the team is the kit assignment, and the
  * identify / ball / pitch tools live in the centre tool bar.
  */
+import { SidePanel } from "@/components/shell/SidePanel";
 import { useMemo, useState } from "react";
 import type { TrackSummary } from "@otsi-vie/contracts";
 import { useLocale } from "@/lib/i18n";
@@ -58,7 +59,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
       : { label: a.anApproved, dot: "text-primary" };
 
   return (
-    <aside className="flex w-[272px] shrink-0 flex-col overflow-y-auto border-r border-line" aria-label={a.anIdentities}>
+    <SidePanel panel="analysis-left" def={272} edge="right" className="flex flex-col overflow-y-auto border-r border-line" aria-label={a.anIdentities}>
       <div className="vie-ph" style={{ minHeight: 44 }}>
         <h2 className="t-section">{a.anIdentities}</h2>
         <span className="t-small text-muted">{a.anConfirmedCount.replace("{a}", String(confirmed))}</span>
@@ -139,6 +140,6 @@ export function AnalysisLeft({ s }: { s: Shared }) {
       {ws?.video && (
         <LineupsDialog open={lineupsOpen} onOpenChange={setLineupsOpen} videoId={ws.video.id} lineups={lineups} onApplied={() => void ws.reloadVideo()} />
       )}
-    </aside>
+    </SidePanel>
   );
 }
