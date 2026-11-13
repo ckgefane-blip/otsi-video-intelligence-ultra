@@ -29,7 +29,8 @@ const path = require('node:path');
 
 const backend = require('./backend');
 const components = require('./components');
-const { installWindowMenu, PAGES } = require('./windowmenu');
+const { installWindowMenu } = require('./windowmenu');
+const { MENU_NAMES, menuTemplate, shortcutFor } = require('./appmenus');
 
 let autoUpdater = null;
 try {
@@ -170,11 +171,21 @@ function createLoadingWindow() {
 /* application menu                                                    */
 /* ------------------------------------------------------------------ */
 
-// The window's own menu bar (Go to / View / Help), hidden until Alt is pressed: the rail's pages, reload,
-// zoom, full screen, developer tools for a closer look, and updates. The same pages and commands are in the
-// Windows menu under the app icon (windowmenu.js). Labels in sentence case, like the rest of the app.
+// The title bar (owner 2026-11-13): Windows' own title bar is hidden and only its minimise / maximise / close buttons are drawn,
+// on the right, in the theme's colours. The page draws the rest of the row: the icon, "OTSI VIE" and the menus File · Edit ·
+// View · Go to · Help (apps/web DesktopTitleBar). A menu name asks for its native menu (appmenus.js), shown under it. Items that
+// act in the page come back to it as commands; the rest act on the window here. The Windows menu under Alt+Space has the
+// extra items of windowmenu.js too. The loading window keeps a plain Windows title bar.
+const TITLE_BAR_HEIGHT = 32;
+const COLOR = /^#[0-9a-f]{6}$/i;
+
+/** a command for the page's title bar (DesktopTitleBar): go to a page, or one of the app's own shortcuts */
+function sendToPage(cmd) {
+  if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('desktop-command', cmd);
+}
+
 function goTo(route) {
-  if (mainWin) void mainWin.loadURL(backend.WEB_URL + route);
+  sendToPage({ type: 'navigate', route });
 }
 
 function showAbout() {
@@ -190,64 +201,68 @@ function showAbout() {
   });
 }
 
-function buildAppMenu() {
-  return Menu.buildFromTemplate([
-    {
-      label: 'Go to',
-      submenu: [
-        ...PAGES.map(([label, route]) => ({ label, click: () => goTo(route) })),
-        { type: 'separator' },
-        { label: 'Keyboard shortcuts', click: () => goTo('/shortcuts') },
-      ],
+/** what the menus and the window's shortcuts do to the window */
+function windowActions(win) {
+  const wc = win.webContents;
+  const history = wc.navigationHistory;
+  const zoom = (step) => wc.setZoomLevel(step === 0 ? 0 : Math.max(-5, Math.min(5, wc.getZoomLevel() + step * 0.5)));
+  return {
+    reload: () => wc.reload(),
+    zoom,
+    zoomIn: () => zoom(1),
+    zoomOut: () => zoom(-1),
+    zoomReset: () => zoom(0),
+    fullScreen: () => win.setFullScreen(!win.isFullScreen()),
+    toggleFullScreen: () => win.setFullScreen(!win.isFullScreen()),
+    toggleOnTop: () => win.setAlwaysOnTop(!win.isAlwaysOnTop()),
+    devTools: () => wc.toggleDevTools(),
+    toggleDevTools: () => wc.toggleDevTools(),
+    back: () => { if (history.canGoBack()) history.goBack(); },
+    forward: () => { if (history.canGoForward()) history.goForward(); },
+    press: (key) => {
+      wc.focus();
+      wc.sendInputEvent({ type: 'keyDown', keyCode: key, modifiers: ['control'] });
+      wc.sendInputEvent({ type: 'keyUp', keyCode: key, modifiers: ['control'] });
     },
-    {
-      label: 'View',
-      submenu: [
-        { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => { if (mainWin) mainWin.webContents.reload(); } },
-        { type: 'separator' },
-        { role: 'zoomIn', label: 'Zoom in' },
-        { role: 'zoomOut', label: 'Zoom out' },
-        { role: 'resetZoom', label: 'Actual size' },
-        { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Full screen' },
-        { type: 'separator' },
-        { label: 'Developer tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => { if (mainWin) mainWin.webContents.toggleDevTools(); } },
-      ],
-    },
-    {
-      label: 'Help',
-      submenu: [
-        { label: 'Keyboard shortcuts', click: () => goTo('/shortcuts') },
-        {
-          label: 'Check for updates…',
-          enabled: !!autoUpdater && app.isPackaged,
-          click: () => { if (autoUpdater) void checkForUpdates(); },
-        },
-        { type: 'separator' },
-        { label: 'About OTSI VIE', click: showAbout },
-      ],
-    },
-  ]);
+    checkForUpdates: () => { if (autoUpdater) void checkForUpdates(); },
+    about: showAbout,
+    quit: () => win.close(),
+  };
 }
 
-// The extra items in the Windows menu under the app icon (windowmenu.js): what each one does, and its check mark.
-function addWindowMenuItems(win) {
+/** the title-bar menu `name`, built now so its ticks and greyed items are current */
+function titleBarMenu(win, name) {
   const wc = win.webContents;
+  const template = menuTemplate(name, {
+    ...windowActions(win),
+    send: sendToPage,
+    canGoBack: wc.navigationHistory.canGoBack(),
+    canGoForward: wc.navigationHistory.canGoForward(),
+    isFullScreen: win.isFullScreen(),
+    isOnTop: win.isAlwaysOnTop(),
+    updatesAvailable: !!autoUpdater && app.isPackaged,
+  });
+  return template ? Menu.buildFromTemplate(template) : null;
+}
+
+// The extra items in the Windows menu (Alt+Space; windowmenu.js): what each one does, and its tick.
+function addWindowMenuItems(win) {
+  const act = windowActions(win);
   const refresh = installWindowMenu(win, {
     go: (item) => goTo(item.route),
-    reload: () => wc.reload(),
-    zoomIn: () => wc.setZoomLevel(Math.min(wc.getZoomLevel() + 0.5, 5)),
-    zoomOut: () => wc.setZoomLevel(Math.max(wc.getZoomLevel() - 0.5, -5)),
-    zoomReset: () => wc.setZoomLevel(0),
-    fullScreen: () => win.setFullScreen(!win.isFullScreen()),
-    onTop: () => win.setAlwaysOnTop(!win.isAlwaysOnTop()),
-    updates: () => { if (autoUpdater) void checkForUpdates(); },
+    reload: act.reload,
+    zoomIn: act.zoomIn,
+    zoomOut: act.zoomOut,
+    zoomReset: act.zoomReset,
+    fullScreen: act.toggleFullScreen,
+    onTop: act.toggleOnTop,
+    updates: act.checkForUpdates,
     about: showAbout,
   }, {
     checked: (name) => (name === 'fullScreen' ? win.isFullScreen() : name === 'onTop' ? win.isAlwaysOnTop() : false),
     enabled: (name) => (name === 'updates' ? !!autoUpdater && app.isPackaged : true),
   }, pushLog);
-  // F11, Esc or the View menu change full screen too: keep the check mark true
+  // F11, Esc or the View menu change full screen too: keep the tick true
   win.on('enter-full-screen', refresh);
   win.on('leave-full-screen', refresh);
   win.on('always-on-top-changed', refresh);
@@ -262,28 +277,28 @@ function createMainWindow() {
     title: 'OTSI VIE',
     icon: windowIcon(),
     backgroundColor: '#0A0B0D',
-    autoHideMenuBar: true, // SOT: no menu bar on the window; Alt still shows it (Reload, developer tools, updates)
+    // the page draws the title bar and its menus; Windows draws only the window buttons, in the theme's colours
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#0f1114', symbolColor: '#eceef1', height: TITLE_BAR_HEIGHT },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      preload: path.join(__dirname, 'preload-main.js'),
     },
   });
-  // The main window keeps the application menu (Go / View / Help); the
-  // loading window has none.
-  mainWin.setMenu(buildAppMenu());
-  mainWin.setMenuBarVisibility(false);
+  mainWin.setMenu(null);
   addWindowMenuItems(mainWin);
   // Keep the window title "OTSI VIE" even when the web app sets its own.
   mainWin.on('page-title-updated', (event) => event.preventDefault());
-  // Developer tools, for when something needs a closer look.
+  // The window's shortcuts for the menu items that act on the window (reload, zoom, full screen, back / forward,
+  // developer tools). The page's own shortcuts (Ctrl+K, Ctrl+J, Ctrl+B, Ctrl+Z …) reach the page as before.
+  const act = windowActions(mainWin);
   mainWin.webContents.on('before-input-event', (event, input) => {
-    if (
-      (input.control && input.shift && input.key.toLowerCase() === 'i')
-      || input.key === 'F12'
-    ) {
-      mainWin.webContents.toggleDevTools();
+    const name = shortcutFor(input);
+    if (name && act[name]) {
       event.preventDefault();
+      act[name]();
     }
   });
   mainWin.loadURL(backend.WEB_URL);
@@ -291,6 +306,34 @@ function createMainWindow() {
     mainWin = null;
   });
 }
+
+// The page's title bar asks for a menu under one of its names (DesktopTitleBar → preload-main.js).
+ipcMain.on('titlebar-menu', (event, request) => {
+  if (!mainWin || event.sender !== mainWin.webContents) return;
+  const name = request && typeof request.name === 'string' ? request.name : '';
+  if (!MENU_NAMES.includes(name)) return;
+  const menu = titleBarMenu(mainWin, name);
+  if (!menu) return;
+  const zoom = mainWin.webContents.getZoomFactor();
+  const at = (v) => (Number.isFinite(v) ? Math.round(v * zoom) : 0);
+  menu.popup({
+    window: mainWin,
+    x: at(request.x),
+    y: at(request.y),
+    callback: () => sendToPage({ type: 'menu-closed' }),
+  });
+});
+
+// The page's theme colours for the window buttons Windows draws on the right of the title bar.
+ipcMain.on('titlebar-colors', (event, colors) => {
+  if (!mainWin || event.sender !== mainWin.webContents || !colors) return;
+  if (!COLOR.test(String(colors.bg)) || !COLOR.test(String(colors.fg))) return;
+  try {
+    mainWin.setTitleBarOverlay({ color: colors.bg, symbolColor: colors.fg, height: TITLE_BAR_HEIGHT });
+  } catch (err) {
+    pushLog(`Title bar colours not applied: ${String((err && err.message) || err)}\n`);
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /* auto-update (differential)                                          */
@@ -548,7 +591,7 @@ async function runStartupWithRetry() {
 }
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(buildAppMenu());
+  Menu.setApplicationMenu(null); // the main window's menus are in its title bar (appmenus.js)
   createLoadingWindow();
   runStartupWithRetry();
 });

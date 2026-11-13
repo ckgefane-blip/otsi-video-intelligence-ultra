@@ -45,6 +45,8 @@ files:
     filter:
       - '**/*'
   - preload.js
+  # the main window's bridge for the title-bar menus (DesktopTitleBar); like preload.js, plain JS with no logic worth hiding
+  - preload-main.js
   - renderer/**/*
   - assets/**/*
   - package.json

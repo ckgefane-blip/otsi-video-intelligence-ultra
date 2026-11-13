@@ -256,3 +256,19 @@ select.in { appearance: auto; }
 .tok[aria-expanded="true"] { border-color: rgb(var(--primary)); }
 .tok.low { border-color: rgb(var(--amber)); }
 .ruler { display: flex; justify-content: space-between; font-size: 11px; line-height: 16px; font-weight: 400; font-family: inherit; color: rgb(var(--muted)); }
+
+/* The desktop app's title bar with its menus (DesktopTitleBar; owner 2026-11-13). Only inside the desktop app (html.vie-desktop):
+   a 32 px row at the top that drags the window; Windows draws minimise / maximise / close at its right end (140 px kept free).
+   Everything that filled the window's height now fills the height below it. */
+.vie-titlebar { position: fixed; top: 0; left: 0; right: 0; height: 32px; z-index: 2147482000; display: flex; align-items: center;
+  gap: 2px; padding: 0 140px 0 10px; background: rgb(var(--p0)); border-bottom: 1px solid rgb(var(--line)); color: rgb(var(--ink2));
+  font-size: 12px; line-height: 16px; user-select: none; -webkit-app-region: drag; app-region: drag; }
+.vie-titlebar-icon { width: 16px; height: 16px; object-fit: contain; margin-right: 6px; }
+.vie-titlebar-name { color: rgb(var(--muted)); margin-right: 10px; }
+.vie-titlebar button { -webkit-app-region: no-drag; app-region: no-drag; height: 24px; padding: 0 8px; border-radius: 4px; color: inherit;
+  background: transparent; font: inherit; }
+.vie-titlebar button:hover, .vie-titlebar button.is-open { background: rgb(var(--line)); color: rgb(var(--ink)); }
+.vie-titlebar button:focus-visible { outline: 1px solid rgb(var(--primary)); outline-offset: -1px; }
+html.vie-desktop body { padding-top: 32px; }
+html.vie-desktop .vie-shell, html.vie-desktop .vie-main, html.vie-desktop .h-screen { height: calc(100vh - 32px); }
+html.vie-desktop .min-h-screen { min-height: calc(100vh - 32px); }

@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { DesktopTitleBar } from "@/components/shell/DesktopTitleBar";
 import { LocaleProvider } from "@/lib/i18n";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus:rounded-ctl focus:bg-primary focus:px-3 focus:py-2 focus:text-white">
           Skip to content
         </a>
+        <DesktopTitleBar />
         <AuthProvider><LocaleProvider>{children}</LocaleProvider></AuthProvider>
       </body>
     </html>
