@@ -37,6 +37,10 @@ function menuTemplate(name, ctx) {
         go('Open library', '/library'),
         go('Export and delivery', '/exports'),
         sep,
+        // the Token Wallet's "Buy a token pack" steps (WalletView, section #tp): nothing is bought until the user goes through them
+        go('Buy tokens…', '/settings/wallet#tp'),
+        go('Token Wallet', '/settings/wallet'),
+        sep,
         go('Settings', '/settings/preferences', 'Ctrl+,'),
         sep,
         { label: 'Exit', accelerator: 'Alt+F4', registerAccelerator: false, click: () => ctx.quit() },

@@ -44,10 +44,18 @@ test('clicking each item runs its action', () => {
   assert.deepEqual(calls.filter((c) => c[0] === 'press').map((c) => c[1]), ['z', 'y']);
 });
 
+test('File offers buying tokens: the buy-a-pack section of the Token Wallet', () => {
+  const { ctx, calls } = fakeCtx();
+  const buy = items('file', ctx).find((i) => i.label === 'Buy tokens…');
+  assert.ok(buy);
+  buy.click();
+  assert.deepEqual(calls.at(-1), ['send', { type: 'navigate', route: '/settings/wallet#tp' }]);
+});
+
 test('every page the menus open exists in the web app', () => {
   const { ctx, calls } = fakeCtx();
   for (const name of MENU_NAMES) for (const item of items(name, ctx)) if (item.click) item.click();
-  const routes = calls.filter((c) => c[0] === 'send' && c[1].type === 'navigate').map((c) => c[1].route.split('?')[0]);
+  const routes = calls.filter((c) => c[0] === 'send' && c[1].type === 'navigate').map((c) => c[1].route.split(/[?#]/)[0]);
   assert.ok(routes.length >= 15);
   for (const r of new Set(routes)) {
     const dir = path.join(APP, '(app)', ...r.split('/').filter(Boolean));
@@ -67,7 +75,7 @@ test('ticks and greyed items follow the window state', () => {
 });
 
 test('labels are sentence case (real names kept)', () => {
-  const NAMES = new Set(['OTSI', 'VIE', 'Studio', 'Center']);
+  const NAMES = new Set(['OTSI', 'VIE', 'Studio', 'Center', 'Wallet']);
   const { ctx } = fakeCtx();
   for (const name of MENU_NAMES) {
     for (const item of items(name, ctx)) {
