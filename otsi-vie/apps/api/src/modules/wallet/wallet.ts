@@ -249,7 +249,8 @@ export class WalletService {
     return this.append(ex, organizationId, actorId, { ...row });
   }
 
-  /** The one-time free grant (FREE_GRANT_TOKENS, 25 by the owner's 2026-11-14 decision), claimed with the button.
+  /** The one-time free grant (FREE_GRANT_TOKENS, 100 by the owner's 2026-11-14 ~02:33 decision, reversing
+   *  the 25 set earlier the same day — 25 cannot show a full match + reel), claimed with the button.
    *  One per organization, enforced by wallet_free_grants. */
   async grantFreeTier(p: Principal): Promise<WalletLedgerEntry> {
     return this.db.tx(async (c) => {

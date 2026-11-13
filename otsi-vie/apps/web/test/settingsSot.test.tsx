@@ -211,7 +211,7 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByText("1 token / min")).toBeInTheDocument();
     expect(screen.getByText("10 tokens")).toBeInTheDocument();
     expect(screen.getByText("Free grant")).toBeInTheDocument();
-    expect(screen.getByText("25")).toBeInTheDocument(); // the free grant (owner 2026-11-14; was 100)
+    expect(screen.getByText("100")).toBeInTheDocument(); // the free grant (owner 2026-11-14 ~02:33; was 25)
     expect(screen.getByText("Valid 30 days. One per organisation.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument();
     // the old invented "Free / Pro / Enterprise" strip is gone: the real plan and a link to Plans and pricing (owner 2026-11-13)

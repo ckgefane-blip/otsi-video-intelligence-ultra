@@ -57,9 +57,9 @@ describe("token wallet costs", () => {
     expect(analysisCostTokens(-5)).toBeNull();
   });
 
-  it("publishes the approved grassroots price list (owner 2026-11-13; free grant 25 by owner decision 2026-11-14): plans, free grant, top-up rates and upload limits", () => {
+  it("publishes the approved grassroots price list (owner 2026-11-13; free grant 100 by owner decision 2026-11-14 ~02:33): plans, free grant, top-up rates and upload limits", () => {
     const row = (code: string) => PLAN_CATALOGUE.find((p) => p.code === code)!;
-    expect(FREE_GRANT_TOKENS).toBe(25);
+    expect(FREE_GRANT_TOKENS).toBe(100);
     expect(LOW_BALANCE_THRESHOLD).toBe(90);
     // plans: tokens a month and the monthly price in kobo; dollars at ₦1,500 = $1, to the cent
     expect(row("STARTER")).toMatchObject({ tokens_per_month: 300, price_ngn_minor: 750_000, price_usd_minor: 500, upload_gb_per_video: 8, orderable: true });
@@ -74,7 +74,7 @@ describe("token wallet costs", () => {
     expect(topUpPrice("ENTERPRISE", 1)).toBeNull();
     // the Wallet's offer: the caller's own rate; no plan (or an unknown old plan) is the Free / Player rate; Enterprise has none
     const free = tokenPackCatalogue(null);
-    expect(free).toMatchObject({ rate_plan: "FREE", block_tokens: 100, block_price_ngn_minor: 300_000, free_grant_tokens: 25 });
+    expect(free).toMatchObject({ rate_plan: "FREE", block_tokens: 100, block_price_ngn_minor: 300_000, free_grant_tokens: 100 });
     expect(free.packs.map((p) => [p.blocks, p.tokens, p.price_ngn_minor, p.label])).toEqual([
       [1, 100, 300_000, "Player pack"], [3, 300, 900_000, "300 tokens"], [5, 500, 1_500_000, "500 tokens"], [10, 1000, 3_000_000, "1000 tokens"]]);
     expect(tokenPackCatalogue("SEASON").packs[0]).toMatchObject({ blocks: 1, price_ngn_minor: 125_000, label: "100 tokens" });
@@ -90,51 +90,51 @@ describe("token wallet costs", () => {
 describe("token wallet balance", () => {
   it("derives the balance from the ledger, never from a stored number", () => {
     const entries = [
-      entry({ kind: "FREE_GRANT", amount: 25, balance_after: 25 }),
-      entry({ kind: "PURCHASE", amount: 100, balance_after: 125 }),
-      entry({ kind: "SPEND", amount: -90, balance_after: 35, job_type: "ANALYSIS", job_id: "33333333-3333-4333-8333-333333333333" }),
+      entry({ kind: "FREE_GRANT", amount: 100, balance_after: 100 }),
+      entry({ kind: "PURCHASE", amount: 100, balance_after: 200 }),
+      entry({ kind: "SPEND", amount: -90, balance_after: 110, job_type: "ANALYSIS", job_id: "33333333-3333-4333-8333-333333333333" }),
     ];
-    expect(balanceOf(entries)).toBe(35);
+    expect(balanceOf(entries)).toBe(110);
     expect(deriveWalletBalance(ORG, entries, "2026-11-11T00:00:00.000Z")).toMatchObject({
-      balance: 35, spendable_balance: 35, expired_unwritten_off: 0, low_balance: true,
+      balance: 110, spendable_balance: 110, expired_unwritten_off: 0, low_balance: false,
     });
   });
 
   it("spends debits from the credit that expires soonest first", () => {
     const entries = [
-      entry({ kind: "FREE_GRANT", amount: 25, balance_after: 25, expires_at: "2026-12-01T00:00:00.000Z", created_at: "2026-11-01T00:00:00.000Z" }),
-      entry({ kind: "PURCHASE", amount: 100, balance_after: 125, expires_at: "2027-11-01T00:00:00.000Z", created_at: "2026-11-02T00:00:00.000Z" }),
-      entry({ kind: "SPEND", amount: -30, balance_after: 95, job_type: "ANALYSIS", job_id: "33333333-3333-4333-8333-333333333333" }),
+      entry({ kind: "FREE_GRANT", amount: 100, balance_after: 100, expires_at: "2026-12-01T00:00:00.000Z", created_at: "2026-11-01T00:00:00.000Z" }),
+      entry({ kind: "PURCHASE", amount: 100, balance_after: 200, expires_at: "2027-11-01T00:00:00.000Z", created_at: "2026-11-02T00:00:00.000Z" }),
+      entry({ kind: "SPEND", amount: -30, balance_after: 170, job_type: "ANALYSIS", job_id: "33333333-3333-4333-8333-333333333333" }),
     ];
-    // the 30-token spend eats the 25 free tokens first, then 5 of the purchase: 95 spendable, none expired
-    expect(spendableBalance(entries, "2026-11-11T00:00:00.000Z")).toEqual({ spendable: 95, expiredUnwrittenOff: 0 });
-    // after the free grant's expiry, with no further spend, the remaining purchase credit is still spendable
-    expect(spendableBalance(entries, "2026-12-02T00:00:00.000Z")).toEqual({ spendable: 95, expiredUnwrittenOff: 0 });
+    // the 30-token spend eats 30 of the 100 free tokens first: 170 spendable, none expired
+    expect(spendableBalance(entries, "2026-11-11T00:00:00.000Z")).toEqual({ spendable: 170, expiredUnwrittenOff: 0 });
+    // after the free grant's expiry, the 70 unspent free tokens are expired; the purchase credit is still spendable
+    expect(spendableBalance(entries, "2026-12-02T00:00:00.000Z")).toEqual({ spendable: 100, expiredUnwrittenOff: 70 });
   });
 
   it("counts unspent expired credits as expired, not spendable", () => {
     const entries = [
-      entry({ kind: "FREE_GRANT", amount: 25, balance_after: 25, expires_at: "2026-12-01T00:00:00.000Z", created_at: "2026-11-01T00:00:00.000Z" }),
-      entry({ kind: "SPEND", amount: -10, balance_after: 15, job_type: "REEL_RENDER", job_id: "33333333-3333-4333-8333-333333333333" }),
+      entry({ kind: "FREE_GRANT", amount: 100, balance_after: 100, expires_at: "2026-12-01T00:00:00.000Z", created_at: "2026-11-01T00:00:00.000Z" }),
+      entry({ kind: "SPEND", amount: -10, balance_after: 90, job_type: "REEL_RENDER", job_id: "33333333-3333-4333-8333-333333333333" }),
     ];
-    expect(spendableBalance(entries, "2026-12-02T00:00:00.000Z")).toEqual({ spendable: 0, expiredUnwrittenOff: 15 });
-    expect(expiredCreditTokens(entries, "2026-12-02T00:00:00.000Z")).toBe(15);
+    expect(spendableBalance(entries, "2026-12-02T00:00:00.000Z")).toEqual({ spendable: 0, expiredUnwrittenOff: 90 });
+    expect(expiredCreditTokens(entries, "2026-12-02T00:00:00.000Z")).toBe(90);
     expect(deriveWalletBalance(ORG, entries, "2026-12-02T00:00:00.000Z")).toMatchObject({
-      balance: 15, spendable_balance: 0, expired_unwritten_off: 15, low_balance: true,
+      balance: 90, spendable_balance: 0, expired_unwritten_off: 90, low_balance: true,
     });
   });
 });
 
 describe("token wallet charging", () => {
   it("refuses a charge the spendable balance cannot cover, and allows one it can", () => {
-    const entries = [entry({ kind: "FREE_GRANT", amount: 25, balance_after: 25 })];
-    expect(chargeRefusal(entries, 90, "2026-11-11T00:00:00.000Z")).toMatch(/needs 90 tokens but the wallet has 25/);
-    expect(chargeRefusal(entries, 25, "2026-11-11T00:00:00.000Z")).toBeNull();
+    const entries = [entry({ kind: "FREE_GRANT", amount: 100, balance_after: 100 })];
+    expect(chargeRefusal(entries, 150, "2026-11-11T00:00:00.000Z")).toMatch(/needs 150 tokens but the wallet has 100/);
+    expect(chargeRefusal(entries, 100, "2026-11-11T00:00:00.000Z")).toBeNull();
     expect(chargeRefusal(entries, 0)).toMatch(/above zero/);
   });
 
   it("never charges against tokens that have already expired", () => {
-    const entries = [entry({ kind: "FREE_GRANT", amount: 25, balance_after: 25, expires_at: "2026-12-01T00:00:00.000Z" })];
+    const entries = [entry({ kind: "FREE_GRANT", amount: 100, balance_after: 100, expires_at: "2026-12-01T00:00:00.000Z" })];
     expect(chargeRefusal(entries, 10, "2026-12-02T00:00:00.000Z")).toMatch(/has 0 tokens that can be spent/);
   });
 });

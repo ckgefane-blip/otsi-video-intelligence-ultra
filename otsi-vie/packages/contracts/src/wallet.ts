@@ -68,6 +68,14 @@ export type TokenPackCode = z.infer<typeof TokenPackCode>;
 export const TOPUP_BLOCK_CHOICES = [1, 3, 5, 10] as const;
 export const TOPUP_MAX_BLOCKS = 100;
 
+/** 100 free tokens, once, claimed with the "Claim free grant" button (never automatic), expiring 30 days after
+ *  signup. Owner decision 2026-11-14 ~02:33 (back to 100; 25 cannot show a full match + reel, so the free
+ *  tier never showed the product). 100 = one full 90-minute match (~90) plus its reel (10).
+ *  Defined here, before the catalogue schema, so the schema's literal is the constant itself and the two
+ *  cannot drift apart (a literal 25 in the schema broke the packs endpoint when the grant went to 100). */
+export const FREE_GRANT_TOKENS = 100;
+export const FREE_GRANT_EXPIRY_DAYS = 30;
+
 export const TokenPack = z.object({
   blocks: z.number().int().positive(),
   tokens: z.number().int().positive(),
@@ -88,7 +96,7 @@ export const TokenPackCatalogue = z.object({
   max_blocks: z.literal(TOPUP_MAX_BLOCKS),
   /** The offered sizes; empty for Enterprise. */
   packs: z.array(TokenPack),
-  free_grant_tokens: z.literal(25),
+  free_grant_tokens: z.literal(FREE_GRANT_TOKENS),
   free_grant_expiry_days: z.literal(30),
   pack_expiry_months: z.literal(12),
   costs: z.object({
@@ -140,10 +148,6 @@ export function tokenPackCatalogue(planCode: string | null | undefined = null): 
 export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10, aiAnalysis: 10 } as const;
 /** Scope §7: low-balance warning below the cost of one full match. */
 export const LOW_BALANCE_THRESHOLD = 90;
-/** 25 free tokens, once, claimed with the "Claim free grant" button (never automatic), expiring 30 days after
- *  signup. Owner decision 2026-11-14 (back to 25; supersedes the 2026-11-13 approval of 100). */
-export const FREE_GRANT_TOKENS = 25;
-export const FREE_GRANT_EXPIRY_DAYS = 30;
 /** Scope §3: paid tokens expire 12 months after purchase. */
 export const PACK_EXPIRY_MONTHS = 12;
 
@@ -308,7 +312,7 @@ export type AdminWalletRow = z.infer<typeof AdminWalletRow>;
 
 export const FreeGrant = z.object({
   organization_id: z.string().uuid(),
-  granted_tokens: z.literal(25),
+  granted_tokens: z.literal(FREE_GRANT_TOKENS),
   email: z.string(),
   granted_by: z.string().uuid(),
   granted_at: z.string(),

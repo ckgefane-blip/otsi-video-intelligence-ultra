@@ -122,7 +122,7 @@ describe("usageBuckets", () => {
   it("ignores credits and rows without an action", () => {
     const entries = [
       entry({ kind: "PURCHASE", amount: 500, created_at: "2026-11-13T09:00:00.000Z" }),
-      entry({ kind: "FREE_GRANT", amount: 25, created_at: "2026-11-13T09:00:00.000Z" }),
+      entry({ kind: "FREE_GRANT", amount: 100, created_at: "2026-11-13T09:00:00.000Z" }),
       spend("ANALYSIS", 30, "2026-11-13T10:00:00.000Z"),
     ];
     expect(usageBuckets(entries, now).day.total).toBe(30);

@@ -57,7 +57,7 @@ in order — one step at a time, reporting what each step prints:**
    reel → render → export. Every step must complete; the reel must play.
 5. Check the Player Profile Intro shows the tracked player's real data
    (or "Not measured" where nothing was measured) — never invented stats.
-6. Check the token wallet: 25 free tokens on signup, analysis charges
+6. Check the token wallet: 100 free tokens on signup, analysis charges
    1 token per minute, a reel render charges 10.
 7. Leave the app running and re-open it: the same data must be there,
    no migration re-runs, no backup folder growing on every launch
