@@ -5,8 +5,12 @@
  * When a charged job fails, the line stays up and says what happened to its tokens: refunded, with
  * the amount from the ledger, or committed with no refund recorded yet. The jobs list is published
  * the way the Jobs Center publishes it; the API (video duration, ledger) is mocked.
+ *
+ * App-wide ActivityLine: the same narration covers the client-side actions too (export pack, player
+ * report, AI Analyst, Scouting Pack, file upload — lib/activities.ts), rotating through every
+ * running action in turn; the last completed action is shown briefly, then a plain idle line.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Job, JobList } from "@otsi-vie/contracts";
 
@@ -15,6 +19,7 @@ const api = vi.fn();
 vi.mock("@/lib/api", () => ({ api: (...a: unknown[]) => api(...a), ApiProblem: class ApiProblem extends Error { constructor(readonly status: number, code: string, message: string) { super(message); } } }));
 
 import { ActivityLine } from "@/components/shell/ActivityLine";
+import { finishActivity, publishActivities, startActivity, startUploadActivity, type ClientActivity } from "@/lib/activities";
 import { publishJobs } from "@/lib/jobsLive";
 
 const V1 = "11111111-1111-4111-8111-111111111111";
@@ -34,6 +39,15 @@ const list = (jobs: Job[]): JobList => ({
   running: jobs.filter((j) => j.state === "RUNNING").length,
   failed_recent: jobs.filter((j) => j.state === "FAILED").length,
 } as unknown as JobList);
+const renderJob = (over: Partial<Job>): Job => job({
+  kind: "RENDER", kind_label: "Render", subject_title: "Chinazom Godwin — highlights",
+  video_id: null, progress: 55, stage: "Rendering reel…", ...over,
+});
+const activity = (over: Partial<ClientActivity>): ClientActivity => ({
+  id: "act-1", kind: "EXPORT_PACK", subject: "Chinazom Godwin — highlights",
+  startedAt: minutesAgo(1), progress: null, state: "RUNNING", finishedAt: null,
+  chargedType: "EXPORT_PACK", cost: 10, ...over,
+});
 
 beforeEach(() => {
   api.mockReset();
@@ -43,12 +57,13 @@ beforeEach(() => {
     return Promise.reject(new Error(`unexpected ${url}`));
   });
   publishJobs(list([]));
+  publishActivities([]);
 });
 
 describe("ActivityLine — live job readout", () => {
-  it("says nothing when no job runs", () => {
-    const { container } = render(<ActivityLine />);
-    expect(container).toBeEmptyDOMElement();
+  it("says nothing is running when no job runs", () => {
+    render(<ActivityLine />);
+    expect(screen.getByText("Nothing running")).toBeTruthy();
   });
 
   it("narrates a running analysis in words, with the minute covered and the tokens committed", async () => {
@@ -61,10 +76,7 @@ describe("ActivityLine — live job readout", () => {
   });
 
   it("narrates a running render with its 10 committed tokens and no minute line", async () => {
-    publishJobs(list([job({
-      kind: "RENDER", kind_label: "Render", subject_title: "Chinazom Godwin — highlights",
-      video_id: null, progress: 55, stage: "Rendering reel…",
-    })]));
+    publishJobs(list([renderJob({})]));
     render(<ActivityLine />);
     expect(await screen.findByText(/Rendering reel/)).toBeTruthy();
     expect(screen.getByText("10 tokens")).toBeTruthy();
@@ -91,9 +103,8 @@ describe("ActivityLine — live job readout", () => {
       }
       return Promise.reject(new Error(`unexpected ${url}`));
     });
-    publishJobs(list([job({
-      kind: "RENDER", kind_label: "Render", subject_title: "Chinazom Godwin — highlights",
-      video_id: null, state: "FAILED", progress: 0, stage: null, error: "Render failed",
+    publishJobs(list([renderJob({
+      state: "FAILED", progress: 0, stage: null, error: "Render failed",
       started_at: minutesAgo(6), finished_at: finished,
     })]));
     render(<ActivityLine />);
@@ -101,9 +112,8 @@ describe("ActivityLine — live job readout", () => {
   });
 
   it("says plainly when a failed render's tokens were committed with no refund recorded", async () => {
-    publishJobs(list([job({
-      kind: "RENDER", kind_label: "Render", subject_title: "Chinazom Godwin — highlights",
-      video_id: null, state: "FAILED", progress: 0, stage: null, error: "Render failed",
+    publishJobs(list([renderJob({
+      state: "FAILED", progress: 0, stage: null, error: "Render failed",
       started_at: minutesAgo(6), finished_at: minutesAgo(5),
     })]));
     render(<ActivityLine />);
@@ -111,12 +121,155 @@ describe("ActivityLine — live job readout", () => {
   });
 
   it("forgets a failure older than 15 minutes", () => {
-    publishJobs(list([job({
-      kind: "RENDER", kind_label: "Render", subject_title: "Chinazom Godwin — highlights",
-      video_id: null, state: "FAILED", progress: 0, stage: null, error: "Render failed",
+    publishJobs(list([renderJob({
+      state: "FAILED", progress: 0, stage: null, error: "Render failed",
       started_at: minutesAgo(20), finished_at: minutesAgo(16),
     })]));
-    const { container } = render(<ActivityLine />);
-    expect(container).toBeEmptyDOMElement();
+    render(<ActivityLine />);
+    expect(screen.getByText("Nothing running")).toBeTruthy();
+  });
+});
+
+describe("ActivityLine — rotation through every running action", () => {
+  it("rotates through two running jobs, saying which one is shown", () => {
+    vi.useFakeTimers();
+    try {
+      publishJobs(list([
+        renderJob({ id: "job-1", subject_title: "Reel one", stage: "Rendering reel one…" }),
+        renderJob({ id: "job-2", subject_title: "Reel two", stage: "Rendering reel two…", progress: 20 }),
+      ]));
+      render(<ActivityLine />);
+      expect(screen.getByText(/Rendering reel one/)).toBeTruthy();
+      expect(screen.getByText("1 of 2")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(4000); });
+      expect(screen.getByText(/Rendering reel two/)).toBeTruthy();
+      expect(screen.getByText("2 of 2")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(4000); });
+      expect(screen.getByText(/Rendering reel one/)).toBeTruthy();
+      expect(screen.getByText("1 of 2")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rotates through a worker job and a client activity in one cycle", () => {
+    vi.useFakeTimers();
+    try {
+      publishJobs(list([renderJob({ stage: "Rendering reel one…" })]));
+      publishActivities([activity({})]);
+      render(<ActivityLine />);
+      expect(screen.getByText(/Rendering reel one/)).toBeTruthy();
+      expect(screen.getByText("1 of 2")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(4000); });
+      expect(screen.getByText(/Making the export pack/)).toBeTruthy();
+      expect(screen.getByText("2 of 2")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows no position when only one action runs", () => {
+    publishJobs(list([renderJob({})]));
+    render(<ActivityLine />);
+    expect(screen.queryByText(/of 2/)).toBeNull();
+    expect(screen.queryByText(/1 of 1/)).toBeNull();
+  });
+});
+
+describe("ActivityLine — client activities (export, report, AI, pack, upload)", () => {
+  it("narrates a running export pack with its 10 tokens and elapsed time, and no fake progress", async () => {
+    startActivity("EXPORT_PACK", "Chinazom Godwin — highlights", "EXPORT_PACK", 10);
+    render(<ActivityLine />);
+    expect(await screen.findByText(/Making the export pack/)).toBeTruthy();
+    expect(screen.getByText("10 tokens")).toBeTruthy();
+    expect(screen.queryByText(/%/)).toBeNull();
+  });
+
+  it("ticks the elapsed time of a client activity every second", () => {
+    vi.useFakeTimers();
+    try {
+      startActivity("EXPORT_PACK", null, "EXPORT_PACK", 10);
+      render(<ActivityLine />);
+      expect(screen.getByText("0s")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(screen.getByText("5s")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("narrates an upload with its real progress %", async () => {
+    startUploadActivity({ id: "t-1", name: "Nart v Ercakhu.mp4", state: "sending", progress: 42 });
+    render(<ActivityLine />);
+    expect(await screen.findByText(/Uploading Nart v Ercakhu.mp4/)).toBeTruthy();
+    expect(screen.getByText("42%")).toBeTruthy();
+    startUploadActivity({ id: "t-1", name: "Nart v Ercakhu.mp4", state: "sending", progress: 57 });
+    expect(await screen.findByText("57%")).toBeTruthy();
+  });
+
+  it("says a failed export pack's tokens were committed with no refund recorded", async () => {
+    const id = startActivity("EXPORT_PACK", "Reel one", "EXPORT_PACK", 10);
+    finishActivity(id, false);
+    render(<ActivityLine />);
+    expect(await screen.findByText("Export pack failed. 10 tokens were committed — no refund recorded yet.")).toBeTruthy();
+  });
+
+  it("says a failed export pack's tokens were refunded, with the amount from the ledger", async () => {
+    api.mockImplementation((url: string) => {
+      if (url === "/v1/wallet/ledger?limit=200") {
+        return Promise.resolve({ entries: [{
+          id: "0190a000-0000-7000-8000-000000000101", organization_id: "0190a000-0000-7000-8000-000000000001",
+          kind: "REFUND", amount: 10, balance_after: 500, job_type: "EXPORT_PACK", job_id: null,
+          idempotency_key: "refund:pack-1", invoice_ref: null, reason: "Export pack failed", actor_id: null,
+          expires_at: null, created_at: minutesAgo(1),
+        }] });
+      }
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    publishActivities([activity({ state: "FAILED", finishedAt: minutesAgo(2) })]);
+    render(<ActivityLine />);
+    expect(await screen.findByText("Export pack failed. 10 tokens refunded.")).toBeTruthy();
+  });
+
+  it("says a failed upload failed, with no token line and no ledger read", async () => {
+    publishActivities([activity({
+      id: "upload-t-1", kind: "UPLOAD", subject: "Nart v Ercakhu.mp4", progress: 42,
+      state: "FAILED", finishedAt: minutesAgo(1), chargedType: null, cost: null,
+    })]);
+    render(<ActivityLine />);
+    expect(await screen.findByText("Upload · Nart v Ercakhu.mp4 failed.")).toBeTruthy();
+    expect(screen.queryByText(/tokens/)).toBeNull();
+    expect(api).not.toHaveBeenCalledWith("/v1/wallet/ledger?limit=200");
+  });
+});
+
+describe("ActivityLine — last completed, then idle", () => {
+  it("says a job that just finished, briefly", async () => {
+    publishJobs(list([job({ state: "SUCCEEDED", progress: 100, stage: null, started_at: minutesAgo(10), finished_at: minutesAgo(2) })]));
+    render(<ActivityLine />);
+    expect(await screen.findByText("Analysis finished — Nart v Ercakhu")).toBeTruthy();
+  });
+
+  it("says an export pack is ready after it finishes", async () => {
+    const id = startActivity("EXPORT_PACK", "Reel one", "EXPORT_PACK", 10);
+    finishActivity(id, true);
+    render(<ActivityLine />);
+    expect(await screen.findByText("Export pack ready")).toBeTruthy();
+  });
+
+  it("says an upload finished, with the file name", async () => {
+    publishActivities([activity({
+      id: "upload-t-1", kind: "UPLOAD", subject: "Nart v Ercakhu.mp4", progress: 100,
+      state: "SUCCEEDED", finishedAt: minutesAgo(2), chargedType: null, cost: null,
+    })]);
+    render(<ActivityLine />);
+    expect(await screen.findByText("Upload finished — Nart v Ercakhu.mp4")).toBeTruthy();
+  });
+
+  it("shows the idle line once the last completion is older than 5 minutes", () => {
+    publishActivities([activity({ state: "SUCCEEDED", finishedAt: minutesAgo(6) })]);
+    render(<ActivityLine />);
+    expect(screen.getByText("Nothing running")).toBeTruthy();
+    expect(screen.queryByText(/Export pack ready/)).toBeNull();
   });
 });

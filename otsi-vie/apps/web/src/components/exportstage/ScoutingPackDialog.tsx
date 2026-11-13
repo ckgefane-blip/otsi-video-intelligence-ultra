@@ -15,6 +15,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { SCOUTING_PACK_COST_TOKENS, SCOUTING_PACK_ITEM_LABELS, SCOUTING_PACK_SOURCE_LABELS, type Reel, type ScoutingPack } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useState } from "react";
+import { finishActivity, startActivity } from "@/lib/activities";
 import { api, ApiProblem } from "@/lib/api";
 import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
@@ -50,10 +51,14 @@ export function ScoutingPackDialog({ reel, canWrite = true, open, onOpenChange }
   const build = () => {
     if (!reel || !player || !canWrite) return;
     setBusy(true); setMsg(null); setErr(null);
+    // the Scouting Pack is a long synchronous API action, not a worker job: narrate
+    // it in the ActivityLine from here, with no progress (the server reports none).
+    // A Pack charges as an export pack (EXPORT_PACK, 10 tokens — ADR-140).
+    const activityId = startActivity("SCOUTING_PACK", reel.name, "EXPORT_PACK", SCOUTING_PACK_COST_TOKENS);
     void api<ScoutingPack>(`/v1/players/${player.player_id}/scouting-packs`, {
       method: "POST", json: { reel_id: reel.id, include_report: includeReport, include_analyst_brief: includeBrief },
-    }).then((p) => { setMsg(`Scouting Pack built — ${SCOUTING_PACK_COST_TOKENS} tokens.`); setPacks((xs) => (xs ? [p, ...xs] : [p])); },
-      (x) => setErr(x instanceof ApiProblem ? x.message : "The Scouting Pack could not be built.")).finally(() => setBusy(false));
+    }).then((p) => { setMsg(`Scouting Pack built — ${SCOUTING_PACK_COST_TOKENS} tokens.`); setPacks((xs) => (xs ? [p, ...xs] : [p])); finishActivity(activityId, true); },
+      (x) => { setErr(x instanceof ApiProblem ? x.message : "The Scouting Pack could not be built."); finishActivity(activityId, false); }).finally(() => setBusy(false));
   };
 
   return (

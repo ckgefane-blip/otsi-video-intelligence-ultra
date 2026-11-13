@@ -13,6 +13,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { BUNDLE_ITEM_NAMES, TOKEN_COSTS, type BundleItemKind, type CreatedDelivery, type Delivery, type ExportBundle } from "@otsi-vie/contracts";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { finishActivity, startActivity } from "@/lib/activities";
 import { api, ApiProblem } from "@/lib/api";
 import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
@@ -51,6 +52,7 @@ export interface Outbox {
 
 export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
   const reelId = e.reel?.id ?? null;
+  const reelName = e.reel?.name ?? null;
   const renderId = e.reel?.last_good_render?.has_output ? e.reel.last_good_render.id : null;
   const [picks, setPicks] = useState<BundleItemKind[]>(["PERFORMANCE_PDF", "CLIP_SHEET_PDF"]);
   const [bundles, setBundles] = useState<ExportBundle[] | null>(null);
@@ -81,12 +83,16 @@ export function useOutbox(e: Pick<ExportState, "reel" | "links">): Outbox {
   const make = useCallback(async () => {
     if (!reelId || !picks.length) return null;
     setMaking(true); setErr(null);
+    // the export pack is a long synchronous API action, not a worker job: narrate it
+    // in the ActivityLine from here, with no progress (the server reports none)
+    const activityId = startActivity("EXPORT_PACK", reelName, "EXPORT_PACK", TOKEN_COSTS.exportPack);
     try {
       const b = await api<ExportBundle>(`/v1/reels/${reelId}/bundles`, { method: "POST", json: { items: KINDS.filter((k) => picks.includes(k)) } });
       setBundles((x) => [b, ...(x ?? []).filter((y) => y.id !== b.id)]);
+      finishActivity(activityId, true);
       return b;
-    } catch (x) { setErr(why(x, "The files could not be made.")); return null; } finally { setMaking(false); }
-  }, [reelId, picks]);
+    } catch (x) { finishActivity(activityId, false); setErr(why(x, "The files could not be made.")); return null; } finally { setMaking(false); }
+  }, [reelId, picks, reelName]);
   const downloadAll = useCallback(() => {
     if (!picks.length) { if (e.links) window.location.href = e.links.download_url; return; }
     void (async () => {

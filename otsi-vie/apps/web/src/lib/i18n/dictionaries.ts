@@ -6495,6 +6495,26 @@ export interface Dictionary {
       uhPlayerReport: string;
       uhExportPack: string;
       uhAiAnalysis: string;
+      cpAboutMin: string;
+      cpAboutSec: string;
+      cpInTotal: string;
+      cpMore: string;
+      cpOfTotal: string;
+      cpExportPackRun: string;
+      cpPlayerReportRun: string;
+      cpAiAnalystRun: string;
+      cpScoutingPackRun: string;
+      cpUploading: string;
+      cpActivityFailed: string;
+      cpFinished: string;
+      cpFinishedPlain: string;
+      cpReady: string;
+      cpExportPackDone: string;
+      cpPlayerReportDone: string;
+      cpAiAnalystDone: string;
+      cpScoutingPackDone: string;
+      cpUploadDone: string;
+      cpIdle: string;
     };
     shell: {
       brandAria: string;
@@ -13464,6 +13484,26 @@ export const en: Dictionary = {
       uhPlayerReport: "Player report",
       uhExportPack: "Export pack",
       uhAiAnalysis: "AI Analyst",
+      cpAboutMin: "about {a} min",
+      cpAboutSec: "about {a} s",
+      cpInTotal: "in total",
+      cpMore: "+{a} more",
+      cpOfTotal: "{a} of {b}",
+      cpExportPackRun: "Making the export pack",
+      cpPlayerReportRun: "Writing the player report",
+      cpAiAnalystRun: "The AI Analyst is working",
+      cpScoutingPackRun: "Building the Scouting Pack",
+      cpUploading: "Uploading {a}",
+      cpActivityFailed: "{a} failed.",
+      cpFinished: "{a} finished — {b}",
+      cpFinishedPlain: "{a} finished",
+      cpReady: "{a} ready",
+      cpExportPackDone: "Export pack",
+      cpPlayerReportDone: "Player report",
+      cpAiAnalystDone: "AI analysis",
+      cpScoutingPackDone: "Scouting Pack",
+      cpUploadDone: "Upload",
+      cpIdle: "Nothing running",
     },
     shell: {
       brandAria: "OTSI VIE home",
@@ -20429,6 +20469,26 @@ export const ru: DeepPartial<Dictionary> = {
       uhPlayerReport: "Отчёт об игроке",
       uhExportPack: "Пакет экспорта",
       uhAiAnalysis: "ИИ-аналитик",
+      cpAboutMin: "около {a} мин",
+      cpAboutSec: "около {a} с",
+      cpInTotal: "всего",
+      cpMore: "+{a} ещё",
+      cpOfTotal: "{a} из {b}",
+      cpExportPackRun: "Собираем экспортный пакет",
+      cpPlayerReportRun: "Составляем отчёт об игроке",
+      cpAiAnalystRun: "AI-аналитик работает",
+      cpScoutingPackRun: "Собираем скаутинг-пакет",
+      cpUploading: "Загружаем {a}",
+      cpActivityFailed: "{a}: сбой.",
+      cpFinished: "{a} завершён — {b}",
+      cpFinishedPlain: "{a} завершён",
+      cpReady: "{a} готов",
+      cpExportPackDone: "Экспортный пакет",
+      cpPlayerReportDone: "Отчёт об игроке",
+      cpAiAnalystDone: "AI-анализ",
+      cpScoutingPackDone: "Скаутинг-пакет",
+      cpUploadDone: "Загрузка",
+      cpIdle: "Ничего не выполняется",
     },
     shell: {
       brandAria: "Главная OTSI VIE",
@@ -27394,6 +27454,26 @@ export const es: DeepPartial<Dictionary> = {
       uhPlayerReport: "Informe del jugador",
       uhExportPack: "Paquete de exportación",
       uhAiAnalysis: "Analista de IA",
+      cpAboutMin: "unos {a} min",
+      cpAboutSec: "unos {a} s",
+      cpInTotal: "en total",
+      cpMore: "+{a} más",
+      cpOfTotal: "{a} de {b}",
+      cpExportPackRun: "Creando el paquete de exportación",
+      cpPlayerReportRun: "Escribiendo el informe del jugador",
+      cpAiAnalystRun: "El analista de IA está trabajando",
+      cpScoutingPackRun: "Creando el paquete de scouting",
+      cpUploading: "Subiendo {a}",
+      cpActivityFailed: "{a} falló.",
+      cpFinished: "{a} terminó — {b}",
+      cpFinishedPlain: "{a} terminó",
+      cpReady: "{a} listo",
+      cpExportPackDone: "Paquete de exportación",
+      cpPlayerReportDone: "Informe del jugador",
+      cpAiAnalystDone: "Análisis de IA",
+      cpScoutingPackDone: "Paquete de scouting",
+      cpUploadDone: "Subida",
+      cpIdle: "Nada en curso",
     },
     shell: {
       brandAria: "Inicio de OTSI VIE",
@@ -34359,6 +34439,26 @@ export const de: DeepPartial<Dictionary> = {
       uhPlayerReport: "Spielerbericht",
       uhExportPack: "Exportpaket",
       uhAiAnalysis: "KI-Analyst",
+      cpAboutMin: "etwa {a} Min.",
+      cpAboutSec: "etwa {a} s",
+      cpInTotal: "insgesamt",
+      cpMore: "+{a} weitere",
+      cpOfTotal: "{a} von {b}",
+      cpExportPackRun: "Exportpaket wird erstellt",
+      cpPlayerReportRun: "Spielerbericht wird erstellt",
+      cpAiAnalystRun: "Der KI-Analyst arbeitet",
+      cpScoutingPackRun: "Scouting-Paket wird erstellt",
+      cpUploading: "{a} wird hochgeladen",
+      cpActivityFailed: "{a} fehlgeschlagen.",
+      cpFinished: "{a} abgeschlossen — {b}",
+      cpFinishedPlain: "{a} abgeschlossen",
+      cpReady: "{a} bereit",
+      cpExportPackDone: "Exportpaket",
+      cpPlayerReportDone: "Spielerbericht",
+      cpAiAnalystDone: "KI-Analyse",
+      cpScoutingPackDone: "Scouting-Paket",
+      cpUploadDone: "Upload",
+      cpIdle: "Nichts läuft",
     },
     shell: {
       brandAria: "OTSI VIE Startseite",
@@ -41324,6 +41424,26 @@ export const fr: DeepPartial<Dictionary> = {
       uhPlayerReport: "Rapport du joueur",
       uhExportPack: "Pack d’exportation",
       uhAiAnalysis: "Analyste IA",
+      cpAboutMin: "environ {a} min",
+      cpAboutSec: "environ {a} s",
+      cpInTotal: "au total",
+      cpMore: "+{a} de plus",
+      cpOfTotal: "{a} sur {b}",
+      cpExportPackRun: "Création du pack d’export",
+      cpPlayerReportRun: "Rédaction du rapport du joueur",
+      cpAiAnalystRun: "L’analyste IA travaille",
+      cpScoutingPackRun: "Création du pack de scouting",
+      cpUploading: "Envoi de {a}",
+      cpActivityFailed: "{a} a échoué.",
+      cpFinished: "{a} terminé — {b}",
+      cpFinishedPlain: "{a} terminé",
+      cpReady: "{a} prêt",
+      cpExportPackDone: "Pack d’export",
+      cpPlayerReportDone: "Rapport du joueur",
+      cpAiAnalystDone: "Analyse IA",
+      cpScoutingPackDone: "Pack de scouting",
+      cpUploadDone: "Envoi",
+      cpIdle: "Rien en cours",
     },
     shell: {
       brandAria: "Accueil OTSI VIE",
@@ -48299,6 +48419,26 @@ export const pt: DeepPartial<Dictionary> = {
       "uhPlayerReport": "Relatório do jogador",
       "uhExportPack": "Pacote de exportação",
       "uhAiAnalysis": "Analista de IA",
+      "cpAboutMin": "cerca de {a} min",
+      "cpAboutSec": "cerca de {a} s",
+      "cpInTotal": "no total",
+      "cpMore": "+{a} mais",
+      "cpOfTotal": "{a} de {b}",
+      "cpExportPackRun": "A criar o pacote de exportação",
+      "cpPlayerReportRun": "A escrever o relatório do jogador",
+      "cpAiAnalystRun": "O analista de IA está a trabalhar",
+      "cpScoutingPackRun": "A criar o pacote de scouting",
+      "cpUploading": "A enviar {a}",
+      "cpActivityFailed": "{a} falhou.",
+      "cpFinished": "{a} terminado — {b}",
+      "cpFinishedPlain": "{a} terminado",
+      "cpReady": "{a} pronto",
+      "cpExportPackDone": "Pacote de exportação",
+      "cpPlayerReportDone": "Relatório do jogador",
+      "cpAiAnalystDone": "Análise de IA",
+      "cpScoutingPackDone": "Pacote de scouting",
+      "cpUploadDone": "Envio",
+      "cpIdle": "Nada em curso",
     },
     "shell": {
       "brandAria": "Início do OTSI VIE",

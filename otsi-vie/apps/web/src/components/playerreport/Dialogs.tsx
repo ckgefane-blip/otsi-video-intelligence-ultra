@@ -10,6 +10,7 @@ import { ReportDesigner } from "./ReportDesigner";
 import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { finishActivity, startActivity } from "@/lib/activities";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 
@@ -172,7 +173,10 @@ export function ReportDialog({ player, open, share, onClose, canMake, canShare }
   useEffect(() => { if (open && latest) void api<ReportShareLink[]>(`/v1/reports/${latest.id}/share-links`).then(setLinks, () => setLinks(null)); else setLinks(null); }, [open, latest?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
   const make = async () => {
     setBusy(true); setErr(null);
-    try { await api<PlayerReportJob>(base, { method: "POST", json: { design } }); await load(); } catch (x) { setErr(why(x, dict.body.reports.pdfMakeFailed)); await load(); } finally { setBusy(false); }
+    // the player report is a long synchronous API action, not a worker job: narrate
+    // it in the ActivityLine from here, with no progress (the server reports none)
+    const activityId = startActivity("PLAYER_REPORT", player.display_name, "PLAYER_REPORT", TOKEN_COSTS.playerReport);
+    try { await api<PlayerReportJob>(base, { method: "POST", json: { design } }); await load(); finishActivity(activityId, true); } catch (x) { finishActivity(activityId, false); setErr(why(x, dict.body.reports.pdfMakeFailed)); await load(); } finally { setBusy(false); }
   };
   const link = async () => {
     if (!latest) return;

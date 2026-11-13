@@ -17,6 +17,7 @@ import type { AiAnalystAssessment, AiAnalystClaim, AiAnalystProviderStatus } fro
 import { TOKEN_COSTS } from "@otsi-vie/contracts";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { finishActivity, startActivity } from "@/lib/activities";
 import { api, ApiProblem } from "@/lib/api";
 import { CostPreviewDialog } from "@/components/wallet/CostPreview";
 import { useLocale } from "@/lib/i18n";
@@ -101,8 +102,19 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
     }
   }, []);
 
-  const generate = () => act(() => api<AiAnalystAssessment>(`/v1/players/${playerId}/ai-analysis`,
-    { method: "POST", json: { language: locale, consent_acknowledged: true, regenerate: !!assessment } }));
+  const generate = () => {
+    // the AI Analyst is a long synchronous API action, not a worker job: narrate it
+    // in the ActivityLine from here, with no progress (the server reports none)
+    const activityId = startActivity("AI_ANALYSIS", null, "AI_ANALYSIS", TOKEN_COSTS.aiAnalysis);
+    return act(async () => {
+      try {
+        const r = await api<AiAnalystAssessment>(`/v1/players/${playerId}/ai-analysis`,
+          { method: "POST", json: { language: locale, consent_acknowledged: true, regenerate: !!assessment } });
+        finishActivity(activityId, true);
+        return r;
+      } catch (x) { finishActivity(activityId, false); throw x; }
+    });
+  };
   const publish = () => assessment && act(() => api<AiAnalystAssessment>(`/v1/players/${playerId}/ai-analysis/${assessment.id}/publish`, { method: "POST", json: {} }));
   const unpublish = () => assessment && act(() => api<AiAnalystAssessment>(`/v1/players/${playerId}/ai-analysis/${assessment.id}/unpublish`, { method: "POST", json: {} }));
 

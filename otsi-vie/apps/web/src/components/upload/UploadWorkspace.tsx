@@ -11,6 +11,7 @@ import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, u
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { MatchLinker } from "@/components/matches/MatchPanels";
+import { dropRunningUploadActivities, finishUploadActivity, removeUploadActivity, startUploadActivity } from "@/lib/activities";
 import { api, apiBlob, ApiProblem } from "@/lib/api";
 import { formatBytes, formatDuration, formatFps, formatResolution, formatWhen, NOT_MEASURED } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
@@ -94,6 +95,12 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
   const [rightsDialog, setRightsDialog] = useState(false);
   const waiting = useRef<File[] | null>(null);                        // files dropped before the rights were answered
 
+  // the upload page unmounting drops the live upload narration: this browser can no
+  // longer see the transfer's progress, so the line must not keep claiming it. The
+  // upload itself keeps going in the background; the server-side ingest is narrated
+  // as a job when it starts.
+  useEffect(() => () => dropRunningUploadActivities(), []);
+
   const loadVideos = useCallback(async () => {
     try {
       const [vs, ps] = await Promise.all([api<Video[]>("/v1/videos"), api<Project[]>("/v1/projects")]);    // project video counts change too
@@ -127,11 +134,19 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
 
   const run = useCallback((t: Transfer) => {
     patch(t.id, { state: "sending", error: undefined });
-    sendFile(t.file, t.projectId, ingestOptions(), (progress) => patch(t.id, { progress }), t.controller.signal, t.rights).then(
-      (v) => { patch(t.id, { state: "done", videoId: v.id }); setSelectedId(v.id); void loadVideos(); },
+    // the browser file upload is narrated in the ActivityLine with its REAL progress
+    // (sentBytes / totalBytes); the server-side ingest that follows is a worker job
+    const up = (progress: Progress | null) => startUploadActivity({
+      id: t.id, name: t.file.name, state: "sending",
+      progress: progress && progress.totalBytes ? Math.floor((100 * progress.sentBytes) / progress.totalBytes) : null,
+    });
+    up(null);
+    sendFile(t.file, t.projectId, ingestOptions(), (progress) => { patch(t.id, { progress }); up(progress); }, t.controller.signal, t.rights).then(
+      (v) => { patch(t.id, { state: "done", videoId: v.id }); finishUploadActivity(t.id, true); setSelectedId(v.id); void loadVideos(); },
       (e: unknown) => {
-        if ((e as Error).name === "AbortError") return patch(t.id, { state: "paused" });
+        if ((e as Error).name === "AbortError") { removeUploadActivity(t.id); return patch(t.id, { state: "paused" }); }
         patch(t.id, { state: "error", error: e instanceof ApiProblem ? e.message : d.uploadStopped });
+        finishUploadActivity(t.id, false);
         void loadVideos();
       });
     void loadVideos();
@@ -197,6 +212,7 @@ export function UploadWorkspace({ children }: { children: ReactNode }) {
     },
     async cancel(t) {
       t.controller.abort();
+      removeUploadActivity(t.id);
       const v = (videos ?? []).find((x) => x.upload && x.original_filename === t.file.name && x.byte_size === t.file.size);
       if (v?.upload) await cancelUpload(v.upload.upload_id).catch(() => undefined);
       setTransfers((ts) => ts.filter((x) => x.id !== t.id));

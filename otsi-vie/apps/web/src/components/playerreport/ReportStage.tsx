@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { finishActivity, startActivity } from "@/lib/activities";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { parsePlayerRef, type PlayerRef } from "@/lib/identity";
@@ -219,7 +220,19 @@ function AiBriefPanel({ r }: { r: Report }) {
     setBusy(true); setErr(null);
     try { setAssessment(await fn()); } catch (x) { setErr(x instanceof ApiProblem ? x.message : dict.body.aiAnalyst.couldNotVerify); } finally { setBusy(false); }
   };
-  const generate = () => id && act(() => api<AiAnalystAssessment>(`/v1/players/${id}/ai-analysis`, { method: "POST", json: { language: locale, consent_acknowledged: true, regenerate: !!a } }));
+  const generate = () => {
+    if (!id) return undefined;
+    // the AI Analyst is a long synchronous API action, not a worker job: narrate it
+    // in the ActivityLine from here, with no progress (the server reports none)
+    const activityId = startActivity("AI_ANALYSIS", r.player?.display_name ?? null, "AI_ANALYSIS", TOKEN_COSTS.aiAnalysis);
+    return act(async () => {
+      try {
+        const res = await api<AiAnalystAssessment>(`/v1/players/${id}/ai-analysis`, { method: "POST", json: { language: locale, consent_acknowledged: true, regenerate: !!a } });
+        finishActivity(activityId, true);
+        return res;
+      } catch (x) { finishActivity(activityId, false); throw x; }
+    });
+  };
   const publish = () => id && a && act(() => api<AiAnalystAssessment>(`/v1/players/${id}/ai-analysis/${a.id}/publish`, { method: "POST", json: {} }));
   return (
     <section aria-label={dict.body.reports.rpAiBrief} className="min-w-0 border-t border-line pt-3">

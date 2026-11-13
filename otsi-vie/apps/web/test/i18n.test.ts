@@ -549,6 +549,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.wallet.billingWalletSection",
       "body.wallet.billingLedgerAria",
       "body.wallet.colNote",
+      "body.wallet.cpUploadDone",          // German "Upload" is the same loanword
       "body.shell.modePro",
       "body.shell.groupReel",
       "body.shell.groupPages",
@@ -669,7 +670,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // player card, review inbox, active jobs).
     expect(bodyKeys("admin").length).toBe(282);
     expect(bodyKeys("settings").length).toBe(141);
-    expect(bodyKeys("wallet").length).toBe(265);
+    expect(bodyKeys("wallet").length).toBe(285);
     expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
     // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org
@@ -781,6 +782,37 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(frE.shell.paletteTitle).toBe("Recherche et commandes");
     expect(frE.auth.signIn).toBe("Se connecter");
     expect(frE.home.kpiMatchesAnalyzed).toBe("Matchs analysés");
+  });
+
+  it("the app-wide ActivityLine keys are translated in every locale (not English-only)", () => {
+    // the completeness test above would pass a missing pt key via the English
+    // fallback, so these spot checks pin the real translations — including pt.
+    const keys = [
+      "cpAboutMin", "cpAboutSec", "cpInTotal", "cpMore", "cpOfTotal",
+      "cpExportPackRun", "cpPlayerReportRun", "cpAiAnalystRun", "cpScoutingPackRun", "cpUploading",
+      "cpActivityFailed", "cpFinished", "cpFinishedPlain", "cpReady",
+      "cpExportPackDone", "cpPlayerReportDone", "cpAiAnalystDone", "cpScoutingPackDone", "cpUploadDone",
+      "cpIdle",
+    ];
+    for (const locale of SUPPORTED_LOCALES) {
+      const wallet = getDictionary(locale).body.wallet as unknown as Record<string, unknown>;
+      for (const k of keys) expect(typeof wallet[k], `${locale}:${k}`).toBe("string");
+    }
+    const w = getDictionary("en").body.wallet;
+    expect(w.cpAboutMin).toBe("about {a} min");
+    expect(w.cpMore).toBe("+{a} more");
+    expect(w.cpOfTotal).toBe("{a} of {b}");
+    expect(w.cpExportPackRun).toBe("Making the export pack");
+    expect(w.cpUploading).toBe("Uploading {a}");
+    expect(w.cpIdle).toBe("Nothing running");
+    expect(getDictionary("ru").body.wallet.cpExportPackRun).toBe("Собираем экспортный пакет");
+    expect(getDictionary("ru").body.wallet.cpIdle).toBe("Ничего не выполняется");
+    expect(getDictionary("es").body.wallet.cpAiAnalystRun).toBe("El analista de IA está trabajando");
+    expect(getDictionary("de").body.wallet.cpScoutingPackRun).toBe("Scouting-Paket wird erstellt");
+    expect(getDictionary("fr").body.wallet.cpPlayerReportRun).toBe("Rédaction du rapport du joueur");
+    expect(getDictionary("pt").body.wallet.cpExportPackRun).toBe("A criar o pacote de exportação");
+    expect(getDictionary("pt").body.wallet.cpIdle).toBe("Nada em curso");
+    expect(getDictionary("pt").body.wallet.cpFinished).toBe("{a} terminado — {b}");
   });
 
   it("a body key missing from a partial still falls back to English", () => {
