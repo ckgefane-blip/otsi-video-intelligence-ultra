@@ -61,11 +61,15 @@ describe("sign-in page passkey button", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
   });
 
-  it("shows a clear message (and no button) when passkeys are not supported", async () => {
+  // SOT: the passkey button is always shown. Where passkeys do not work (Windows Hello unavailable)
+  // the press itself says so, instead of the button hiding.
+  it("shows the passkey button even when passkeys are not supported, and says so when pressed", async () => {
     browserSupportsWebAuthn.mockReturnValue(false);
     render(<LoginPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /Sign in with a passkey/ }));
     await waitFor(() => expect(screen.getByText(/does not support passkeys here/)).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /Sign in with a passkey/ })).not.toBeInTheDocument();
+    expect(signInWithPasskey).not.toHaveBeenCalled();
   });
 
   it("asks for the email first when the button is used with no email", async () => {

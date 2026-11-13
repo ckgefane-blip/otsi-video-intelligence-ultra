@@ -8,6 +8,7 @@
  *   GET    /v1/renders/:id/share-links         the render's links (never the link itself: only its hash is stored)
  *   DELETE /v1/share-links/:id                 revoke (writers; audited)
  *   GET    /v1/public/share/:token             what a person opening the link sees (no sign-in): the check runs again, every opening logged
+ *   GET    /v1/public/share/:token/gate        what the password gate may show before opening: the organisation, the expiry, whether a password is needed
  *   POST   /v1/public/share/:token/open        the same, for a link with a password (in the body, never the address); 10 wrong passwords
  *                                              on one link within 15 minutes lock it for that time
  *   POST   /v1/public/share/:token/comments    leave a comment with a name, when the link allows comments (the same checks first)
@@ -20,7 +21,7 @@
  */
 import { Body, Controller, Delete, Get, HttpCode, Inject, Injectable, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { CreatedReportShareLink, CreatedShareLink, CreateReportShareLinkRequest, CreateShareLinkRequest, OpenShareRequest, PostSharedCommentRequest, RecordRightsRequest,
-  ReportShareLink, SharedComment, SharedView, SHARE_REASONS, ShareLink, UploadRights, VideoRights } from "@otsi-vie/contracts";
+  ReportShareLink, SharedComment, SharedView, ShareGate, SHARE_REASONS, ShareLink, UploadRights, VideoRights } from "@otsi-vie/contracts";
 import type { FastifyRequest } from "fastify";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { RowDataPacket } from "mysql2/promise";
@@ -34,6 +35,7 @@ import { ApiError, notFound } from "../../core/problem";
 import { AnalysisService } from "../analysis/analysis";
 import { requireIdentity } from "../playerreport/gate";
 import { uuidParam } from "../players/players.controller";
+import { playerProfile } from "../players/players.service";
 import { PROJECT_WRITERS } from "../projects/projects";
 import { analysisRightsBlock, declareRights } from "./rights";
 
@@ -258,6 +260,31 @@ export class SharingService {
     return rows.map((r) => SharedComment.parse({ id: r.id, name: r.guest_name, body: r.body, at_s: r.at_pts_us === null ? null : Number(r.at_pts_us) / 1e6, created_at: iso(r.created_at) }));
   }
 
+  /** the organisation's name, for the gate and the view header (safe to show before opening: the link itself came from it) */
+  private async orgName(orgId: string): Promise<string | null> {
+    const row = await this.db.one<RowDataPacket>("SELECT name FROM organizations WHERE id = ?", [orgId]);
+    return row?.name ? String(row.name) : null;
+  }
+
+  /** the shared player's line, from the player's own profile/team sheet only: the latest roster row in this organisation
+   *  (shirt number, position, club), with the recorded position and the user-entered club as fallbacks. Nothing is looked
+   *  up outside the shared player's own profile, and a field with nothing recorded stays null rather than guessed. */
+  private async playerLine(playerId: string, orgId: string): Promise<{ jersey_number: number | null; position: string | null; club: string | null }> {
+    const p = await playerProfile(this.db, playerId, orgId);
+    return { jersey_number: p?.latest_team?.jersey_number ?? null,
+      position: p?.latest_team?.position ?? p?.position ?? null,
+      club: p?.latest_team?.team ?? p?.details?.club_name ?? null };
+  }
+
+  /** What the password gate may show before the link is opened: the organisation, the expiry, and whether a password is
+   *  needed. No password check, no view logged, and nothing about the video — the gate is not an opening. */
+  async gate(token: string): Promise<ShareGate> {
+    if (!TOKEN.test(token)) throw notFound("Shared video");
+    const l = await this.db.one<RowDataPacket>("SELECT organization_id, expires_at, password_hash FROM share_links WHERE token_hash = ?", [sha256(token)]);
+    if (!l) throw notFound("Shared video");
+    return ShareGate.parse({ organization_name: await this.orgName(String(l.organization_id)), expires_at: iso(l.expires_at), has_password: !!l.password_hash });
+  }
+
   /** Opening a link: the link (and its password), then the sharing rule again; the outcome is logged either way. 404 for anything that is not a link. */
   async open(token: string, ip: string | undefined, password: string | null = null): Promise<SharedView> {
     const { l, ipHash } = await this.unlock(token, ip, password);
@@ -270,10 +297,13 @@ export class SharingService {
       await this.recordDecision(undefined, String(l.organization_id), "VIEW", "share_link", String(l.id), null, reasons, null);
       if (reasons.length) throw new ApiError(410, "SHARE_UNAVAILABLE", linkReasons.length ? explain(linkReasons) : "This report can no longer be shared.");
       const player = await this.db.one<RowDataPacket>("SELECT display_name FROM v_player_identity WHERE player_id = ?", [s.job!.player_id]);
+      const line = await this.playerLine(String(s.job!.player_id), String(l.organization_id));
       return SharedView.parse({ kind: "REPORT", title: "Player report", player_name: player?.display_name ?? null,
         url: this.analysis.signedUrl(String(l.asset_id), String(l.organization_id), false, SHARE_VIDEO_TTL_S).url,
         download_url: Number(l.can_download) ? this.analysis.signedUrl(String(l.asset_id), String(l.organization_id), true, SHARE_VIDEO_TTL_S).url : null,
-        mime: "application/pdf", link_expires_at: iso(l.expires_at), notice: "Shared from OTSI VIE. Engine readings, not a verified stat sheet. Development output: commercial distribution is not activated.",
+        mime: "application/pdf", link_expires_at: iso(l.expires_at), organization_name: await this.orgName(String(l.organization_id)),
+        player_jersey_number: line.jersey_number, player_position: line.position, player_club: line.club,
+        notice: "Shared from OTSI VIE. Engine readings, not a verified stat sheet. Development output: commercial distribution is not activated.",
         can_comment: false, comments: [] });
     }
     const r = await this.db.one<RowDataPacket>("SELECT id FROM render_jobs WHERE output_asset_id = ? AND organization_id = ?", [l.asset_id, l.organization_id]);
@@ -284,11 +314,13 @@ export class SharingService {
     if (reasons.length) throw new ApiError(410, "SHARE_UNAVAILABLE", reasons.includes("LINK_REVOKED") || reasons.includes("LINK_EXPIRED") ? explain(reasons.filter((x) => x.startsWith("LINK_")))
       : "This video can no longer be shared.");
     const player = s.reel?.player_id ? await this.db.one<RowDataPacket>("SELECT display_name FROM v_player_identity WHERE player_id = ?", [s.reel.player_id]) : undefined;
+    const line = s.reel?.player_id ? await this.playerLine(String(s.reel.player_id), String(l.organization_id)) : { jersey_number: null, position: null, club: null };
     const asset = await this.db.one<RowDataPacket>("SELECT mime_type FROM assets WHERE id = ?", [l.asset_id]);
     const watch = this.analysis.signedUrl(String(l.asset_id), String(l.organization_id), false, SHARE_VIDEO_TTL_S);
     return SharedView.parse({ title: String(s.reel?.name ?? "Highlight reel"), player_name: player?.display_name ?? null, url: watch.url,
       download_url: Number(l.can_download) ? this.analysis.signedUrl(String(l.asset_id), String(l.organization_id), true, SHARE_VIDEO_TTL_S).url : null,
-      mime: asset?.mime_type ?? null, link_expires_at: iso(l.expires_at),
+      mime: asset?.mime_type ?? null, link_expires_at: iso(l.expires_at), organization_name: await this.orgName(String(l.organization_id)),
+      player_jersey_number: line.jersey_number, player_position: line.position, player_club: line.club,
       notice: "Shared from OTSI VIE. Development output: commercial distribution is not activated.",
       can_comment: !!Number(l.can_comment), comments: Number(l.can_comment) ? await this.linkComments(String(l.id)) : [] });
   }
@@ -366,6 +398,9 @@ export class SharingController {
 @Controller("v1/public")
 export class PublicShareController {
   constructor(private readonly sharing: SharingService) {}
+
+  @Get("share/:token/gate")
+  gate(@Param("token") token: string) { return this.sharing.gate(token); }
 
   @Get("share/:token")
   open(@Param("token") token: string, @Req() req: FastifyRequest) { return this.sharing.open(token, req.ip); }

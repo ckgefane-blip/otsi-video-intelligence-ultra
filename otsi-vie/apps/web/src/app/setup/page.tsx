@@ -25,6 +25,9 @@ import Link from "next/link";
 
 const field = "mt-1.5 h-10 w-full rounded-ctl border border-line2 bg-canvas px-3 t-body text-ink outline-none focus:border-primary";
 
+/** a dictionary key the reconciliation pass has not added yet (sot-rebuild-i18n/pages-d.json): read it when present, English until then. */
+const pendingKey = (dict: Record<string, string | undefined>, key: string, fallback: string) => dict[key] ?? fallback;
+
 /** the 4-segment strength meter (SOT): length, mixed case, a digit, a symbol */
 function strength(pw: string): number {
   if (!pw) return 0;
@@ -93,7 +96,8 @@ export default function SetupPage() {
       <main className="flex min-w-0 flex-[1_1_560px] items-center justify-center px-8 py-10">
         <form onSubmit={submit} aria-labelledby="setup-title" className="flex w-full max-w-[420px] flex-col gap-[18px]">
           <div className="flex flex-col gap-2">
-            <span className="vie-chip self-start" style={{ color: "rgb(var(--primary))", borderColor: "rgba(43,212,176,.38)" }}>{t.body.auth.setupFirstRun}</span>
+            {/* SOT: "First run" is plain text — the SOT's non-ev chip renders without border, background or padding */}
+            <span className="t-small self-start text-muted">{t.body.auth.setupFirstRun}</span>
             <h2 id="setup-title" className="t-page">{t.body.auth.setupTitle}</h2>
             <p className="t-body text-ink2">{t.body.auth.setupSub}</p>
           </div>
@@ -105,18 +109,21 @@ export default function SetupPage() {
             <label htmlFor="setup-email" className="t-body text-ink2">{t.body.auth.setupEmail}</label>
             <input id="setup-email" name="email" type="email" autoComplete="email" placeholder={t.body.auth.setupEmailPh} value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
           </div>
-          <div>
+          {/* SOT .field: label, input, meter and hint in a column with a 6px gap; the meter row is 3px tall with the bars filling it, so the bars render fully */}
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="setup-password" className="t-body text-ink2">{t.body.auth.setupPassword}</label>
-            <div className="relative mt-1.5">
+            <div className="relative">
               <input id="setup-password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 w-full rounded-ctl border border-line2 bg-canvas px-3 pr-16 t-body text-ink outline-none focus:border-primary" />
               <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
                 className="absolute right-1 top-[5px] h-[30px] rounded-ctl bg-raised px-3 t-body text-ink2 hover:text-ink">
-                {showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
+                {showPassword
+                  ? pendingKey(t.body.auth as unknown as Record<string, string | undefined>, "hidePasswordShort", "Hide")
+                  : pendingKey(t.body.auth as unknown as Record<string, string | undefined>, "showPasswordShort", "Show")}
               </button>
             </div>
-            <div className="mt-1 grid grid-cols-4 gap-1" aria-hidden="true">
+            <div className="mt-1 grid h-[3px] grid-cols-4 gap-1" aria-hidden="true">
               {[0, 1, 2, 3].map((i) => (
-                <span key={i} className={`h-[3px] rounded-sm ${i < score ? "bg-primary" : "bg-line2"}`} />
+                <span key={i} className={`block h-[3px] w-full shrink-0 rounded-sm ${i < score ? "bg-primary" : "bg-line2"}`} />
               ))}
             </div>
             <span className="t-small text-muted">{t.body.auth.setupPasswordHint}</span>

@@ -132,11 +132,11 @@ export function ProcessingJobs() {
   };
 
   return (
-    <div className="flex min-w-0 flex-1" data-page="processing" data-stage>
+    <div className="flex min-h-full min-w-0 flex-1 items-stretch" data-page="processing" data-stage>
       <main className="flex min-w-0 flex-1 flex-col gap-3.5 p-5 px-7">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <span className="eb">{d.jobs}</span>
+            <span className="eb">{dict.nav.processing}</span>
             <h1 className="t-page">{d.jobs}</h1>
           </div>
           <div className="seg" role="group" aria-label={d.jobs}>
@@ -146,14 +146,14 @@ export function ProcessingJobs() {
           </div>
         </div>
 
-        <section className="vie-panel" aria-labelledby="pj-steps">
-          <div className="vie-ph">
+        <section className="min-w-0 border-t border-line pt-3" aria-labelledby="pj-steps">
+          <div className="flex items-center justify-between gap-2 pb-1">
             <h2 id="pj-steps" className="t-panel">{d.pjHowProcessed}</h2>
-            <div className="flex gap-1.5">
-              <span className="vie-chip">{d.runQueued}</span>
-              <span className="vie-chip ev ev-d">{d.ribbonRunning}</span>
-              <span className="vie-chip ev ev-c">{d.jobFinished}</span>
-              <span className="vie-chip ev ev-f">{d.stageFailed}</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink2">
+              <span><span className="text-muted" aria-hidden>•</span> {d.runQueued}</span>
+              <span><span className="text-cyan" aria-hidden>•</span> {d.ribbonRunning}</span>
+              <span><span className="text-primary" aria-hidden>•</span> {d.jobFinished}</span>
+              <span><span className="text-danger" aria-hidden>•</span> {d.stageFailed}</span>
             </div>
           </div>
           <ol className="steps">
@@ -172,8 +172,8 @@ export function ProcessingJobs() {
           </ol>
         </section>
 
-        <section className="vie-panel" aria-labelledby="pj-jobs">
-          <div className="vie-ph">
+        <section className="min-w-0 border-t border-line pt-3" aria-labelledby="pj-jobs">
+          <div className="flex items-center justify-between gap-2 pb-1">
             <h2 id="pj-jobs" className="t-panel">{d.pjAllJobs}</h2>
             <span className="text-xs text-muted">{d.pjAllJobsSub}</span>
           </div>
@@ -184,11 +184,12 @@ export function ProcessingJobs() {
             {list === undefined && <p className="p-4 text-sm text-muted">{dict.common.loading}</p>}
             {list === null && <p role="alert" className="p-4 text-sm text-danger">{d.didNotWork}</p>}
             {list && shown.length === 0 && (
-              <div className="empty" style={{ padding: 16 }}>
+              <div className="empty" style={{ padding: 16, minHeight: 240 }}>
+                {/* SOT Jobs Center: the empty state is centred vertically — the .empty flex centres its content in this height */}
                 <span className="ei"><svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"></path></svg></span>
                 <h3>{d.pjNoJobs}</h3>
                 <p>{d.pjUploadToStart}</p>
-                <Link href="/upload" className="rounded-ctl bg-primary px-3 py-1.5 text-sm font-normal text-white">{d.pjUploadVideo}</Link>
+                <Link href="/upload" className="vie-btn">{d.pjUploadVideo}</Link>
               </div>
             )}
             {shown.map((j) => row(j, j.id))}
@@ -196,8 +197,8 @@ export function ProcessingJobs() {
           </div>
         </section>
 
-        <section className="vie-panel flex flex-1 flex-col" aria-labelledby="pj-history" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div className="vie-ph">
+        <section className="flex min-w-0 flex-1 flex-col border-t border-line pt-3" aria-labelledby="pj-history" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <div className="flex items-center justify-between gap-2 pb-1">
             <h2 id="pj-history" className="t-panel">{d.pjHistory}</h2>
             <span className="text-xs text-muted">{d.pjLogsKept}</span>
           </div>
@@ -214,8 +215,8 @@ export function ProcessingJobs() {
         </section>
       </main>
 
-      <aside className="insp" aria-label={d.pjJobDetails} style={{ flex: "0 0 340px", maxWidth: 340 }}>
-        <div className="vie-ph" style={{ minHeight: 44 }}>
+      <aside className="insp self-stretch" aria-label={d.pjJobDetails} style={{ flex: "0 0 340px", maxWidth: 340 }}>
+        <div className="flex items-center justify-between gap-2 pb-1 pt-3" style={{ minHeight: 44 }}>
           <h2 className="t-panel">{d.pjJobDetails}</h2>
         </div>
         {selected ? (
@@ -243,7 +244,7 @@ export function ProcessingJobs() {
           </div>
         )}
         <div className="flex min-h-[200px] flex-1 flex-col border-t border-line">
-          <div className="vie-ph">
+          <div className="flex items-center justify-between gap-2 pb-1 pt-3">
             <span className="eb">{d.pjLog}</span>
             <button type="button" disabled={!selectedLines.length} className="rounded-ctl border border-line px-2 py-1 text-xs hover:bg-raised/60 disabled:opacity-50"
               onClick={() => {

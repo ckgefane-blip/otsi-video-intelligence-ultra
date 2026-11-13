@@ -102,4 +102,32 @@ describe("PlayersList SOT (Page 18)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Toni Kroos/ }));
     await waitFor(() => expect(screen.getByLabelText("Nationality")).toHaveValue("DEU"));
   });
+
+  it("position is the SOT's five options, and the intro link opens the Player Profile Intro page", async () => {
+    mockApi();
+    render(<PlayersList />);
+    await screen.findAllByText("Luka Modric");
+    // the selected player (Modric) is saved as CM, which is not one of the five: it stays as an extra option
+    const pos = screen.getByLabelText("Position") as HTMLSelectElement;
+    const options = Array.from(pos.options).map((o) => o.textContent);
+    expect(options).toEqual(["Not recorded", "DM", "Goalkeeper", "Defender", "Midfielder", "Forward", "Central midfielder (CM)"]);
+    expect(pos.value).toBe("CM");
+    // "Open full 16:9 intro" goes to the intro view, not the report
+    const intro = screen.getByRole("link", { name: "Open full 16:9 intro" });
+    expect(intro).toHaveAttribute("href", `/players/${modric.player_id}/intro`);
+  });
+
+  it("keeps the inspector column when nothing is selected (the SOT keeps the column)", async () => {
+    api.mockImplementation((url: string) => {
+      if (url === "/v1/countries") return Promise.resolve([]);
+      if (url === "/v1/player-list") return Promise.resolve([]);
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<PlayersList />);
+    await waitFor(() => expect(screen.getByText(/No players yet/)).toBeInTheDocument());
+    // the inspector column is still there (an empty state), not missing — and it has no form
+    expect(screen.getByRole("complementary", { name: "Save profile" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
+    expect(screen.queryByLabelText("Position")).toBeNull();
+  });
 });

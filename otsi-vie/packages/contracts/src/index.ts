@@ -25,6 +25,7 @@ export * from "./sharing";
 export * from "./ball";
 export * from "./bank-transfer";
 export * from "./lineups";
+export * from "./settings";
 export * from "./periods";
 export * from "./events";
 export * from "./team";

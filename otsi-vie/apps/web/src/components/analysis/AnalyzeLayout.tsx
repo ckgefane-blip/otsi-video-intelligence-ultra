@@ -14,9 +14,9 @@ const SIDE_DEFAULTS = { l: 280, r: 380 };
 
 function Panel({ title, children, section, className = "" }: { title: string; children: ReactNode; section: string; className?: string }) {
   return (
-    <section className={`vie-panel min-w-0 ${className}`} aria-label={title} data-section={section}>
-      <div className="vie-ph"><h2 className="t-panel">{title}</h2></div>
-      <div className="p-3">{children}</div>
+    <section className={`min-w-0 border-t border-line pt-3 ${className}`} aria-label={title} data-section={section}>
+      <div className="flex items-center justify-between gap-2 pb-1"><h2 className="t-panel">{title}</h2></div>
+      <div className="py-1">{children}</div>
     </section>
   );
 }
@@ -43,7 +43,7 @@ export function AnalyzeLayout() {
           <Panel title={dict.desktop.overlaysTitle} section="p04-s05"><OverlayToggles /></Panel>
         </div>
         <div className="flex min-w-0 flex-col gap-3">
-          <section className="vie-panel min-w-0 p-3" aria-label={dict.body.processing.matchVideo} data-section="p04-s03">
+          <section className="min-w-0 border-t border-line pt-3" aria-label={dict.body.processing.matchVideo} data-section="p04-s03">
             <VideoWithBoxes />
             <div className="mt-2" data-section="p04-s04"><BoxLegend /></div>
           </section>

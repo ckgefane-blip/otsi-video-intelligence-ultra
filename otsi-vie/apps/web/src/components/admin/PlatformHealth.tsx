@@ -2,25 +2,32 @@
 /**
  * Admin Console — Platform Health (SOT, Admin.dc.html).
  * The live state of the platform: review inbox, jobs running, licence,
- * release control and models (stat panels), plus the concurrency sliders
+ * release control and models (stat panels), plus the concurrency rows
  * and the review inbox with its Approve / Reject decisions. Available to
  * Owners and Admins.
  *
- * Two honest notes, both visible here, not hidden:
- * - The review-inbox Approve / Reject buttons open the Analysis page for
- *   that item (the item's href), because the approval itself happens on
- *   the team-sheet / lineup flow there; there is no one-click
- *   approve/reject endpoint for an inbox item.
- * - The per-queue Pause buttons use three new per-queue paused flags
- *   (analysis_paused / renders_paused / ingest_paused) added to
- *   AdminConcurrencySettings; the API stores them like the global
- *   queue_paused flag. The sliders show the real configured values
- *   (1–8), not the SOT's "Not set" example text.
+ * One honest note, visible here, not hidden:
+ * - Concurrency shows the SOT's "Not set" text (no numeric value) with
+ *   a Pause button per queue; the track under it is still the working
+ *   1–8 control — drag it to change the limit, the value is in the
+ *   control's title. The API always returns a configured value
+ *   (defaults 1 / 2 / 2), so "Not set" is the SOT's label, not a live
+ *   unset state.
+ *
+ * Decisions (SOT rebuild 2026-11-13): POST /v1/overview/inbox/decisions with the row's stable id
+ * ("<KIND>:<video-or-reel-uuid>"). APPROVE works for all four kinds. REJECT is deliberately unsupported
+ * for STALE_REEL and FAILED_JOB (the endpoint answers 422 DECISION_NOT_SUPPORTED) — those rows show no
+ * working Reject. After a decision the inbox is re-fetched: the returned inbox may still list a FAILED_JOB
+ * row for a moment, because the retry is queued through the outbox and clears the row when the dispatcher
+ * fires.
  */
 import type {
   AdminConcurrencySettings,
   AdminDashboard,
   HomeInbox,
+  InboxDecision,
+  InboxDecisionResult,
+  InboxItem,
   JobList,
   LicenceSnapshot,
   ReleaseGatesReport,
@@ -36,6 +43,13 @@ import { api, ApiProblem } from "@/lib/api";
 type QueueKey = "analysis" | "renders" | "ingest";
 type ConcurrencyField = "max_concurrent_analysis" | "max_concurrent_renders" | "max_concurrent_ingest";
 type PausedField = "analysis_paused" | "renders_paused" | "ingest_paused";
+
+/** The review-inbox decision endpoint (POST InboxDecisionRequest, returns InboxDecisionResult). */
+const REVIEW_DECISION_URL = "/v1/overview/inbox/decisions";
+
+/** REJECT is deliberately unsupported for these kinds (the endpoint answers 422 DECISION_NOT_SUPPORTED):
+ *  a stale reel is refreshed from the reel, a failed job is retried — neither is declined from here. */
+const REJECT_UNSUPPORTED: readonly InboxItem["kind"][] = ["STALE_REEL", "FAILED_JOB"];
 
 export function PlatformHealth() {
   const { organization } = useAuth();
@@ -57,6 +71,37 @@ export function PlatformHealth() {
   const [sliders, setSliders] = useState({ analysis: 1, renders: 2, ingest: 2 });
   const [savingConcurrency, setSavingConcurrency] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  /** a real decision on one review-inbox row: APPROVE does what the row asks for, REJECT declines it with a reason.
+   *  The inbox is re-fetched afterwards — the returned inbox may still list a FAILED_JOB row for a moment
+   *  (the retry is queued through the outbox and clears the row when the dispatcher fires), so it is fetched
+   *  again at once and once more after a short delay. */
+  const decideReview = useCallback(
+    async (item: InboxItem, decision: InboxDecision, reason: string | null) => {
+      setDeciding(item.id);
+      setError(null);
+      try {
+        const res = await api<InboxDecisionResult>(REVIEW_DECISION_URL, {
+          method: "POST",
+          json: { item_id: item.id, decision, reason: reason?.trim() ? reason.trim() : null },
+        });
+        setInbox(res.inbox);
+        setRejecting(null);
+        setRejectReason("");
+        const refetch = () => api<HomeInbox>("/v1/overview/inbox").then(setInbox, () => {});
+        void refetch();
+        window.setTimeout(() => void refetch(), 3000);
+      } catch (err) {
+        setError(err instanceof ApiProblem ? err.message : a.concurrencyFailed);
+      } finally {
+        setDeciding(null);
+      }
+    },
+    [a.concurrencyFailed],
+  );
 
   const loadData = useCallback(async () => {
     if (!isAuthorized) return;
@@ -195,6 +240,10 @@ export function PlatformHealth() {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-testid="admin-platform-health">
+      {/* SOT (Admin.dc.html): the concurrency slider thumb is a 14px disc, ink centre with a teal ring.
+          The shared .vie-range thumb is solid ink; this rule is scoped to this page's testid so only
+          these sliders change — globals.css is another worker's file. */}
+      <style>{`[data-testid="admin-platform-health"] .vie-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: rgb(var(--ink)); border: 3px solid rgb(var(--primary)); } [data-testid="admin-platform-health"] .vie-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: rgb(var(--ink)); border: 3px solid rgb(var(--primary)); }`}</style>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="t-th">{t.body.shell.adminConsole}</span>
@@ -223,33 +272,33 @@ export function PlatformHealth() {
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex min-w-0 flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{home.reviewInbox}</span>
           <span className="t-section">{loading ? "—" : String(inboxCount)}</span>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex min-w-0 flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{a.healthJobsRunning}</span>
           <span className="t-section">{loading ? "—" : String(jobs?.running ?? 0)}</span>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex min-w-0 flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{a.healthLicence}</span>
           <span className={`t-section leading-7 ${lic === null ? "text-amber" : ""}`}>{licenceText}</span>
         </div>
-        <Link href="/settings/admin/release" className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <Link href="/settings/admin/release" className="flex min-w-0 flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{a.healthReleaseControl}</span>
           <span className="t-section leading-7 text-ink2">
             {a.healthReleaseAccuracy.replace("{a}", accuracyText)}
           </span>
           <span className="t-body text-muted">{a.healthReleaseNote}</span>
         </Link>
-        <Link href="/settings/admin/models" className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <Link href="/settings/admin/models" className="flex min-w-0 flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{a.healthModelsAi}</span>
           <span className="t-section leading-7 text-ink2">{modelsText}</span>
         </Link>
       </div>
 
       <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
-        <section className="vie-panel flex flex-col" aria-labelledby="health-concurrency">
+        <section className="flex min-w-0 flex-col border-t border-line" aria-labelledby="health-concurrency">
           <div className="vie-ph">
             <h2 id="health-concurrency" className="t-section">{a.healthConcurrency}</h2>
             <span className="t-small text-muted">{a.healthConcurrencyHint}</span>
@@ -260,7 +309,8 @@ export function PlatformHealth() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">{q.label}</span>
                   <span className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-muted">{q.value}</span>
+                    {/* "Not set" in regular type (SOT §B), not mono */}
+                    <span className="text-xs text-muted">{t.body.reels.piNotSet}</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -284,6 +334,8 @@ export function PlatformHealth() {
                   onKeyUp={() => commitSlider(q.field, q.value)}
                   className="vie-range w-full"
                   aria-label={q.label}
+                  aria-valuetext={String(q.value)}
+                  title={`${q.label}: ${q.value}`}
                 />
               </div>
             ))}
@@ -293,10 +345,10 @@ export function PlatformHealth() {
           )}
         </section>
 
-        <section className="vie-panel flex flex-col" aria-labelledby="health-inbox">
+        <section className="flex min-w-0 flex-col border-t border-line" aria-labelledby="health-inbox">
           <div className="vie-ph">
             <h2 id="health-inbox" className="t-section">{home.reviewInbox}</h2>
-            <span className="vie-chip ev ev-i">{inboxChip}</span>
+            <span className="t-small text-muted">• {inboxChip}</span>
           </div>
           {loading ? (
             <div className="flex h-32 items-center justify-center">
@@ -308,20 +360,72 @@ export function PlatformHealth() {
             </div>
           ) : (
             <div className="divide-y divide-line/60">
-              {items.map((item) => (
-                <div key={item.href} className="flex min-h-16 items-center gap-3 px-4 py-3">
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="font-semibold">{item.title}</span>
-                    {item.detail && <span className="t-small text-muted">{item.detail}</span>}
+              {items.map((item) => {
+                const rejectable = !REJECT_UNSUPPORTED.includes(item.kind);
+                return (
+                <div key={item.id} className="flex min-h-16 flex-col gap-2 px-4 py-3">
+                  <div className="flex min-h-16 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="font-semibold">{item.title}</span>
+                      {item.detail && <span className="t-small text-muted">{item.detail}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={deciding !== null || !rejectable}
+                      title={rejectable ? undefined : a.healthRejectUnsupported}
+                      onClick={() => {
+                        if (rejecting === item.id) { setRejecting(null); setRejectReason(""); }
+                        else { setRejecting(item.id); setRejectReason(""); }
+                      }}
+                      className="vie-btn vie-btn-sm"
+                    >
+                      {a.healthReject}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deciding !== null}
+                      onClick={() => void decideReview(item, "APPROVE", null)}
+                      className="vie-btn vie-btn-pri vie-btn-sm"
+                    >
+                      {deciding === item.id ? "…" : a.healthApprove}
+                    </button>
                   </div>
-                  <Link href={item.href} className="vie-btn vie-btn-sm">
-                    {a.healthReject}
-                  </Link>
-                  <Link href={item.href} className="vie-btn vie-btn-pri vie-btn-sm">
-                    {a.healthApprove}
-                  </Link>
+                  {rejecting === item.id && (
+                    <div className="flex flex-col gap-2">
+                      <label className="grid gap-1">
+                        <span className="t-small text-muted">{a.healthDecisionsLogged}</span>
+                        <input
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          placeholder={a.healthReasonPh}
+                          maxLength={500}
+                          disabled={deciding !== null}
+                          className="in h-9 w-full"
+                        />
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={deciding !== null}
+                          onClick={() => void decideReview(item, "REJECT", rejectReason)}
+                          className="vie-btn vie-btn-sm"
+                        >
+                          {deciding === item.id ? "…" : a.healthReject}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deciding !== null}
+                          onClick={() => { setRejecting(null); setRejectReason(""); }}
+                          className="vie-btn vie-btn-sm"
+                        >
+                          {t.common.cancel}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <div className="border-t border-line px-4 py-2.5 t-small text-muted">

@@ -90,6 +90,12 @@ export const SharedView = z.object({
   download_url: z.string().nullable(),
   mime: z.string().nullable(),
   link_expires_at: z.string().nullable(),
+  /** the organisation that shared the link (the view header, SOT Pages 25-26) */
+  organization_name: z.string().nullable(),
+  /** the shared player's line (SOT Pages 25-26): shirt number, position and club, from the player's own profile/team sheet */
+  player_jersey_number: z.number().nullable(),
+  player_position: z.string().nullable(),
+  player_club: z.string().nullable(),
   notice: z.string(),
   can_comment: z.boolean().default(false),
   comments: z.array(z.lazy(() => SharedComment)).default([]),
@@ -97,6 +103,15 @@ export const SharedView = z.object({
   kind: z.enum(["VIDEO", "REPORT"]).default("VIDEO"),
 });
 export type SharedView = z.infer<typeof SharedView>;
+
+/** What the password gate may show before the link is opened: the organisation, the expiry, and whether a password is
+ *  needed — nothing else. The password itself is never hinted at, and the gate reveals nothing about the video. */
+export const ShareGate = z.object({
+  organization_name: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  has_password: z.boolean(),
+});
+export type ShareGate = z.infer<typeof ShareGate>;
 
 /** a comment left through a share link (guest_name) or shown to the team */
 export const SharedComment = z.object({

@@ -105,6 +105,8 @@ describe("share links", () => {
     const view = await call(null, "GET", `/v1/public/share/${token}`);
     expect(view.status).toBe(200);
     expect(view.body).toMatchObject({ player_name: "Shared Player", download_url: null, mime: "video/mp4", notice: expect.stringContaining("Shared from OTSI VIE") });
+    const [[org]] = await root.query<RowDataPacket[]>("SELECT name FROM organizations WHERE id = ?", [a.orgId]);
+    expect(view.body).toMatchObject({ organization_name: org!.name, player_jersey_number: null, player_position: null, player_club: null });   // nothing recorded for this player yet: nulls, not guesses
     const play = await app.inject({ method: "GET", url: String(view.body.url).replace("/api", ""), headers: { range: "bytes=0-99" } });
     expect(play.statusCode).toBe(206);
     const list = (await call(a, "GET", links)).body;
@@ -199,5 +201,34 @@ describe("Duplicate and Clear All (Pages 09, 10)", () => {
     expect((await call(a, "POST", "/v1/renders/clear-finished")).body.cleared).toBe(0);
     const [[other]] = await root.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM render_jobs WHERE organization_id = ? AND cleared_at IS NOT NULL", [b.orgId]);
     expect(Number(other!.n)).toBe(0);                                                                         // other organizations untouched
+  });
+});
+describe("share link gate (SOT Pages 25-26)", () => {
+  it("shows the organisation, the expiry and whether a password is needed before opening — and opening is not logged", async () => {
+    const s = await seedRender(a);
+    await call(a, "POST", `/v1/videos/${s.video}/rights`, { rights_state: "EXPORT_ALLOWED", allowed_uses: ["VIEW", "SHARE"], reason: "licence from the league, clause 4" });
+    const made = await call(a, "POST", `/v1/renders/${s.render}/share-links`, { expires_in_days: 3 });
+    const token = String(made.body.url).replace("/s/", "");
+    const [[org]] = await root.query<RowDataPacket[]>("SELECT name FROM organizations WHERE id = ?", [a.orgId]);
+    const gate = await call(null, "GET", `/v1/public/share/${token}/gate`);
+    expect(gate.status).toBe(200);
+    expect(gate.body).toMatchObject({ organization_name: org!.name, has_password: false });
+    expect(new Date(gate.body.expires_at).getTime()).toBeGreaterThan(Date.now() + 2 * 86_400_000);
+    const [[access]] = await root.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM share_link_access WHERE share_link_id = ?", [made.body.id]);
+    expect(Number(access!.n)).toBe(0);                                                              // the gate is not an opening
+    const locked = await call(a, "POST", `/v1/renders/${s.render}/share-links`, { password: "open sesame 1" });
+    const gate2 = await call(null, "GET", `/v1/public/share/${String(locked.body.url).replace("/s/", "")}/gate`);
+    expect(gate2.body).toMatchObject({ organization_name: org!.name, has_password: true });
+    expect((await call(null, "GET", "/v1/public/share/not-a-token/gate")).status).toBe(404);
+    // the opened view carries the same organisation and the player's line (nulls: nothing recorded for this player)
+    const view = await call(null, "GET", `/v1/public/share/${token}`);
+    expect(view.body).toMatchObject({ organization_name: org!.name, player_name: "Shared Player", player_jersey_number: null, player_position: null, player_club: null });
+    // and with a roster row the line is the recorded one: "#4 · DM · FC Ercakhu"
+    const home = uuidv7(), away = uuidv7(), match = uuidv7();
+    await root.query("INSERT INTO clubs (id, canonical_name) VALUES (?, 'FC Ercakhu'), (?, 'Nart Sukhum')", [home, away]);
+    await root.query("INSERT INTO matches (id, organization_id, home_club_id, away_club_id, kickoff_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(6))", [match, a.orgId, home, away]);
+    await root.query("INSERT INTO match_rosters (match_id, player_id, club_id, jersey_number, role, position) VALUES (?, ?, ?, 4, 'STARTER', 'DM')", [match, s.player, home]);
+    const lined = await call(null, "GET", `/v1/public/share/${token}`);
+    expect(lined.body).toMatchObject({ player_jersey_number: 4, player_position: "DM", player_club: "FC Ercakhu" });
   });
 });

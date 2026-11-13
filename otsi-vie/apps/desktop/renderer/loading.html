@@ -13,10 +13,11 @@
     user-select: none;
     overflow: hidden;
   }
-  /* the SOT splash (Splash.dc.html), fitted to the 480x480 loading window: the centred logo, the progress
-   * bar, "Starting the engine…" with the version, the start-up steps, and the offline-grace footer.
+  /* the SOT splash (Splash.dc.html) in the full-screen loading window: the centred logo, the progress
+   * bar, "Starting the engine…" with the version, the three start-up steps, and the offline-grace footer.
    * The faint pitch outline sits behind it all, as in the SOT. The steps are NOT in the markup: the main
-   * process sends one step event per real stage and the list below grows from those events. */
+   * process sends one step event per SOT step and the list below grows from those events. With three
+   * steps in a full-screen window the footer sits well clear of the step list. */
   #status-view {
     position: relative;
     display: flex;
@@ -31,7 +32,7 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 700px;
+    width: 1100px;
     height: auto;
     transform: translate(-50%, -50%);
     opacity: .3;
@@ -42,18 +43,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 22px;
+    gap: 28px;
     width: 100%;
     max-width: 420px;
     text-align: center;
   }
-  #status-view .brand { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  #status-view .brand img { height: 56px; width: auto; display: block; }
+  #status-view .brand { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  #status-view .brand img { height: 84px; width: auto; display: block; }
   .eb {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: .26em;
-    text-transform: uppercase;
     color: #8E96A1;
   }
   #status-view .prog { width: 100%; display: flex; flex-direction: column; gap: 10px; }
@@ -93,54 +93,15 @@
   @keyframes rot { to { transform: rotate(360deg); } }
   #status-view .foot {
     position: absolute;
-    bottom: 16px;
+    bottom: 24px;
     left: 0;
     right: 0;
     text-align: center;
     font-size: 12px;
     color: #8E96A1;
   }
-  /* the owner and error views are not in the SOT; they keep their own flow, in the same dark style. */
-  #owner-view, #error-view { padding: 28px 32px; }
-  #owner-view h1, #error-view h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.4px; }
+  /* the status view's own small grey text (the bar row) */
   .sub { color: #8E96A1; font-size: 13px; margin: 0 0 22px; }
-  #owner-view .note, #error-view .note { color: #8E96A1; font-size: 12px; margin-top: 14px; line-height: 1.5; }
-  form label { display: block; font-size: 13px; color: #B9BFC8; margin: 12px 0 4px; }
-  form input {
-    width: 100%; padding: 9px 10px; font-size: 14px; border-radius: 6px;
-    border: 1px solid #333942; background: #1A1E23; color: #ECEEF1; outline: none;
-  }
-  form input:focus { border-color: #2BD4B0; }
-  .pw-wrap { position: relative; }
-  .pw-wrap input { padding-right: 38px; }
-  .pw-toggle {
-    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-    margin: 0; padding: 6px; background: none; border: none; cursor: pointer;
-    color: #8E96A1; line-height: 0; border-radius: 4px;
-  }
-  .pw-toggle:hover { color: #ECEEF1; background: #252A31; }
-  .pw-toggle:focus { outline: 2px solid #2BD4B0; outline-offset: 1px; }
-  .pw-toggle svg { width: 18px; height: 18px; display: block; }
-  button {
-    margin-top: 18px; padding: 10px 18px; font-size: 14px; border: none;
-    border-radius: 6px; background: #2BD4B0; color: #04201A; cursor: pointer;
-  }
-  button.secondary { background: transparent; border: 1px solid #333942; color: #B9BFC8; }
-  button:disabled { opacity: 0.55; cursor: default; }
-  .link {
-    display: inline-block; margin-top: 14px; font-size: 13px; color: #2BD4B0;
-    cursor: pointer; background: none; border: none; padding: 0;
-  }
-  .err { color: #FF8073; font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
-  .hidden { display: none !important; }
-  details { color: #8E96A1; font-size: 12px; }
-  details summary { cursor: pointer; outline: none; }
-  pre {
-    background: #0F1114; color: #B9BFC8; border-radius: 6px;
-    padding: 10px; max-height: 120px; overflow: auto;
-    font-size: 11px; line-height: 1.45; white-space: pre-wrap;
-    word-break: break-word; user-select: text;
-  }
 </style>
 </head>
 <body>
@@ -155,72 +116,21 @@
       </div>
       <div class="prog">
         <div class="bar"><div id="bar-fill"></div></div>
-        <div class="bar-row"><span class="sub" id="status">Starting the engine…</span><span class="ver" id="version">v—</span></div>
+        <div class="bar-row"><span class="sub" id="status">Starting the engine…</span><span class="ver" id="version">v[—]</span></div>
       </div>
       <ul class="steps" id="steps"><!-- steps arrive from the main process, one per real start-up stage --></ul>
     </div>
     <p class="foot">Video work runs on this computer · offline grace period applies when the server can’t be reached</p>
   </div>
 
-  <div id="owner-view" class="hidden">
-    <h1>OTSI VIE</h1>
-    <p class="sub">Video Intelligence Engine</p>
-    <p style="margin:0 0 4px;">First time: create your owner account.</p>
-    <p class="sub" style="margin:0;">This is the account you sign in with. It lives only on this machine.</p>
-    <form id="owner-form">
-      <label for="email">Email</label>
-      <input id="email" type="email" required autocomplete="email">
-      <label for="name">Your name</label>
-      <input id="name" type="text" required autocomplete="name">
-      <label for="org">Organisation (your club or academy)</label>
-      <input id="org" type="text" required autocomplete="organization">
-      <label for="password">Password (at least 12 characters)</label>
-      <div class="pw-wrap">
-        <input id="password" type="password" required autocomplete="new-password" minlength="12">
-        <button class="pw-toggle" type="button" data-target="password" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      </div>
-      <label for="password2">Repeat the password</label>
-      <div class="pw-wrap">
-        <input id="password2" type="password" required autocomplete="new-password" minlength="12">
-        <button class="pw-toggle" type="button" data-target="password2" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      </div>
-      <div id="owner-error" class="err"></div>
-      <button id="owner-submit" type="submit">Create account</button>
-    </form>
-    <button class="link" id="have-account" type="button">I already have an owner account</button>
-  </div>
-
-  <div id="error-view" class="hidden">
-    <h1>OTSI VIE</h1>
-    <p style="margin:0 0 4px;">Something did not work.</p>
-    <p id="error-message" class="err"></p>
-    <details open>
-      <summary>What happened</summary>
-      <pre id="error-log"></pre>
-    </details>
-    <button id="retry" type="button">Try again</button>
-    <button id="close" class="secondary" type="button">Close</button>
-  </div>
-
 <script>
   const $ = (id) => document.getElementById(id);
-  let logLines = [];
 
-  function appendLog(line) {
-    logLines.push(line);
-    if (logLines.length > 200) logLines = logLines.slice(-200);
-  }
-
-  function show(view) {
-    $('status-view').classList.toggle('hidden', view !== 'status');
-    $('owner-view').classList.toggle('hidden', view !== 'owner');
-    $('error-view').classList.toggle('hidden', view !== 'error');
-  }
-
-  /* The start-up steps, one per real stage, driven by the step events the main process sends
-   * ({ id, label, state }). The list starts empty and grows as stages begin: a step appears when
-   * its stage starts, turns done when the next stage starts, and warns if its stage fails. Nothing
-   * here is hardcoded to a fixed set of steps, and no step is inferred from the status text. */
+  /* The start-up steps — exactly the SOT's three ("Local workspace opened", "Loading analysis models",
+   * "Checking licence"), driven by the step events the main process sends ({ id, label, state }), which
+   * map the real stages onto those three. The list starts empty and grows as the steps begin: a step
+   * appears when its phase starts, turns done when the next step starts, and warns if its stage fails.
+   * Nothing here is hardcoded to a fixed set of steps, and no step is inferred from the status text. */
   const CHECK = '<svg class="ok" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>';
   const SPIN = '<span class="spin" aria-hidden="true"></span>';
   const TODO = '<span class="todo" aria-hidden="true"></span>';
@@ -233,6 +143,12 @@
   }
   function renderStep(step) {
     if (!step || !step.id) return;
+    // a fresh start after "Try again": the first step arriving again, with later steps already listed
+    // from the failed attempt, restarts the list instead of piling a second run onto it
+    if (step.id === 'workspace' && step.state === 'active'
+      && document.querySelector('#steps [data-step="models"], #steps [data-step="licence"]')) {
+      $('steps').innerHTML = '';
+    }
     let li = document.querySelector(`#steps [data-step="${step.id}"]`);
     if (!li) {
       li = document.createElement('li');
@@ -272,79 +188,10 @@
 
   window.otsi.onStatus((text) => applyStatus(text));
   window.otsi.onStep((step) => renderStep(step));
-  // the update and hardware notes are not shown on the SOT splash; they are still collected into the
-  // log so the error view can show them if the start-up fails.
-  window.otsi.onUpdateStatus((text) => { if (text) appendLog('[update] ' + text + '\n'); });
-  window.otsi.onHardware((data) => {
-    const s = (data.summary || '') + ((data.warnings && data.warnings.length) ? ' ' + data.warnings.join(' ') : '');
-    if (s.trim()) appendLog('[hardware] ' + s + '\n');
-  });
-  window.otsi.onLog((line) => appendLog(line));
-  window.otsi.onShowOwner(() => { show('owner'); $('email').focus(); });
-  window.otsi.onShowError((data) => {
-    $('error-message').textContent = data.message || 'Something did not work.';
-    $('error-log').textContent = (data.log || '') + logLines.join('');
-    show('error');
-  });
-  // the real version, from the main process; "v—" until it answers (the SOT's v[—] slot).
+  // the real version, from the main process; "v[—]" until it answers (the SOT's v[—] slot).
   if (window.otsi.version) {
     window.otsi.version().then((v) => { if (v) $('version').textContent = 'v' + v; }).catch(() => {});
   }
-
-  // Show / hide password (eye toggle on each password field).
-  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-  document.querySelectorAll('.pw-toggle').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const input = $(btn.dataset.target);
-      const showing = input.type === 'text';
-      input.type = showing ? 'password' : 'text';
-      btn.innerHTML = showing ? EYE : EYE_OFF;
-      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-      btn.setAttribute('title', showing ? 'Show password' : 'Hide password');
-      input.focus();
-    });
-  });
-
-  $('owner-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = $('email').value.trim();
-    const name = $('name').value.trim();
-    const org = $('org').value.trim();
-    const password = $('password').value;
-    const password2 = $('password2').value;
-    if (!email || !name || !org) {
-      $('owner-error').textContent = 'Email, name and organisation are all needed.';
-      return;
-    }
-    if (password.length < 12) {
-      $('owner-error').textContent = 'Use at least 12 characters for the password.';
-      return;
-    }
-    if (password !== password2) {
-      $('owner-error').textContent = 'The passwords do not match.';
-      return;
-    }
-    $('owner-submit').disabled = true;
-    $('owner-error').textContent = '';
-    show('status');
-    applyStatus('Creating your owner account...');
-    window.otsi.submitOwner({ email, name, organization: org, password });
-  });
-
-  $('have-account').addEventListener('click', () => {
-    show('status');
-    applyStatus('Carrying on...');
-    window.otsi.ownerHaveAccount();
-  });
-
-  $('retry').addEventListener('click', () => {
-    show('status');
-    applyStatus('Trying again...');
-    window.otsi.retry();
-  });
-
-  $('close').addEventListener('click', () => window.otsi.closeApp());
 </script>
 </body>
 </html>

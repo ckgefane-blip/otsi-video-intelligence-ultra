@@ -24,7 +24,7 @@ export function trimEdge(c: { in_pts_us: number; out_pts_us: number }, edge: "in
   }
   return { in_pts_us: c.in_pts_us, out_pts_us: Math.round(Math.min(c.in_pts_us + MAX_CLIP_US, Math.max(c.in_pts_us + MIN_CLIP_US, c.out_pts_us + d))) };
 }
-/** I / O marks on a previewed Media Bin moment: the part to add (null when not marked or shorter than MIN_CLIP_US) */
+/** I / P marks on a previewed Media Bin moment: the part to add (null when not marked or shorter than MIN_CLIP_US) */
 export function markedRange(m: { in_pts_us: number; out_pts_us: number }, marks: { in?: number; out?: number }): { in_pts_us: number; out_pts_us: number } | null {
   if (marks.in === undefined && marks.out === undefined) return null;
   const a = Math.max(m.in_pts_us, marks.in ?? m.in_pts_us), b = Math.min(m.out_pts_us, marks.out ?? m.out_pts_us);
@@ -84,7 +84,7 @@ export function useStudio(r: ReelState | null) {
   const { items, total } = useMemo(() => place(reel), [reel]);
   const [playhead, setPlayhead] = useState(0);
   const [preview, setPreview] = useState<ReelMoment | null>(null);       // a Media Bin moment shown in the preview
-  /** E1: I / O marks (source time) on the previewed moment; they go with the moment and are cleared when another one is shown */
+  /** E1: I / P marks (source time) on the previewed moment; they go with the moment and are cleared when another one is shown */
   const [marks, setMarks] = useState<{ in?: number; out?: number }>({});
   useEffect(() => { setMarks({}); }, [preview?.in_pts_us, preview?.out_pts_us]);
   const base = reel ? `/v1/reels/${reel.id}` : "";
@@ -139,7 +139,7 @@ export function useStudio(r: ReelState | null) {
   }, [r]);
 
   const add = (m0: { in_pts_us: number; out_pts_us: number; label: string | null }, origin0: "SUGGESTED" | "MANUAL" = "SUGGESTED") => {
-    // the previewed moment with I / O marks: add the marked part; a person chose that range, so it is MANUAL
+    // the previewed moment with I / P marks: add the marked part; a person chose that range, so it is MANUAL
     const marked = preview && preview.in_pts_us === m0.in_pts_us && preview.out_pts_us === m0.out_pts_us ? markedRange(m0, marks) : null;
     const m = marked ? { ...m0, ...marked } : m0, origin = marked ? "MANUAL" as const : origin0;
     return exec(dict.body.studio.addClip, async () => {

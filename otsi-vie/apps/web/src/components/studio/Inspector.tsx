@@ -9,9 +9,11 @@
  * logo overlay. Look: the look's strength and colour controls. Brand:
  * the logo and intro / outro assets. Audio: the music and the sound
  * levels. The look names are the SOT's: Matte is the engine's FILM
- * preset, Contrast is PUNCHY. The logo's position is fixed by the
- * renderer (competition logo top-right, custom logo bottom-right), so
- * the grid shows where it goes rather than moving it.
+ * preset, Contrast is PUNCHY. The logo grid picks the logo's corner
+ * (saved on the reel as settings.logo_position); the render still draws
+ * the fixed corners (competition top-right, custom bottom-right) until
+ * the worker honours logo_position, so the grid's choice is stored and
+ * shown, not yet rendered.
  */
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -137,10 +139,17 @@ function TransitionsSection({ st, placed, can, why }: { st: Studio; placed: Plac
   const { t: dict } = useLocale();
   const s = dict.body.studio;
   const reel = st.reel;
-  const KINDS: [TransitionKind | null, string][] = [[null, s.cutLabel], ["FADE", s.fadeLabel], ["DISSOLVE", s.dissolveLabel], ["ZOOM", s.zoomLabel2], ["SPIN", s.spinLabel]];
+  // the SOT's options: Cut / Fade / Dip to black / Slide. A reel saved with a legacy kind (Dissolve / Zoom / Spin,
+  // offered before the SOT rebuild) keeps that option in the list so its saved value is not lost.
+  const KINDS: [TransitionKind | null, string][] = [[null, s.cutLabel], ["FADE", s.fadeLabel], ["DIP", s.csTransDip], ["SLIDE", s.csTransSlide]];
+  const legacyOf = (k: TransitionKind | null | undefined): [TransitionKind, string] | null =>
+    k === "DISSOLVE" ? [k, s.dissolveLabel] : k === "ZOOM" ? [k, s.zoomLabel2] : k === "SPIN" ? [k, s.spinLabel] : null;
   const inT = placed ? reel?.transitions.find((t) => t.clip_id === placed.clip.id) ?? null : null;
   const next = placed ? st.items[placed.index + 1] ?? null : null;
   const outT = next ? reel?.transitions.find((t) => t.clip_id === next.clip.id) ?? null : null;
+  const inKinds = [...KINDS, ...(legacyOf(inT?.kind) ? [legacyOf(inT!.kind)!] : [])];
+  // SOT (Studio.dc.html): the Out select lists Fade first, so an unsaved transition out reads Fade; the In select lists Cut first.
+  const outKinds: [TransitionKind | null, string][] = [["FADE", s.fadeLabel], [null, s.cutLabel], ["DIP", s.csTransDip], ["SLIDE", s.csTransSlide], ...(legacyOf(outT?.kind) ? [legacyOf(outT!.kind)!] : [])];
   const setIn = (k: TransitionKind | null) => {
     if (!placed || !reel) return;
     if (!can) return why();
@@ -161,14 +170,14 @@ function TransitionsSection({ st, placed, can, why }: { st: Studio; placed: Plac
           <label className="lab" htmlFor="cs-tin">{s.csTransIn}</label>
           <select id="cs-tin" className={sel} value={inT?.kind ?? ""} disabled={!placed || placed.index === 0}
             onChange={(e) => setIn((e.target.value || null) as TransitionKind | null)}>
-            {KINDS.map(([k, l]) => <option key={k ?? "cut"} value={k ?? ""}>{l}</option>)}
+            {inKinds.map(([k, l]) => <option key={k ?? "cut"} value={k ?? ""}>{l}</option>)}
           </select>
         </div>
         <div className="field">
           <label className="lab" htmlFor="cs-tout">{s.csTransOut}</label>
-          <select id="cs-tout" className={sel} value={outT?.kind ?? ""} disabled={!next}
+          <select id="cs-tout" className={sel} value={outT?.kind ?? "FADE"} disabled={!next}
             onChange={(e) => setOut((e.target.value || null) as TransitionKind | null)}>
-            {KINDS.map(([k, l]) => <option key={k ?? "cut"} value={k ?? ""}>{l}</option>)}
+            {outKinds.map(([k, l]) => <option key={k ?? "cut"} value={k ?? ""}>{l}</option>)}
           </select>
         </div>
       </div>
@@ -183,13 +192,19 @@ function LogoSection({ st, can, why }: { st: Studio; can: boolean; why: () => vo
   const comp = reel?.settings.competition_logo_id ?? null;
   const custom = reel?.settings.custom_logo_id ?? null;
   const on = !!(comp || custom);
-  // the renderer draws the competition logo top-right and the custom logo bottom-right; the grid shows where the logo goes
-  const pos = comp ? 2 : custom ? 5 : 2;
+  // the logo's corner: the saved logo_position, else the renderer's fixed corners (competition top-right, custom bottom-right)
+  const POSITIONS = ["TOP_LEFT", "TOP_CENTRE", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTRE", "BOTTOM_RIGHT"] as const;
+  const pos = reel?.settings.logo_position ? POSITIONS.indexOf(reel.settings.logo_position) : comp ? 2 : custom ? 5 : 2;
   const toggle = () => {
     if (!reel) return;
     if (!can) return why();
     if (on) st.setSettings({ competition_logo_id: null, custom_logo_id: null }, s.assetRemoved.replace("{a}", s.logoLabel));
     else if (comp || custom) st.setSettings({}, s.logoLabel);
+  };
+  const pick = (i: number) => {
+    if (!reel) return;
+    if (!can) return why();
+    st.setSettings({ logo_position: POSITIONS[i]! }, ["Top left", "Top centre", "Top right", "Bottom left", "Bottom centre", "Bottom right"][i]!);
   };
   const where = reel ? `/reels/${reel.id}` : "/reels";
   return (
@@ -200,9 +215,9 @@ function LogoSection({ st, can, why }: { st: Studio; can: boolean; why: () => vo
       </div>
       <div className="grid grid-cols-3 gap-1" role="group" aria-label={s.csLogoOverlay} style={{ width: 86 }}>
         {["Top left", "Top centre", "Top right", "Bottom left", "Bottom centre", "Bottom right"].map((label, i) => (
-          <span key={label} aria-label={label} title={label}
+          <button key={label} type="button" aria-label={label} aria-pressed={i === pos} title={label} onClick={() => pick(i)}
             style={{ height: 18, borderRadius: 3, border: i === pos && on ? "1px solid rgb(var(--primary))" : "1px solid rgb(var(--line2))",
-              background: i === pos && on ? "rgba(43,212,176,.25)" : "rgb(var(--panel))" }} />
+              background: i === pos && on ? "rgba(43,212,176,.25)" : "rgb(var(--panel))", cursor: "pointer", padding: 0 }} />
         ))}
       </div>
       <div className="flex gap-1.5">
@@ -257,7 +272,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
   const { t: dict } = useLocale();
   const s = dict.body.studio;
   const [tab, setTab] = useState(0);
-  const TABS = [s.clipInspectorTab, s.csLook, s.brandingLabel, dict.body.reels.music];
+  const TABS = [dict.body.reels.rbClip, s.csLook, s.csBrandTab, s.audioTab];
   const reel = st.reel;
   const placed = st.items.find((p) => p.clip.id === r?.selectedClip) ?? locate(st.items, st.playhead)?.p ?? null;
   const can = !!reel && !!r?.canEdit && !r.busy;
@@ -266,7 +281,7 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
 
   return (
     <aside className="flex w-[300px] shrink-0 flex-col border-l border-line" aria-label={s.clipInspectorAria}>
-      <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist">
+      <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist" style={{ flexWrap: "nowrap" }}>
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`tab ${tab === i ? "on" : ""}`}>
             {l}
@@ -322,7 +337,8 @@ export function Inspector({ r, st, ui }: { r: ReelState | null; st: Studio; ui: 
                 onChange={() => undefined} />
               <span style={{ textAlign: "right" }}>{Math.round((reel?.settings.match_volume ?? 0.3) * 100)}%</span>
             </label>
-            <Link href={`${where}#branding`} className="vie-btn vie-btn-sm self-start">{s.csUploadMusic}</Link>
+            {/* the SOT's A1 row puts the Upload music button at the right end */}
+            <Link href={`${where}#branding`} className="vie-btn vie-btn-sm self-end">{s.csUploadMusic}</Link>
           </div>
         )}
       </div>

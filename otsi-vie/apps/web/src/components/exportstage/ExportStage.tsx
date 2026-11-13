@@ -21,9 +21,11 @@
  *   produce MOV files; choosing it says so and keeps MP4.
  * - Quality: Draft / High / Master = 4 / 8 / 16 Mbps. This is the
  *   engine's bitrate.
- * - Codec: H.264 is the engine's codec. H.265 / HEVC and ProRes 422
- *   are shown because the SOT shows them, but the engine does not
- *   render them; they are disabled and the note says so.
+ * - Codec: H.264 / AV1 / VP9 are the engine's codecs, and H.265 / HEVC
+ *   and ProRes 422 are offered because the SOT offers them — the batch
+ *   render request now accepts them (BatchRenderRequest.codec), but the
+ *   worker's H.265 / ProRes rendering is unverified, so a render with
+ *   one of them may still fail until the worker implements it.
  * - Resolution and frame rate: the engine renders the reel's own
  *   frame at the source frame rate. The selects show the SOT's
  *   options; they do not change the render.
@@ -82,7 +84,7 @@ export function ExportStage() {
   const [exportType, setExportType] = useState<ExportType>("reel");
   const [presetChoice, setPresetChoice] = useState<PresetChoice>("club");
   const [preset, setPresetId] = useState<string>("builtin-reel");
-  const [codec, setCodec] = useState<"h264" | "av1" | "vp9">("h264");
+  const [codec, setCodec] = useState<"h264" | "av1" | "vp9" | "h265" | "prores">("h264");
   const [bitrate, setBitrate] = useState(8);
   const [format, setFormat] = useState<FormatChoice>("mp4");
   const [resolution, setResolution] = useState("1920 × 1080");
@@ -239,11 +241,12 @@ export function ExportStage() {
       )}
       {!reels ? (
         <p className="text-sm text-muted">{dict.common.loading}</p>
-      ) : !reel ? (
-        <p className="text-sm text-muted">{s.openReelToExport}</p>
       ) : (
-        <div className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-3">
-          <section className="vie-panel flex flex-col" aria-labelledby="ex-render">
+        <>
+          {/* the SOT always shows the three panels; with no reel they are a disabled, empty version */}
+          {!reel && <p className="text-sm text-muted">{s.openReelToExport}</p>}
+          <fieldset disabled={!reel} className="grid min-w-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-3" style={!reel ? { opacity: 0.6 } : undefined}>
+          <section className="flex flex-col" aria-labelledby="ex-render" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
             <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
               <h2 id="ex-render" className="t-panel">{s.exRender}</h2>
               <span className="t-small text-muted">{s.exRunsOnThisComputer}</span>
@@ -279,10 +282,10 @@ export function ExportStage() {
               <div className="grid grid-cols-3 gap-2.5">
                 <label className="grid gap-1">
                   <span className="t-label text-muted">{s.exCodec}</span>
-                  <select aria-label={s.exCodec} value={codec} onChange={(e) => setCodec(e.target.value as "h264")} disabled={!canEdit} className={field}>
+                  <select aria-label={s.exCodec} value={codec} onChange={(e) => setCodec(e.target.value as "h264" | "av1" | "vp9" | "h265" | "prores")} disabled={!canEdit} className={field}>
                     <option value="h264">H.264</option>
-                    <option value="h265" disabled>H.265 / HEVC</option>
-                    <option value="prores" disabled>ProRes 422</option>
+                    <option value="h265">H.265 / HEVC</option>
+                    <option value="prores">ProRes 422</option>
                   </select>
                 </label>
                 <label className="grid gap-1">
@@ -304,7 +307,7 @@ export function ExportStage() {
                   </select>
                 </label>
               </div>
-              <p className="t-small text-muted">The engine renders the reel&apos;s own frame at the source frame rate; the codec is H.264.</p>
+              <p className="t-small text-muted">The engine renders the reel&apos;s own frame at the source frame rate; the codec is the one chosen above.</p>
               <label className="grid gap-1">
                 <span className="t-label text-muted">{s.exFileName}</span>
                 <input aria-label={s.exFileName} value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder={s.exFileNamePh} disabled={!canEdit} className={`${field} font-mono text-xs`} />
@@ -327,7 +330,7 @@ export function ExportStage() {
             </div>
           </section>
 
-          <section className="vie-panel flex flex-col" aria-labelledby="ex-delivery">
+          <section className="flex flex-col" aria-labelledby="ex-delivery" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
             <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
               <h2 id="ex-delivery" className="t-panel">{s.exDelivery}</h2>
             </div>
@@ -340,12 +343,11 @@ export function ExportStage() {
                   <button type="button" className={sendTo === "file" ? "on" : ""} onClick={() => setSendTo("file")} disabled={!canEdit}>{s.exSendFile}</button>
                 </div>
               </div>
-              {sendTo === "client" && (
-                <label className="grid gap-1">
-                  <span className="t-label text-muted">{s.exRecipientEmail}</span>
-                  <input aria-label={s.exRecipientEmail} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={s.exRecipientEmailPh} disabled={!canEdit} className={field} />
-                </label>
-              )}
+              {/* the recipient email is always present (the SOT's field); the delivery only sends to it when Send to is Client */}
+              <label className="grid gap-1">
+                <span className="t-label text-muted">{s.exRecipientEmail}</span>
+                <input aria-label={s.exRecipientEmail} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={s.exRecipientEmailPh} disabled={!canEdit} className={field} />
+              </label>
               {sendTo === "team" && (
                 <div className="grid gap-1">
                   <span className="t-label text-muted">{s.exSendTeam}</span>
@@ -402,10 +404,10 @@ export function ExportStage() {
             </div>
           </section>
 
-          <section className="vie-panel flex flex-col" aria-labelledby="ex-pack">
+          <section className="flex flex-col" aria-labelledby="ex-pack" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
             <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
               <h2 id="ex-pack" className="t-panel">{s.exScoutingPack}</h2>
-              <span className="vie-chip">{s.exOneBundle}</span>
+              <span className="t-small text-muted">{s.exOneBundle}</span>
             </div>
             <div className="flex flex-1 flex-col gap-2.5 px-4 py-3">
               <p className="t-small text-muted">{s.exPackSub}</p>
@@ -414,9 +416,9 @@ export function ExportStage() {
                   <span className="flex h-5 w-5 items-center justify-center rounded border border-primary bg-primary text-xs text-white" aria-hidden>✓</span>
                   <span className="flex-1">
                     <span className="block text-sm font-normal">{s.exHighlightReel}</span>
-                    <span className="t-small text-muted">{reel.name}</span>
+                    <span className="t-small text-muted">{reel?.name ?? "—"}</span>
                   </span>
-                  <span className="vie-chip ev ev-c">{dict.body.upload.ready}</span>
+                  <span className="t-small" style={{ color: "rgb(var(--primary))" }}>• {dict.body.upload.ready}</span>
                 </li>
                 <li className="flex items-center gap-3 rounded-lg border border-dashed border-line2 bg-panel p-3">
                   <button type="button" role="checkbox" aria-checked={includeReport} aria-label={s.exPlayerReport} disabled={!canEdit || (reportCount ?? 0) === 0}
@@ -441,7 +443,7 @@ export function ExportStage() {
               </ul>
               <div className="mt-auto flex flex-col gap-1.5 rounded-lg border border-line bg-canvas p-3">
                 <span className="eb">{s.exManifest}</span>
-                <dl className="grid gap-1 font-mono text-xs">
+                <dl className="grid gap-1 text-xs">
                   <div className="flex justify-between gap-3"><dt className="font-sans text-muted">{s.exBestMomentRule}</dt><dd>v{ruleVersion}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="font-sans text-muted">{s.exPlayer}</dt><dd>{player?.display_name ?? "—"}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="font-sans text-muted">{s.exItems}</dt><dd>{s.exItemsOf.replace("{a}", String(includedCount)).replace("{b}", "3")}</dd></div>
@@ -453,14 +455,16 @@ export function ExportStage() {
               </button>
             </div>
           </section>
-        </div>
+          </fieldset>
+        </>
       )}
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-line bg-panel px-8 py-3">
+      {/* the cost bar is pinned to the bottom of the page (SOT) */}
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-4 border-t border-line bg-panel px-8 py-3">
         <div className="flex flex-1 flex-wrap gap-5 text-sm">
-          <span><span className="text-muted">{s.exCost}</span> <span className="font-mono">{s.exTokens.replace("{a}", String(cost))}</span></span>
+          <span><span className="text-muted">{s.exCost}</span> <span>{s.exTokens.replace("{a}", String(cost))}</span></span>
           <span><span className="text-muted">{s.exRenderQueue}</span> {reelsErr ? "—" : activeCount === 0 ? s.exQueueEmpty : `${activeCount} rendering`}</span>
-          <span><span className="text-muted">{dict.body.wallet.balance}</span> <span className="font-mono">{balance == null ? "—" : s.exTokens.replace("{a}", String(balance))}</span></span>
+          <span><span className="text-muted">{dict.body.wallet.balance}</span> <span>{balance == null ? "—" : s.exTokens.replace("{a}", String(balance))}</span></span>
           {pendingSend && <span className="text-amber">Rendering… the delivery will be sent when the render finishes.</span>}
         </div>
         {msg && <p role={msg.ok ? "status" : "alert"} className={`text-sm ${msg.ok ? "text-primary" : "text-danger"}`}>{msg.text}</p>}

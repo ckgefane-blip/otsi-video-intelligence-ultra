@@ -579,7 +579,9 @@ export class AdminService {
         last_verified_at: new Date().toISOString(),
         notes: "Automated preflight checks verified in Phase D.9",
       },
-    ];
+      // A gate nothing has ever verified is "Not started" (SOT): G05–G08 still carry MEASURING with last_verified_at null because
+      // no benchmark has ever run — the server must not report them as measuring. A gate with a measurement on record keeps its real state.
+    ].map((g) => (g.last_verified_at ? g : { ...g, status: "NOT_STARTED" as const }));
 
     const passedCount = gates.filter((g) => g.status === "PASSED").length;
     const accuracyPassed = gates

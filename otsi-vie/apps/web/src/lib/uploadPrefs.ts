@@ -15,7 +15,9 @@ export interface UploadPrefs {
 export const PREFS_KEY = "otsi.upload.prefs";
 /** the approved design's defaults */
 // v3 Phase 0: a step the engine does not perform is never on by default (it would read as done)
-export const DEFAULT_PREFS: UploadPrefs = { stabilize: true, sendToAnalysis: true, profile: "RECOMMENDED", autoCrop: false, enhance: false, crowdNoise: false, aspect: false, pitchLines: false, eventMarkers: false, autoMatch: false, highlights: false };
+// SOT (Media.dc.html): the Visual filters group is Off by default, so stabilize is off too — the Recommended profile
+// still has the server check the footage first and recommend stabilization (High accuracy) when the footage needs it.
+export const DEFAULT_PREFS: UploadPrefs = { stabilize: false, sendToAnalysis: true, profile: "RECOMMENDED", autoCrop: false, enhance: false, crowdNoise: false, aspect: false, pitchLines: false, eventMarkers: false, autoMatch: false, highlights: false };
 
 export function loadPrefs(): UploadPrefs {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}") }; } catch { return DEFAULT_PREFS; }

@@ -582,7 +582,7 @@ export function LibraryMain({ all, shown, tab, setTab, f, setF, desc, setDesc, s
         </div>
       </section>
 
-      <section aria-label={dict.body.library.mainTableAria} data-section="p09-s05" data-rows={String(shown.length)} className="vie-panel">
+      <section aria-label={dict.body.library.mainTableAria} data-section="p09-s05" data-rows={String(shown.length)} style={{ background: "transparent", border: 0, borderRadius: 0 }}>
         {view === "table" && all ? (
           <LibraryTable rows={rows} all={all} facts={facts} checked={checked} setChecked={setChecked} selected={selected} onRow={onRow} />
         ) : (

@@ -55,6 +55,10 @@ describe("Processing jobs (SOT)", () => {
     expect(screen.getByText("No jobs")).toBeInTheDocument();
     expect(screen.getByText("Upload a match video to start.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Upload a match video" })).toHaveAttribute("href", "/upload");
+    // SOT Jobs Center: the empty state is centred vertically in its area
+    const empty = screen.getByText("No jobs").closest("div.empty");
+    expect(empty).not.toBeNull();
+    expect((empty as HTMLElement).style.minHeight).toBe("240px");
     expect(screen.getByText("History")).toBeInTheDocument();
     expect(screen.getByText("No finished jobs yet")).toBeInTheDocument();
     expect(screen.getByText("Finished and failed jobs appear here.")).toBeInTheDocument();
@@ -63,6 +67,14 @@ describe("Processing jobs (SOT)", () => {
     expect(screen.getByText("Pause, resume, retry or cancel it.")).toBeInTheDocument();
     expect(screen.getByText("No log output yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy" })).toBeDisabled();
+    // SOT: the eyebrow reads "Processing" (not "JOBS"), the legend is plain text with dots (no chips),
+    // "Upload a match video" is a secondary button, and "Log" is sentence case
+    expect(screen.getByText("Processing")).toBeInTheDocument();
+    expect(document.querySelector(".vie-chip")).toBeNull();
+    const upload = screen.getByRole("link", { name: "Upload a match video" });
+    expect(upload).toHaveClass("vie-btn");
+    expect(upload.className).not.toMatch(/bg-primary/);
+    expect(screen.getByText("Log")).toBeInTheDocument();
   });
 
   it("lists jobs with state and progress, and the filter narrows them", async () => {

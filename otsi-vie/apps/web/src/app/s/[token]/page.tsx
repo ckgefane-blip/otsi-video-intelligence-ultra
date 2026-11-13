@@ -7,12 +7,14 @@
  * centred panel. A link that allows comments lists them in the aside and takes a new one with the person's
  * name, pinned to the moment the video is at. A link to a player report (ADR-056) shows the PDF in the page
  * instead, with a download when the link allows it.
- * The organisation name and the player line are not in the public share response, so the gate and header say
- * "an organisation" and the sub line is the player's name as the server returns it; the gate cannot show the
- * expiry either (the server only returns it once the link is opened).
+ * The organisation name and the expiry come from the gate endpoint (GET /v1/public/share/:token/gate —
+ * ShareGate: organization_name, expires_at, has_password) and from the opened view (SharedView.organization_name);
+ * the player line is the player's name plus "#4 · DM · FC Ercakhu" from the view's player_jersey_number /
+ * player_position / player_club. Until the server returns them, the gate keeps the generic line and no expiry,
+ * and the player line is the name alone — nothing is invented. A bad link shows the OTSI logo over the message.
  */
-import type { SharedComment, SharedView } from "@otsi-vie/contracts";
-import { ClipboardList, Download, Eye, EyeOff, FileText, Film, MessageSquare } from "lucide-react";
+import type { ShareGate, SharedComment, SharedView } from "@otsi-vie/contracts";
+import { ClipboardList, Download, FileText, Film, MessageSquare } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useLocale } from "@/lib/i18n";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -28,6 +30,8 @@ export default function SharedReelPage() {
   const [problem, setProblem] = useState<string | null>(null);
   /** the link asks for a password: the field, the password that opened it, and why the last try failed */
   const [locked, setLocked] = useState<string | null>(null);
+  /** what the gate may show before the link is opened (ShareGate): the organisation and the expiry */
+  const [gate, setGate] = useState<ShareGate | null>(null);
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const opened = useRef<string | null>(null);
@@ -41,6 +45,12 @@ export default function SharedReelPage() {
   };
   useEffect(() => {
     let live = true;
+    // the gate is a separate, no-sign-in read (GET /v1/public/share/:token/gate): the organisation and the
+    // expiry before the link is opened. A failed gate read is not fatal — the open below says what is wrong.
+    void fetch(`/api/v1/public/share/${encodeURIComponent(token)}/gate`, { credentials: "omit" }).then(async (r) => {
+      if (!live || !r.ok) return;
+      setGate(await r.json().catch(() => null) as ShareGate);
+    }, () => undefined);
     void fetch(`/api/v1/public/share/${encodeURIComponent(token)}`, { credentials: "omit" }).then(async (r) => {
       const body = await r.json().catch(() => null);
       if (!live) return;
@@ -55,7 +65,11 @@ export default function SharedReelPage() {
   if (problem) {
     return (
       <div className="grid min-h-screen place-items-center p-8" data-shared-page>
-        <div role="alert" className="panel w-full max-w-[400px] p-8 t-body">{problem}</div>
+        <div role="alert" className="panel flex w-full max-w-[400px] flex-col gap-4 p-8 t-body">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/otsi-logo.png" alt="OTSI" className="h-[30px] w-auto self-start" draggable={false} />
+          {problem}
+        </div>
       </div>
     );
   }
@@ -68,7 +82,9 @@ export default function SharedReelPage() {
           <img src="/brand/otsi-logo.png" alt="OTSI" className="h-[30px] w-auto self-start" draggable={false} />
           <div className="flex flex-col gap-1.5">
             <h1 id="pl" className="h1">{t.body.auth.sharedGateTitle}</h1>
-            <p className="sub sm">{t.body.auth.sharedGateDesc}</p>
+            <p className="sub sm">{gate?.organization_name && t.body.auth.sharedGateDescOrg
+              ? t.body.auth.sharedGateDescOrg.replace("{a}", gate.organization_name)
+              : t.body.auth.sharedGateDesc}</p>
           </div>
           <div className="field">
             <label className="lab" htmlFor="lp">{t.body.auth.password}</label>
@@ -77,12 +93,15 @@ export default function SharedReelPage() {
                 className="in" style={{ height: 42, paddingRight: 64 }} aria-label={t.body.auth.sharedPasswordAria} />
               <button type="button" className="btn sm gh absolute right-1 top-[6px] h-[30px]" aria-label={showPw ? t.body.auth.hidePassword : t.body.auth.showPassword}
                 aria-pressed={showPw} onClick={() => setShowPw((v) => !v)}>
-                {showPw ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}{showPw ? t.body.auth.hidePassword : t.body.auth.showPassword}
+                {showPw ? (t.body.auth.hideShort ?? t.body.auth.hidePassword) : (t.body.auth.showShort ?? t.body.auth.showPassword)}
               </button>
             </div>
           </div>
           {locked && <p role="alert" className="t-body text-danger">{locked}</p>}
           <button className="btn pri lg w" type="submit" disabled={!pw}>{t.body.auth.sharedOpen}</button>
+          {gate?.expires_at && (
+            <p className="sm mu text-center">{t.body.auth.sharedExpires.replace("{a}", new Date(gate.expires_at).toLocaleDateString(undefined, { dateStyle: "medium" }))}</p>
+          )}
         </form>
       </div>
     );
@@ -119,6 +138,9 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
   };
   const seek = (s: number) => { if (videoRef.current) { videoRef.current.currentTime = s; void videoRef.current.play().catch(() => undefined); } };
   const expires = view.link_expires_at ? new Date(view.link_expires_at).toLocaleDateString(undefined, { dateStyle: "medium" }) : null;
+  /** the SOT's player line: name + "#4 · DM · FC Ercakhu" — the shirt, position and club from the player's own profile */
+  const playerLine = [view.player_jersey_number != null ? `#${view.player_jersey_number}` : null, view.player_position, view.player_club]
+    .filter(Boolean).join(" · ");
 
   return (
     <div className="flex min-h-screen flex-col" data-shared-page>
@@ -126,9 +148,11 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/otsi-logo.png" alt="OTSI" className="h-[26px] w-auto" draggable={false} />
         <span className="h-[22px] w-px bg-line2" aria-hidden />
-        <span className="sm sub">{a.sharedByOrg}</span>
+        <span className="sm sub">{view.organization_name && a.sharedByOrgName
+          ? a.sharedByOrgName.replace("{a}", view.organization_name)
+          : a.sharedByOrg}</span>
         <span className="flex-1" />
-        {expires && <span className="chip">{a.sharedExpires.replace("{a}", expires)}</span>}
+        {expires && <span className="sm mu">{a.sharedExpires.replace("{a}", expires)}</span>}
         {view.download_url && <a href={view.download_url} className="btn pri"><Download className="h-4 w-4" aria-hidden />{a.sharedDownload}</a>}
       </header>
 
@@ -137,7 +161,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
           <div className="flex w-full max-w-[900px] flex-col gap-1.5">
             <span className="eb">{a.sharedPack}</span>
             <h1 className="h1">{view.title}</h1>
-            {view.player_name && <span className="sm mu">{view.player_name}</span>}
+            {view.player_name && <span className="sm mu">{view.player_name}{playerLine ? ` · ${playerLine}` : ""}</span>}
           </div>
           <div className="w-full max-w-[900px]">
             {view.kind === "REPORT" ? (
@@ -149,7 +173,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
             )}
           </div>
           <div className="grid w-full max-w-[900px] grid-cols-3 gap-2.5 max-md:grid-cols-1">
-            <div className="panel flex items-center gap-3 p-3.5">
+            <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <Film className="h-5 w-5 shrink-0 text-primary" aria-hidden />
               <span className="flex-1"><span className="block font-medium">{a.sharedReel}</span>
                 <span className="sm mu">{view.kind === "VIDEO" ? formatOf(view.mime) : a.sharedReportNotIncluded}</span></span>
@@ -157,7 +181,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
                 <a href={view.download_url} className="ib" aria-label={a.sharedDownloadReel}><Download className="h-4 w-4" aria-hidden /></a>
               )}
             </div>
-            <div className="panel flex items-center gap-3 p-3.5">
+            <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <FileText className="h-5 w-5 shrink-0 text-[#4F9DFF]" aria-hidden />
               <span className="flex-1"><span className="block font-medium">{a.sharedReportTitle}</span>
                 <span className="sm mu">{view.kind === "REPORT" ? formatOf(view.mime) : a.sharedReportNotIncluded}</span></span>
@@ -165,7 +189,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
                 <a href={view.download_url} className="ib" aria-label={a.sharedDownload}><Download className="h-4 w-4" aria-hidden /></a>
               )}
             </div>
-            <div className="panel flex items-center gap-3 p-3.5">
+            <div className="flex min-w-0 items-center gap-3 border-t border-line bg-transparent px-1 py-3.5">
               <ClipboardList className="h-5 w-5 shrink-0 text-amber" aria-hidden />
               <span className="flex-1"><span className="block font-medium">{t.body.reports.rpAiBrief}</span>
                 <span className="sm mu">{a.sharedBriefNotIncluded}</span></span>
@@ -176,7 +200,7 @@ function SharedViewPage({ view, token, password, onComments }: { view: SharedVie
 
         {view.can_comment && (
           <aside className="flex w-[360px] max-w-full shrink-0 flex-col border-l border-line bg-p0 max-md:w-full max-md:border-l-0 max-md:border-t" aria-label={a.sharedComments}>
-            <div className="ph"><h2 className="h3">{a.sharedComments}</h2><span className="mu xs mono">{view.comments.length}</span></div>
+            <div className="ph"><h2 className="h3">{a.sharedComments}</h2><span className="mu xs">{view.comments.length}</span></div>
             <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3.5">
               {view.comments.length === 0 ? (
                 <div className="empty flex-1">

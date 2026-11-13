@@ -12,8 +12,10 @@ const EVENT = "otsi-vie:work-context";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const id = (v: string | null | undefined) => (v && UUID.test(v) ? v.toLowerCase() : undefined);
 
-/** the pages that show the bar: the work pages where a match or player is open */
-export const showsBar = (path: string) => /^\/(analysis|tactics|processing|videos|reels|studio|exports|reports)(\/|$)/.test(path);
+/** the pages that show the bar: every shelled page (SOT rebuild 2026-11-13) — the Project / Match / Player selectors sit in the top bar
+ *  on Home, Media, Players, Library and Settings just as on the work pages. The bar only renders inside the (app) shell, so every
+ *  path that reaches it is a shelled page. */
+export const showsBar = (_path: string) => true;
 
 /** what the page is about, from its address alone */
 export function subjectOf(path: string, q: URLSearchParams): Subject {
@@ -44,10 +46,10 @@ export function navHref(label: string, base: string, c: Ctx, playerRef: string |
     case "Processing": return `/processing${v}`;
     case "Analysis": return `/analysis${v}`;
     case "Tactical": return `/tactics${v}`;
-    case "Reel Builder": return c.reel ? `/reels/${c.reel}` : base;
+    case "Reels": return c.reel ? `/reels/${c.reel}` : base;
     case "Clip Studio": return c.reel ? `/studio?reel=${c.reel}` : base;
     case "Export": return c.reel ? `/exports?reel=${c.reel}` : base;
-    case "Player Report": return playerRef ? `/reports/players/${encodeURIComponent(playerRef)}` : base;
+    case "Reports": return playerRef ? `/reports/players/${encodeURIComponent(playerRef)}` : base;
     default: return base;
   }
 }

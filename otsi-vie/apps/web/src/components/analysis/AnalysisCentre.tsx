@@ -109,7 +109,7 @@ export function AnalysisCentre({ s, onMarker, onIdentify }: { s: Shared; onMarke
             <span className="t-small text-muted">
               {match ? `${match.home?.name ?? "—"} v ${match.away?.name ?? "—"}` : (video.title ?? video.original_filename ?? "")}
               {" · "}
-              <span className="font-mono">{totalEvents}</span> {dict.body.workspace.metricEvents}
+              {totalEvents} {dict.body.workspace.metricEvents}
             </span>
           ) : null
         }
@@ -118,8 +118,9 @@ export function AnalysisCentre({ s, onMarker, onIdentify }: { s: Shared; onMarke
       <div className="flex justify-center">
         <div className="w-full max-w-[860px]">
           <WorkspacePlayer ws={ws} teamGroups={teamGroups} layers={ws?.layers ?? null} byTeam={tools.byTeam} pitchLayers ballRing
-            minimap={tools.mini} zoom={tools.zoom} op={tools.op} />
-          {!ws?.playback && <p className="mt-2 text-sm text-muted" role="status">{dict.body.processing.loadingVideo}</p>}
+            minimap={tools.mini} zoom={tools.zoom} op={tools.op} emptyTransport emptyWhenIdle />
+          {ws && !ws.video && !ws.error && <p className="mt-2 text-sm text-muted" role="status">{dict.body.processing.loadingVideo}</p>}
+          {ws?.error && <p className="mt-2 text-sm text-danger" role="alert">{ws.error}</p>}
           {ws?.playback && !ws.playback.available && (
             <p className="mt-2 text-sm text-muted" role="status">
               {a.noPlaybackYet?.replace("{a}", ws.playback.reason ?? dict.body.workspace.beingPrepared) ?? dict.body.workspace.beingPrepared}

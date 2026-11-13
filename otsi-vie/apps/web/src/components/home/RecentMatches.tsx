@@ -7,7 +7,7 @@
  * Analysis workspace; View all opens the Library. Nothing analysed: the empty state. A failed read says so and retries.
  */
 import type { RecentMatch } from "@otsi-vie/contracts";
-import { ArrowRight, ChevronRight, ImageOff } from "lucide-react";
+import { ChevronRight, ImageOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
@@ -59,14 +59,14 @@ export function RecentMatches() {
   const empty = list !== undefined && !failed && list.length === 0;
 
   return (
-    <section aria-label="Recent matches" className="vie-panel min-w-0" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
-      <div className="vie-ph">
-        <h2 className="t-panel">{t.body.home.recentMatches}</h2>
-        <Link href="/library" className="t-small flex items-center gap-1 text-primary hover:underline" aria-label="View all matches in the Library">
-          {t.body.home.viewAll}<ArrowRight className="h-3.5 w-3.5" aria-hidden />
+    <section aria-label="Recent matches" className="min-w-0 border-t border-line pt-3" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
+      <div className="flex items-center justify-between gap-2 pb-1">
+        <h2 className="t-panel">{t.body.home.recentMatchesSot}</h2>
+        <Link href="/library" className="t-small text-primary hover:underline" aria-label="View all matches in the Library">
+          {t.body.home.viewAllSot}
         </Link>
       </div>
-      <ul className="flex flex-col p-1.5">
+      <ul className="flex flex-col">
         {list === undefined && <li className="t-small px-2 py-3 text-muted">{t.common.loading}</li>}
         {failed && (
           <li><button type="button" className="t-small w-full rounded px-2 py-3 text-left text-primary hover:bg-raised"

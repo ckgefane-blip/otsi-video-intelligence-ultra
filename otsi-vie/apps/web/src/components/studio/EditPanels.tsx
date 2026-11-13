@@ -24,7 +24,7 @@ const MS = [400, 600, 1000];
 
 /** a two-colour sample of the kind, moving in a loop (CSS only: what the renderer draws, not the footage) */
 function Sample({ kind }: { kind: TransitionKind }) {
-  const anim: Record<TransitionKind, string> = { FADE: "otsiTrFade", DISSOLVE: "otsiTrDiss", ZOOM: "otsiTrZoom", SPIN: "otsiTrSpin" };
+  const anim: Record<TransitionKind, string> = { FADE: "otsiTrFade", DISSOLVE: "otsiTrDiss", ZOOM: "otsiTrZoom", SPIN: "otsiTrSpin", DIP: "otsiTrDip", SLIDE: "otsiTrSlide" };
   return (
     <span aria-hidden data-tr-sample={kind} style={{ position: "relative", display: "inline-block", width: 54, height: 30, borderRadius: 4, overflow: "hidden", background: "#2a6fb8" }}>
       <span style={{ position: "absolute", inset: 0, background: "#2d7a3a", animation: `${anim[kind]} 2s ease-in-out infinite` }} />
@@ -34,12 +34,14 @@ function Sample({ kind }: { kind: TransitionKind }) {
 const KEYFRAMES = `@keyframes otsiTrFade{0%,30%{opacity:0;filter:brightness(1)}50%{opacity:0;filter:brightness(0)}70%,100%{opacity:1}}
 @keyframes otsiTrDiss{0%,25%{opacity:0}75%,100%{opacity:1}}
 @keyframes otsiTrZoom{0%,25%{opacity:0;transform:scale(1.6)}75%,100%{opacity:1;transform:scale(1)}}
-@keyframes otsiTrSpin{0%,25%{opacity:0;transform:rotate(-90deg) scale(.4)}75%,100%{opacity:1;transform:none}}`;
+@keyframes otsiTrSpin{0%,25%{opacity:0;transform:rotate(-90deg) scale(.4)}75%,100%{opacity:1;transform:none}}
+@keyframes otsiTrDip{0%,20%{opacity:1;filter:brightness(1)}50%{opacity:1;filter:brightness(0)}80%,100%{opacity:1;filter:brightness(1)}}
+@keyframes otsiTrSlide{0%,25%{opacity:0;transform:translateX(100%)}75%,100%{opacity:1;transform:none}}`;
 
 export function TransitionsPanel({ st, placed, can, why }: { st: Studio; placed: Placed | null; can: boolean; why: () => void }) {
   const { t: dict } = useLocale();
   const [kind, setKind] = useState<TransitionKind>("DISSOLVE");
-  const KINDS: [TransitionKind, string][] = [["FADE", dict.body.studio.fadeLabel], ["DISSOLVE", dict.body.studio.dissolveLabel], ["ZOOM", dict.body.studio.zoomLabel2], ["SPIN", dict.body.studio.spinLabel]];
+  const KINDS: [TransitionKind, string][] = [[ "FADE", dict.body.studio.fadeLabel], ["DISSOLVE", dict.body.studio.dissolveLabel], ["ZOOM", dict.body.studio.zoomLabel2], ["SPIN", dict.body.studio.spinLabel], ["DIP", dict.body.studio.csTransDip], ["SLIDE", dict.body.studio.csTransSlide]];
   const [ms, setMs] = useState(TRANSITION_DEFAULT_MS);
   const reel = st.reel!;
   const cut = placed && placed.index > 0 ? placed : null;

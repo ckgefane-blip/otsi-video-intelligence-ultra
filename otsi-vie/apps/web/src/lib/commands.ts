@@ -6,8 +6,9 @@ import type { Ctx } from "./workContext";
 
 /** not a page: the palette opens the keyboard map (A.9, ADR-071) */
 export const KEYMAP_HREF = "#keyboard-map";
-/** not a page: the palette opens the Jobs Center (Page 8, SOT) */
-export const JOBS_HREF = "#jobs-center";
+/** the Jobs Center is the jobs page (SOT rebuild 2026-11-13): the drawer is gone, so the palette's "Open Jobs Center"
+ *  command and Ctrl/Cmd + J navigate to /processing (the old JOBS_OPEN_EVENT dispatch is gone with the drawer) */
+export const JOBS_HREF = "/processing";
 
 export interface Command { id: string; label: string; hint: string; href: string; roles: readonly string[] | null; words: string }
 const ALL = null;

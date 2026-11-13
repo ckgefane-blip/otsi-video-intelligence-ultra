@@ -13,10 +13,11 @@
  * page and the Reel Builder.
  */
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerMeasures, PlayerProfile, TrackIdentity } from "@otsi-vie/contracts";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
+import { typing } from "@/lib/keymap";
 import { LookAlikePanel, TrackThumb } from "@/components/analysis/SamePerson";
 import { trackLabel } from "@/lib/identity";
 import type { Shared } from "@/components/workspace/shared";
@@ -33,6 +34,23 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
   const [rejecting, setRejecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const reasonRef = useRef<HTMLInputElement | null>(null);
+
+  // SOT rebuild (Keyboard shortcuts): C confirm, E correct, X reject — the same actions as the buttons below.
+  // Mark in / out is I / P (CentreVideo, the SOT's keys).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!t || !ws?.canReview) return;
+      const k = e.key.toLowerCase();
+      if (k === "c") { if (identity?.state !== "CONFIRMED") { e.preventDefault(); onIdentify(); } }
+      else if (k === "e") { e.preventDefault(); onIdentify(); }
+      else if (k === "x") { e.preventDefault(); setRejecting(true); }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  });
+  useEffect(() => { if (rejecting) reasonRef.current?.focus(); }, [rejecting]);
 
   useEffect(() => {
     setIdentity(null); setProfile(null); setMeasures(null); setReason(""); setRejecting(false); setMsg(null);
@@ -50,14 +68,14 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
   const confirmed = identity?.state === "CONFIRMED" ? identity.player : null;
   const chip = identity
     ? identity.state === "CONFIRMED"
-      ? { label: dict.body.reports.confirmedShort, cls: "vie-chip ev ev-c" }
+      ? { label: dict.body.reports.confirmedShort, dot: "text-primary" }
       : identity.state === "CANDIDATE"
-        ? { label: a.anCandidate, cls: "vie-chip ev ev-i" }
+        ? { label: a.anCandidate, dot: "text-amber" }
         : identity.state === "REJECTED"
-          ? { label: a.anRejected, cls: "vie-chip ev ev-f" }
+          ? { label: a.anRejected, dot: "text-danger" }
           : identity.state === "CONFLICT"
-            ? { label: a.anConflict, cls: "vie-chip ev ev-f" }
-            : { label: a.anUnresolved, cls: "vie-chip ev ev-n" }
+            ? { label: a.anConflict, dot: "text-danger" }
+            : { label: a.anUnresolved, dot: "text-muted" }
     : null;
   const correcting = !!identity?.decision_id;
   const reasonOk = !correcting || reason.trim().length >= 3;
@@ -84,7 +102,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
     <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-l border-line" aria-label={name}>
       <div className="vie-ph" style={{ minHeight: 44 }}>
         <h2 className="t-section truncate">{name}</h2>
-        {chip && <span className={chip.cls}>{chip.label}</span>}
+        {chip && <span className="t-small shrink-0 text-muted"><span className={chip.dot} aria-hidden>•</span> {chip.label}</span>}
       </div>
 
       <div className="flex flex-col gap-3 border-b border-line p-4">
@@ -93,7 +111,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
           <div className="min-w-0 flex-1">
             <p className="font-semibold">{jersey != null ? `#${jersey}` : "—"}{position ? ` · ${position}` : ""}</p>
             <p className="t-small text-muted">{[club, nationality].filter(Boolean).join(" · ") || "—"}</p>
-            <p className="t-small font-mono" style={{ color: "rgb(var(--primary))" }}>{pin ?? dict.body.analysis.provisionalBadge}</p>
+            <p className="t-small" style={{ color: "rgb(var(--primary))" }}>{pin ?? dict.body.analysis.provisionalBadge}</p>
           </div>
         </div>
 
@@ -103,7 +121,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
           </button>
         ) : (
           <button type="button" disabled={!ws?.canReview} onClick={onIdentify} className="vie-btn vie-btn-pri w-full">
-            {a.anConfirmIdentity}
+            {a.anConfirmIdentity} <kbd className="kbd">C</kbd>
           </button>
         )}
 
@@ -119,7 +137,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
         )}
         {rejecting && (
           <div className="space-y-2">
-            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={dict.body.analysis.whyChange} aria-label={dict.body.analysis.reasonCorrection}
+            <input ref={reasonRef} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={dict.body.analysis.whyChange} aria-label={dict.body.analysis.reasonCorrection}
               className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5 text-sm" />
             <button type="button" disabled={busy || !reasonOk} onClick={reject} className="vie-btn vie-btn-danger w-full">
               {a.anReject}
@@ -142,7 +160,7 @@ export function AnalysisRight({ s, onIdentify }: { s: Shared; onIdentify: () => 
             ] as const).map(([k, v]) => (
               <div key={k} className="flex items-baseline justify-between gap-3">
                 <dt className="t-body text-muted">{k}</dt>
-                <dd className="font-mono t-body">{v}</dd>
+                <dd className="t-body">{v}</dd>
               </div>
             ))}
           </dl>

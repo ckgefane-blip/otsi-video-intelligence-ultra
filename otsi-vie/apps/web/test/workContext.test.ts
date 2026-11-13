@@ -13,7 +13,7 @@ describe("work context (A.1, ADR-069)", () => {
     expect(subjectOf("/reports/players/OTSI-NGA-2026-000012", sp())).toEqual({ kind: "player", player: "OTSI-NGA-2026-000012" });
     expect(subjectOf("/analysis", sp("video=not-an-id"))).toEqual({ kind: "video", video: undefined });
     expect(subjectOf("/dashboard", sp())).toEqual({ kind: null });
-    expect([showsBar("/analysis"), showsBar("/exports"), showsBar("/dashboard"), showsBar("/library"), showsBar("/upload")]).toEqual([true, true, false, false, false]);
+    expect([showsBar("/analysis"), showsBar("/exports"), showsBar("/dashboard"), showsBar("/library"), showsBar("/upload"), showsBar("/players"), showsBar("/settings/team")]).toEqual([true, true, true, true, true, true, true]);
   });
 
   it("another match drops a reel of the old one; the same match keeps it", () => {
@@ -26,10 +26,10 @@ describe("work context (A.1, ADR-069)", () => {
     const c = { ...EMPTY_CTX, video: V, reel: R, reelVideo: V, player: "OTSI-NGA-2026-000012" };
     expect(navHref("Analysis", "/analysis", c)).toBe(`/analysis?video=${V}`);
     expect(navHref("Tactical", "/tactics", c)).toBe(`/tactics?video=${V}`);
-    expect(navHref("Reel Builder", "/reels", c)).toBe(`/reels/${R}`);
+    expect(navHref("Reels", "/reels", c)).toBe(`/reels/${R}`);
     expect(navHref("Clip Studio", "/studio", c)).toBe(`/studio?reel=${R}`);
     expect(navHref("Export", "/exports", c)).toBe(`/exports?reel=${R}`);
-    expect(navHref("Player Report", "/reports", c)).toBe("/reports/players/OTSI-NGA-2026-000012");
+    expect(navHref("Reports", "/reports", c)).toBe("/reports/players/OTSI-NGA-2026-000012");
     expect(navHref("Home", "/dashboard", c)).toBe("/dashboard");
     expect(navHref("Clip Studio", "/studio", EMPTY_CTX)).toBe("/studio");
     expect(navHref("Analysis", "/analysis", EMPTY_CTX)).toBe("/analysis");

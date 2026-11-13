@@ -1,12 +1,15 @@
 "use client";
 /**
- * Desktop UI v2 top bar (owner-approved Source of Truth, 2026-11-11), above every app page: the work context (project / match /
- * player, ADR-069), search and commands (Ctrl/Cmd+K, ADR-070), notifications (ADR-075), the Jobs Center (ADR-060), the keyboard map
- * ("?", ADR-071) and the account. Every widget is the existing one: only its place changed (the header's tab strip moved to AppRail).
+ * The top bar (SOT rebuild 2026-11-13): the SOT's order, left to right — work context (Project / Match / Player, on every shelled
+ * page), search, token counter, theme, Jobs Center, notifications bell, "?" (a link to the Shortcuts page), account.
+ *
+ * The SOT's search, token, jobs, bell and "?" are page links, not drawers, popovers or modals: the token counter links to the
+ * Wallet, Jobs Center to the jobs page, "?" to /shortcuts. The search keeps opening the CommandPalette modal (the task's call:
+ * only its label and kbd change); the KeyboardMap modal stays mounted for the "?" key and the palette's shortcuts command.
  */
 import { Search } from "lucide-react";
+import Link from "next/link";
 import { Suspense, useState } from "react";
-import { KEYMAP_EVENT } from "@/lib/keymap";
 import { useLocale } from "@/lib/i18n";
 import styles from "./AppTopBar.module.css";
 import { CommandPalette } from "./CommandPalette";
@@ -32,12 +35,11 @@ export function AppTopBar() {
         <span className={styles.searchText}>{t.shell.searchAndCommands}</span>
         <span className="vie-kbd">Ctrl K</span>
       </button>
-      <NotificationBell styles={styles} />
-      <JobTray styles={styles} />
-      <button type="button" className={styles.keys} aria-label={t.desktop.shortcuts} title={t.desktop.shortcuts}
-        onClick={() => window.dispatchEvent(new Event(KEYMAP_EVENT))} data-keymap-open>?</button>
-      <ThemeSwitch />
       <TokenCounter />
+      <ThemeSwitch />
+      <JobTray styles={styles} />
+      <NotificationBell styles={styles} />
+      <Link href="/shortcuts" className={styles.keys} aria-label={t.desktop.shortcuts} title={t.desktop.shortcuts}>?</Link>
       <ProfileChip styles={styles} />
       <CommandPalette open={search} onOpenChange={setSearch} />
       <KeyboardMap />

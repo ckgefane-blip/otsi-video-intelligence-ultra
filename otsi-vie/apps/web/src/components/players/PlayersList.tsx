@@ -92,10 +92,11 @@ function IntroPreview({ entry }: { entry: PlayerListEntry | null }) {
   const minutes = intro?.stats.minutes_seen ?? null;
   const goals = intro?.stats.goals ?? null;
   return (
-    <section className="vie-panel flex flex-1 flex-col" aria-labelledby="pl-intro-preview">
+    <section className="flex flex-1 flex-col" aria-labelledby="pl-intro-preview" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
+      {/* the intro preview is a flat open section (SOT §B), not a boxed panel */}
       <div className="vie-ph">
         <h2 id="pl-intro-preview" className="t-panel">{dict.body.players.plIntroPreview}</h2>
-        {entry && <Link href={`/reports/players/${entry.canonical_otsi_id ?? entry.player_id}`} className="t-small text-primary hover:underline">{dict.body.players.plOpenIntro}</Link>}
+        {entry && <Link href={`/players/${entry.player_id}/intro`} className="t-small text-primary hover:underline">{dict.body.players.plOpenIntro}</Link>}
       </div>
       <div className="flex flex-1 items-center justify-center p-3.5">
         {!entry ? (
@@ -125,14 +126,14 @@ function IntroPreview({ entry }: { entry: PlayerListEntry | null }) {
               </div>
               <dl className="m-0 grid grid-cols-3 gap-x-3.5 gap-y-2.5">
                 <div><dt className="lab">{dict.body.players.nationality}</dt><dd className="m-0 mt-0.5">{p?.nationality?.name ?? "—"}</dd></div>
-                <div><dt className="lab">{dict.body.players.plAgeDob}</dt><dd className="m-0 mt-0.5 font-mono">{p?.age != null && p?.birth_date ? `${p.age} · ${p.birth_date}` : "—"}</dd></div>
+                <div><dt className="lab">{dict.body.players.plAgeDob}</dt><dd className="m-0 mt-0.5">{p?.age != null && p?.birth_date ? `${p.age} · ${p.birth_date}` : "—"}</dd></div>
                 <div><dt className="lab">{dict.body.players.plFoot}</dt><dd className="m-0 mt-0.5">{p?.preferred_foot ? FOOT_NAMES(dict)[p.preferred_foot]! : "—"}</dd></div>
-                <div><dt className="lab">{dict.body.players.plHeight}</dt><dd className="m-0 mt-0.5 font-mono">{height ?? "—"}</dd></div>
-                <div><dt className="lab">{dict.body.players.plWeight}</dt><dd className="m-0 mt-0.5 font-mono">{weight ?? "—"}</dd></div>
+                <div><dt className="lab">{dict.body.players.plHeight}</dt><dd className="m-0 mt-0.5">{height ?? "—"}</dd></div>
+                <div><dt className="lab">{dict.body.players.plWeight}</dt><dd className="m-0 mt-0.5">{weight ?? "—"}</dd></div>
                 <div><dt className="lab">{dict.body.reports.rpRecentForm}</dt><dd className="m-0 mt-0.5 italic text-muted">{dict.body.reports.notMeasured}</dd></div>
-                <div><dt className="lab">{dict.body.players.plGoals}</dt><dd className="m-0 mt-0.5 font-mono">{goals ?? "—"}</dd></div>
-                <div><dt className="lab">{dict.body.reports.rpAssists}</dt><dd className="m-0 mt-0.5 font-mono">{dict.body.reports.notMeasured}</dd></div>
-                <div><dt className="lab">{dict.body.players.plOnCamera}</dt><dd className="m-0 mt-0.5 font-mono">{minutes != null ? `${minutes} min` : "—"}</dd></div>
+                <div><dt className="lab">{dict.body.players.plGoals}</dt><dd className="m-0 mt-0.5">{goals ?? "—"}</dd></div>
+                <div><dt className="lab">{dict.body.reports.rpAssists}</dt><dd className="m-0 mt-0.5">{dict.body.reports.notMeasured}</dd></div>
+                <div><dt className="lab">{dict.body.players.plOnCamera}</dt><dd className="m-0 mt-0.5">{minutes != null ? `${minutes} min` : "—"}</dd></div>
               </dl>
               <p className="hint mt-auto">{dict.body.players.plFromSaved}</p>
             </div>
@@ -236,7 +237,8 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
           <span className="t-small text-primary">{confirmed ? dict.body.players.plConfirmedPin.replace("{a}", entry.canonical_otsi_id!) : dict.body.players.provisional}</span>
           {!savedDetails?.photo_url && <span className="hint block">{dict.body.players.plPhotoRights}</span>}
         </div>
-        <span className="vie-chip">{dict.body.players.plManualProfile}</span>
+        {/* "Manual profile" is plain text (SOT §B), not a chip */}
+        <span className="t-small text-muted">{dict.body.players.plManualProfile}</span>
       </div>
       <div className="flex-1 overflow-auto">
         <div className="sect">
@@ -246,7 +248,14 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
               <label className="lab" htmlFor="pl-pos">{dict.body.players.position}</label>
               <select id="pl-pos" value={d.position} disabled={!can} onChange={(x) => setD({ ...d, position: x.target.value })} className={field}>
                 <option value="">{dict.body.players.notRecorded}</option>
-                {Object.entries(POSITION_NAMES(dict)).map(([k, v]) => <option key={k} value={k}>{v} ({k})</option>)}
+                {/* the SOT's five positions (Players.dc.html): DM is shown as "DM", the rest by name; a saved position outside
+                    the five (e.g. CM) stays as an extra option so the recorded value is never lost or shown blank */}
+                {[["DM", "DM"], ["GK", POSITION_NAMES(dict).GK], ["DF", POSITION_NAMES(dict).DF], ["MF", POSITION_NAMES(dict).MF], ["FW", POSITION_NAMES(dict).FW]].map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+                {d.position && !["DM", "GK", "DF", "MF", "FW"].includes(d.position) && (
+                  <option value={d.position}>{POSITION_NAMES(dict)[d.position] ?? d.position} ({d.position})</option>
+                )}
               </select>
             </div>
             <div className="field">
@@ -267,13 +276,13 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
             <div className="field">
               <label className="lab" htmlFor="pl-dob">{dict.body.players.birthDate}{entry.profile.age !== null ? dict.body.players.ageSuffix.replace("{a}", String(entry.profile.age)) : ""}</label>
               <input id="pl-dob" type="date" value={d.birth} disabled={!can} max={new Date().toISOString().slice(0, 10)} min="1900-01-01"
-                onChange={(x) => setD({ ...d, birth: x.target.value })} className={`${field} mono`} />
+                onChange={(x) => setD({ ...d, birth: x.target.value })} className={field} />
             </div>
             <div className="field">
               <label className="lab" htmlFor="pl-height">{dict.body.players.plHeight}</label>
               <div className="relative">
                 <input id="pl-height" inputMode="numeric" value={dd.height} disabled={!can} placeholder={dict.body.players.heightExample}
-                  onChange={(x) => setDd({ ...dd, height: x.target.value })} className={`${field} mono`} style={{ paddingRight: 36 }} />
+                  onChange={(x) => setDd({ ...dd, height: x.target.value })} className={field} style={{ paddingRight: 36 }} />
                 <span className="mu sm absolute right-2.5 top-2">cm</span>
               </div>
             </div>
@@ -281,7 +290,7 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
               <label className="lab" htmlFor="pl-weight">{dict.body.players.plWeight}</label>
               <div className="relative">
                 <input id="pl-weight" inputMode="decimal" value={dd.weight} disabled={!can} placeholder={dict.body.players.weightExample}
-                  onChange={(x) => setDd({ ...dd, weight: x.target.value })} className={`${field} mono`} style={{ paddingRight: 36 }} />
+                  onChange={(x) => setDd({ ...dd, weight: x.target.value })} className={field} style={{ paddingRight: 36 }} />
                 <span className="mu sm absolute right-2.5 top-2">kg</span>
               </div>
             </div>
@@ -315,12 +324,12 @@ function ProfileEditor({ entry, countries, onSaved }: { entry: PlayerListEntry; 
             <div className="field">
               <label className="lab" htmlFor="pl-caps">{dict.body.players.plCaps}</label>
               <input id="pl-caps" inputMode="numeric" value={dd.caps} disabled={!can} placeholder="—"
-                onChange={(x) => setDd({ ...dd, caps: x.target.value })} className={`${field} mono`} />
+                onChange={(x) => setDd({ ...dd, caps: x.target.value })} className={field} />
             </div>
             <div className="field">
               <label className="lab" htmlFor="pl-goals">{dict.body.players.plGoals}</label>
               <input id="pl-goals" inputMode="numeric" value={dd.goals} disabled={!can} placeholder="—"
-                onChange={(x) => setDd({ ...dd, goals: x.target.value })} className={`${field} mono`} />
+                onChange={(x) => setDd({ ...dd, goals: x.target.value })} className={field} />
             </div>
           </div>
         </div>
@@ -436,7 +445,8 @@ export function PlayersList() {
             </div>
           </div>
         </div>
-        <section className="vie-panel" aria-label={dict.body.players.playersListAria}>
+        {/* the table is a flat open section (SOT §B: "Table not boxed"), not a boxed panel */}
+        <section aria-label={dict.body.players.playersListAria} style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
           <div className="overflow-x-auto">
             <div className="eb grid items-center gap-3 border-b border-line px-3.5" style={{ gridTemplateColumns: "104px minmax(140px, 1.5fr) 32px minmax(90px, 1fr) 40px 104px 72px 108px", minWidth: 700, height: 34 }}>
               <span>{dict.body.players.plPin}</span><span>{dict.body.players.plPlayer}</span><span>{dict.body.players.plNo}</span>
@@ -456,7 +466,7 @@ export function PlayersList() {
                   aria-pressed={isSel} data-player={e.player_id}
                   className={`lr grid w-full items-center gap-3 px-3.5 text-left ${isSel ? "sel" : ""}`}
                   style={{ gridTemplateColumns: "104px minmax(140px, 1.5fr) 32px minmax(90px, 1fr) 40px 104px 72px 108px", minWidth: 700, minHeight: 48 }}>
-                  <span className="mono t-small text-primary">{e.canonical_otsi_id ?? "—"}</span>
+                  <span className="t-small text-primary">{e.canonical_otsi_id ?? "—"}</span>
                   <span className="flex min-w-0 items-center gap-2.5">
                     <span className="grid h-[26px] w-[26px] shrink-0 place-items-center overflow-hidden rounded-full bg-raised">
                       {e.profile.details?.photo_url ? (
@@ -468,12 +478,13 @@ export function PlayersList() {
                     </span>
                     <span className="truncate font-normal">{e.display_name}</span>
                   </span>
-                  <span className="mono">{t?.jersey_number ?? "—"}</span>
+                  <span>{t?.jersey_number ?? "—"}</span>
                   <span className="truncate">{t?.team ?? e.profile.details?.club_name ?? "—"}</span>
                   <span>{t?.position ?? e.profile.position ?? "—"}</span>
                   <span className="t-small">{m === undefined ? dict.common.loading : m ? dict.body.players.plTracksIn.replace("{a}", String(m.tracks)).replace("{b}", String(m.videos)) : "—"}</span>
-                  <span className="mono">{cov === null ? "—" : `${cov}%`}</span>
-                  <span>{e.canonical_otsi_id ? <span className="vie-chip ev ev-c">{dict.body.players.plConfirmed}</span> : <span className="vie-chip ev ev-n">{dict.body.players.plUnconfirmed}</span>}</span>
+                  <span>{cov === null ? "—" : `${cov}%`}</span>
+                  {/* Confirmed / Unconfirmed is plain text with a dot (SOT §B), keeping the colours */}
+                  <span>{e.canonical_otsi_id ? <span className="t-small" style={{ color: "rgb(var(--primary))" }}>• {dict.body.players.plConfirmed}</span> : <span className="t-small text-muted">• {dict.body.players.plUnconfirmed}</span>}</span>
                 </button>
               );
             })}
@@ -485,7 +496,14 @@ export function PlayersList() {
         </section>
         <IntroPreview entry={selected} />
       </main>
-      {selected && <ProfileEditor entry={selected} countries={countries} onSaved={onSaved} />}
+      {/* the inspector column stays when nothing is selected (SOT): an empty state instead of a missing column */}
+      {selected ? <ProfileEditor entry={selected} countries={countries} onSaved={onSaved} /> : (
+        <aside className="insp" aria-label={dict.body.players.plSaveProfile} style={{ flex: "0 0 420px", maxWidth: 420 }}>
+          <div className="flex flex-1 items-center justify-center p-4">
+            <p className="t-body text-center text-muted">{dict.body.players.plSelectPlayer}</p>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

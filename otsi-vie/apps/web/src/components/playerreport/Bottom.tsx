@@ -174,7 +174,7 @@ const EventList = memo(function EventList({ listed, multiVideo }: { listed: Play
   );
 });
 
-const section = "vie-panel p-4";
+const section = "min-w-0 border-t border-line pt-3";
 
 /** the Heatmaps tab: the heatmap of the whole match, or of one half */
 export function HeatmapSection({ r }: { r: Report }) {

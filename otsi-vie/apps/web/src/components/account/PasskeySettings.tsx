@@ -1,15 +1,15 @@
 "use client";
 /**
- * Settings > Security — passkeys (SOT, Security.dc.html): biometric sign-in (ADR-143), one switch, like a bank
- * app. On = sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Off = it
- * doesn't. Turning it on enrols a passkey on this device (the browser's create() call); turning it off removes
- * every passkey on this account. The password still works everywhere — a passkey is an extra way in, not a
- * replacement. The state shown is GET /v1/auth/webauthn/credentials. The switch IS the SOT's "Register this
- * device" action: turning it on registers the device.
+ * Settings > Security — passkeys (SOT, Security.dc.html): the SOT's "Register this device" button enrols a
+ * passkey on this device (the browser's create() call). The biometric sign-in switch (ADR-143, the user's own
+ * instruction, bank-app toggle) stays beside it as a recorded deviation from the SOT — the SOT has only the
+ * button. On = sign in with Windows Hello (fingerprint, face or PIN) instead of typing your password. Off = it
+ * doesn't. Turning it off removes every passkey on this account. The password still works everywhere — a
+ * passkey is an extra way in, not a replacement. The state shown is GET /v1/auth/webauthn/credentials.
  */
 import type { WebAuthnCredential } from "@otsi-vie/contracts";
 import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint, KeyRound, Loader2 } from "lucide-react";
+import { Fingerprint, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -40,6 +40,9 @@ export function PasskeySettings() {
   const on = (list?.length ?? 0) > 0;
 
   async function turnOn() {
+    // the SOT shows the button unconditionally: on a machine where passkeys do not work (Windows Hello
+    // unavailable) the press itself says so, instead of the button hiding
+    if (supported === false) { setError(w.passkeyUnavailable); return; }
     setBusy(true); setError(null); setNotice(null);
     try {
       const options = await webauthnRegisterOptions();
@@ -75,10 +78,9 @@ export function PasskeySettings() {
   }
 
   return (
-    <section className="panel flex flex-col" data-passkey-settings aria-labelledby="pk">
+    <section className="flex min-w-0 flex-col border-t border-line bg-transparent" data-passkey-settings aria-labelledby="pk">
       <div className="ph"><h2 id="pk" className="h3">{s.stSecPasskeys}</h2><span className="mu sm">{s.stSecWindowsHello}</span></div>
       <div className="pb flex flex-1 flex-col gap-4">
-        <p className="t-body text-muted">{w.biometricHint}</p>
         {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
         {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
         {supported === false && <p className="t-body text-muted">{w.passkeyUnavailable}</p>}
@@ -101,9 +103,11 @@ export function PasskeySettings() {
 
         {list && list.length === 0 && (
           <div className="empty flex-1">
-            <span className="ei"><KeyRound className="i" aria-hidden /></span>
+            <span className="ei"><Fingerprint className="i" aria-hidden /></span>
             <h3>{s.stSecNoPasskeys}</h3>
             <p>{s.stSecPasskeyHint}</p>
+            {/* SOT: the "Register this device" button enrols a passkey on this device */}
+            <button className="btn sm pri" type="button" disabled={busy} onClick={() => void turnOn()}>{s.stSecRegister}</button>
           </div>
         )}
 

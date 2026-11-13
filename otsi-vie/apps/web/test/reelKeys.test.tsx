@@ -12,7 +12,7 @@ vi.mock("@/lib/api", () => ({ api: (...a: unknown[]) => api(...a), ApiProblem: c
 import { SpotlightSettings, type Reel, type ReelHistory } from "@otsi-vie/contracts";
 import { ReelStage } from "@/components/reelstage/ReelStage";
 
-// jsdom has no scrollIntoView; the stage jumps to the remembered step 300 ms after opening a reel
+// jsdom has no scrollIntoView (the stage's jump-to-section uses it)
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = vi.fn();
 
 const id = "0190a000-0000-7000-8000-000000000001";
@@ -42,7 +42,9 @@ beforeEach(() => { localStorage.clear(); api.mockReset(); replace.mockReset(); }
 async function open() {
   mockApi();
   render(<ReelStage reelId={id} />);
-  await waitFor(() => expect(screen.getByLabelText("Undo: Trimmed a clip")).not.toBeDisabled());
+  // the page is ready when the reel's history has loaded (the keys only act when there is something to undo or redo)
+  await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${id}/history`));
+  await new Promise((r) => setTimeout(r, 0));
 }
 
 describe("Reel Builder undo / redo keys", () => {
@@ -70,6 +72,8 @@ describe("Reel Builder undo / redo keys", () => {
     mockApi({ entries: [], can_undo: false, can_redo: false, undo_label: null, redo_label: null } as unknown as ReelHistory);
     render(<ReelStage reelId={id} />);
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${id}/history`));
+    // the preview's playback read fires after the reel loads; let it settle before clearing, or it lands after the clear
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/videos/vid-1/playback"));
     api.mockClear();
     fireEvent.keyDown(window, { key: "z", ctrlKey: true });
     fireEvent.keyDown(window, { key: "Z", ctrlKey: true, shiftKey: true });

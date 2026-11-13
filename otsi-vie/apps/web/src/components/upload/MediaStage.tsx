@@ -199,7 +199,10 @@ export function MediaStage() {
     catch { return null; }
   }, [url]);
   const accepted = IMPORT_PROVIDERS.filter((p) => p.status !== "unsupported");
-  const refused = IMPORT_PROVIDERS.filter((p) => p.status === "unsupported");
+  // the SOT's Refused list shows only YouTube, Facebook, TikTok, X, Twitch, Hudl and Wyscout — Dailymotion, OneDrive /
+  // SharePoint and Streamable are refused by the policy but are not chips here (a pasted link from one still shows the refusal).
+  const REFUSED_HIDDEN = new Set(["dailymotion", "onedrive", "streamable"]);
+  const refused = IMPORT_PROVIDERS.filter((p) => p.status === "unsupported" && !REFUSED_HIDDEN.has(p.id));
 
   const [title, body] = error ? splitError(error) : ["", ""];
 
@@ -207,12 +210,12 @@ export function MediaStage() {
     <div className="flex min-h-0 flex-1" data-page="upload" data-stage>
       <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-auto px-8 py-5">
         <div className="flex flex-col gap-1.5">
-          <span className="eb">{dict.pages.upload.title}</span>
+          <span className="eb">{d.mediaEyebrow}</span>
           <h1 className="h1">{d.mdAddMatchVideos}</h1>
         </div>
 
-        {/* drop zone */}
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-line2 bg-[rgb(var(--panel))] px-5 py-4"
+        {/* drop zone: the SOT's is a dashed outline only, no filled background */}
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-line2 px-5 py-4"
           onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
           onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files.length) up.addFiles(e.dataTransfer.files); }}
           style={over ? { borderColor: "rgb(var(--primary))", background: "rgba(43,212,176,.06)" } : undefined}>
@@ -223,7 +226,8 @@ export function MediaStage() {
             <div className="h2">{d.mdDropVideos}</div>
             <div className="sm mu">{fill(d.mdDropSub, { a: tier, b: formatGB(tierBytes) })}</div>
           </div>
-          <span className="chip">{fill(d.mdTierChip, { a: tier, b: formatGB(tierBytes) })}</span>
+          {/* the tier note is plain text (SOT), not a chip */}
+          <span className="t-small text-muted">{fill(d.mdTierChip, { a: tier, b: formatGB(tierBytes) })}</span>
           {up.canWrite && (
             <button type="button" disabled={!up.projectId} onClick={() => input.current?.click()} className="vie-btn vie-btn-pri">{d.mdBrowseFiles}</button>
           )}
@@ -231,7 +235,6 @@ export function MediaStage() {
             onChange={(e) => { if (e.target.files?.length) up.addFiles(e.target.files); e.target.value = ""; }} />
         </div>
         {!up.canWrite && <p className="text-sm text-muted">{d.viewVideosOnly}</p>}
-        {!up.projectId && up.canWrite && <p className="text-xs text-amber">{d.chooseProjectFirst}</p>}
 
         {/* tier alert (a file too large, or the wrong type) */}
         {error && (
@@ -245,20 +248,18 @@ export function MediaStage() {
           </div>
         )}
 
-        {/* tier cards */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* tier row: the SOT's is one plain row, not three cards; regular type throughout */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
           {TIERS.map((t) => (
-            <div key={t} className="flex items-center justify-between rounded-lg border px-3 py-2.5"
-              style={t === tier ? { borderColor: "rgba(43,212,176,.45)", background: "#0F1A17" } : { borderColor: "rgb(var(--line))" }}>
-              <span><span className="font-semibold" style={t === tier ? undefined : { color: "rgb(var(--ink2))" }}>{t}</span>
-                {t === tier && <span className="sm mu"> {d.mdYourTier}</span>}</span>
-              <span className="mono" style={t === tier ? undefined : { color: "rgb(var(--muted))" }}>{formatGB(TIER_LIMIT_BYTES[t])}</span>
-            </div>
+            <span key={t} className={t === tier ? undefined : "text-muted"}>
+              <span>{t}</span> · <span>{formatGB(TIER_LIMIT_BYTES[t])}</span>
+              {t === tier && <span className="text-muted"> {d.mdYourTier}</span>}
+            </span>
           ))}
         </div>
 
-        {/* add from a link */}
-        <section className="vie-panel" aria-labelledby="md-link">
+        {/* add from a link: a flat open section (SOT), not a boxed panel */}
+        <section aria-labelledby="md-link" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
           <div className="vie-ph"><h2 id="md-link" className="h3">{d.mdAddFromLink}</h2></div>
           <div className="flex flex-col gap-3.5 p-3.5">
             <form className="flex flex-wrap gap-2" onSubmit={(e) => {
@@ -292,14 +293,14 @@ export function MediaStage() {
               <div className="flex flex-col gap-2">
                 <span className="eb">{d.mdAccepted}</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {accepted.flatMap((p) => (PROVIDER_LABEL[p.id] ?? [p.name]).map((label) => <span key={`${p.id}-${label}`} className="chip">{label}</span>))}
+                  {accepted.flatMap((p) => (PROVIDER_LABEL[p.id] ?? [p.name]).map((label) => <span key={`${p.id}-${label}`} className="t-small">{label}</span>))}
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="eb">{d.mdRefused}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {refused.flatMap((p) => (PROVIDER_LABEL[p.id] ?? [p.name]).map((label) => (
-                    <span key={`${p.id}-${label}`} className="chip" style={{ color: "rgb(var(--muted))", textDecoration: "line-through" }}>{label}</span>
+                    <span key={`${p.id}-${label}`} className="t-small" style={{ color: "rgb(var(--muted))", textDecoration: "line-through" }}>{label}</span>
                   )))}
                 </div>
               </div>
@@ -307,12 +308,12 @@ export function MediaStage() {
           </div>
         </section>
 
-        {/* ingest queue */}
-        <section className="vie-panel flex flex-1 flex-col" aria-labelledby="md-queue">
+        {/* ingest queue: a flat open section (SOT), not a boxed panel */}
+        <section className="flex flex-1 flex-col" aria-labelledby="md-queue" style={{ background: "transparent", border: 0, borderTop: "1px solid rgb(var(--line))", borderRadius: 0 }}>
           <div className="vie-ph"><h2 id="md-queue" className="h3">{d.mdIngestQueue}</h2><span className="mu xs">{fill(d.mdQueueCount, { a: String(queueCount) })}</span></div>
           <div className="overflow-x-auto">
             <div className="eb grid min-w-[760px] grid-cols-[minmax(220px,2fr)_90px_90px_minmax(140px,1fr)_110px_100px] gap-3 border-b border-line px-3" style={{ height: 32, alignItems: "center" }}>
-              <span>{d.fileName}</span><span>{d.fileSize}</span><span>{d.duration}</span><span>{dict.body.analysis.match}</span><span>{d.rightsLabel}</span><span>{d.statusReady}</span>
+              <span>{d.mdQueueFile}</span><span>{d.mdQueueSize}</span><span>{d.duration}</span><span>{dict.body.analysis.match}</span><span>{d.mdQueueRights}</span><span>{d.mdQueueStatus}</span>
             </div>
             {queueCount === 0 && (
               <div className="empty" style={{ padding: 32 }}>
@@ -396,7 +397,8 @@ export function MediaStage() {
         <div className="sect">
           <div className="flex items-center justify-between">
             <span className="eb">{d.mdFootageRights}</span>
-            <span className="chip" style={{ color: "rgb(var(--amber))", borderColor: "rgba(237,181,79,.4)" }}>{d.mdRequired}</span>
+            {/* "Required" is plain text with a dot (SOT §B), keeping the amber colour */}
+            <span className="t-small" style={{ color: "rgb(var(--amber))" }}>• {d.mdRequired}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="field">

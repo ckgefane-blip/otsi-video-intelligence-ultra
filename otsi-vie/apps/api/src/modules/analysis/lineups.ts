@@ -9,12 +9,13 @@
  *                                          match, the home and the away card create the clubs (or find them by name) and the match; each
  *                                          row finds its player in the registry by exact name, or creates a provisional player (no OTSI
  *                                          Player ID until registered); the roster gets the shirt number and the role
- *   POST /v1/lineup-cards/:id/dismiss      not a lineup / not this match (writers)
+ *   POST /v1/lineup-cards/:id/dismiss      not a lineup / not this match (writers); an optional { reason } is logged on the audit row,
+ *                                          which is what the review inbox asks for (decisions are logged with a reason)
  *
  * Nothing names a track here: shirt numbers read on players then propose roster players (identity evidence), and a person confirms.
  */
 import { Body, Controller, Get, HttpCode, Inject, Injectable, Param, Post, Res, UseGuards } from "@nestjs/common";
-import { AppliedLineups, ApplyLineups, LineupCard, Lineups, nameKey } from "@otsi-vie/contracts";
+import { AppliedLineups, ApplyLineups, DismissLineupCard, LineupCard, Lineups, nameKey } from "@otsi-vie/contracts";
 import type { FastifyReply } from "fastify";
 import { createReadStream } from "node:fs";
 import { RowDataPacket } from "mysql2/promise";
@@ -85,13 +86,14 @@ export class LineupsService {
     return { path: this.store.resolve(a.object_key as string), bytes: Number(a.byte_size) };
   }
 
-  async dismiss(cardId: string, p: Principal): Promise<void> {
+  async dismiss(cardId: string, body: DismissLineupCard, p: Principal): Promise<void> {
     const c = await this.db.one<RowDataPacket>("SELECT id, video_id, state FROM lineup_cards WHERE id = ? AND organization_id = ?", [cardId, p.organizationId]);
     if (!c) throw notFound("Lineup card");
     if (c.state === "APPLIED") throw new ApiError(409, "LINEUP_ALREADY_APPLIED", "This card is already the match roster; change the roster there.");
     await this.db.tx(async (x) => {
       await x.query("UPDATE lineup_cards SET state = 'DISMISSED', decided_by = ?, decided_at = CURRENT_TIMESTAMP(6) WHERE id = ?", [p.userId, cardId]);
-      await recordChange(x, userActor(p), { action: "video.lineup_dismissed", entityType: "video", entityId: c.video_id, after: { card_id: cardId } });
+      await recordChange(x, userActor(p), { action: "video.lineup_dismissed", entityType: "video", entityId: c.video_id,
+        after: { card_id: cardId, reason: body.reason ?? null } });
     });
   }
 
@@ -195,5 +197,7 @@ export class LineupsController {
   @Post("lineup-cards/:id/dismiss")
   @HttpCode(204)
   @Roles(...PROJECT_WRITERS)
-  async dismiss(@Param("id") id: string, @CurrentPrincipal() p: Principal) { await this.lineups.dismiss(uuidParam(id, "Lineup card"), p); }
+  async dismiss(@Param("id") id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
+    await this.lineups.dismiss(uuidParam(id, "Lineup card"), DismissLineupCard.parse(body ?? {}), p);
+  }
 }

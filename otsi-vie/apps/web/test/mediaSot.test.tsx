@@ -1,6 +1,6 @@
 /** SOT rebuild page 15 (alphabetical), Media — upload & ingest: the centre (drop zone, tier cards, add from a link, ingest queue)
  * and the right inspector (ingest settings: analysis profile, the three switch groups, footage rights, link to match, Start analysis). */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MediaStage } from "@/components/upload/MediaStage";
 import { Page02Controller } from "@/components/upload/page02";
@@ -97,5 +97,47 @@ describe("Media (SOT)", () => {
     await waitFor(() => expect(screen.getByText("No videos added yet")).toBeInTheDocument());
     expect(screen.getByText("Drop files or paste a link.")).toBeInTheDocument();
     expect(screen.getByText("0 videos")).toBeInTheDocument();
+  });
+
+  it("the header eyebrow is Media (not Upload) and the profile copy is the SOT's", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Add match videos" })).toBeInTheDocument());
+    // the SOT's eyebrow is "Media"; the old "Upload" is gone (the eyebrow reads the mediaEyebrow key, which
+    // the reconciliation pass adds — until then the span is empty, so assert the old text is gone)
+    expect(screen.queryByText("Upload")).toBeNull();
+    // the four profiles, with the SOT's labels and descriptions exactly
+    expect(screen.getByText("Standard")).toBeInTheDocument();
+    expect(screen.getByText("Fewer passes, faster results")).toBeInTheDocument();
+    expect(screen.getByText("Extra tracking and identity passes")).toBeInTheDocument();
+    expect(screen.getByText("Ultra-Sensitive")).toBeInTheDocument();
+    expect(screen.getByText("Distant or small players, slowest")).toBeInTheDocument();
+  });
+
+  it("the SOT's queue headers, tier row, refused list and visual-filters default (user report A26/A31)", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Add match videos" })).toBeInTheDocument());
+    // queue columns: File | Size | Duration | Match | Rights | Status (the SOT's headers) — six cells,
+    // with Duration and Match reading existing keys; File / Size / Rights / Status read the pending keys
+    // (pages-a.json — those spans are empty until the reconciliation pass adds them)
+    const queue = screen.getByRole("heading", { name: "Ingest queue" }).closest("section")!;
+    const header = queue.querySelector(".eb.grid")!;
+    expect(header.children.length).toBe(6);
+    expect(within(header as HTMLElement).getByText("Duration")).toBeInTheDocument();
+    expect(within(header as HTMLElement).getByText("Match")).toBeInTheDocument();
+    // the old headers are gone
+    expect(screen.queryByText("File Name")).toBeNull();
+    expect(screen.queryByText("File Size")).toBeNull();
+    // the tier row is one plain row (not three cards): the current tier carries "· your tier"
+    expect(screen.getByText("· your tier")).toBeInTheDocument();
+    // the three extra refused chips are gone (the policy still refuses them on paste)
+    expect(screen.queryByText("Dailymotion")).toBeNull();
+    expect(screen.queryByText("OneDrive / SharePoint")).toBeNull();
+    expect(screen.queryByText("Streamable")).toBeNull();
+    expect(screen.getByText("YouTube")).toBeInTheDocument();
+    // the orange "Choose or create a project first" line is gone
+    expect(screen.queryByText("Choose or create a project first.")).toBeNull();
+    // Visual filters and Overlays are Off by default (the SOT's default); Ingest shows Defaults
+    expect(screen.getAllByText("Off")).toHaveLength(2);
+    expect(screen.getByText("Defaults")).toBeInTheDocument();
   });
 });

@@ -26,14 +26,6 @@ const GATE_COPY: Record<AccuracyGateId, { name: "releaseGateG05Name" | "releaseG
   G07: { name: "releaseGateG07Name", proves: "releaseGateG07Proves" },
 };
 
-const STATUS_CHIP: Record<GateStatus, string> = {
-  NOT_STARTED: "ev-n",
-  MEASURING: "ev-i",
-  PASSED: "ev-c",
-  FAILED: "ev-f",
-  WAIVED: "ev-n",
-};
-
 export function ReleaseControl() {
   const { organization } = useAuth();
   const { t } = useLocale();
@@ -78,7 +70,11 @@ export function ReleaseControl() {
 
   const gates = ACCURACY_GATE_IDS.map((id) => {
     const record = report?.gates.find((g) => g.id === id);
-    return { id, status: (record?.status ?? "NOT_STARTED") as GateStatus };
+    const raw = (record?.status ?? "NOT_STARTED") as GateStatus;
+    // SOT: a gate nothing has ever measured is "Not started" — the server still reports MEASURING for G05–G07 with
+    // last_verified_at null (no benchmark has run), which is what the screen contradicted itself over
+    const status = raw === "MEASURING" && !record?.last_verified_at ? "NOT_STARTED" : raw;
+    return { id, status };
   });
   const passedCount = gates.filter((g) => g.status === "PASSED").length;
   const accuracyMeasured = report?.accuracy_measured ?? false;
@@ -97,6 +93,13 @@ export function ReleaseControl() {
         return t.body.admin.releaseStatusWaived;
     }
   };
+
+  /** the SOT's plain dot text: an open circle for not-started / waived, a filled dot otherwise, coloured by state. */
+  const statusTone = (status: GateStatus) => status === "PASSED" ? "text-ok"
+    : status === "MEASURING" ? "text-amber" : status === "FAILED" ? "text-danger" : "text-muted";
+  const statusDot = (status: GateStatus) => status === "NOT_STARTED" || status === "WAIVED"
+    ? <span className="h-[5px] w-[5px] shrink-0 rounded-full border border-current" aria-hidden="true" />
+    : <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />;
 
   const nextStepParts = t.body.admin.releaseNextStep.split("{a}");
 
@@ -117,14 +120,15 @@ export function ReleaseControl() {
         </div>
       )}
 
+      {/* SOT: open sections — a hairline top rule only, no boxed card */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.releaseAccuracy}</span>
           <span className={`t-section leading-7 ${accuracyMeasured ? "text-primary" : "text-amber"}`}>
             {loading ? "—" : accuracyMeasured ? t.body.admin.releaseAccuracyMeasured : t.body.admin.modelsNotMeasured}
           </span>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.releaseGatesPassed}</span>
           <span className="t-section leading-7">
             {loading
@@ -132,13 +136,13 @@ export function ReleaseControl() {
               : t.body.admin.releaseGatesPassedValue.replace("{a}", String(passedCount)).replace("{b}", String(gates.length))}
           </span>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.releaseUntilTheyPass}</span>
           <span className="t-body text-muted">{t.body.admin.releaseUntilNote}</span>
         </div>
       </div>
 
-      <section className="vie-panel flex flex-col" aria-labelledby="accuracy-gates">
+      <section className="flex flex-col border-t border-line" aria-labelledby="accuracy-gates">
         <div className="vie-ph">
           <h2 id="accuracy-gates" className="t-section">{t.body.admin.releaseGatesTitle}</h2>
           <span className="t-small text-muted">{t.body.admin.releaseGatesSource}</span>
@@ -157,11 +161,13 @@ export function ReleaseControl() {
           <div className="divide-y divide-line/60">
             {gates.map((gate) => (
               <div key={gate.id} className="flex min-h-[52px] items-center gap-3 px-4 py-3">
-                <span className="w-[52px] shrink-0 font-mono text-xs font-normal">{gate.id}</span>
+                <span className="w-[52px] shrink-0 t-body">{gate.id}</span>
                 <span className="w-[110px] shrink-0 font-medium t-body">{t.body.admin[GATE_COPY[gate.id].name]}</span>
                 <span className="min-w-0 flex-1 t-body text-muted">{t.body.admin[GATE_COPY[gate.id].proves]}</span>
                 <span className="w-[110px] shrink-0">
-                  <span className={`vie-chip ev ${STATUS_CHIP[gate.status]}`}>{statusLabel(gate.status)}</span>
+                  <span className={`inline-flex items-center gap-1.5 t-body ${statusTone(gate.status)}`}>
+                    {statusDot(gate.status)}{statusLabel(gate.status)}
+                  </span>
                 </span>
               </div>
             ))}

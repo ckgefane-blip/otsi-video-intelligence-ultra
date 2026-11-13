@@ -42,6 +42,32 @@ describe("First run — owner setup (SOT)", () => {
     expect(screen.getByText("At least 12 characters. A passphrase works well.")).toBeInTheDocument();
   });
 
+  it("'First run' is plain text, not a chip, and the password toggle reads 'Show'", () => {
+    render(<SetupPage />);
+    const firstRun = screen.getByText("First run");
+    expect(firstRun.className).not.toContain("chip");
+    expect(firstRun.className).toContain("text-muted");
+    const show = screen.getByRole("button", { name: "Show password" });
+    expect(show).toHaveTextContent("Show");
+    expect(show).not.toHaveTextContent("Show password");
+  });
+
+  it("renders the four strength bars fully — a 3px row with four 3px bars — and fills them as the password strengthens", () => {
+    render(<SetupPage />);
+    const meter = document.querySelector("div.grid-cols-4");
+    expect(meter).not.toBeNull();
+    expect(meter!.className).toContain("h-[3px]");
+    const bars = meter!.querySelectorAll("span");
+    expect(bars).toHaveLength(4);
+    for (const bar of bars) {
+      expect(bar.className).toContain("h-[3px]");
+      expect(bar.className).toContain("block");
+      expect(bar.className).toContain("w-full");
+    }
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Str0ng!passphrase" } });
+    for (const bar of meter!.querySelectorAll("span")) expect(bar.className).toContain("bg-primary");
+  });
+
   it("creates the owner, signs them in and takes them to Home, where the welcome tour opens", async () => {
     setupOwner.mockResolvedValue(session);
     render(<SetupPage />);

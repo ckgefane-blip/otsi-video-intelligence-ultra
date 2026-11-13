@@ -26,6 +26,9 @@ export interface Config {
   localAuth?: LocalAuthConfig;
   /** media storage (Block 03); absent: uploads answer 503 STORAGE_NOT_CONFIGURED */
   storage?: StorageConfig;
+  /** the cache folder shown in Settings > Preferences (OTSI_VIE_CACHE_DIR); absent: the server has no cache folder
+   *  configured, so the page says so rather than showing a path that is not real */
+  cacheDir?: string;
   /** HMAC key of signed media URLs (playback); absent: a random key per process */
   mediaSigningKey?: string;
   /** base64 AES-256 key sealing users' provider access tokens until the worker uses them (shared with the worker) */
@@ -153,6 +156,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (cfg.storage.partBytes < 1024 * 1024 || cfg.storage.partBytes > 256 * 1024 * 1024) throw new Error("OTSI_VIE_UPLOAD_PART_BYTES must be 1 MiB - 256 MiB");
   }
   if (env.OTSI_VIE_MEDIA_SIGNING_KEY) cfg.mediaSigningKey = env.OTSI_VIE_MEDIA_SIGNING_KEY;
+  if (env.OTSI_VIE_CACHE_DIR) cfg.cacheDir = env.OTSI_VIE_CACHE_DIR;
   if (env.OTSI_VIE_CREDENTIAL_KEY) cfg.credentialKey = env.OTSI_VIE_CREDENTIAL_KEY;
   // AI Analyst (ADR-141): all three or none. A URL without a key or model fails at start-up rather than
   // half-configuring the feature; no URL at all means 'not configured' (the API answers 503, the UI says so).

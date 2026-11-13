@@ -84,7 +84,7 @@ describe("review comments on the timeline (E5)", () => {
 describe("editor map (E5)", () => {
   it("every shortcut is listed once; the layouts open real sections", () => {
     expect(new Set(SHORTCUTS.map((s) => s.keys)).size).toBe(SHORTCUTS.length);
-    for (const k of ["Space", "S", "Ctrl + Z", "I / O", "A / D / R", "J", "K", "L"]) expect(SHORTCUTS.some((s) => s.keys === k)).toBe(true);
+    for (const k of ["Space", "S", "Ctrl + Z", "I / P", "A / D / R", "J", "K", "L"]) expect(SHORTCUTS.some((s) => s.keys === k)).toBe(true);
     expect(LAYOUTS.COLOUR.open).toContain("look");
     expect(LAYOUTS.REVIEW.open).toContain("review");
   });

@@ -85,7 +85,8 @@ export function CentreVideo({ s }: { s: Shared }) {
   const engineBall = !!ws?.ball.path?.t.length;                // the engine's ball replaces the old per-frame ball boxes once it exists
   const shown = (ws?.visible ?? []).filter(({ o }) => (o.class_name === "BALL" ? layers?.ball && !engineBall : layers?.boxes && layers.people && (!teamGroups || teamGroups.has(kitOf(o, tracks) ?? -1))));
   const dur = video?.duration_us ?? null, t = ws?.timeUs ?? 0, p = dur ? Math.min(1, t / dur) : 0;
-  // A.9 (ADR-071): Space, J K L, one analysed frame (arrows) or one second (Shift + arrows) on the match video
+  // A.9 (ADR-071): Space, J K L, one analysed frame (arrows) or one second (Shift + arrows) on the match video.
+  // SOT rebuild (Video players): "," / "." step one analysed frame too, and "[" / "]" step the speed (0.5x / 1x / 1.5x / 2x).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -99,11 +100,19 @@ export function CentreVideo({ s }: { s: Shared }) {
         if (r.backUs) ws.seek(Math.max(0, t - r.backUs));
         if (r.play) { if (v.paused) void v.play(); setHint(dict.body.workspace.playingAt.replace("{a}", String(r.rate))); }
       } else if (!e.shiftKey && k === "i") { mk.markIn(); setHint(dict.body.workspace.inAtClock.replace("{a}", clock(t))); }
-      else if (!e.shiftKey && k === "o") { mk.markOut(); setHint(dict.body.workspace.outAtClock.replace("{a}", clock(t))); }
+      else if (!e.shiftKey && k === "p") { mk.markOut(); setHint(dict.body.workspace.outAtClock.replace("{a}", clock(t))); }
       else if (k === "arrowleft" || k === "arrowright") {
         v.pause();
         const d = (k === "arrowleft" ? -1 : 1) * (e.shiftKey ? 1_000_000 : ws.intervalUs);
         ws.seek(Math.max(0, Math.min(dur ?? Number.MAX_SAFE_INTEGER, t + d)));
+      } else if (k === "," || k === ".") {
+        // one analysed frame, the same step as an unshifted arrow (the SOT's frame step; P is mark-out here)
+        v.pause();
+        ws.seek(Math.max(0, Math.min(dur ?? Number.MAX_SAFE_INTEGER, t + (k === "," ? -1 : 1) * ws.intervalUs)));
+      } else if (k === "[" || k === "]") {
+        const SPEEDS = ["0.5", "1", "1.5", "2"];
+        const next = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + (k === "[" ? -1 : 1)))];
+        if (next && next !== speed) { setSpeed(next); setHint(dict.body.workspace.playingAt.replace("{a}", next)); }
       } else return;
       e.preventDefault();
     };

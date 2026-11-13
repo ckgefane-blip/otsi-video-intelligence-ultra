@@ -1,7 +1,7 @@
 "use client";
 /**
- * v3 Phase A.1 (S01, ADR-069): the persistent context bar Project ▸ Match ▸ Player under the navigation, on the work pages (Processing,
- * Analysis, Tactical, Reel Builder, Clip Studio, Player Report, Export). It names what the page is about, as recorded (GET /v1/context);
+ * v3 Phase A.1 (S01, ADR-069), SOT rebuild 2026-11-13: the persistent context bar Project ▸ Match ▸ Player in the top bar, on every
+ * shelled page (the SOT shows it on all 22). It names what the page is about, as recorded (GET /v1/context);
  * the navigation then opens the next page on the same match, player and reel. Click a chip to change it:
  *   Project  its matches (videos) are listed to choose from
  *   Match    the same page on that match; a reel page opens that match's reel (of the same player when there is one), or Analysis
@@ -115,8 +115,6 @@ export function ContextBar() {
       <Chip label={t.body.shell.ctxMatch} value={ctx?.video ? videoLabel(ctx.video) : null} empty={t.body.shell.ctxNoneOpen} open={menu === "match"} onClick={() => toggle("match")} testId="match" changeTitle={t.body.shell.ctxChange.replace("{a}", t.body.shell.ctxMatch)} />
       <span aria-hidden className="text-[rgb(var(--line2))]">/</span>
       <Chip label={t.body.shell.ctxPlayer} value={ctx?.player?.display_name ?? null} empty={ctx?.video ? t.body.shell.ctxNoneChosen : t.body.shell.ctxNonePlayer} open={menu === "player"} onClick={() => toggle("player")} testId="player" changeTitle={t.body.shell.ctxChange.replace("{a}", t.body.shell.ctxPlayer)} />
-      {ctx?.player?.canonical_otsi_id && <span className="font-mono text-muted" title={t.body.shell.ctxOtsiId}>{ctx.player.canonical_otsi_id}</span>}
-      {ctx?.reel && <span className="text-muted">{t.body.shell.ctxReel.replace("{a}", ctx.reel.name)}</span>}
       {note && <span role="status" className="ml-2 text-amber">{note}</span>}
 
       {menu && (

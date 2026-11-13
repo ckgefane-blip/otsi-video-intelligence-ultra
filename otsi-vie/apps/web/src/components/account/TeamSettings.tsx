@@ -5,7 +5,7 @@
  * enforced by the API (the screen only hides what the API would refuse). There is no mail service: the link is
  * copied, or handed to the person's own e-mail app with a ready message. The owner row can never be removed.
  */
-import { ROLE_SUMMARY, type CreatedInvitation, type Team, type TeamMember } from "@otsi-vie/contracts";
+import type { CreatedInvitation, Team, TeamMember } from "@otsi-vie/contracts";
 import { Check, Link2, Loader2, Mail, Trash2, User, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,6 +14,10 @@ import { api, ApiProblem } from "@/lib/api";
 
 const ROLES = ["OWNER", "ADMIN", "ANALYST", "EDITOR", "SCOUT", "VIEWER"] as const;
 type RoleName = (typeof ROLES)[number];
+/** SOT (Team.dc.html): an invite offers four roles — Analyst / Scout / Viewer / Admin. Owner and Editor are not
+ *  offered on an invite (open question: are they in scope for invites?); changing a member's role still offers
+ *  every role the API would grant (ROLES). */
+const INVITE_ROLES = ["ANALYST", "SCOUT", "VIEWER", "ADMIN"] as const;
 const roleLabel = (t: { body: { settings: Record<string, string> } }, r: string) => ({ OWNER: t.body.settings.roleOwner, ADMIN: t.body.settings.roleAdmin, ANALYST: t.body.settings.roleAnalyst, EDITOR: t.body.settings.roleEditor, SCOUT: t.body.settings.roleScout, VIEWER: t.body.settings.roleViewer } as Record<string, string>)[r] ?? (r.charAt(0) + r.slice(1).toLowerCase());
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 const msgOf = (t: { body: { settings: { unreachable: string } } }, x: unknown) => (x instanceof ApiProblem ? x.message : t.body.settings.unreachable);
@@ -36,6 +40,7 @@ export function TeamSettings() {
   const [busy, setBusy] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -54,7 +59,7 @@ export function TeamSettings() {
 
   async function invite(e: FormEvent) {
     e.preventDefault();
-    setBusy("invite"); setError(null); setCreated(null); setCopied(false);
+    setBusy("invite"); setError(null); setCreated(null); setCopied(false); setNotice(null);
     try {
       setCreated(await api<CreatedInvitation>("/v1/team/invitations", { method: "POST", json: { email, role } }));
       setEmail("");
@@ -68,6 +73,13 @@ export function TeamSettings() {
     catch (x) { setError(msgOf(t, x)); load(); } finally { setBusy(null); setConfirmRemove(null); }
   }
 
+  /** "Copy invite link" is enabled (SOT): with no invite created yet it says so instead of copying nothing */
+  function copyInviteLink() {
+    if (!created) { setNotice(s.stTeamCopyNeedsInvite); return; }
+    setNotice(null);
+    void navigator.clipboard.writeText(link).then(() => setCopied(true), () => setCopied(false));
+  }
+
   const link = created ? inviteLink(created.token) : "";
   const mail = created ? `mailto:${encodeURIComponent(created.invitation.email)}?subject=${encodeURIComponent(s.mailSubject.replace("{a}", organization?.organization_name ?? "us"))}&body=${encodeURIComponent(
     s.mailBody.replace("{a}", organization?.organization_name ?? "our organization").replace("{b}", roleLabel(t, created.invitation.role)).replace("{c}", link))}` : "";
@@ -76,8 +88,9 @@ export function TeamSettings() {
     <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-page="settings-team">
       <div className="flex flex-col gap-1.5"><span className="eb">{t.desktop.navSettings}</span><h1 className="h1">{s.stTeamTitle}</h1></div>
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
+      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
-      <section className="panel" aria-labelledby="iv">
+      <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="iv">
         <div className="ph"><h2 id="iv" className="h3">{s.stTeamInvite}</h2></div>
         <div className="pb">
           <form onSubmit={invite} className="flex flex-wrap items-end gap-2.5" data-invite-create>
@@ -85,21 +98,22 @@ export function TeamSettings() {
               <label className="lab" htmlFor="team-email">{s.stTeamEmail}</label>
               <input id="team-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="in" placeholder={s.emailPlaceholder} />
             </div>
-            <div className="field" style={{ flex: "1 1 160px" }}>
-              <label className="lab" htmlFor="team-role">{s.roleLabel}</label>
-              <select id="team-role" value={role} onChange={(e) => setRole(e.target.value as RoleName)} className="in" data-invite-role>
-                {grantable.map((r) => <option key={r} value={r}>{roleLabel(t, r)}</option>)}
-              </select>
+            <div className="field" style={{ flex: "1 1 220px" }}>
+              <span className="lab" id="team-role">{s.roleLabel}</span>
+              <div className="seg" role="group" aria-labelledby="team-role" data-invite-role>
+                {INVITE_ROLES.map((r) => (
+                  <button key={r} type="button" className={role === r ? "on" : ""} aria-pressed={role === r}
+                    onClick={() => setRole(r)}>{roleLabel(t, r)}</button>
+                ))}
+              </div>
             </div>
             <button type="submit" disabled={busy === "invite"} className="btn pri">
               {busy === "invite" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} {s.stTeamSendInvite}
             </button>
-            <button type="button" disabled={!created || busy === "invite"} className="btn"
-              onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied(true), () => setCopied(false))}>
+            <button type="button" disabled={busy === "invite"} className="btn" onClick={copyInviteLink}>
               {copied ? <Check className="h-4 w-4 text-ok" /> : <Link2 className="h-4 w-4" />} {copied ? s.copied : s.stTeamCopyInviteLink}
             </button>
           </form>
-          <p className="t-small mt-2">{s.roleSummaryLine.replace("{a}", roleLabel(t, role)).replace("{b}", ROLE_SUMMARY[role])}</p>
           {created && (
             <div className="mt-4 rounded-ctl border border-primary/50 bg-primary/10 p-3" data-invite-link>
               <p className="t-panel">{s.sendLink.replace("{a}", created.invitation.email)}</p>
@@ -113,13 +127,15 @@ export function TeamSettings() {
         </div>
       </section>
 
-      <section className="panel" aria-labelledby="mb">
+      <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="mb">
         <div className="ph"><h2 id="mb" className="h3">{s.members}</h2><span className="mu xs mono">{team ? team.members.length : "…"}</span></div>
         <div className={`eb ${grid} px-3.5 h-[34px] border-b border-line`}><span>{s.colName}</span><span>{s.stTeamEmail}</span><span>{s.roleLabel}</span><span /></div>
         {!team ? <p className="t-body p-4 text-muted" role="status">{s.loading}</p> : (
           <>
             {team.members.map((m) => (
-              <div key={m.user_id} className={`lr ${grid} px-3.5`} style={{ minHeight: 52 }} data-member={m.email}>
+              // a real grid row, not .lr: .lr is display:flex (unlayered) and beats the grid class, so the
+              // email, role and "Can't be removed" fell out of their columns
+              <div key={m.user_id} className={`${grid} border-b border-line px-3.5 last:border-b-0`} style={{ minHeight: 52 }} data-member={m.email}>
                 <span className="flex items-center gap-2.5">
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-raised text-muted">
                     <User className="h-4 w-4" aria-hidden />
@@ -161,7 +177,7 @@ export function TeamSettings() {
         )}
       </section>
 
-      <section className="panel flex flex-1 flex-col" aria-labelledby="pi">
+      <section className="flex min-w-0 flex-1 flex-col border-t border-line bg-transparent" aria-labelledby="pi">
         <div className="ph"><h2 id="pi" className="h3">{s.stTeamPending}</h2><span className="mu xs mono">{team ? team.invitations.length : "…"}</span></div>
         {!team ? <p className="t-body p-4 text-muted" role="status">{s.loading}</p> : team.invitations.length === 0 ? (
           <div className="empty flex-1">

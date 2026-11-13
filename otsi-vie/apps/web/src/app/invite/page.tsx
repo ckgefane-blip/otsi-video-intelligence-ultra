@@ -13,7 +13,7 @@
  *    for this tab only) and accepts with one click.
  */
 import type { InvitationPreview } from "@otsi-vie/contracts";
-import { Check, Loader2, UserPlus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -38,6 +38,9 @@ const forget = () => { try { sessionStorage.removeItem(KEEP); } catch { /* stora
 
 const field = "mt-1.5 h-10 w-full rounded-ctl border border-line2 bg-canvas px-3 t-body text-ink outline-none focus:border-primary";
 const alert = "mt-3 rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger";
+
+/** a dictionary key the reconciliation pass has not added yet (sot-rebuild-i18n/pages-d.json): read it when present, English until then. */
+const pendingKey = (dict: Record<string, string | undefined>, key: string, fallback: string) => dict[key] ?? fallback;
 
 export default function InvitePage() {
   const { t } = useLocale();
@@ -133,9 +136,9 @@ export default function InvitePage() {
               <h2 className="t-page">{t.body.auth.join.replace("{a}", inv.organization_name)}</h2>
               <p className="t-body text-ink2">
                 {(() => {
-                  // SOT: the role is a chip ("invited you as [Role]"), not plain text inside the sentence
+                  // SOT: the role is plain small text inside the sentence (the SOT's non-ev chip renders without border, background or padding)
                   const parts = t.body.auth.inviteIntro.replace("{a}", inv.invited_by).split("{b}");
-                  return (<>{parts[0]}<span className="chip" style={{ height: 22 }}>{roleLabel(t, inv.role)}</span>{parts[1]}</>);
+                  return (<>{parts[0]}<span className="t-small">{roleLabel(t, inv.role)}</span>{parts[1]}</>);
                 })()}
               </p>
             </div>
@@ -144,7 +147,7 @@ export default function InvitePage() {
               signedInAs === inv.email ? (
                 <button type="button" onClick={() => void join()} disabled={busy} data-invite-join
                   className="vie-btn vie-btn-pri vie-btn-lg w-full">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {t.body.auth.acceptOpen.replace("{a}", inv.organization_name)}
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {t.body.auth.acceptOpen.replace("{a}", inv.organization_name)}
                 </button>
               ) : (
                 <div>
@@ -173,13 +176,16 @@ export default function InvitePage() {
                     <input id="password" type={showPassword ? "text" : "password"} required minLength={12} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${field} pr-16`} />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
                       className="vie-btn vie-btn-sm absolute right-1 top-[5px] h-[30px] border-transparent bg-transparent text-ink2 hover:bg-raised">
-                      {showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
+                      {showPassword
+                        ? pendingKey(t.body.auth as unknown as Record<string, string | undefined>, "hidePasswordShort", "Hide")
+                        : pendingKey(t.body.auth as unknown as Record<string, string | undefined>, "showPasswordShort", "Show")}
                     </button>
                   </div>
                   <span className="t-small">{t.body.auth.invitePasswordHint}</span>
                 </div>
+                {/* SOT: the submit button carries no icon */}
                 <button type="submit" disabled={busy} className="vie-btn vie-btn-pri vie-btn-lg w-full">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} {t.body.auth.inviteAcceptCreate}
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {t.body.auth.inviteAcceptCreate}
                 </button>
               </form>
             )}

@@ -2,7 +2,7 @@
 /**
  * v3 Phase B.4 (ADR-083): the Analysis player's tools beyond play / pause.
  *   useOverlayOpacity  how strongly each overlay is drawn (boxes and IDs, pitch layers, ball), remembered in this browser
- *   useMarks           In and Out marks (I / O keys or the buttons) and Loop: with both marks, playback returns to In at Out
+ *   useMarks           In and Out marks (I / P keys or the buttons) and Loop: with both marks, playback returns to In at Out
  *   zoomOrigin         the zoom follows the selected player while he is on screen, else the picture's centre
  *   SnapshotDialog     B.5: a full-resolution still of the frame at the playhead, made by the SNAPSHOT job, with only the boxes recorded there
  */

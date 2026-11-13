@@ -27,8 +27,11 @@ export type LicenceClaims = z.infer<typeof LicenceClaims>;
 
 /** GET /v1/licence: the snapshot the token is built from. `valid_until` is the active subscription's period
  *  end (null on the free tier — no subscription, no expiry); `grace_until` is `valid_until` plus the offline
- *  grace (ADR-144 §1.5, OTSI_VIE_LICENCE_GRACE_DAYS, default 14 days), also null on the free tier. */
-export const LicenceSnapshot = LicenceClaims.extend({
+ *  grace (ADR-144 §1.5, OTSI_VIE_LICENCE_GRACE_DAYS, default 14 days), also null on the free tier.
+ *  The snapshot has NO `expires_at`: that instant belongs to the signed licence token (LicenceClaims /
+ *  LicenceRefreshResponse), not to the snapshot — the server used to require it here, so GET /v1/licence
+ *  always failed validation with 422 "expires_at: Required" (reconciliation 2026-11-13). */
+export const LicenceSnapshot = LicenceClaims.omit({ expires_at: true }).extend({
   valid_until: z.string().nullable(),
   grace_until: z.string().nullable(),
 });

@@ -70,12 +70,18 @@ export interface WorkspacePlayerProps {
   /** B.4 overlay opacity (boxes, pitch layers, ball), from the settings menu */
   op?: { boxes: number; pitch: number; ball: number } | undefined;
   className?: string;
+  /** SOT empty state: the transport bar below the picture, in the empty state too */
+  emptyTransport?: boolean;
+  /** with no workspace / a failed playback read, show the empty state ("No playable footage" + "Open local footage")
+   *  instead of "Loading the video…" forever; pages still fetching keep their loading state */
+  emptyWhenIdle?: boolean;
 }
 
-export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, pitchLayers = false, ballRing = false, ballBoxes = "engine", minimap = false, zoom = "1", op = { boxes: 1, pitch: 1, ball: 1 }, className = "" }: WorkspacePlayerProps) {
+export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, pitchLayers = false, ballRing = false, ballBoxes = "engine", minimap = false, zoom = "1", op = { boxes: 1, pitch: 1, ball: 1 }, className = "", emptyTransport = false, emptyWhenIdle = false }: WorkspacePlayerProps) {
   const { t: dict } = useLocale();
   const [pitchNote, setPitchNote] = useState<string | null>(null);
-  const url = ws?.playback?.available ? ws.playback.url : ws?.playback ? null : undefined;
+  const rawUrl = ws?.playback?.available ? ws.playback.url : ws?.playback ? null : undefined;
+  const url = emptyWhenIdle && rawUrl === undefined && (ws === null || !!ws.error) ? null : rawUrl;
   const video = ws?.video ?? null;
   const W = video?.width ?? 1920, H = video?.height ?? 1080;
   const tracks = new Map((ws?.tracks ?? []).map((t) => [t.track_id, t]));
@@ -100,6 +106,8 @@ export function WorkspacePlayer({ ws, teamGroups = null, layers, byTeam = true, 
           src={url}
           label={video ? (video.title ?? video.original_filename ?? dict.body.processing.matchVideo) : dict.body.processing.matchVideo}
           allowLocal
+          emptyTransport={emptyTransport}
+          empty={{ title: dict.desktop.noPlayableTitle, body: dict.desktop.noPlayableBody }}
           aspect={`${W} / ${H}`}
           className={className}
           // SOT: the shared player hands its <video> straight to the workspace (no DOM query) and the B.4 zoom applies to

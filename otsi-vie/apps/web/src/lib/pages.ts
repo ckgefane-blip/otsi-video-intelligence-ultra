@@ -55,7 +55,7 @@ export const PAGES: Record<PageId, PageDef> = {
     },
   },
   2: {
-    id: 2, href: "/upload", label: "Upload", subtitle: "Bring your football footage into OTSI VIE. Ingest, probe and prepare it for analysis.",
+    id: 2, href: "/upload", label: "Media", subtitle: "Bring your football footage into OTSI VIE. Ingest, probe and prepare it for analysis.",
     columns: "minmax(220px,260px) minmax(0,1fr) minmax(280px,400px)",
     areas: ["s2 s1 s8", "s3 s5 s8", "s3 s6 s9", "s4 s7 s9", "s4 s10 s9"],
     block: 3, visibleHeading: true,
@@ -133,27 +133,28 @@ export function sectionState(id: PageId, n: number): SectionState {
 }
 
 /**
- * Navigation as in the approved header (owner directive 2026-10-28, corrected Page 01 reference): ten fixed destinations in this order.
+ * Navigation as in the SOT rail (owner directive 2026-10-28, corrected Page 01 reference; SOT rebuild 2026-11-13): eleven fixed
+ * destinations in this order, all shown always — the SOT has no Guided-mode gating (Tactical, Clip Studio and Admin are shown in
+ * every mode; whether Guided mode itself stays is an open owner decision).
  * `match` decides which one is current; nested pages belong to their area (a video's processing / analysis / tactics, a player's report,
  * the Matches tab of the Library).
  */
-/** `advanced: true` (formerly `pro: true`): offered only in the Advanced interface (lib/interfaceMode.tsx). */
-export const NAV: { label: string; href: string; match: RegExp; advanced?: true }[] = [
+export const NAV: { label: string; href: string; match: RegExp }[] = [
   { label: "Home", href: "/dashboard", match: /^\/dashboard/ },
-  { label: "Upload", href: "/upload", match: /^\/upload/ },
+  { label: "Media", href: "/upload", match: /^\/upload/ },
   { label: "Processing", href: "/processing", match: /^\/(processing|videos\/[^/]+\/processing)/ },
   { label: "Analysis", href: "/analysis", match: /^\/(analysis|videos\/[^/]+\/analyze)/ },
-  { label: "Tactical", href: "/tactics", match: /^\/(tactics|videos\/[^/]+\/tactics)/, advanced: true },
+  { label: "Tactical", href: "/tactics", match: /^\/(tactics|videos\/[^/]+\/tactics)/ },
   { label: "Players", href: "/players", match: /^\/players/ },
-  { label: "Reel Builder", href: "/reels", match: /^\/reels/ },
-  { label: "Clip Studio", href: "/studio", match: /^\/studio/, advanced: true },
-  { label: "Player Report", href: "/reports", match: /^\/reports/ },
+  { label: "Reports", href: "/reports", match: /^\/reports/ },
+  { label: "Reels", href: "/reels", match: /^\/reels/ },
+  { label: "Clip Studio", href: "/studio", match: /^\/studio/ },
   { label: "Library", href: "/library", match: /^\/(library|matches)/ },
   { label: "Export", href: "/exports", match: /^\/exports/ },
 ];
 
-export interface NavItem { label: string; href: string; active: boolean; advanced?: true }
+export interface NavItem { label: string; href: string; active: boolean }
 
 export function navItems(pathname: string): NavItem[] {
-  return NAV.map((n) => ({ label: n.label, href: n.href, active: n.match.test(pathname), ...(n.advanced ? { advanced: true as const } : {}) }));
+  return NAV.map((n) => ({ label: n.label, href: n.href, active: n.match.test(pathname) }));
 }

@@ -38,11 +38,12 @@ const team = {
 };
 const walletBalance = { organization_id: ORG, balance: 10, spendable_balance: 10, expired_unwritten_off: 0, low_balance: true };
 
-function mockApi() {
+function mockApi(settings?: { library_folder?: string | null; cache_folder?: string | null } | null, licenceOk = true) {
   api.mockImplementation((url: string) => {
-    if (url === "/v1/licence") return Promise.resolve(licence);
+    if (url === "/v1/licence") return licenceOk ? Promise.resolve(licence) : Promise.reject(new Error("no licence yet"));
     if (url === "/v1/team") return Promise.resolve(team);
     if (url === "/v1/me/two-step") return Promise.resolve({ enabled: false, recovery_codes_left: 10 });
+    if (url === "/v1/settings/storage") return settings === undefined ? Promise.reject(new Error("no settings yet")) : Promise.resolve(settings);
     if (url === "/v1/wallet") return Promise.resolve(walletBalance);
     if (url === "/v1/wallet/ledger?limit=100") return Promise.resolve({ balance: walletBalance, entries: [] });
     if (url === "/v1/wallet/packs") return Promise.resolve(tokenPackCatalogue());
@@ -58,8 +59,13 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
   it("shows the side nav and the four panels, with the SOT defaults", async () => {
     mockApi();
     render(<PreferencesView />);
-    // the licence chip and the Status row both show the licence line (free tier: no expiry)
-    await waitFor(() => expect(screen.getAllByText("Free tier, no expiry")).toHaveLength(2));
+    // the licence header shows the licence line as plain text with a dot; the Status row shows it bare
+    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
+    expect(screen.getByText("Free tier, no expiry")).toBeInTheDocument();
+    // the grace period reads "[n] days" when the licence carries no dates, not "—"
+    expect(screen.getByText("[n] days")).toBeInTheDocument();
+    // "Release notes" is a button, not a link
+    expect(screen.getByRole("button", { name: "Release notes" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
     expect(screen.getByText("Appearance & language")).toBeInTheDocument();
     expect(screen.getByLabelText("Language")).toHaveValue("en");
@@ -76,12 +82,39 @@ describe("Settings — Preferences (SOT, Page 21)", () => {
     expect(screen.getByText("Licence & updates")).toBeInTheDocument();
     expect(screen.getByText("Storage on this computer")).toBeInTheDocument();
     expect(screen.getByText("Data stays on this computer unless exported or shared.")).toBeInTheDocument();
+    expect(screen.getByText("v[—]")).toBeInTheDocument();
+  });
+
+  it("with no licence from the server the status reads • Not verified", async () => {
+    mockApi(undefined, false);
+    render(<PreferencesView />);
+    await waitFor(() => expect(screen.getByText("• Not verified")).toBeInTheDocument());
+    expect(screen.getByText("Not verified")).toBeInTheDocument();
+  });
+
+  it("shows the storage folders from GET /v1/settings/storage and enables Change… when a path is present", async () => {
+    mockApi({ library_folder: "C:\\OTSI\\Library", cache_folder: "C:\\OTSI\\Cache" });
+    render(<PreferencesView />);
+    await waitFor(() => expect(screen.getByDisplayValue("C:\\OTSI\\Library")).toBeInTheDocument());
+    expect(screen.getByDisplayValue("C:\\OTSI\\Cache")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change…" })).toBeEnabled();
+    // the storage endpoint is read-only: Change… says the folder is set by the launcher
+    fireEvent.click(screen.getByRole("button", { name: "Change…" }));
+    expect(screen.getByText("The library folder is set by the launcher on this computer.")).toBeInTheDocument();
+  });
+
+  it("with no paths from the server shows — and Change… stays disabled", async () => {
+    mockApi(null);
+    render(<PreferencesView />);
+    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
+    expect(screen.getAllByDisplayValue("—")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Change…" })).toBeDisabled();
   });
 
   it("flipping a notification switch saves it and un-flipping restores the default", async () => {
     mockApi();
     render(<PreferencesView />);
-    await waitFor(() => expect(screen.getAllByText("Free tier, no expiry")).toHaveLength(2));
+    await waitFor(() => expect(screen.getByText("• Free tier, no expiry")).toBeInTheDocument());
     const team = screen.getByRole("switch", { name: "Team changes" });
     fireEvent.click(team);
     expect(team).toHaveAttribute("aria-checked", "true");
@@ -99,10 +132,24 @@ describe("Settings — Team (SOT, Page 23)", () => {
     expect(screen.getByRole("heading", { name: "Team" })).toBeInTheDocument();
     expect(screen.getByText("Invite a member")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toHaveAttribute("placeholder", "name@club.com");
+    // SOT (Team.dc.html): the invite Role is a seg with exactly four options — Analyst / Scout / Viewer /
+    // Admin. Owner and Editor are not offered on an invite (open question: are they in scope?).
+    const roleSeg = screen.getByRole("group", { name: "Role" });
+    expect(within(roleSeg).getAllByRole("button").map((b) => b.textContent)).toEqual(["Analyst", "Scout", "Viewer", "Admin"]);
+    expect(within(roleSeg).queryByText("Owner")).toBeNull();
+    expect(within(roleSeg).queryByText("Editor")).toBeNull();
     expect(screen.getByRole("button", { name: "Send invite" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeDisabled();
+    // "Copy invite link" is enabled (SOT): with no invite yet it says so instead of copying nothing
+    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+    expect(screen.getByText("Send an invite first — the link appears here after the invite is created.")).toBeInTheDocument();
+    // the extra Analyst helper line under the form is gone (the SOT has none)
+    expect(screen.queryByText(/Analyst:/)).toBeNull();
     expect(screen.getByText("Members")).toBeInTheDocument();
     const ownerRow = screen.getByText("Karo").closest("[data-member]") as HTMLElement;
+    // the member row is a real grid row, not a flex .lr: email, role and "Can't be removed" sit in their columns
+    expect(ownerRow.classList.contains("grid")).toBe(true);
+    expect(ownerRow.classList.contains("lr")).toBe(false);
     expect(within(ownerRow).getByText("You")).toBeInTheDocument();
     expect(within(ownerRow).getByText("Owner")).toBeInTheDocument();
     expect(within(ownerRow).getByText("Can't be removed")).toBeInTheDocument();
@@ -114,13 +161,15 @@ describe("Settings — Team (SOT, Page 23)", () => {
 });
 
 describe("Settings — Security (SOT, Page 22)", () => {
-  it("shows the two-step panel with its steps and the passkeys panel with the biometric switch", async () => {
+  it("shows the two-step panel with its steps and the passkeys panel with the biometric switch and Register this device", async () => {
     mockApi();
     render(<SecurityView />);
     await waitFor(() => expect(screen.getByText("No passkeys yet")).toBeInTheDocument());
     expect(screen.getByRole("heading", { name: "Security" })).toBeInTheDocument();
     const twoStep = screen.getByText("Two-step authentication").closest("section")!;
-    expect(within(twoStep).getByText("Off")).toBeInTheDocument();
+    // "Off" is plain text with a dot, not a chip (SOT §B)
+    expect(within(twoStep).getByText("• Off")).toBeInTheDocument();
+    expect(twoStep.querySelector(".chip")).toBeNull();
     expect(within(twoStep).getByText("A 6-digit code from an authenticator app after your password.")).toBeInTheDocument();
     expect(within(twoStep).getByText("Scan the QR code with your authenticator app.")).toBeInTheDocument();
     expect(within(twoStep).getByText("Enter the code it shows to confirm.")).toBeInTheDocument();
@@ -128,11 +177,15 @@ describe("Settings — Security (SOT, Page 22)", () => {
     expect(within(twoStep).getByRole("button", { name: "Enable two-step" })).toBeInTheDocument();
     expect(within(twoStep).getByText("Recovery codes")).toBeInTheDocument();
     expect(within(twoStep).getByText("Shown once, after enabling")).toBeInTheDocument();
-    expect(within(twoStep).getAllByText("•••• ••••")).toHaveLength(8);
+    // SOT (Security.dc.html line 88): FOUR masked spans, not 8 — the ab88053 change to 8 was backwards
+    expect(within(twoStep).getAllByText("•••• ••••")).toHaveLength(4);
     const passkeys = screen.getByText("Passkeys").closest("section")!;
     expect(within(passkeys).getByText("Windows Hello")).toBeInTheDocument();
     expect(within(passkeys).getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "false");
     expect(within(passkeys).getByText("Sign in with Windows Hello on this computer.")).toBeInTheDocument();
+    // the SOT's passkeys section has no extra intro line and has the "Register this device" button
+    expect(within(passkeys).queryByText(/Use Windows Hello \(fingerprint/)).toBeNull();
+    expect(within(passkeys).getByRole("button", { name: "Register this device" })).toBeInTheDocument();
   });
 
   it("the two-step panel opens the password form from Enable two-step", async () => {
@@ -176,6 +229,15 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
     expect(screen.getByText("No ledger entries yet")).toBeInTheDocument();
     expect(screen.getByText("Grants, purchases and spends appear here.")).toBeInTheDocument();
+    // SOT: no "N tokens can be spent now" line, no amber low-balance box, and the pack cards show only
+    // "[n] tokens / ₦[price] / Request" — no pack names and no extra paragraph
+    expect(screen.queryByText(/tokens can be spent now/)).toBeNull();
+    expect(screen.queryByText(/Low balance/)).toBeNull();
+    for (const name of ["Starter", "Club", "Academy", "Season"]) expect(screen.queryByText(name)).toBeNull();
+    expect(screen.queryByText(/Request a pack and the owner issues an invoice/)).toBeNull();
+    // "One-time" is plain text, not a chip; the free grant is an open section, not a highlighted panel
+    expect(screen.getByText("One-time")).toBeInTheDocument();
+    expect(document.querySelector(".chip")).toBeNull();
   });
 
   it("switching the currency seg reprices the packs in dollars", async () => {

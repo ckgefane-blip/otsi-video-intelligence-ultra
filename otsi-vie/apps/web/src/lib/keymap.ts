@@ -1,13 +1,19 @@
 /**
  * v3 Phase A.9 (S14, ADR-071): the keyboard map, one table for the whole app. The "?" map (components/shell/KeyboardMap.tsx) lists it,
  * the current page first, and the tests check it; each key is handled where its tool lives:
- *   Everywhere   Ctrl/Cmd + K (CommandPalette), Ctrl/Cmd + J (Jobs Center), ? (KeyboardMap)
- *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing; StudioHeader: undo / redo; DualTimeline: snapshot / apply Cut B
- *   Analysis     CentreVideo: playback, J K L, frames; WhoIsThis: N, the next possible moment of the reel's player
+ *   Everywhere   Ctrl/Cmd + K (CommandPalette), Ctrl/Cmd + J (Jobs Center), Ctrl/Cmd + , (Settings), ? (KeyboardMap)
+ *   Clip Studio  Preview: playback, J K L, marks, draw; Timeline: editing (S split, B blade, V select); StudioHeader: undo / redo
+ *   Analysis     CentreVideo: playback, J K L, frames, speed; AnalysisRight: C confirm, E correct, X reject identity; CentreVideo: M marker
  *   Reel Builder ReelStage: undo / redo
  *   Player Reports ReportStage: [ / ] move between report sections
  *   Library LibraryMain: [ / ] move between asset tabs
  *   Export ExportStage: [ / ] switch between the Reel and Scouting Pack export types
+ *
+ * SOT rebuild (Shortcuts.dc.html): every row the SOT lists is wired — Settings (Ctrl/Cmd ,), Confirm / Correct / Reject (C / E / X),
+ * frame step (, .) and speed ([ ]) on the video players, Open local footage (O) on VideoPlayer, Blade (B) and Select (V) on the
+ * Studio timeline. Mark in / out is I / P (the SOT's keys; the Studio and Analysis use them). The old
+ * DualTimeline B / Shift + B (snapshot / apply Cut B) have no key any more: that panel is not mounted anywhere, so the keys did
+ * nothing; B is the Blade tool now.
  */
 export type KeyScope = "everywhere" | "studio" | "analysis" | "reels" | "reports" | "library" | "exports";
 export interface Shortcut { keys: string; does: string; group: "Play" | "Edit" | "Mark" | "Draw" | "Name" | "App" | "Compare" }
@@ -24,6 +30,7 @@ const JKL: Shortcut[] = [
 export const EVERYWHERE_KEYS: Shortcut[] = [
   { keys: "Ctrl + K", does: "Search matches, players, reels and projects, or run a command", group: "App" },
   { keys: "Ctrl + J", does: "Open the Jobs Center", group: "App" },
+  { keys: "Ctrl + ,", does: "Open Settings", group: "App" },
   { keys: "?", does: "Show the keyboard map", group: "App" },
   { keys: "Escape", does: "Close a dialog or menu", group: "App" },
 ];
@@ -41,9 +48,9 @@ export const STUDIO_KEYS: Shortcut[] = [
   { keys: "Ctrl + Z", does: "Undo", group: "Edit" },
   { keys: "Ctrl + Shift + Z or Ctrl + Y", does: "Redo", group: "Edit" },
   { keys: "M", does: "Add a marker at the playhead", group: "Mark" },
-  { keys: "B", does: "Snapshot the active cut as Cut B (dual timeline)", group: "Compare" },
-  { keys: "Shift + B", does: "Apply Cut B to the active reel (dual timeline)", group: "Compare" },
-  { keys: "I / O", does: "Mark the in / out of a previewed Media Bin moment", group: "Mark" },
+  { keys: "B", does: "Blade tool (split where you click)", group: "Edit" },
+  { keys: "V", does: "Select tool", group: "Edit" },
+  { keys: "I / P", does: "Mark the in / out of a previewed Media Bin moment", group: "Mark" },
   { keys: "Alt + X", does: "Clear the in / out marks", group: "Mark" },
   { keys: "A / D / R", does: "Draw an arrow / line / circle on the preview", group: "Draw" },
   { keys: "Escape", does: "Stop drawing (or cancel a trim drag)", group: "Draw" },
@@ -54,7 +61,12 @@ export const ANALYSIS_KEYS: Shortcut[] = [
   ...JKL,
   { keys: "← / →", does: "One analysed frame back / forward", group: "Play" },
   { keys: "Shift + ← / →", does: "One second back / forward", group: "Play" },
+  { keys: ", / .", does: "One analysed frame back / forward", group: "Play" },
+  { keys: "[ / ]", does: "Slower / faster", group: "Play" },
   { keys: "N", does: "\"Is this him?\": the next possible moment of the reel's player (same as Can't tell)", group: "Name" },
+  { keys: "C", does: "Confirm identity", group: "Name" },
+  { keys: "E", does: "Correct identity", group: "Name" },
+  { keys: "X", does: "Reject identity", group: "Name" },
 ];
 
 /** Reel Builder: the same undo / redo keys as Clip Studio, for the reel's own History (the Undo / Redo buttons in Suggested Key Moments) */

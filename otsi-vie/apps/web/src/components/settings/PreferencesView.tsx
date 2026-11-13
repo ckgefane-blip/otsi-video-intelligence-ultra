@@ -5,11 +5,16 @@
  * app-wide locale, scale zooms the whole shell, mode hides the advanced screens in Guided); the notification
  * switches are stored in this browser and the bell filters by them; the licence is read live from
  * GET /v1/licence and "Check for updates" refreshes it (POST /v1/licence/refresh). The library and cache
- * folders are on this computer but the server does not expose their paths to the web app, so they read "—" and
- * Change is disabled; Clear cache clears the browser's own cache storage for this app.
+ * folders are on this computer: the server reports them from GET /v1/settings/storage (StorageFolders:
+ * library_folder / cache_folder, either null when not configured — the page says so rather than showing a path
+ * that is not real). The storage endpoint is READ-ONLY by design (the API's settings.ts: changing a folder is
+ * a launcher/desktop concern, not an API write), so Change… is enabled when a path is present and says plainly
+ * that the folder is set by the launcher; there is no save to wire until a write path exists. Clear cache
+ * clears the browser's own cache storage for this app. Language stays the SOT's <select> (Preferences.dc.html
+ * line 79) — the "6 buttons" note in the brief does not match the SOT file; see the rebuild report.
  */
-import type { LicenceRefreshResponse, LicenceSnapshot } from "@otsi-vie/contracts";
-import Link from "next/link";
+import type { LicenceRefreshResponse, LicenceSnapshot, StorageFolders } from "@otsi-vie/contracts";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, useLocale, type Locale } from "@/lib/i18n";
@@ -23,13 +28,16 @@ const graceDays = (lic: LicenceSnapshot | null): string | null => {
   return Number.isFinite(d) && d > 0 ? String(d) : null;
 };
 
+/** GET /v1/settings/storage: the storage folders on this computer (StorageFolders from the contracts) */
 export function PreferencesView() {
   const { t, locale, setLocale } = useLocale();
+  const router = useRouter();
   const s = t.body.settings;
   const { mode, setMode } = useInterfaceMode();
   const { scale, setScale } = useInterfaceScale();
   const { prefs, setPref } = useNotificationPrefs();
   const [lic, setLic] = useState<LicenceSnapshot | null | undefined>(undefined);
+  const [paths, setPaths] = useState<StorageFolders | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,6 +46,16 @@ export function PreferencesView() {
     void api<LicenceSnapshot>("/v1/licence").then(setLic, () => setLic(null));
   }, []);
   useEffect(loadLicence, [loadLicence]);
+  const loadPaths = useCallback(() => {
+    void api<StorageFolders>("/v1/settings/storage").then(setPaths, () => setPaths(null));
+  }, []);
+  useEffect(loadPaths, [loadPaths]);
+
+  /** Change… has no API write behind it (the storage endpoint is read-only): say where the folder is set */
+  function changeLibraryPath() {
+    setError(null);
+    setNotice(s.stPrefFolderLauncher);
+  }
 
   async function checkUpdates() {
     setBusy(true); setError(null); setNotice(null);
@@ -84,7 +102,7 @@ export function PreferencesView() {
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
 
       <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(380px,1fr))]">
-        <section className="panel" aria-labelledby="ap">
+        <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="ap">
           <div className="ph"><h2 id="ap" className="h3">{s.stPrefAppearance}</h2></div>
           <div className="pb flex flex-col gap-4">
             <div className="field">
@@ -117,7 +135,7 @@ export function PreferencesView() {
           </div>
         </section>
 
-        <section className="panel" aria-labelledby="nt">
+        <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="nt">
           <div className="ph"><h2 id="nt" className="h3">{s.stPrefNotifications}</h2><span className="mu sm">{s.stPrefInAppBell}</span></div>
           <ul>
             {rows.map((r) => (
@@ -131,41 +149,42 @@ export function PreferencesView() {
         </section>
       </div>
 
-      <div className="grid flex-1 items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(380px,1fr))]">
-        <section className="panel flex flex-col" aria-labelledby="lc">
+      <div className="grid flex-1 gap-4 [grid-template-columns:repeat(auto-fit,minmax(380px,1fr))]">
+        <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="lc">
           <div className="ph"><h2 id="lc" className="h3">{s.stPrefLicence}</h2>
-            <span className="chip ev ev-i">{licenceLine}</span>
+            <span className="t-small text-muted">• {licenceLine}</span>
           </div>
           <div className="pb flex flex-1 flex-col gap-3.5">
             <dl className="kv">
               <dt>{s.stPrefLicenceStatus}</dt><dd>{licenceLine}</dd>
               <dt>{s.stPrefLicenceIssuedBy}</dt><dd>{s.stPrefLicenceIssuer}</dd>
               <dt>{s.stPrefLicenceChecked}</dt><dd>{s.stPrefLicenceCheckedWhen}</dd>
-              <dt>{s.stPrefLicenceGrace}</dt><dd>{grace ? s.stPrefLicenceGraceDays.replace("{a}", grace) : "—"}</dd>
-              <dt>{s.stPrefLicenceVersion}</dt><dd className="mono">v—</dd>
+              <dt>{s.stPrefLicenceGrace}</dt><dd>{grace ? s.stPrefLicenceGraceDays.replace("{a}", grace) : s.stPrefLicenceGraceDays.replace("{a}", "[n]")}</dd>
+              <dt>{s.stPrefLicenceVersion}</dt><dd className="mono">v[—]</dd>
             </dl>
             <p className="hint">{s.stPrefLicenceOffline}</p>
             <div className="mt-auto flex gap-2">
               <button className="btn sm" type="button" disabled={busy} onClick={() => void checkUpdates()}>{s.stPrefCheckUpdates}</button>
-              <Link href="/settings/admin/release" className="btn sm gh">{s.stPrefReleaseNotes}</Link>
+              <button className="btn sm gh" type="button" onClick={() => router.push("/settings/admin/release")}>{s.stPrefReleaseNotes}</button>
             </div>
           </div>
         </section>
 
-        <section className="panel flex flex-col" aria-labelledby="st">
+        <section className="flex min-w-0 flex-col border-t border-line bg-transparent" aria-labelledby="st">
           <div className="ph"><h2 id="st" className="h3">{s.stPrefStorage}</h2></div>
           <div className="pb flex flex-1 flex-col gap-3.5">
             <div className="field">
               <label className="lab" htmlFor="pref-lib">{s.stPrefLibraryFolder}</label>
               <div className="flex gap-2">
-                <input id="pref-lib" className="in mono" style={{ fontSize: 12 }} value="—" readOnly />
-                <button className="btn" type="button" disabled title={s.stPrefChangeFolderTitle}>{s.stPrefChange}</button>
+                <input id="pref-lib" className="in mono" style={{ fontSize: 12 }} value={paths?.library_folder ?? "—"} readOnly />
+                <button className="btn" type="button" disabled={!paths?.library_folder || busy} title={s.stPrefChangeFolderTitle}
+                  onClick={changeLibraryPath}>{s.stPrefChange}</button>
               </div>
             </div>
             <div className="field">
               <label className="lab" htmlFor="pref-cache">{s.stPrefCacheFolder}</label>
               <div className="flex gap-2">
-                <input id="pref-cache" className="in mono" style={{ fontSize: 12 }} value="—" readOnly />
+                <input id="pref-cache" className="in mono" style={{ fontSize: 12 }} value={paths?.cache_folder ?? "—"} readOnly />
                 <button className="btn" type="button" disabled={busy} onClick={() => void clearCache()}>{s.stPrefClearCache}</button>
               </div>
             </div>

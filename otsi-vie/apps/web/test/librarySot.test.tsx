@@ -1,6 +1,6 @@
 /** SOT rebuild page 14 (alphabetical), Library: the three-column SOT layout — the left panel (Match + overlays + team + time),
  * the centre (header, the selected video, search and the items table) and the right inspector (Collections + Folders + Smart bins). */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LibraryStage } from "@/components/library/LibraryStage";
 
@@ -100,5 +100,30 @@ describe("Library (SOT)", () => {
     for (const label of ["Move", "Tag", "Access", "Export", "Delete"]) {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
     }
+  });
+
+  it("the Match block is a title button (not a select), with no Open in Analysis, Home/Away team filters and a working Custom Range", async () => {
+    render(<LibraryStage />);
+    await waitFor(() => expect(screen.getAllByText("Nart vs Ercakhu").length).toBeGreaterThan(0));
+    // the SOT's title button with a chevron, opening the match menu — the left panel has no <select>
+    expect(screen.getByRole("button", { name: "Nart vs Ercakhu" })).toBeInTheDocument();
+    const left = screen.getByRole("complementary", { name: "Match context of the selected asset" });
+    expect(within(left).queryByRole("combobox")).toBeNull();
+    // the SOT has no "Open in Analysis" link and no linked chip
+    expect(screen.queryByText("Open in Analysis")).toBeNull();
+    expect(screen.queryByText("Linked to a match")).toBeNull();
+    // team filter is Home team / Away team, never the team names
+    expect(screen.getByRole("radio", { name: "Home team" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Away team" })).toBeInTheDocument();
+    // Custom Range is selectable (a video is selected) and shows the start / end inputs
+    const custom = screen.getByRole("radio", { name: "Custom Range" });
+    expect(custom).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(custom);
+    expect(custom).toHaveAttribute("aria-checked", "true");
+    expect(screen.getAllByPlaceholderText("00:00")).toHaveLength(2);
+    // "Match time: confirmed" is plain text with a dot (SOT §B), not a pill chip — and no chip at all in the left column
+    const matchTime = screen.getByText(/Match time: confirmed/);
+    expect(matchTime.className).not.toContain("chip");
+    expect(left.querySelector(".chip")).toBeNull();
   });
 });

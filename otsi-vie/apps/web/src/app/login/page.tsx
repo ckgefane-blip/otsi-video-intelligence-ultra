@@ -1,15 +1,15 @@
 "use client";
 /**
- * Sign in (SOT Page 27): the two-column sign-in. Left: the pitch and the promise — every player tracked under
- * one OTSI PIN, every number measured, video work stays on this computer. Right: the sign-in form and, beside
- * it, the "next step" panel for two-step sign-in. The panel is the SOT's preview until a challenge arrives:
- * the 6 boxes and Verify are disabled until the password is accepted and two-step asks for a code, then they
- * become the code entry. "Use a recovery code instead" swaps the boxes for one recovery-code field; the code
- * and the recovery code both go through signInWithCode. There is no self-service forgot-password flow
- * (ADR-143): "Forgot password?" says so plainly.
+ * Sign in (SOT Page 27): the brand panel on the left; on the right the sign-in form, top-aligned, with the
+ * "next step" panel for two-step sign-in BELOW the form (the SOT's layout — the card is not beside the form).
+ * The panel is the SOT's preview until a challenge arrives: the 6 boxes and Verify are disabled until the
+ * password is accepted and two-step asks for a code, then they become the code entry. "Use a recovery code
+ * instead" swaps the boxes for one recovery-code field; the code and the recovery code both go through
+ * signInWithCode. There is no self-service forgot-password flow (ADR-143): "Forgot password?" says so plainly.
+ * The buttons carry no icons (the SOT has none); a spinner shows only while a press is busy.
  */
 import type { MfaChallenge } from "@otsi-vie/contracts";
-import { Eye, EyeOff, Fingerprint, KeyRound, Loader2, LogIn } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
@@ -123,6 +123,9 @@ function LoginForm() {
   }
 
   async function passkeySignIn() {
+    // the SOT shows the button unconditionally: on a machine where passkeys do not work (Windows Hello
+    // unavailable) the button is still there and says so when pressed, instead of hiding
+    if (passkeySupported === false) { setError(t.webauthn.passkeyUnavailable); return; }
     if (!email.trim()) { setError(t.webauthn.passkeyNeedEmail); return; }
     setPasskeyBusy(true);
     setError(null);
@@ -157,11 +160,11 @@ function LoginForm() {
         <PitchDiagram />
         <div className="relative flex flex-wrap gap-[22px] sm mu">
           <span className="inline-flex items-center gap-2"><span className="led ok" aria-hidden />{t.body.auth.inviteVideoLocal}</span>
-          <span className="mono">v—</span>
+          <span className="mono">v[—]</span>
         </div>
       </div>
 
-      <main className="flex min-w-0 flex-1 basis-[560px] flex-wrap items-center justify-center gap-7 px-8 py-10">
+      <main className="flex min-w-0 flex-1 basis-[560px] flex-col items-center justify-start gap-7 px-8 py-10">
         <form onSubmit={submit} className="flex w-full max-w-[380px] flex-col gap-[18px]" aria-labelledby="si">
           <div className="flex flex-col gap-1.5"><span className="eb">{t.body.auth.signInWelcome}</span><h2 id="si" className="h1">{t.body.auth.signIn}</h2></div>
           <div className="field">
@@ -172,40 +175,40 @@ function LoginForm() {
           <div className="field">
             <div className="flex justify-between">
               <label className="lab" htmlFor="p">{t.body.auth.password}</label>
-              <button type="button" className="sm text-primary hover:underline" onClick={() => setShowForgot((v) => !v)}>{t.body.auth.signInForgot}</button>
+              {/* SOT: a link, not a button. There is no self-service reset (ADR-143, user decision pending):
+                  the link explains that instead of starting a reset flow. */}
+              <a href="#" className="sm text-primary hover:underline" onClick={(e) => { e.preventDefault(); setShowForgot((v) => !v); }}>{t.body.auth.signInForgot}</a>
             </div>
             <div className="relative">
               <input id="p" className="in" type={showPassword ? "text" : "password"} autoComplete="current-password" style={{ height: 40, paddingRight: 64 }}
                 required value={password} disabled={!!challenge} onChange={(e) => setPassword(e.target.value)} />
               <button type="button" className="btn sm gh absolute right-1 top-[5px] h-[30px]" aria-label={showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
                 aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>
-                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}{showPassword ? t.body.auth.hidePassword : t.body.auth.showPassword}
+                {showPassword ? (t.body.auth.hideShort ?? t.body.auth.hidePassword) : (t.body.auth.showShort ?? t.body.auth.showPassword)}
               </button>
             </div>
             {showForgot && <p className="hint mt-1.5">{t.body.auth.signInForgotNote}</p>}
           </div>
           {error && <p role="alert" className={alert}>{error}</p>}
           <button className="btn pri lg w" type="submit" disabled={busy || !!challenge}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} {t.body.auth.signIn}
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}{t.body.auth.signIn}
           </button>
-          {passkeySupported === true && (
-            <>
-              <div className="flex items-center gap-3 sm mu" aria-hidden="true"><span className="div flex-1" />{t.webauthn.passkeyOr}<span className="div flex-1" /></div>
-              <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy || !!challenge} className="btn lg w">
-                {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
-                {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskeyShort}
-                <span className="mu sm ml-1">{t.webauthn.windowsHello}</span>
-              </button>
-            </>
-          )}
-          {passkeySupported === false && <p className="t-small">{t.webauthn.passkeyUnavailable}</p>}
+          {/* SOT: the passkey button is always shown. Where passkeys do not work (Windows Hello unavailable)
+              the press itself says so (passkeySignIn), instead of the button hiding. */}
+          <div className="flex items-center gap-3 sm mu" aria-hidden="true"><span className="div flex-1" />{t.webauthn.passkeyOr}<span className="div flex-1" /></div>
+          <button type="button" onClick={passkeySignIn} disabled={busy || passkeyBusy || !!challenge} className="btn lg w">
+            {passkeyBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {passkeyBusy ? t.webauthn.passkeyWaiting : t.webauthn.signInWithPasskeyShort}
+            <span className="mu sm ml-1">{t.webauthn.windowsHello}</span>
+          </button>
           <p className="sm mu text-center">{t.body.auth.signInInvitedBy} <Link href="/invite" className="text-primary hover:underline">{t.body.auth.signInAcceptInvite}</Link></p>
           {challenge && (
             <button type="button" onClick={startAgain} className="t-small w-full text-center underline">{t.body.auth.startAgain}</button>
           )}
         </form>
 
-        <section className="panel flex w-full max-w-[340px] flex-col gap-4 p-[22px]" aria-labelledby="ts" data-two-step-panel>
+        {/* the two-step card sits BELOW the form (SOT), as a flat open section, not a boxed panel beside it */}
+        <section className="flex min-w-0 w-full max-w-[340px] flex-col gap-4 border-t border-line bg-transparent p-[22px]" aria-labelledby="ts" data-two-step-panel>
           <span className="eb">{t.body.auth.signInNextStep}</span>
           <h2 id="ts" className="h2">{t.body.auth.signInVerifyCode}</h2>
           <p className="sm sub">{t.body.auth.signInCodeDesc}</p>
@@ -222,7 +225,7 @@ function LoginForm() {
             )}
             {codeError && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{codeError}</p>}
             <button className="btn pri w" type="submit" disabled={!challenge || codeBusy || !codeReady}>
-              {codeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} {t.body.auth.signInVerify}
+              {codeBusy && <Loader2 className="h-4 w-4 animate-spin" />}{t.body.auth.signInVerify}
             </button>
           </form>
           <button type="button" className="sm text-center text-primary hover:underline"

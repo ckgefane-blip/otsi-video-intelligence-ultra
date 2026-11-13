@@ -6,13 +6,15 @@
  * from the Reel Builder hook (useReel, ADR-035), so the studio and the
  * Reel Builder edit the same saved reel. Opened without one, it opens
  * the most recently edited reel; with no reels at all the sections show
- * the empty state and the Media Bin offers the reel chooser. The layout
+ * the empty state and the Media Bin's footer links to the Reel Builder
+ * (the reel chooser also opens from the preview's Play with no reel). The layout
  * is the SOT's: a top row (Media Bin | centre with the telestration bar
  * over the preview | inspector) and the four-lane timeline at the
  * bottom. There is no header here — the undo / redo shortcuts
  * (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y) live in this file. The preview is
- * the working compositor (its own transport, spotlight, zoom and
- * drawings); the SOT's simpler control bar is not a replacement for it.
+ * the working compositor (spotlight, zoom and drawings) with the SOT's
+ * own control bar: play, back and forward one second, time, seek,
+ * speed, fullscreen, and "Open local footage" when there is no footage.
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Reel } from "@otsi-vie/contracts";
@@ -87,7 +89,7 @@ function Sections({ r }: { r: ReelState | null }) {
   return (
     <div className="flex h-full w-full flex-col" data-stage="studio" data-page="studio">
       <div className="flex min-h-0 flex-1">
-        <MediaBin r={r} st={st} onPick={() => setPicking(true)} say={ui.say} binTab={binTab} setBinTab={setBinTab} />
+        <MediaBin r={r} st={st} say={ui.say} binTab={binTab} setBinTab={setBinTab} />
         <main className="flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto bg-canvas p-2.5">
           <TelestrationBar st={st} ui={ui} />
           <Preview st={st} ui={ui} />

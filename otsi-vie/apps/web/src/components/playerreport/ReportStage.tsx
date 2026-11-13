@@ -2,7 +2,7 @@
 /**
  * Page 08 Player Report — SOT UI rebuild Page 17 of 31 (Report.dc.html).
  *
- * The SOT's page: a header (photo, name, OTSI PIN chip, "Identity confirmed" chip, "#4 · DM · FC Ercakhu · Nigeria · 2 videos analysed",
+ * The SOT's page: a header (photo, name, OTSI PIN, "Identity confirmed", "#4 · DM · FC Ercakhu · Nigeria · 2 videos analysed",
  * Edit profile / Add to dossier / Share link / Create report · 10 tokens), ten tabs (Overview / Attacking / Passing / Defensive /
  * Heatmaps / Events / Compare / Scouting / Clips / Notes & tags), and the Overview tab's body: stat tiles (On camera, Events, Confirmed
  * tracks, Evidence coverage, Goals, Assists, Recent form), a Heatmap panel, an Events panel, and a right sidebar (AI Analyst brief,
@@ -18,7 +18,7 @@ import type { AiAnalystAssessment, AiAnalystProviderStatus, PlayerAssessment, Pl
 import { ListOrdered, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiProblem } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
@@ -83,10 +83,12 @@ function PlayerPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   );
 }
 
-/** the seven stat tiles of the Overview tab, from the measures and the events read */
+/** the seven stat tiles of the Overview tab, from the measures and the events read; with no player chosen the tiles show
+ *  honest empty values ("—"), never "Loading…" — nothing is being read then */
 function StatTiles({ r, ev }: { r: Report; ev: PlayerEvents | null | undefined }) {
   const { t: dict } = useLocale();
   const m = r.measures;
+  const noPlayer = !r.player;
   const minutes = m && m.seen_s > 0 ? `${Math.round(m.seen_s / 60)} min` : null;
   const eventsCount = ev?.items.length ?? null;
   const goals = ev ? ev.items.filter((e) => e.kind === "GOAL").length : null;
@@ -101,12 +103,12 @@ function StatTiles({ r, ev }: { r: Report; ev: PlayerEvents | null | undefined }
     [dict.body.reports.rpRecentForm, null, true],
   ];
   return (
-    <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
       {tiles.map(([label, value, notMeasured]) => (
-        <div key={label} className="vie-panel p-2.5 px-3.5">
+        <div key={label} className="border-t border-line pt-2">
           <p className="t-small">{label}</p>
           {value === null && !notMeasured ? (
-            <p className="mt-1 t-metric text-muted">{r.measuresFailed || ev === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading}</p>
+            <p className="mt-1 t-metric text-muted">{noPlayer ? "—" : r.measuresFailed || ev === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading}</p>
           ) : notMeasured ? (
             <p className="mt-1 t-metric text-muted italic">{dict.body.reports.notMeasured}</p>
           ) : (
@@ -134,8 +136,8 @@ function OverviewHeatmap({ r }: { r: Report }) {
   const heat = range === "full" ? r.measures?.heat ?? null : m?.heat ?? null;
   const loading = range !== "full" && m === undefined;
   return (
-    <section aria-label={dict.body.reports.heatmap} className="vie-panel flex-[1_1_340px]">
-      <div className="vie-ph">
+    <section aria-label={dict.body.reports.heatmap} className="flex min-w-0 flex-[1_1_340px] flex-col border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{dict.body.reports.heatmap}</h2>
         <div className="seg" role="tablist" aria-label={dict.body.reports.heatRangeLabel}>
           {([["full", dict.body.reports.rpMatch], ["h1", dict.body.reports.rpFirstHalf], ["h2", dict.body.reports.rpSecondHalf]] as const).map(([v, l]) => (
@@ -143,7 +145,7 @@ function OverviewHeatmap({ r }: { r: Report }) {
           ))}
         </div>
       </div>
-      <div className="relative p-3">
+      <div className="relative flex-1 py-1">
         {heat ? (
           <div className="aspect-[105/68] w-full"><HeatPitch zones={heat} label={dict.body.reports.heatmap} /></div>
         ) : (
@@ -156,7 +158,7 @@ function OverviewHeatmap({ r }: { r: Report }) {
               <rect x={1.5} y={13.84} width={16.5} height={40.32} fill="none" stroke="#2A3A31" strokeWidth={0.4} />
               <rect x={87} y={13.84} width={16.5} height={40.32} fill="none" stroke="#2A3A31" strokeWidth={0.4} />
             </svg>
-            <p className="absolute inset-0 grid place-items-center"><span className="vie-chip ev ev-n">{loading ? dict.common.loading : dict.body.reports.notMeasured}</span></p>
+            <p className="absolute inset-0 grid place-items-center"><span className="t-small text-muted">• {loading ? dict.common.loading : dict.body.reports.notMeasured}</span></p>
           </div>
         )}
       </div>
@@ -170,10 +172,10 @@ function OverviewEvents({ r, ev }: { r: Report; ev: PlayerEvents | null | undefi
   const count = ev?.items.length ?? null;
   const videos = r.measures?.videos ?? ev?.videos ?? 0;
   return (
-    <section aria-label={dict.body.reports.rpEvents} className="vie-panel flex flex-[1_1_300px] flex-col">
-      <div className="vie-ph">
+    <section aria-label={dict.body.reports.rpEvents} className="flex min-w-0 flex-[1_1_300px] flex-col border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{dict.body.reports.rpEvents}</h2>
-        <span className="t-small">{count === null ? (ev === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading) : dict.body.reports.rpEventsAcross.replace("{a}", String(count)).replace("{b}", String(videos))}</span>
+        <span className="t-small">{count === null ? (!r.player ? "—" : ev === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading) : dict.body.reports.rpEventsAcross.replace("{a}", String(count)).replace("{b}", String(videos))}</span>
       </div>
       <div className="empty flex-1">
         <span className="ei"><ListOrdered className="h-5 w-5" aria-hidden /></span>
@@ -216,32 +218,36 @@ function AiBriefPanel({ r }: { r: Report }) {
   const generate = () => id && act(() => api<AiAnalystAssessment>(`/v1/players/${id}/ai-analysis`, { method: "POST", json: { language: locale, consent_acknowledged: true, regenerate: !!a } }));
   const publish = () => id && a && act(() => api<AiAnalystAssessment>(`/v1/players/${id}/ai-analysis/${a.id}/publish`, { method: "POST", json: {} }));
   return (
-    <section aria-label={dict.body.reports.rpAiBrief} className="vie-panel">
-      <div className="vie-ph">
+    <section aria-label={dict.body.reports.rpAiBrief} className="min-w-0 border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{dict.body.reports.rpAiBrief}</h2>
-        <span className="vie-chip ev ev-n">{!a ? dict.body.reports.rpNotGenerated : a.status === "PUBLISHED" ? dict.body.aiAnalyst.published : dict.body.aiAnalyst.draft}</span>
+        <span className="t-small text-muted"><span className={a?.status === "PUBLISHED" ? "text-primary" : "text-muted"} aria-hidden>•</span> {!a ? dict.body.reports.rpNotGenerated : a.status === "PUBLISHED" ? dict.body.aiAnalyst.published : dict.body.aiAnalyst.draft}</span>
       </div>
-      <div className="flex flex-col gap-2.5 p-3.5">
-        <ol className="flex list-none gap-1.5 p-0">
+      <div className="flex flex-col gap-2.5 py-1">
+        <ol className="m-0 flex list-none items-center gap-2 p-0">
           {[dict.body.reports.rpDraft, dict.body.reports.rpReviewed, dict.body.reports.rpPublished].map((l, i) => (
-            <li key={l} className={`rounded-ctl border px-2 py-1 text-xs ${step === i + 1 ? "border-[#4A525D] bg-raised text-ink" : "border-line text-muted"}`}>{l}</li>
+            <Fragment key={l}>
+              {i > 0 && <span aria-hidden className="h-px min-w-4 flex-1 bg-line2" />}
+              <li aria-current={step === i + 1 ? "step" : undefined} className={`whitespace-nowrap text-xs ${step === i + 1 ? "text-ink" : "text-muted"}`}>{l}</li>
+            </Fragment>
           ))}
         </ol>
         <p className="t-small">{dict.body.reports.rpMeasuredOnly}</p>
-        {status === null ? <p role="alert" className="t-body text-danger">{dict.body.aiAnalyst.notConfigured}</p>
-          : !status?.configured ? <p className="t-body text-muted">{dict.body.aiAnalyst.notConfigured}</p>
-          : r.can.assess ? (
-            <>
-              <label className="flex items-start gap-2 t-body text-muted">
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
-                <span>{dict.body.reports.rpConsent}</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" disabled={busy || !consent} onClick={generate} className="vie-btn vie-btn-pri">{dict.body.reports.rpGenerateBrief}</button>
-                <button type="button" disabled={busy || !a || a.status !== "DRAFT"} onClick={publish} className="vie-btn">{dict.body.reports.rpPublishBrief}</button>
-              </div>
-            </>
-          ) : <p className="t-body text-muted">{dict.body.reports.cannotWriteAssessments}</p>}
+        {id && status === undefined && <p className="t-body text-muted">{dict.common.loading}</p>}
+        {status === null && <p role="alert" className="t-body text-danger">{dict.body.aiAnalyst.notConfigured}</p>}
+        {status !== undefined && status !== null && !status.configured && <p className="t-body text-muted">{dict.body.aiAnalyst.notConfigured}</p>}
+        {r.can.assess ? (
+          <>
+            <label className="flex items-start gap-2 t-body text-muted">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+              <span>{dict.body.reports.rpConsent}</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" disabled={busy || !id || !consent} onClick={generate} className="vie-btn vie-btn-pri">{dict.body.reports.rpGenerateBrief}</button>
+              <button type="button" disabled={busy || !a || a.status !== "DRAFT"} onClick={publish} className="vie-btn">{dict.body.reports.rpPublishBrief}</button>
+            </div>
+          </>
+        ) : <p className="t-body text-muted">{dict.body.reports.cannotWriteAssessments}</p>}
         <p className="t-small">{dict.body.reports.rpReviewToPublish}</p>
         {err && <p role="alert" className="t-body text-danger">{err}</p>}
       </div>
@@ -263,13 +269,13 @@ function ClipsPanel({ r }: { r: Report }) {
   }, [id]);
   const count = reels?.length ?? null;
   return (
-    <section aria-label={dict.body.reports.rpClips} className="vie-panel">
-      <div className="vie-ph">
+    <section aria-label={dict.body.reports.rpClips} className="min-w-0 border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{dict.body.reports.rpClips}</h2>
         <Link href="/reels" className="t-small text-primary hover:underline">{dict.body.reports.rpReelBuilder}</Link>
       </div>
-      <div className="flex flex-col gap-1 p-3.5">
-        <span className="t-section">{count === null ? (reels === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading) : count === 1 ? dict.body.reports.rpReelGenerated : dict.body.reports.rpReelsGenerated.replace("{a}", String(count))}</span>
+      <div className="flex flex-col gap-1 py-1">
+        <span className="t-section">{count === null ? (!id ? "—" : reels === null ? dict.body.reports.couldNotBeLoaded : dict.common.loading) : count === 1 ? dict.body.reports.rpReelGenerated : dict.body.reports.rpReelsGenerated.replace("{a}", String(count))}</span>
         <span className="t-small">{dict.body.reports.rpOpenInReelBuilder}</span>
       </div>
     </section>
@@ -280,15 +286,15 @@ function ClipsPanel({ r }: { r: Report }) {
 function NotesTagsPanel({ r }: { r: Report }) {
   const { t: dict } = useLocale();
   return (
-    <section aria-label={dict.body.reports.rpNotesTags} className="vie-panel flex flex-1 flex-col">
-      <div className="vie-ph">
+    <section aria-label={dict.body.reports.rpNotesTags} className="flex min-w-0 flex-1 flex-col border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{dict.body.reports.rpNotesTags}</h2>
         <span className="t-small">{dict.body.reports.rpPrivateOrg}</span>
       </div>
-      <div className="flex flex-1 flex-col gap-2.5 p-3.5">
-        <textarea aria-label={dict.body.reports.rpAddNote} placeholder={dict.body.reports.rpAddNote} readOnly rows={3}
+      <div className="flex flex-1 flex-col gap-2.5 py-1">
+        <textarea aria-label={dict.body.reports.rpAddNote} placeholder={dict.body.reports.rpAddNote} readOnly rows={6}
           onClick={() => (r.player ? r.open("notes") : r.pick())}
-          className="in min-h-[60px] flex-1 cursor-pointer resize-none" />
+          className="in min-h-[140px] flex-1 cursor-pointer resize-none" />
         <button type="button" onClick={() => (r.player ? r.open("notes") : r.pick())}
           className="self-start rounded-ctl border border-dashed border-line2 px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-primary">{dict.body.reports.rpAddTag}</button>
       </div>
@@ -393,9 +399,9 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="t-page">{p?.display_name ?? dict.body.reports.noPlayerSelected}</h1>
-              {p?.canonical_otsi_id && <span className="rounded-ctl border border-primary/50 px-2 py-0.5 font-mono text-xs text-primary">{p.canonical_otsi_id}</span>}
-              {p?.canonical_otsi_id && <span className="vie-chip ev ev-c">{dict.body.reports.rpIdentityConfirmed}</span>}
-              {p && !p.canonical_otsi_id && <span className="vie-chip ev ev-n">{dict.body.reports.provisionalPlayer}</span>}
+              {p?.canonical_otsi_id && <span className="rounded-ctl border border-primary/50 px-2 py-0.5 text-xs text-primary">{p.canonical_otsi_id}</span>}
+              {p?.canonical_otsi_id && <span className="t-small text-muted"><span className="text-primary" aria-hidden>•</span> {dict.body.reports.rpIdentityConfirmed}</span>}
+              {p && !p.canonical_otsi_id && <span className="t-small text-muted">• {dict.body.reports.provisionalPlayer}</span>}
             </div>
             {sub && <p className="mt-0.5 truncate t-small">{sub}</p>}
             {missing && <p role="alert" className="mt-1 t-body text-danger">{missing}</p>}
@@ -415,13 +421,14 @@ export function ReportStage({ playerRef }: { playerRef?: string }) {
             onClick={() => setTabAndFocus(t)} className={`tab ${tab === t ? "on" : ""}`}>{TAB_LABEL(dict)[t]}</button>
         ))}
       </div>
-      {/* body */}
-      <div className="flex flex-wrap gap-3.5 overflow-auto p-3.5 px-7">
+      {/* body: the overview's main column and sidebar stretch to the page height, so the Heatmap / Events panels
+          and the sidebar's last panel run full height */}
+      <div className="flex min-h-0 flex-1 flex-wrap items-stretch gap-3.5 overflow-auto p-3.5 px-7">
         {tab === "overview" ? (
           <>
             <main className="flex min-w-0 flex-[2_1_600px] flex-col gap-3.5">
               <StatTiles r={r} ev={ev} />
-              <div className="flex flex-wrap gap-3.5">
+              <div className="flex flex-1 flex-wrap items-stretch gap-3.5">
                 <OverviewHeatmap r={r} />
                 <OverviewEvents r={r} ev={ev} />
               </div>

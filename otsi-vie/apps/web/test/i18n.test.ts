@@ -65,7 +65,7 @@ describe("dictionaries (ADR-139)", () => {
   it("a locale that does not translate a key falls back to the English string", () => {
     const merged = mergeDictionary(en, { nav: { home: "Главная" } });
     expect(merged.nav.home).toBe("Главная");
-    expect(merged.nav.upload).toBe("Upload");
+    expect(merged.nav.upload).toBe("Media");
     expect(merged.pages.home.subtitle).toBe(en.pages.home.subtitle);
   });
 
@@ -444,6 +444,7 @@ describe("dictionaries (ADR-139)", () => {
       "body.workspace.trackLabel",
       "body.workspace.zoomLabel",
       "nav.export",
+      "nav.reels",                        // SOT rebuild (2026-11-13): "Reels" is the product name, the same in es/de/fr
       "pages.exports.title",
       "pages.reels.title",
       "webauthn.passkeysTitle",
@@ -568,6 +569,11 @@ describe("dictionaries (ADR-139)", () => {
       "body.auth.code",
       "body.auth.inviteTitle",
       "body.auth.setupEmailPh",            // the email placeholder, the same in every language
+      // SOT rebuild reconciliation (2026-11-13): German "Start" and "Status"
+      // are the same words as English; Spanish keeps "Embedding".
+      "body.library.rangeCustomStart",
+      "body.upload.mdQueueStatus",
+      "body.admin.modelTaskEmbed",
     ]);
     for (const locale of ["ru", "es", "de", "fr"] as const) {
       const dict = getDictionary(locale);
@@ -634,20 +640,22 @@ describe("page bodies (ADR-139 follow-up)", () => {
 
   it("covers the in-scope page groups, with the expected key counts", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
-    expect(bodyKeys("home").length).toBe(125);
+    // SOT rebuild reconciliation (2026-11-13): +2 home, +5 studio, +2 library,
+    // +1 players, +5 upload, +1 tactics, +8 admin, +2 settings, +9 shell.
+    expect(bodyKeys("home").length).toBe(127);
     expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(276);
-    expect(bodyKeys("studio").length).toBe(776);
+    expect(bodyKeys("studio").length).toBe(781);
     expect(bodyKeys("reports").length).toBe(386);
-    expect(bodyKeys("library").length).toBe(696);
+    expect(bodyKeys("library").length).toBe(698);
     expect(bodyKeys("exports").length).toBe(90);
-    expect(bodyKeys("players").length).toBe(148);
+    expect(bodyKeys("players").length).toBe(149);
     expect(bodyKeys("matches").length).toBe(108);
-    expect(bodyKeys("upload").length).toBe(485);
+    expect(bodyKeys("upload").length).toBe(490);
     expect(bodyKeys("processing").length).toBe(325);
     // Group B (2026-11-11): Tactical Intelligence + workspace shell.
     // SOT UI rebuild Pages 29-31 (2026-11-12): +34 tactics keys.
-    expect(bodyKeys("tactics").length).toBe(206);
+    expect(bodyKeys("tactics").length).toBe(207);
     expect(bodyKeys("workspace").length).toBe(730);
     // Group C (2026-11-11): Reel Builder + Export pages.
     expect(bodyKeys("reelstage").length).toBe(443);
@@ -655,12 +663,14 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // Group E (2026-11-11): Admin + Settings + Wallet + Shell + Auth, and
     // the Home extension (KPI cards, capability tiles, hero metrics, hero
     // player card, review inbox, active jobs).
-    expect(bodyKeys("admin").length).toBe(274);
-    expect(bodyKeys("settings").length).toBe(139);
+    expect(bodyKeys("admin").length).toBe(282);
+    expect(bodyKeys("settings").length).toBe(141);
     expect(bodyKeys("wallet").length).toBe(129);
-    expect(bodyKeys("shell").length).toBe(282);
+    expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
-    expect(bodyKeys("auth").length).toBe(145);
+    // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org
+    // wording, Show/Hide short labels, password Show/Hide).
+    expect(bodyKeys("auth").length).toBe(151);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

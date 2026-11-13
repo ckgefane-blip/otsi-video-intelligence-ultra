@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { RequireSession } from "@/components/auth/RequireSession";
 import { WelcomeTour } from "@/components/auth/Onboarding";
-import { AccuracyBanner } from "@/components/evidence/AccuracyBanner";
 import { AdvancedGuard } from "@/components/shell/AdvancedGuard";
 import { AppMain } from "@/components/shell/AppMain";
 import { AppRail } from "@/components/shell/AppRail";
@@ -12,11 +11,13 @@ import { InterfaceModeProvider } from "@/lib/interfaceMode";
 import { InterfaceScaleProvider } from "@/lib/interfaceScale";
 import { UiModeProvider } from "@/lib/uiMode";
 
-/** Every app page, Desktop UI shell (owner, 2026-11-11): the collapsible left rail, then a column of the top bar (work context, search,
- *  notifications, Jobs Center, shortcuts, account), the accuracy banner while the gates are open (ADR-063), the page for a signed-in
- *  member only, and the status bar. The locale (ADR-139) wraps it all; the per-page Guided/Advanced setting (ADR-072, UiModeProvider)
- *  is unchanged, and the browser-wide interface mode (InterfaceModeProvider) hides the Advanced screens in Guided. AppHeader stays in
- *  the repo, unused here. */
+/** Every app page, Desktop UI shell (owner, 2026-11-11; SOT rebuild 2026-11-13): the left rail (fixed 240 / 64 px), then a column of
+ *  the top bar (work context on every shelled page, search, token counter, theme, Jobs Center, bell, shortcuts, account), the
+ *  page for a signed-in member only, and the status bar. (The SOT's slim accuracy line lives on the Home page only —
+ *  AccuracyBanner, rendered by HomeStage — not here: the SOT has no accuracy line on Analysis, Tactical, Reels,
+ *  Clip Studio or Library.) The locale
+ *  (ADR-139) wraps it all; the per-page Guided/Advanced setting (ADR-072, UiModeProvider) is unchanged, and the browser-wide
+ *  interface mode (InterfaceModeProvider) hides the Advanced screens in Guided. */
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <LocaleProvider>
@@ -27,7 +28,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <AppRail />
             <div className="vie-main">
               <AppTopBar />
-              <AccuracyBanner />
               <AppMain>
                 <RequireSession><AdvancedGuard>{children}</AdvancedGuard></RequireSession>
               </AppMain>

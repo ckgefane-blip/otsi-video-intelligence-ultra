@@ -84,8 +84,8 @@ function RailInner({ r }: { r: Report }) {
   const on = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
   return (
     <aside aria-label="Report sections" data-section="p08-s02" className="w-full shrink-0 lg:w-60">
-      <div className="vie-panel lg:sticky lg:top-4">
-        <div className="vie-ph"><h2 className="t-panel">{dict.body.reports.reportTitle}</h2></div>
+      <div className="min-w-0 border-t border-line pt-3 lg:sticky lg:top-4">
+        <div className="flex items-center justify-between gap-2 pb-1"><h2 className="t-panel">{dict.body.reports.reportTitle}</h2></div>
         <nav aria-label="Report sections" className="flex flex-col gap-0.5 p-2">
           {RAIL.map(([l, , ,], i) => {
             const selected = r.selected === i, label = RAIL_LABEL(dict)[i]!;
@@ -131,7 +131,7 @@ function HeroInner({ r }: { r: Report }) {
   const a = r.assessment?.published ?? null;
   return (
     <section id="p08-overview" aria-label="Player identity" data-section="p08-s03" data-player={p?.player_id ?? ""}
-      className={`vie-panel ${r.focus === "p08-overview" ? "border-primary" : ""}`}>
+      className={`min-w-0 border-t border-line pt-3 ${r.focus === "p08-overview" ? "border-primary" : ""}`}>
       <div className="flex flex-wrap gap-5 p-4">
         <div className="w-28 shrink-0">
           {photo ? (
@@ -250,7 +250,7 @@ const KpiCard = memo(function KpiCard({ label, Icon, first, measures, measuresFa
   const cover = m && KPI_COVER[label] ? coverText(KPI_COVER[label]!, measures, dict) : null;
   return (
     <div data-kpi={label} title={measuresFailed ? dict.body.reports.kpiLoadFailedTip : m?.[2] ?? dict.body.reports.kpiNotMeasuredYet}
-      className={`vie-panel p-3 ${first ? "border-l-4 border-l-primary" : ""} ${focused ? "border-primary" : ""}`}>
+      className={`min-w-0 border-t border-line pt-2 ${first ? "border-l-4 border-l-primary pl-2" : ""} ${focused ? "border-primary" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <span className="t-small">{KPI_LABEL(dict)[label] ?? label}</span>
         {m && <Evidence level={KPI_EVIDENCE[label] ?? "DETECTED"} compact size={12} />}

@@ -26,11 +26,11 @@ const OVERLAY_ROWS: { key: keyof OverlayPrefs; label: "ovBoxes" | "ovIds" | "ovT
 
 function stateChip(state: TrackSummary["identity_state"], a: { confirmed: string; unresolved: string; candidate: string; rejected: string; conflict: string }) {
   switch (state) {
-    case "CONFIRMED": return { label: a.confirmed, cls: "vie-chip ev ev-c" };
-    case "CANDIDATE": return { label: a.candidate, cls: "vie-chip ev ev-i" };
-    case "REJECTED": return { label: a.rejected, cls: "vie-chip ev ev-f" };
-    case "CONFLICT": return { label: a.conflict, cls: "vie-chip ev ev-f" };
-    default: return { label: a.unresolved, cls: "vie-chip ev ev-n" };
+    case "CONFIRMED": return { label: a.confirmed, dot: "text-primary" };
+    case "CANDIDATE": return { label: a.candidate, dot: "text-amber" };
+    case "REJECTED": return { label: a.rejected, dot: "text-danger" };
+    case "CONFLICT": return { label: a.conflict, dot: "text-danger" };
+    default: return { label: a.unresolved, dot: "text-muted" };
   }
 }
 
@@ -54,8 +54,8 @@ export function AnalysisLeft({ s }: { s: Shared }) {
   const teamSheetState = !lineups.data?.read
     ? null
     : openCards.length > 0
-      ? { label: a.anAwaitingApproval, cls: "vie-chip ev ev-i" }
-      : { label: a.anApproved, cls: "vie-chip ev ev-c" };
+      ? { label: a.anAwaitingApproval, dot: "text-amber" }
+      : { label: a.anApproved, dot: "text-primary" };
 
   return (
     <aside className="flex w-[272px] shrink-0 flex-col overflow-y-auto border-r border-line" aria-label={a.anIdentities}>
@@ -80,6 +80,11 @@ export function AnalysisLeft({ s }: { s: Shared }) {
               conflict: a.anConflict,
             });
             const team = assignmentOf(kits, t);
+            // the SOT's sub-line "#4 · DM · FC Ercakhu": the row's own jersey_number / position / club
+            // (TrackSummary, added by the API worker; nulls when nothing is recorded). Only when none of
+            // the three is recorded does it fall back to the kit assignment's club, then "Track N".
+            const line = [t.jersey_number != null ? `#${t.jersey_number}` : null, t.position, t.club].filter(Boolean).join(" · ");
+            const sub = line || team?.club_name || `Track ${t.track_number}`;
             return (
               <button
                 key={t.track_id}
@@ -91,9 +96,9 @@ export function AnalysisLeft({ s }: { s: Shared }) {
                 <span aria-hidden className="h-7 w-[3px] shrink-0 rounded-full" style={{ background: on ? "rgb(var(--primary))" : "transparent" }} />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-medium">{t.label.split(" · ")[0]}</span>
-                  <span className="t-small truncate text-muted">{team?.club_name ?? `Track ${t.track_number}`}</span>
+                  <span className="t-small truncate text-muted">{sub}</span>
                 </span>
-                <span className={chip.cls}>{chip.label}</span>
+                <span className="t-small shrink-0 text-muted"><span className={chip.dot} aria-hidden>•</span> {chip.label}</span>
               </button>
             );
           })}
@@ -124,7 +129,7 @@ export function AnalysisLeft({ s }: { s: Shared }) {
       <div className="mt-auto flex flex-col gap-2 border-t border-line px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="t-body font-medium">{a.anTeamSheet}</span>
-          {teamSheetState && <span className={teamSheetState.cls}>{teamSheetState.label}</span>}
+          {teamSheetState && <span className="t-small text-muted"><span className={teamSheetState.dot} aria-hidden>•</span> {teamSheetState.label}</span>}
         </div>
         <button type="button" onClick={() => setLineupsOpen(true)} className="vie-btn w-full">
           {a.anReviewTeamSheet}

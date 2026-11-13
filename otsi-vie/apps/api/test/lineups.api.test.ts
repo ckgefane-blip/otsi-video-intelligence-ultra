@@ -115,7 +115,9 @@ describe("lineup cards", () => {
     const r = await call(a, "POST", `/v1/videos/${video}/lineups/apply`, { cards: [{ card_id: c.w, side: "AWAY", team_name: "ignored: the match has its teams", entries: [{ number: 10, name: "Solo Player", role: "STARTER" }] }] });
     expect(r.body.match.id).toBe(m.id);
     expect(r.body.match.roster).toEqual([expect.objectContaining({ display_name: "Solo Player", club_id: ac, jersey_number: 10 })]);
-    expect((await call(a, "POST", `/v1/lineup-cards/${c.h}/dismiss`)).status).toBe(204);
+    expect((await call(a, "POST", `/v1/lineup-cards/${c.h}/dismiss`, { reason: "not this match" })).status).toBe(204);
+    const [[audit]] = await root.query<RowDataPacket[]>("SELECT after_state FROM audit_events WHERE action = 'video.lineup_dismissed' AND entity_id = ?", [video]);
+    expect(JSON.parse(typeof audit!.after_state === "string" ? audit!.after_state : JSON.stringify(audit!.after_state))).toMatchObject({ card_id: c.h, reason: "not this match" });
     expect((await call(a, "GET", `/v1/videos/${video}/lineups`)).body.cards.map((x: { state: string }) => x.state)).toEqual(["DISMISSED", "APPLIED"]);
   });
 });

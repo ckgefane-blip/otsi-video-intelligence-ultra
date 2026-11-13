@@ -1,5 +1,5 @@
 /** Player Report SOT (Page 17 of 31): the header, ten tabs, stat tiles, Heatmap / Events panels and the AI Analyst brief / Clips / Notes & tags sidebar */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
@@ -73,6 +73,12 @@ describe("Player Report SOT", () => {
     expect(screen.getByText("Assists")).toBeInTheDocument();
     // Assists is not measured by the engine — it says so, it does not invent a number
     expect(screen.getAllByText("Not measured").length).toBeGreaterThan(0);
+    // SOT: the seven tiles lay out 5 + 2, not all seven squeezed into one row
+    expect(screen.getByText("On camera").closest("div.grid")).toHaveClass("lg:grid-cols-5");
+    // the brief steps are joined by connecting lines, not three separate boxes
+    const steps = screen.getByText("1 Draft").closest("ol")!;
+    expect(steps.querySelectorAll("li")).toHaveLength(3);
+    expect(steps.querySelectorAll("span[aria-hidden='true']")).toHaveLength(2);
     // Heatmap + Events panels
     expect(screen.getByRole("tab", { name: "Match" })).toBeInTheDocument();
     expect(screen.getByText("2 events recorded")).toBeInTheDocument();
@@ -93,5 +99,42 @@ describe("Player Report SOT", () => {
     expect(screen.getByText("Private to your organisation")).toBeInTheDocument();
     expect(screen.getByLabelText("Add a note about this player")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Add tag" })).toBeInTheDocument();
+  });
+
+  it("keeps the consent checkbox, Generate brief and Publish brief when the AI Analyst is not set up", async () => {
+    // the SOT's brief panel always shows the controls; the "not set up" note is a line above them, not a replacement
+    api.mockImplementation((url: string) => {
+      if (url === `/v1/players/${id}/ai-analysis/status`) return Promise.resolve({ configured: false });
+      if (url === `/v1/players/${id}/ai-analysis`) return Promise.reject(Object.assign(new Error("not found"), { status: 404 }));
+      if (url === `/v1/players/${id}`) return Promise.resolve({ player_id: id, display_name: "Chinazom Godwin", canonical_otsi_id: PIN, canonical_state: "REGISTERED", identity_label: "Chinazom Godwin" });
+      if (url === `/v1/players/${id}/measures`) return Promise.resolve({ player_id: id, tracks: 0, videos: 0, seen_s: 0, measured_s: 0, distance_m: null, top_speed_kmh: null, dropped_steps: 0, high_speed_m: null, sprint_m: null, sprints: 0, mean_confidence: null, heat: null, events: null, halves: { confirmed: 0, proposed: 0, unknown: 0 } });
+      if (url === `/v1/players/${id}/profile`) return Promise.resolve({ latest_team: null, preferred_foot: null, position: null, nationality: null, age: null, birth_date: null, details: {} });
+      if (url === `/v1/players/${id}/assessment`) return Promise.resolve({ published: null, draft: null, published_by_name: null, published_at: null, unpublished_changes: false, can_write: true, version: 1 });
+      if (url === `/v1/players/${id}/events`) return Promise.resolve({ items: [], videos: 0, length_m: 105, width_m: 68 });
+      if (url === "/v1/reels") return Promise.resolve([]);
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<ReportStage playerRef={id} />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Chinazom Godwin" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/not set up on this server yet/)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Generate brief" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publish brief" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("shows honest empty values on the stat tiles when no player is chosen, never 'Loading…'", async () => {
+    api.mockImplementation((url: string) => {
+      if (url === "/v1/player-list") return Promise.resolve([]);
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<ReportStage />);
+    // the picker auto-opens over the page (SOT); the tiles behind it are empty, not loading
+    await waitFor(() => expect(screen.getByText("Choose a player")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("No player found.")).toBeInTheDocument());
+    const tiles = screen.getByText("On camera").closest("div.grid") as HTMLElement;
+    for (const label of ["On camera", "Events", "Confirmed tracks", "Evidence coverage", "Goals"]) {
+      expect(within(tiles).getByText(label).parentElement).toHaveTextContent("—");
+    }
+    expect(screen.queryByText("Loading…")).toBeNull();
   });
 });

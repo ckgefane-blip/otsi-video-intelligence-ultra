@@ -2,13 +2,16 @@
 /**
  * The one video player of the Desktop UI: every page that plays footage or a reel uses it. It plays only what it is given — a signed
  * address from the API (match footage: GET /v1/videos/:id/playback; a reel: GET /v1/renders/:id/playback) or a file the person opens from
- * this computer — and never a stand-in clip. With nothing to play it shows the honest empty state and, where allowed, "Open local footage".
+ * this computer — and never a stand-in clip. With nothing to play it shows the honest empty state (SOT: the 48 px dashed icon tile,
+ * "No playable footage", "Open the match file from this computer to play it.", Play, and the green "Open local footage" button)
+ * and, where allowed, "Open local footage".
  *
  * Controls: play / pause, back and forward one second, a scrubber that seeks while dragged, the time, playback speed, fullscreen.
- * Keys while the player has focus: Space or K play/pause, J / L one second back / forward, F fullscreen. `children` draws over the picture
+ * Keys while the player has focus: Space or K play/pause, J / L one second back / forward, F fullscreen, "," / "." one frame
+ * (1/25 s) back / forward, "[" / "]" slower / faster, O opens local footage (where the page allows it). `children` draws over the picture
  * (the overlays) and gets nothing it did not measure: the overlay layer reads its own tracks.
  */
-import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward, Upload } from "lucide-react";
+import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward, SquarePlay, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useLocale } from "@/lib/i18n";
 
@@ -25,6 +28,9 @@ export interface VideoPlayerProps {
   label: string;
   /** offer "Open local footage" in the empty state (match footage pages; not reels) */
   allowLocal?: boolean;
+  /** SOT (Reels.dc.html): in the empty state the picture also shows a Play button, and the transport bar sits below it — the Reel
+   *  Builder passes this; other pages keep the transport overlaid on the picture only when there is footage to play */
+  emptyTransport?: boolean;
   /** an empty state of the caller's own (e.g. "No reel in this slot") */
   empty?: { title: string; body: string } | undefined;
   aspect?: string;
@@ -47,11 +53,12 @@ export interface VideoPlayerProps {
   muted?: boolean;
 }
 
-export function VideoPlayer({ src, label, allowLocal = false, empty, aspect = "16 / 9", autoPlay = false, startAt, onTime, children, className = "", videoRef, range, onPlayingChange, pictureStyle, keys = true, muted }: VideoPlayerProps) {
+export function VideoPlayer({ src, label, allowLocal = false, emptyTransport = false, empty, aspect = "16 / 9", autoPlay = false, startAt, onTime, children, className = "", videoRef, range, onPlayingChange, pictureStyle, keys = true, muted }: VideoPlayerProps) {
   const { t } = useLocale();
   const d = t.desktop;
   const wrap = useRef<HTMLDivElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
+  const localInput = useRef<HTMLInputElement | null>(null);
   const [local, setLocal] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -80,6 +87,14 @@ export function VideoPlayer({ src, label, allowLocal = false, empty, aspect = "1
   }, [spanKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   const nudge = (s: number) => { const v = vid.current; if (v) v.currentTime = Math.max(lo, Math.min(hi || v.duration || 0, v.currentTime + s)); };
   const fullscreen = () => { if (document.fullscreenElement) void document.exitFullscreen(); else void wrap.current?.requestFullscreen?.(); };
+  /** SOT (Video players): "[" / "]" step through the speeds the select offers, slower / faster */
+  const cycleSpeed = (d: -1 | 1) => {
+    const i = SPEEDS.indexOf(speed);
+    const next = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 2 : i) + d))];
+    if (next === undefined || next === speed) return;
+    setSpeed(next);
+    if (vid.current) vid.current.playbackRate = next;
+  };
   const key = (e: React.KeyboardEvent) => {
     if (!keys) return;
     if ((e.target as HTMLElement).tagName === "INPUT" || (e.target as HTMLElement).tagName === "SELECT") return;
@@ -87,10 +102,21 @@ export function VideoPlayer({ src, label, allowLocal = false, empty, aspect = "1
     else if (e.key === "j" || e.key === "ArrowLeft") nudge(-1);
     else if (e.key === "l" || e.key === "ArrowRight") nudge(1);
     else if (e.key === "f") fullscreen();
+    else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "," || e.key === ".")) {
+      // SOT (Video players): one frame back / forward (1/25 s — the same step as the scrubber)
+      e.preventDefault(); e.stopPropagation(); nudge(e.key === "," ? -1 / 25 : 1 / 25);
+    } else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "[" || e.key === "]")) {
+      // the player has focus, so it owns "[" / "]" here: stop the page's own "[" / "]" (Library tabs, Report sections) firing too
+      e.preventDefault(); e.stopPropagation(); cycleSpeed(e.key === "[" ? -1 : 1);
+    } else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "o" || e.key === "O") && allowLocal) {
+      // SOT (Video players): open local footage — the same file picker as the empty state's button
+      e.preventDefault(); e.stopPropagation(); localInput.current?.click();
+    }
   };
 
   const showEmpty = !url || failed;
   return (
+    <>
     <div ref={wrap} className={`relative overflow-hidden rounded-md border border-line bg-black ${className}`} style={{ aspectRatio: full ? undefined : aspect }}
       tabIndex={showEmpty ? -1 : 0} onKeyDown={key} aria-label={label} role="region" data-player={showEmpty ? "empty" : "ready"}>
       {url && !failed && (
@@ -114,16 +140,27 @@ export function VideoPlayer({ src, label, allowLocal = false, empty, aspect = "1
       {showEmpty && (
         <div className="absolute inset-0 grid place-items-center bg-p0 p-6 text-center" data-player-empty>
           {src === undefined && !local ? <span className="t-small text-muted">{t.common.loading}</span> : (
-            <div className="max-w-[420px]">
+            <div className="flex max-w-[420px] flex-col items-center">
+              {/* SOT (Reels.dc.html / Analysis.dc.html): the empty state opens with the 48 px dashed icon tile */}
+              <span aria-hidden style={{ width: 48, height: 48, borderRadius: 12, border: "1px dashed rgb(var(--line2))", display: "grid", placeItems: "center", color: "rgb(var(--muted))", marginBottom: 12 }}>
+                <SquarePlay className="h-6 w-6" />
+              </span>
               <p className="t-panel">{failed ? d.playbackUnavailable : empty?.title ?? d.noFootageTitle}</p>
               <p className="t-small mt-1 text-muted">{failed ? "" : empty?.body ?? d.noFootageBody}</p>
-              {allowLocal && (
-                <label className="vie-btn mt-3 cursor-pointer">
-                  <Upload className="h-4 w-4" aria-hidden />{d.openLocal}
-                  <input type="file" accept="video/mp4,video/quicktime,.mp4,.mov" className="sr-only"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) setLocal(URL.createObjectURL(f)); e.target.value = ""; }} />
-                </label>
-              )}
+              <div className="mt-3 flex items-center justify-center gap-2">
+                {emptyTransport && (
+                  <button type="button" className="vie-btn" disabled aria-label={d.play} title={d.play}>
+                    <Play className="h-4 w-4" aria-hidden />{d.play}
+                  </button>
+                )}
+                {allowLocal && (
+                  <label className="vie-btn vie-btn-pri cursor-pointer">
+                    <Upload className="h-4 w-4" aria-hidden />{d.openLocal}
+                    <input ref={localInput} type="file" accept="video/mp4,video/quicktime,.mp4,.mov" className="sr-only"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) setLocal(URL.createObjectURL(f)); e.target.value = ""; }} />
+                  </label>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -151,5 +188,25 @@ export function VideoPlayer({ src, label, allowLocal = false, empty, aspect = "1
         </div>
       )}
     </div>
+
+    {/* SOT: the transport bar sits below the picture, and it is there in the empty state too — with nothing to play the play/seek
+        buttons are disabled, the time reads 00:00 / --:--, and fullscreen still works */}
+    {showEmpty && emptyTransport && (
+      <div className="mt-1 flex items-center gap-1 rounded-md border border-line bg-p0 px-2 py-1.5 text-ink" data-player-controls-empty>
+        <button type="button" className="vie-ib h-8 w-8" aria-label={d.play} disabled><Play className="h-4 w-4" aria-hidden /></button>
+        <button type="button" className="vie-ib h-8 w-8" aria-label={d.back1} disabled><SkipBack className="h-4 w-4" aria-hidden /></button>
+        <button type="button" className="vie-ib h-8 w-8" aria-label={d.fwd1} disabled><SkipForward className="h-4 w-4" aria-hidden /></button>
+        <span className="t-tc" style={{ minWidth: 96 }}>00:00 / --:--</span>
+        <input type="range" className="vie-range mx-2 flex-1" min={0} max={1000} value={0} step={1} aria-label={d.seek} disabled />
+        <select aria-label={d.speed} value={speed} className="h-7 rounded border border-line2 bg-raised px-1 t-small"
+          onChange={(e) => { const s = Number(e.target.value); setSpeed(s); if (vid.current) vid.current.playbackRate = s; }}>
+          {SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}
+        </select>
+        <button type="button" className="vie-ib h-8 w-8" aria-label={full ? d.exitFullscreen : d.fullscreen} onClick={fullscreen}>
+          {full ? <Minimize2 className="h-4 w-4" aria-hidden /> : <Maximize2 className="h-4 w-4" aria-hidden />}
+        </button>
+      </div>
+    )}
+    </>
   );
 }

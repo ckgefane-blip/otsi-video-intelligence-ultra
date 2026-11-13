@@ -7,8 +7,8 @@
  * not in the SOT and are not here (the Analysis workspace and the
  * Processing page hold them).
  *
- * The match select lists the organization's matches (GET /v1/matches,
- * via useLibrary). The link row says whether the selected video is
+ * The match button shows the selected match (GET /v1/matches,
+ * via useLibrary) and opens the match menu to switch it. The link row says whether the selected video is
  * linked to a match record: a video with no match shows "Not linked
  * to a match" and a Link video button (to the upload page, which links
  * it); a match — or a linked video — shows its match. Tracking is the
@@ -17,6 +17,7 @@
  * video's halves are confirmed (GET /v1/videos/:id/match-periods).
  */
 import type { Match, MatchEvents, MatchPeriods } from "@otsi-vie/contracts";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -57,36 +58,51 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
     ...(ev.goals ?? []).map((g) => g.player_id),
   ].filter((id): id is string => !!id)).size : null;
   const confirmed = periods?.state === "CONFIRMED";
-  const teamRows: [TeamSide, string][] = [["all", d.teamAllPlayers], ["home", match?.home?.name ?? d.homeTeam], ["away", match?.away?.name ?? d.awayTeam]];
-  const rangeRows: [TimeRange | "custom", string][] = [["full", d.rangeFull], ["h1", d.rangeH1], ["h2", d.rangeH2], ["custom", d.rangeCustom]];
-  const pickRange = (r: TimeRange | "custom") => {
-    if (r === "custom") return say(d.customRangeNotYet.replace("{a}", "—"));
+  const teamRows: [TeamSide, string][] = [["all", d.teamAllPlayers], ["home", d.homeTeam], ["away", d.awayTeam]];
+  const rangeRows: [TimeRange, string][] = [["full", d.rangeFull], ["h1", d.rangeH1], ["h2", d.rangeH2], ["custom", d.rangeCustom]];
+  const pickRange = (r: TimeRange) => {
     if (r !== "full" && !videoId) return say(d.saySelectAssetFirst);
-    if (r !== "full" && !(r === "h1" ? periods?.first : periods?.second)) return say(d.sayHalvesUnknown.replace("{a}", r === "h1" ? d.rangeH1 : d.rangeH2));
+    if ((r === "h1" || r === "h2") && !(r === "h1" ? periods?.first : periods?.second)) return say(d.sayHalvesUnknown.replace("{a}", r === "h1" ? d.rangeH1 : d.rangeH2));
     setRange(r);
   };
   const pickTeam = (t: TeamSide) => {
     if (t !== "all" && !match) return say(d.saySelectLinkedFirst);
     setTeam(t);
   };
+  // the match menu (the SOT's title button with a chevron, not a select): switching keeps the centre table in step
+  const [menuOpen, setMenuOpen] = useState(false);
+  // the custom range's start and end (mm:ss); the range itself is not consumed downstream yet, like the halves
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const pickMatch = (m: Match | null) => { setTeam("all"); onMatch(m); setMenuOpen(false); };
 
   return (
     <aside aria-label={d.matchPanelAria} className="flex min-w-0 flex-col overflow-auto" style={{ flex: "0 0 272px", maxWidth: 272 }}>
       <div className="vie-sect" style={{ gap: 6, padding: "10px 14px" }}>
         <span className="eb">{dict.body.analysis.match}</span>
-        <select aria-label={dict.body.analysis.match} value={match?.id ?? ""}
-          onChange={(e) => { const m = matches.find((x) => x.id === e.target.value) ?? null; setTeam("all"); onMatch(m); }}
-          className="in h-10 w-full" style={{ fontWeight: 600 }}>
-          {matches.map((m) => <option key={m.id} value={m.id}>{matchTitle(m)}</option>)}
-        </select>
-        {match ? (
+        <div className="relative">
+          <button type="button" aria-label={dict.body.analysis.match} aria-expanded={menuOpen} aria-haspopup="menu"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="in flex h-10 w-full items-center justify-between gap-2" style={{ fontWeight: 600, textAlign: "left", cursor: "pointer" }}>
+            <span className="min-w-0 truncate">{match ? matchTitle(match) : d.noMatchSelected}</span>
+            <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
+          </button>
+          {menuOpen && (
+            <div role="menu" className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-ctl border border-line2 bg-canvas shadow-lg">
+              {matches.map((m) => (
+                <button key={m.id} type="button" role="menuitem" onClick={() => pickMatch(m)}
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-panel" style={{ fontWeight: m.id === match?.id ? 600 : 400 }}>
+                  {matchTitle(m)}
+                </button>
+              ))}
+              {matches.length === 0 && <p className="px-3 py-2 text-sm text-muted">{d.noMatchSelected}</p>}
+            </div>
+          )}
+        </div>
+        {!match && (
           <div className="flex items-center gap-2">
-            <span className="chip ev ev-c">{d.lbMatchLinked}</span>
-            <Link href={match.video_ids[0] ? `/videos/${match.video_ids[0]}/analyze` : "/analysis"} className="btn sm gh">{d.openInAnalysis}</Link>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="chip ev ev-n">{d.videoNotLinked}</span>
+            {/* "Not linked" is plain text with a dot (SOT §B); "Link video" stays a button */}
+            <span className="t-small text-muted">• {d.videoNotLinked}</span>
             <Link href="/upload" className="btn sm gh">{d.lbLinkVideo}</Link>
           </div>
         )}
@@ -97,7 +113,8 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
             <dt>{d.lbTracking}</dt><dd>{total === null || confirmedCount === null ? "—" : `${confirmedCount === 1 ? d.lbConfirmedPlayerOne : d.lbConfirmedPlayerMany.replace("{a}", String(confirmedCount))} · ${d.lbEventsMany.replace("{a}", String(total))}`}</dd>
           </dl>
         )}
-        {confirmed && <span className="chip ev ev-c" style={{ alignSelf: "flex-start", marginTop: 2 }}>{d.lbMatchTimeConfirmed}</span>}
+        {/* "Match time: confirmed" is plain text with a dot (SOT §B), keeping the teal colour */}
+        {confirmed && <span className="t-small" style={{ alignSelf: "flex-start", marginTop: 2, color: "rgb(var(--primary))" }}>• {d.lbMatchTimeConfirmed}</span>}
       </div>
 
       <div className="vie-sect" style={{ gap: 2, padding: "10px 14px" }}>
@@ -131,9 +148,9 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
         <span className="eb">{dict.body.analysis.timeRange}</span>
         <div role="radiogroup" aria-label={d.timeRangeAria} className="grid grid-cols-2 gap-1">
           {rangeRows.map(([k, l]) => {
-            const on = k === range, off = k === "custom" || (k !== "full" && !(k === "h1" ? periods?.first : periods?.second));
+            const on = k === range, off = k === "custom" ? !videoId : k !== "full" && !(k === "h1" ? periods?.first : periods?.second);
             return (
-              <button key={k} type="button" role="radio" aria-checked={on} aria-disabled={off || undefined} title={off ? (k === "custom" ? d.customRangeNotYet.replace("{a}", "—") : d.halvesUnknown) : undefined}
+              <button key={k} type="button" role="radio" aria-checked={on} aria-disabled={off || undefined} title={off ? (k === "custom" ? d.saySelectAssetFirst : d.halvesUnknown) : undefined}
                 onClick={() => pickRange(k)}
                 className={`radio ${on ? "on" : ""} ${off ? "opacity-60" : ""}`} style={{ padding: "4px 8px", gap: 8, alignItems: "center" }}>
                 <span className="o" style={{ margin: 0 }} />
@@ -142,6 +159,18 @@ export function LibraryLeft({ match, matches, videoId, onMatch, team, setTeam, r
             );
           })}
         </div>
+        {range === "custom" && (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="grid gap-1">
+              <span className="t-label text-muted">{d.rangeCustomStart}</span>
+              <input value={customStart} onChange={(e) => setCustomStart(e.target.value)} placeholder="00:00" inputMode="numeric" className="in h-9 w-full text-xs" />
+            </label>
+            <label className="grid gap-1">
+              <span className="t-label text-muted">{d.rangeCustomEnd}</span>
+              <input value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} placeholder="00:00" inputMode="numeric" className="in h-9 w-full text-xs" />
+            </label>
+          </div>
+        )}
       </div>
     </aside>
   );

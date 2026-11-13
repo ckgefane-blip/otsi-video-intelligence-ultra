@@ -89,14 +89,14 @@ export function WelcomeTour() {
           <li className="eb px-2 pb-2.5">{t.body.auth.tourTitle}</li>
           {[t.body.auth.yourName, t.body.auth.tourStepContext, t.body.auth.tourStepUpload, t.body.auth.tourStepIdentity, t.body.auth.tourStepReels, t.body.auth.tourStepEvidence].map((s, i) => (
             <li key={s} className={`flex h-[34px] items-center gap-2.5 rounded-md px-2 ${i === step ? "bg-raised font-medium" : "text-muted"}`}>
-              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold ${i === step ? "bg-primary text-primary-ink" : "border border-line2"}`}>{i + 1}</span>
+              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs ${i === step ? "bg-primary font-semibold text-primary-ink" : "border border-line2"}`}>{i + 1}</span>
               <span className={i === step ? "" : "text-muted"}>{s}</span>
             </li>
           ))}
         </ol>
         <div className="flex min-w-0 flex-1 flex-col gap-[18px] px-7 py-7">
           <div className="flex items-center justify-between">
-            <span className="t-small font-mono text-muted">{step + 1} / {STEPS.length}</span>
+            <span className="t-small text-muted">{step + 1} / {STEPS.length}</span>
             <button type="button" aria-label={t.body.auth.tourClose} onClick={skip} className="grid h-[30px] w-[30px] place-items-center rounded-md border border-transparent bg-transparent text-ink2 hover:border-line hover:bg-raised hover:text-ink">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
@@ -114,7 +114,8 @@ export function WelcomeTour() {
           )}
           {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           <div className="mt-2 flex items-center gap-2">
-            <button type="button" onClick={skip} className="btn gh">{t.body.auth.skipTour}</button>
+            {/* SOT: "Skip tour" is the filled secondary button (.btn), not the ghost (.btn.gh) */}
+            <button type="button" onClick={skip} className="btn">{t.body.auth.skipTour}</button>
             <span className="flex-1" />
             <button type="button" onClick={() => go(step - 1)} disabled={step === 0} className="btn">{t.body.auth.back}</button>
             {step === STEPS.length - 1

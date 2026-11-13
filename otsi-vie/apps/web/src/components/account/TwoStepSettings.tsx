@@ -55,8 +55,8 @@ export function TwoStepSettings() {
   const enabled = status?.enabled === true;
 
   return (
-    <section className="panel flex flex-col" data-two-step-settings aria-labelledby="tf">
-      <div className="ph"><h2 id="tf" className="h3">{s.stSecTwoStep}</h2><span className="chip">{enabled ? s.twoStepOnState : s.twoStepOff}</span></div>
+    <section className="flex min-w-0 flex-col border-t border-line bg-transparent" data-two-step-settings aria-labelledby="tf">
+      <div className="ph"><h2 id="tf" className="h3">{s.stSecTwoStep}</h2><span className="t-small text-muted">• {enabled ? s.twoStepOnState : s.twoStepOff}</span></div>
       <div className="pb flex flex-1 flex-col gap-3.5">
         <p className="sm mu">{s.stSecTwoStepDesc}</p>
         {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
@@ -137,7 +137,9 @@ export function TwoStepSettings() {
           {codes ? (
             <div className="mono sm mu grid grid-cols-2 gap-1.5">{codes.map((c) => <span key={c}>{c}</span>)}</div>
           ) : (
-            <div className="mono sm mu grid grid-cols-2 gap-1.5"><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span></div>
+            // SOT (Security.dc.html line 88): FOUR masked spans in a 2-column grid. The ab88053 change to 8
+            // was backwards — the SOT has 4, not 8. The real codes (10, from the server) render above via codes.map.
+            <div className="mono sm mu grid grid-cols-2 gap-1.5"><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span><span>•••• ••••</span></div>
           )}
           <div className="flex gap-2">
             <button className="btn sm" type="button" disabled={!codes}

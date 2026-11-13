@@ -1,9 +1,8 @@
 "use client";
 /**
  * Home — SOT rebuild (page 11, alphabetical).
- * The SOT's Home (Main.dc.html) inside the app shell: an accuracy banner is
- * already in the (app) layout (AccuracyBanner), so this page is the content
- * below it — a three-column row (Start | live picture | Featured reel), a
+ * The SOT's Home (Main.dc.html) inside the app shell: the slim accuracy line (AccuracyBanner, the SOT's first
+ * row of the page body) above a three-column row (Start | live picture | Featured reel), a
  * four-number KPI row, and a three-panel row (Recent matches | Review inbox |
  * Active jobs). The old page's Sample Reels, Capabilities, How It Works and
  * TrustStrip are not in the SOT, so they are not here (those components
@@ -27,8 +26,9 @@ import { ArrowRight, Link2, Play, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { AccuracyBanner } from "@/components/evidence/AccuracyBanner";
 import { fill } from "@/lib/fill";
-import { formatGB, useTierLimit } from "@/lib/uploadTier";
+import { formatGB, TIER_LIMIT_BYTES, useTierLimit } from "@/lib/uploadTier";
 import { useLocale } from "@/lib/i18n";
 import { HeroLive } from "./HeroLive";
 import { HomeInboxProvider, useHomeInbox } from "./HomeInbox";
@@ -44,7 +44,11 @@ function Start() {
   const { t } = useLocale();
   const inbox = useHomeInbox();
   const lim = useTierLimit();
-  const tier = lim?.tier === "Free" ? t.desktop.tierFree : lim?.tier === "Pro" ? t.desktop.tierPro : lim?.tier === "Enterprise" ? t.desktop.tierEnterprise : lim?.plan ?? "—";
+  // the note names the tier: an unverified licence or an unmapped paid plan reads as the Free tier (the status bar
+  // shows the same), so the note never reads "— tier includes 64 GB" — the SOT's "Free tier includes 2 GB".
+  const tierKey = lim?.tier ?? "Free";
+  const tier = tierKey === "Free" ? t.desktop.tierFree : tierKey === "Pro" ? t.desktop.tierPro : t.desktop.tierEnterprise;
+  const maxBytes = lim?.maxBytes ?? TIER_LIMIT_BYTES[tierKey];
   const n = inbox?.next;
   return (
     <section aria-label="Start" className="flex min-w-0 flex-col justify-center gap-3.5">
@@ -55,7 +59,7 @@ function Start() {
         <Link href="/upload?mode=url" className="vie-btn"><Link2 className="h-4 w-4" aria-hidden />{t.body.home.hmPasteLink}</Link>
       </div>
       <span className="t-small text-muted">
-        {lim?.maxBytes ? fill(t.body.home.hmUploadNote, { a: tier, b: formatGB(lim.maxBytes) }) : t.body.home.hmUploadNote.replace("{a}", tier).replace("{b}", "—")}
+        {fill(t.body.home.hmUploadNote, { a: tier, b: formatGB(maxBytes) })}
       </span>
       {n && (
         <Link href={n.href} data-cta="next-action" data-next-kind={n.kind}
@@ -125,7 +129,12 @@ function FeaturedReel() {
           {note && <p role="status" className="t-small text-primary">{note}</p>}
         </>
       ) : (
-        <p className="t-small text-muted">{reel === null ? t.body.home.noFeaturedReel : t.common.loading}</p>
+        <div className="grid aspect-video place-items-center rounded-md border border-line bg-p0 px-4 text-center" data-featured-empty>
+          <div>
+            <p className="t-body">{reel === null ? t.body.home.noFeaturedReel : t.common.loading}</p>
+            {reel === null && <p className="t-small mt-1 text-muted">{t.body.home.publishedReelsHere}</p>}
+          </div>
+        </div>
       )}
     </section>
   );
@@ -164,15 +173,15 @@ function ReviewInboxPanel() {
   const inbox = useHomeInbox();
   const items = inbox?.items ?? [];
   return (
-    <section aria-label={t.body.home.hmReviewInbox} className="vie-panel min-w-0">
-      <div className="vie-ph">
+    <section aria-label={t.body.home.hmReviewInbox} className="min-w-0 border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{t.body.home.hmReviewInbox}</h2>
         <span className="t-small text-muted">
           {inbox === undefined ? t.common.loading : inbox === null ? t.body.home.matchesLoadFailed : items.length ? t.body.home.inboxToDo.replace("{a}", String(items.length)) : t.body.home.inboxAllClear}
         </span>
       </div>
-      {items.length === 0 && inbox !== undefined && inbox !== null && <p className="t-small p-3 text-muted">{t.body.home.inboxNothingWaits}</p>}
-      <ul className="flex flex-col p-1.5">
+      {items.length === 0 && inbox !== undefined && inbox !== null && <p className="t-small py-2 text-muted">{t.body.home.inboxNothingWaits}</p>}
+      <ul className="flex flex-col">
         {items.slice(0, 5).map((it, i) => (
           <li key={`${it.kind}-${i}`}>
             <Link href={it.href} data-inbox={it.kind} className="flex min-h-[52px] items-center gap-3 rounded px-2 py-2 hover:bg-raised">
@@ -201,14 +210,14 @@ function ActiveJobsPanel() {
   }, []);
   const waiting = list ? list.active - list.running : 0;
   return (
-    <section aria-label={t.body.home.hmActiveJobs} className="vie-panel min-w-0">
-      <div className="vie-ph">
+    <section aria-label={t.body.home.hmActiveJobs} className="min-w-0 border-t border-line pt-3">
+      <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="t-panel">{t.body.home.hmActiveJobs}</h2>
-        <Link href="#jobs-center" className="t-small text-primary hover:underline" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("otsi-jobs-open")); }}>
+        <Link href="/processing" className="t-small text-primary hover:underline">
           {t.desktop.jobsCenter}
         </Link>
       </div>
-      <div className="flex min-h-[52px] flex-col justify-center px-3 py-2">
+      <div className="flex min-h-[52px] flex-col justify-center py-2">
         <span className="t-body">
           {list ? fill(t.body.home.inboxRunning, { a: String(list.running), b: String(waiting) }) : t.common.loading}
         </span>
@@ -224,6 +233,7 @@ function HomeContent() {
   const { t } = useLocale();
   return (
     <div className="flex w-full flex-col gap-4 px-7 py-5" data-page="home">
+      <AccuracyBanner />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(220px,1fr)_minmax(340px,1.6fr)_minmax(220px,1fr)]">
         <Start />
         <section aria-label="Live picture" className="min-w-0"><HeroLive /></section>

@@ -13,6 +13,10 @@
  * button opens a dialog that posts to /v1/admin/retention/erasure.
  * Backups come from GET /v1/admin/backups; the audit log from
  * GET /v1/admin/audit (newest first).
+ *
+ * Loading: the SOT file shows no loading state (verified 2026-11-13 — no
+ * "Loading" or spinner markup in AdminCompliance.dc.html), so none was
+ * added; the spinner below is the pre-existing loading indicator.
  */
 import type { AdminAuditEntry, AdminBackupsStatus, OrgRetentionPolicy, PurgeTrashResult, SubjectErasureRecord } from "@otsi-vie/contracts";
 import { AlertTriangle, Loader2, ShieldAlert, X } from "lucide-react";
@@ -47,6 +51,15 @@ function formatDate(iso: string): string {
 }
 
 type KeepFor = "until" | "365" | "730";
+
+/** the audit log's raw action keys ("membership.created") as readable words: the SOT shows no rows, only the section's
+ *  "Approvals, rejections, erasures, purges and setting changes" — so each key is decoded, never shown raw. */
+const ACTION_WORD: Record<string, string> = { ai: "AI", analyst: "Analyst", fx: "FX", id: "ID", ocr: "OCR", otsi: "OTSI", pin: "PIN", url: "URL" };
+const readableAction = (action: string) => {
+  const words = action.split(".").flatMap((p) => p.split("_").filter(Boolean).map((w) => ACTION_WORD[w] ?? w));
+  if (!words.length) return action;
+  return words.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
+};
 
 function keepForValue(days: number | null | undefined): KeepFor {
   if (days === 365) return "365";
@@ -217,7 +230,7 @@ export function Compliance() {
         </div>
       ) : (
         <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
-          <section className="vie-panel flex flex-col" aria-labelledby="comp-retention">
+          <section className="flex flex-col border-t border-line" aria-labelledby="comp-retention">
             <div className="vie-ph">
               <h2 id="comp-retention" className="t-section">{t.body.admin.compRetention}</h2>
               {saved && <span className="t-small text-primary">{t.body.admin.compSaved}</span>}
@@ -271,12 +284,13 @@ export function Compliance() {
             </div>
           </section>
 
-          <section className="vie-panel flex flex-col" aria-labelledby="comp-erasure">
+          <section className="flex flex-col border-t border-line" aria-labelledby="comp-erasure">
             <div className="vie-ph">
               <h2 id="comp-erasure" className="t-section">{t.body.admin.compErasure}</h2>
+              {/* SOT .btn.sm.dan: the filled secondary button with red text */}
               <button
                 type="button"
-                className="vie-btn vie-btn-sm border-danger/40 text-danger hover:bg-danger/10"
+                className="vie-btn vie-btn-sm text-danger"
                 onClick={() => { setErasureError(null); setErasureOpen(true); }}
               >
                 {t.body.admin.compEraseButton}
@@ -292,7 +306,7 @@ export function Compliance() {
                   {erasures.map((rec) => (
                     <div key={rec.id} className="flex items-center gap-3 py-2">
                       <span className="t-body">{rec.subject_ref ?? rec.subject_id}</span>
-                      <span className="t-small text-muted">{rec.subject_kind}</span>
+                      <span className="t-small text-muted">{rec.subject_kind === "PLAYER" ? t.body.admin.gdprPlayer : t.body.admin.gdprUser}</span>
                       <span className="ml-auto t-small text-muted">{formatDate(rec.executed_at)}</span>
                     </div>
                   ))}
@@ -301,7 +315,7 @@ export function Compliance() {
             </div>
           </section>
 
-          <section className="vie-panel flex flex-col" aria-labelledby="comp-backups">
+          <section className="flex flex-col border-t border-line" aria-labelledby="comp-backups">
             <div className="vie-ph">
               <h2 id="comp-backups" className="t-section">{t.body.admin.compBackups}</h2>
             </div>
@@ -317,11 +331,20 @@ export function Compliance() {
                       <span className="t-small text-muted">{formatBytes(b.db_bytes)}</span>
                       <span className="ml-auto">
                         {b.verification_ok ? (
-                          <span className="vie-chip ev ev-c">{t.body.admin.compBackupVerified}</span>
+                          <span className="inline-flex items-center gap-1.5 t-body text-ok">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                            {t.body.admin.compBackupVerified}
+                          </span>
                         ) : b.verified ? (
-                          <span className="vie-chip ev ev-f">{t.body.admin.compBackupMismatch}</span>
+                          <span className="inline-flex items-center gap-1.5 t-body text-danger">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                            {t.body.admin.compBackupMismatch}
+                          </span>
                         ) : (
-                          <span className="vie-chip ev ev-n">{t.body.admin.compBackupNotChecked}</span>
+                          <span className="inline-flex items-center gap-1.5 t-body text-muted">
+                            <span className="h-[5px] w-[5px] shrink-0 rounded-full border border-current" aria-hidden="true" />
+                            {t.body.admin.compBackupNotChecked}
+                          </span>
                         )}
                       </span>
                     </div>
@@ -331,7 +354,7 @@ export function Compliance() {
             </div>
           </section>
 
-          <section id="audit" className="vie-panel flex flex-col" aria-labelledby="comp-audit">
+          <section id="audit" className="flex flex-col border-t border-line" aria-labelledby="comp-audit">
             <div className="vie-ph">
               <h2 id="comp-audit" className="t-section">{t.body.admin.compAudit}</h2>
             </div>
@@ -344,8 +367,8 @@ export function Compliance() {
                   {auditLogs.slice(0, 8).map((entry) => (
                     <div key={entry.id} className="flex items-center gap-3 py-2">
                       <span className="t-small text-muted">{formatDate(entry.occurred_at)}</span>
-                      <span className="rounded bg-panel px-2 py-0.5 font-mono text-xs font-normal text-foreground border border-line">
-                        {entry.action}
+                      <span className="t-body" title={entry.action}>
+                        {readableAction(entry.action)}
                       </span>
                       <span className="ml-auto truncate t-small text-muted">
                         {entry.actor_name ?? entry.actor_id ?? t.body.admin.auditSystem}

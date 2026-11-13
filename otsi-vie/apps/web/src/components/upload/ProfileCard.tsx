@@ -3,7 +3,7 @@
  * v3 Phase A.10 (ADR-076): the analysis profile card, on the AI Tools tab of Upload's left panel, on the Desktop UI flow layout.
  *   - The profile of the automatic analysis for the next upload or link import (kept in this browser with the other switches, sent with
  *     each upload): Recommended (the server checks the footage first and uses what the check recommends; with Stabilize Video on, never
- *     below High accuracy), or Standard, High accuracy, Ultra-sensitive grassroots.
+ *     below High accuracy), or Standard, High accuracy, Ultra-Sensitive — the SOT's labels and descriptions (contracts PROFILES).
  *   - For the selected video: the profile the server used and why, and its footage check (GET /v1/videos/:id/assessments/latest): the
  *     recommendation, the reason (the measured issues) and the estimate (time and memory, from the detector cost measured on this footage).
  *     A writer can run the check on a verified video that has none (POST /v1/videos/:id/assessments).
@@ -24,7 +24,7 @@ export const PROFILE_CHOICES: [UploadProfile, string, string][] = [
   ["RECOMMENDED", "Recommended", "The server checks the footage first and uses the profile it recommends."],
   ["STANDARD", PROFILES.STANDARD.label, PROFILES.STANDARD.summary],
   ["HIGH_ACCURACY", PROFILES.HIGH_ACCURACY.label, PROFILES.HIGH_ACCURACY.summary],
-  ["ULTRA_SENSITIVE", PROFILES.ULTRA_SENSITIVE.label, "Tiny, distant players: looks hardest; slowest. Not yet calibrated: more boxes to review."],
+  ["ULTRA_SENSITIVE", PROFILES.ULTRA_SENSITIVE.label, PROFILES.ULTRA_SENSITIVE.summary],
 ];
 /** the profile's name for a dictionary (ADR-139 Group A); without one it stays English. */
 export const profileLabel = (p: UploadProfile | null | undefined, d?: UploadDict) =>

@@ -11,8 +11,8 @@
  *             is the event count from GET /v1/videos/:id/events
  *             (passes + ball won + shots + pressures + set pieces +
  *             goals); a video that was never analysed has no sub-line
- *   Actions   what the person's role may do, from lib/commands.ts
- *             (upload, Jobs Center, keyboard shortcuts, and the rest)
+ *   Actions   the SOT's three rows only (upload, Jobs Center, keyboard shortcuts) from lib/commands.ts
+ *             — the other matching commands never appear in this group
  * The Search / Assistant seg switches to the local assistant (Tab does
  * the same). Arrow keys move, Enter opens, Escape closes. Ctrl/Cmd + J
  * opens the Jobs Center from anywhere.
@@ -30,8 +30,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api } from "@/lib/api";
-import { commands, JOBS_HREF, KEYMAP_HREF, matchCommands, type Command } from "@/lib/commands";
-import { openJobsCenter } from "@/lib/jobsLive";
+import { commands, KEYMAP_HREF, matchCommands, type Command } from "@/lib/commands";
 import { openKeymap } from "@/lib/keymap";
 import { LocalAssistant } from "./LocalAssistant";
 import { useLocale, type Dictionary } from "@/lib/i18n";
@@ -117,7 +116,8 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
         const el = e.target as HTMLElement | null;
         if (el?.closest("input, select, textarea, [contenteditable]")) return;
-        e.preventDefault(); openJobsCenter();
+        // SOT rebuild 2026-11-13: the Jobs Center drawer is gone — Ctrl/Cmd + J navigates to /processing
+        e.preventDefault(); router.push("/processing");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -170,7 +170,11 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
           sub, href: `/analysis?video=${v.id}`, kbd: null, icon: "match",
         };
       });
-    const actionRows: Row[] = matchCommands(commands(ctx), organization?.role, q).map((c) => {
+    // the SOT's Actions group is exactly 3 rows (Upload a match video, Open Jobs Center, Show keyboard shortcuts):
+    // the other matching commands from lib/commands.ts never appear here, whatever the query or role
+    const SOT_ACTIONS = ["upload", "jobs", "keys"] as const;
+    const actionRows: Row[] = matchCommands(commands(ctx), organization?.role, q)
+      .filter((c) => (SOT_ACTIONS as readonly string[]).includes(c.id)).map((c) => {
       const l = actionLabel(t, c);
       return {
         key: `action-${c.id}`, group: s.cpActions,
@@ -187,7 +191,6 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
   const go = (row: Row) => {
     setOpen(false);
     if (row.href === KEYMAP_HREF) { openKeymap(); return; }
-    if (row.href === JOBS_HREF) { openJobsCenter(); return; }
     router.push(row.href);
   };
 
@@ -213,6 +216,10 @@ export function CommandPalette({ open: openProp, onOpenChange }: { open?: boolea
             <input id="cq" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={s.cpPlaceholder}
               aria-label={s.paletteSearchAria} role="combobox" aria-expanded="true" aria-controls="palette-results" data-palette-input
               aria-activedescendant={rows[cursor] ? `palette-${cursor}` : undefined}
+              // SOT (Palette.dc.html): the field is borderless with no focus box. The class alone does not do
+              // it — globals.css has an unlayered :focus-visible rule that beats Tailwind's layered
+              // outline-none — so the outline is removed inline (globals.css is another worker's file).
+              style={{ outline: "none" }}
               className="h-10 flex-1 bg-transparent text-sm outline-none placeholder:text-muted" />
             <div className="seg" role="group" aria-label={s.cpTitle}>
               <button type="button" className={!assistant ? "on" : ""} onClick={() => setAssistant(false)}>{s.paletteSearchAria}</button>

@@ -116,7 +116,7 @@ export class AnalysisService {
     await this.run(id, p);
     const rows = await this.db.rows<RowDataPacket>(
       `SELECT t.id, t.internal_track_number, t.class_name, s.shot_number, t.first_pts_us, t.last_pts_us, t.observation_count, t.mean_confidence,
-              COALESCE(ci.state, 'UNRESOLVED') AS identity_state, pi.display_name, pi.canonical_otsi_id,
+              COALESCE(ci.state, 'UNRESOLVED') AS identity_state, ci.player_id, pi.display_name, pi.canonical_otsi_id,
               ta.kit_group, ta.kit_rgb, ta.drift_score, ta.thumbnail_asset_id,
               ev.peak, ev.mean_h * v.height AS mean_h_px, ev.low_share, je.state AS shirt_state
          FROM tracks t
@@ -139,6 +139,25 @@ export class AnalysisService {
       e[l.state as "PROPOSED" | "CONFIRMED"] = Number(l.n);
       links.set(l.track_id as string, e);
     }
+    // the confirmed player's line for the identity row ("#4 · DM · FC Ercakhu"): the latest roster row of this organization
+    // per confirmed player (shirt number and club from the team sheet, the position from the sheet first, the player's
+    // usual position where the sheet has none). One query for the whole run, not one per track.
+    const playerIds = [...new Set(rows.filter((r) => r.identity_state === "CONFIRMED" && r.player_id).map((r) => r.player_id as string))];
+    const lines = new Map<string, { jersey_number: number | null; position: string | null; club: string | null }>();
+    if (playerIds.length) {
+      const holders = playerIds.map(() => "?").join(",");
+      const roster = await this.db.rows<RowDataPacket>(
+        `SELECT r.player_id, c.canonical_name AS club, r.jersey_number, r.position
+           FROM match_rosters r JOIN matches m ON m.id = r.match_id AND m.organization_id = ? JOIN clubs c ON c.id = r.club_id
+          WHERE r.player_id IN (${holders}) ORDER BY r.player_id, m.kickoff_at IS NULL, m.kickoff_at DESC, r.updated_at DESC`,
+        [p.organizationId, ...playerIds]);
+      for (const x of roster) if (!lines.has(x.player_id as string)) lines.set(x.player_id as string, {
+        jersey_number: x.jersey_number === null ? null : Number(x.jersey_number), position: x.position ?? null, club: x.club ?? null });
+      const primaries = await this.db.rows<RowDataPacket>(`SELECT id, primary_position FROM players WHERE id IN (${holders})`, playerIds);
+      const primary = new Map(primaries.map((x) => [x.id as string, (x.primary_position as string | null) ?? null]));
+      for (const [id, line] of lines) if (line.position === null) line.position = primary.get(id) ?? null;
+      for (const id of playerIds) if (!lines.has(id)) lines.set(id, { jersey_number: null, position: primary.get(id) ?? null, club: null });
+    }
     return rows.map((r) => {
       const n = Number(r.internal_track_number);
       const confirmed = r.identity_state === "CONFIRMED" && r.display_name;
@@ -150,6 +169,9 @@ export class AnalysisService {
         first_pts_us: Number(r.first_pts_us), last_pts_us: Number(r.last_pts_us), observation_count: Number(r.observation_count),
         mean_confidence: r.mean_confidence === null ? null : Number(r.mean_confidence), identity_state: r.identity_state, label,
         canonical_otsi_id: confirmed ? r.canonical_otsi_id : null,
+        jersey_number: confirmed ? (lines.get(r.player_id as string)?.jersey_number ?? null) : null,
+        position: confirmed ? (lines.get(r.player_id as string)?.position ?? null) : null,
+        club: confirmed ? (lines.get(r.player_id as string)?.club ?? null) : null,
         kit_group: r.kit_group === null || r.kit_group === undefined ? null : Number(r.kit_group), kit_rgb: r.kit_rgb ?? null,
         possible_identity_switch: r.drift_score !== null && r.drift_score !== undefined && Number(r.drift_score) < DRIFT_WARNING,
         has_thumbnail: !!r.thumbnail_asset_id, links_proposed: links.get(r.id as string)?.PROPOSED ?? 0, links_confirmed: links.get(r.id as string)?.CONFIRMED ?? 0,

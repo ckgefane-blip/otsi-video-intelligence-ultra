@@ -2,15 +2,17 @@
 /**
  * Page 06 Reel Builder: what the sections share.
  *
- * The reel, its moments, clips, targets and renders come from the existing Reel Builder context (ADR-032). The page keeps a DRAFT of the
- * reel name and spotlight look; Save Project and Generate Reel send the draft (with the reel's version) so nothing is lost. Controls for
- * features the engine does not have (description, music) are drawn as in the reference but disabled with their reason; nothing is
- * invented. The overlay and branding switches are real (ADR-044).
+ * The reel, its moments, clips, targets and renders come from the existing Reel Builder context (ADR-032). The page is the SOT's
+ * three columns (Reels.dc.html): the left settings sidebar, the centre (header, summary, budget, preview, Sequence) and the right
+ * Clip inspector. Build reel starts the render directly (H.264, the reel's saved settings); there is no confirmation dialog.
  *
  * Best Moment Rule v2.1 (ADR-131): the reel's target length lives here too — 90 s / 3 min (default) / 5 min, never over 5:00.
  * A cross-match reel's length was fixed when it was made (reel.cross_match_length_s) and cannot change here; a single-match reel's
  * choice is remembered per reel in this browser. The length is UI state only: the API has no length-target field for single-match
  * reels, and the per-match caps stay enforced by the API on pin/add.
+ *
+ * The draft/tab/mode fields are the stage the inspector and preview read; buildOpen stays provided but unread — the render
+ * confirmation dialog is gone (Build reel starts the render directly), and the field is kept only so the Stage shape does not churn.
  */
 import { type Reel, SpotlightSettings } from "@otsi-vie/contracts";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
@@ -36,8 +38,10 @@ export interface Stage {
   /** preview what: the chosen clip of the source, or the latest render */
   mode: "clip" | "render";
   setMode(m: "clip" | "render"): void;
-  /** show the Player Profile Intro preview again (ADR-130): it opens on its own the first time a reel is opened */
+  /** show the Player Profile Intro preview again (ADR-130) — not mounted on this page (SOT: the intro is a card in the Sequence) */
   openProfileIntro(): void;
+  /** Build reel: start the render directly, no confirmation (SOT: a plain button) */
+  buildReel(): void;
   /** Best Moment Rule v2.1 target length, in seconds (90 / 180 / 300; 180 default) */
   lengthS: ReelLengthS;
   setLengthS(n: ReelLengthS): void;

@@ -36,7 +36,7 @@ export function AnalysisTimeline({ s, markersVersion }: { s: Shared; markersVers
   const markerCount = lanes?.markers.length ?? 0;
 
   return (
-    <section className="vie-panel flex min-h-[150px] flex-1 flex-col overflow-hidden" aria-label={a.anTimeline}>
+    <section className="flex min-h-[150px] flex-1 flex-col overflow-hidden border-t border-line pt-3" aria-label={a.anTimeline}>
       <div className="grid h-[30px] grid-cols-[112px_minmax(0,1fr)] items-center border-b border-line">
         <span className="t-th pl-3">{a.anTimeline}</span>
         <div className="flex justify-between px-2.5">
@@ -47,19 +47,17 @@ export function AnalysisTimeline({ s, markersVersion }: { s: Shared; markersVers
       </div>
       <div className="grid min-h-11 grid-cols-[112px_minmax(0,1fr)] items-center border-b border-raised">
         <span className="t-small pl-3 text-ink2">
-          {dict.body.workspace.metricEvents} · <span className="font-mono">{total}</span>
+          {dict.body.workspace.metricEvents} · {total}
         </span>
-        <div className="flex flex-wrap gap-1.5 px-2.5 py-1.5">
+        <div className="px-2.5 py-1.5 t-small text-ink2">
           {([
             [a.anPasses, counts.passes],
             [a.anShots, counts.shots],
             [a.anBallWon, counts.won],
             [a.anPressures, counts.pressures],
             [a.anSetPieces, counts.setPieces],
-          ] as const).map(([label, n]) => (
-            <span key={label} className="vie-chip">
-              {label} <b className="font-mono font-medium text-ink">{n}</b>
-            </span>
+          ] as const).map(([label, n], i) => (
+            <span key={label}>{i > 0 && " · "}{label} {n}</span>
           ))}
         </div>
       </div>
@@ -86,7 +84,7 @@ export function AnalysisTimeline({ s, markersVersion }: { s: Shared; markersVers
               );
             })()
           ) : (
-            <span className="font-mono">{markerCount}</span>
+            <span>{markerCount}</span>
           )}
         </span>
       </div>

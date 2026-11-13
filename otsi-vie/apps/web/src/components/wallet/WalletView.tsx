@@ -8,7 +8,7 @@
  * tokens arrive. No card, no payment gateway. "Export CSV" downloads the ledger rows shown.
  */
 import type { PackRequest, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
-import { AlertTriangle, FileText, List, Loader2 } from "lucide-react";
+import { FileText, List, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
@@ -104,7 +104,7 @@ export function WalletView() {
   ];
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-page="settings-wallet">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto px-7 py-3" data-page="settings-wallet">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-0.5"><span className="eb">{t.desktop.navSettings}</span><h1 className="h1">{w.wlTitle}</h1></div>
         <div className="flex items-center gap-2">
@@ -119,32 +119,19 @@ export function WalletView() {
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
       {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
-      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-        <section className="panel flex flex-col gap-2.5 p-[18px]" aria-labelledby="bl">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+        <section className="flex min-w-0 flex-col gap-2 border-t border-line pt-3" aria-labelledby="bl">
           <span id="bl" className="eb">{w.balance}</span>
           <div className="flex items-baseline gap-2.5"><span className="metric">{balance?.balance ?? "—"}</span><span className="sm mu">{w.tokensUnit}</span></div>
           <dl className="kv mt-1.5">
-            <dt>{w.wlAnalysis}</dt><dd className="mono">{w.wlAnalysisCost}</dd>
-            <dt>{w.wlRender}</dt><dd className="mono">{w.wlRenderCost}</dd>
+            <dt>{w.wlAnalysis}</dt><dd>{w.wlAnalysisCost}</dd>
+            <dt>{w.wlRender}</dt><dd>{w.wlRenderCost}</dd>
           </dl>
-          {balance && (
-            <p className="t-small mt-1">
-              {w.spendable.replace("{a}", String(balance.spendable_balance))}
-              {balance.expired_unwritten_off > 0 && w.expiredWaiting.replace("{a}", String(balance.expired_unwritten_off))}
-            </p>
-          )}
-          {balance?.low_balance && (
-            <p role="alert" className="mt-2 flex items-start gap-2 rounded-ctl border border-amber/50 bg-amber/10 px-3 py-2 t-body text-amber">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{w.lowBalance}</span>
-            </p>
-          )}
         </section>
 
         {catalogue && !claimedFreeGrant && (
-          <section className="panel flex flex-col gap-2.5 p-[18px]" aria-labelledby="fg"
-            style={{ borderColor: "rgba(43,212,176,.4)", background: "#0F1A17" }}>
-            <div className="flex items-center justify-between"><span id="fg" className="eb" style={{ color: "rgb(var(--primary))" }}>{w.wlFreeGrant}</span><span className="chip">{w.wlOneTime}</span></div>
+          <section className="flex min-w-0 flex-col gap-2 border-t border-line pt-3" aria-labelledby="fg">
+            <div className="flex items-center justify-between"><span id="fg" className="eb">{w.wlFreeGrant}</span><span className="t-small text-muted">{w.wlOneTime}</span></div>
             <div className="flex items-baseline gap-2.5"><span className="metric">25</span><span className="sm mu">{w.wlFreeOnce.replace(/^\S+\s/, "")}</span></div>
             <p className="sm mu">{w.wlFreeValid}</p>
             <button className="btn pri self-start" type="button" disabled={busy !== null}
@@ -155,18 +142,18 @@ export function WalletView() {
         )}
       </div>
 
-      <section className="panel flex flex-wrap items-center gap-3 px-3.5 py-3" aria-labelledby="pl">
+      <section className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line py-2.5" aria-labelledby="pl">
         <span id="pl" className="h3">{w.wlPlan}</span>
-        <span className="chip" style={{ color: "rgb(var(--primary))", borderColor: "rgba(43,212,176,.45)" }}>{w.wlPlanFree}</span>
-        <span className="chip">{w.wlPlanPro}</span>
-        <span className="chip">{w.wlPlanEnterprise}</span>
+        <span className="t-small"><span className="text-primary" aria-hidden>•</span> {w.wlPlanFree}</span>
+        <span className="t-small text-muted"><span aria-hidden>•</span> {w.wlPlanPro}</span>
+        <span className="t-small text-muted"><span aria-hidden>•</span> {w.wlPlanEnterprise}</span>
         <span className="sm mu flex-1">{w.wlPlanHint}</span>
         <button className="btn sm" type="button" onClick={() => setNotice(w.wlAskProNote)}>{w.wlAskPro}</button>
       </section>
 
       {catalogue && (
-        <section className="panel" aria-labelledby="tp">
-          <div className="ph"><h2 id="tp" className="h3">{w.wlBuyPack}</h2><span className="mu sm">{w.wlBuyHint}</span></div>
+        <section className="min-w-0 border-t border-line pt-3" aria-labelledby="tp">
+          <div className="flex items-center justify-between gap-2 pb-1"><h2 id="tp" className="h3">{w.wlBuyPack}</h2><span className="mu sm">{w.wlBuyHint}</span></div>
           <ol className="steps" aria-label={w.wlBuyPack}>
             {steps.map((st) => (
               <li key={st.n} className="stp">
@@ -175,13 +162,12 @@ export function WalletView() {
               </li>
             ))}
           </ol>
-          <div className="grid gap-2.5 p-3.5 pt-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+          <div className="grid gap-2.5 py-2 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
             {catalogue.packs.map((pack) => (
               <div key={pack.code} className="flex items-center gap-3 rounded-lg border border-line bg-canvas p-3.5">
                 <div className="flex-1">
-                  <div className="mono font-semibold">{pack.tokens} {w.tokensUnit}</div>
-                  <div>{money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)}</div>
-                  <div className="t-small mt-0.5">{pack.label}</div>
+                  <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
+                  <div className="t-body">{money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency)}</div>
                 </div>
                 <button type="button" disabled={busy !== null} className="btn sm"
                   onClick={() => void act(`request-${pack.code}`, () => api("/v1/wallet/packs/request", { method: "POST", json: { pack_code: pack.code, currency } }),
@@ -191,13 +177,12 @@ export function WalletView() {
               </div>
             ))}
           </div>
-          <p className="t-small px-3.5 pb-3.5">{w.buyDesc}</p>
         </section>
       )}
 
-      <div className="grid flex-1 gap-4 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
-        <section className="panel flex flex-col" aria-labelledby="pr">
-          <div className="ph"><h2 id="pr" className="h3">{w.packRequests}</h2><Link href="/settings/admin/billing" className="sm text-primary hover:underline">{w.wlBillingInvoices}</Link></div>
+      <div className="grid flex-1 gap-3 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
+        <section className="flex min-w-0 flex-col border-t border-line pt-3" aria-labelledby="pr">
+          <div className="flex items-center justify-between gap-2 pb-1"><h2 id="pr" className="h3">{w.packRequests}</h2><Link href="/settings/admin/billing" className="sm text-primary hover:underline">{w.wlBillingInvoices}</Link></div>
           {requests.length === 0 ? (
             <div className="empty flex-1">
               <span className="ei"><FileText className="i" aria-hidden /></span>
@@ -220,8 +205,8 @@ export function WalletView() {
           )}
         </section>
 
-        <section className="panel flex flex-col" aria-labelledby="lg">
-          <div className="ph"><h2 id="lg" className="h3">{w.wlLedgerTitle}</h2>
+        <section className="flex min-w-0 flex-col border-t border-line pt-3" aria-labelledby="lg">
+          <div className="flex items-center justify-between gap-2 pb-1"><h2 id="lg" className="h3">{w.wlLedgerTitle}</h2>
             <button className="btn sm gh" type="button" disabled={entries.length === 0} onClick={exportCsv}>{w.wlExportCsv}</button>
           </div>
           {entries.length === 0 ? (

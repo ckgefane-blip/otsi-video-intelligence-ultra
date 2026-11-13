@@ -1,5 +1,6 @@
-/** Jobs Center drawer (SOT, Page 12): the header, the tabs, the Job | State | Tokens | Elapsed table and the empty state */
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+/** Jobs Center link (SOT rebuild 2026-11-13): the top bar's Jobs Center is a link to the jobs page with the pulse icon, no count
+ *  badge and no drawer. The jobs table itself lives on /processing (the All jobs table, with the same actions). */
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { api } = vi.hoisted(() => ({ api: vi.fn() }));
@@ -18,7 +19,6 @@ const base = {
 };
 const running = { ...base, id: "job-1", state: "RUNNING" as const };
 const queued = { ...base, id: "job-2", kind: "RENDER" as const, kind_label: "Render", subject_title: "Chinazom Godwin — highlights", state: "QUEUED" as const, progress: 0, stage: null, started_at: null };
-const failed = { ...base, id: "job-3", kind: "INGEST_UPLOAD" as const, kind_label: "Upload", subject_title: "FC Dynamo v Nart", state: "FAILED" as const, progress: 0, stage: null, error: "The file could not be read.", started_at: "2026-11-12T09:00:00Z", finished_at: "2026-11-12T09:05:00Z" };
 
 function mockJobs(jobs: unknown[]) {
   api.mockImplementation((url: string) => {
@@ -27,54 +27,30 @@ function mockJobs(jobs: unknown[]) {
   });
 }
 
-async function openDrawer() {
-  render(<JobTray styles={styles} />);
-  const trigger = screen.getByRole("button", { name: /Jobs/ });
-  fireEvent.click(trigger);
-  await waitFor(() => expect(screen.getByRole("dialog", { name: "Jobs Center" })).toBeInTheDocument());
-  return screen.getByRole("dialog", { name: "Jobs Center" });
-}
-
 beforeEach(() => { api.mockReset(); });
 
-describe("Jobs Center drawer (SOT)", () => {
-  it("shows the header, the tabs, the column headers, the empty state and the footer", async () => {
+describe("Jobs Center link (SOT)", () => {
+  it("is a link to the jobs page, named with the active count, with the pulse icon and no badge", async () => {
+    mockJobs([running, queued]);
+    render(<JobTray styles={styles} />);
+    const link = await screen.findByRole("link", { name: "Jobs Center, 2 active" });
+    expect(link).toHaveAttribute("href", "/processing");
+    expect(link).toHaveAttribute("data-job-tray");
+    expect(document.querySelector("[data-job-count]")).toBeNull();   // no badge element at all
+    expect(screen.queryByRole("dialog")).toBeNull();                 // no drawer
+  });
+
+  it("names 0 active when nothing runs, and keeps the link while the list is loading", async () => {
     mockJobs([]);
-    const drawer = await openDrawer();
-    expect(within(drawer).getByText("Jobs Center")).toBeInTheDocument();
-    expect(within(drawer).getByText("0 active")).toBeInTheDocument();
-    for (const label of ["All", "Queued", "Running", "Done", "Failed"]) {
-      expect(within(drawer).getByRole("tab", { name: label })).toBeInTheDocument();
-    }
-    expect(within(drawer).getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
-    for (const h of ["Job", "State", "Tokens", "Elapsed"]) expect(within(drawer).getByText(h)).toBeInTheDocument();
-    expect(within(drawer).getByText("No jobs yet")).toBeInTheDocument();
-    expect(within(drawer).getByText("Footage checks, analyses and renders with state, cost and time.")).toBeInTheDocument();
-    expect(within(drawer).getByRole("link", { name: "Upload a match video" })).toHaveAttribute("href", "/upload?mode=file");
-    expect(within(drawer).getByText("The badge shows only while jobs run.")).toBeInTheDocument();
-    expect(within(drawer).getByText("Ctrl J")).toBeInTheDocument();
+    render(<JobTray styles={styles} />);
+    expect(await screen.findByRole("link", { name: "Jobs Center, 0 active" })).toHaveAttribute("href", "/processing");
   });
 
-  it("lists jobs with state and elapsed, and the tabs filter them", async () => {
-    mockJobs([running, queued, failed]);
-    const drawer = await openDrawer();
-    expect(within(drawer).getByText("2 active")).toBeInTheDocument();
-    expect(within(drawer).getByText(/Analysis · Nart v Ercakhu/)).toBeInTheDocument();
-    expect(within(drawer).getByText(/Render · Chinazom Godwin/)).toBeInTheDocument();
-    expect(within(drawer).getByText(/Upload · FC Dynamo/)).toBeInTheDocument();
-    expect(within(drawer).getByText("The file could not be read.")).toBeInTheDocument();
-    fireEvent.click(within(drawer).getByRole("tab", { name: "Running" }));
-    expect(within(drawer).getByText(/Analysis · Nart v Ercakhu/)).toBeInTheDocument();
-    expect(within(drawer).queryByText(/Render · Chinazom Godwin/)).not.toBeInTheDocument();
-    expect(within(drawer).queryByText(/Upload · FC Dynamo/)).not.toBeInTheDocument();
-    fireEvent.click(within(drawer).getByRole("tab", { name: "Failed" }));
-    expect(within(drawer).getByText(/Upload · FC Dynamo/)).toBeInTheDocument();
-    expect(within(drawer).queryByText(/Analysis · Nart v Ercakhu/)).not.toBeInTheDocument();
-  });
-
-  it("names a failed read instead of showing an empty list", async () => {
+  it("a failed read keeps the link (named as loading) instead of showing an empty list", async () => {
     api.mockRejectedValue(new Error("down"));
-    const drawer = await openDrawer();
-    await waitFor(() => expect(within(drawer).getByRole("alert")).toBeInTheDocument());
+    render(<JobTray styles={styles} />);
+    const link = screen.getByRole("link", { name: "Jobs Center" });
+    expect(link).toHaveAttribute("href", "/processing");
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/jobs"));
   });
 });

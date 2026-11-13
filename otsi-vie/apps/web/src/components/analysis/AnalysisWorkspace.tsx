@@ -482,7 +482,7 @@ export function SelectedTrack() {
       </dl>
       {t.class_name !== "BALL" && (
         <div className="space-y-2 rounded-ctl border border-line/70 p-2" aria-label={dict.body.analysis.identityReview}>
-          <p className="text-xs font-normal uppercase tracking-wide text-muted">{dict.body.upload.identity}</p>
+          <p className="text-xs font-normal text-muted">{dict.body.upload.identity}</p>
           {!identity ? <p className="text-xs text-muted">{dict.common.loading}</p> : (
             <>
               <p data-identity-state={identity.state}>{identity.display.label}

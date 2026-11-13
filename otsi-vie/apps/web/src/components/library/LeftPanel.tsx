@@ -30,7 +30,7 @@ export type TeamSide = "all" | "home" | "away";
 
 const EVENT_KINDS: Kind[] = ["Goals", "Shots", "Passes", "Key Passes", "Ball Won", "Tackles", "Interceptions", "Pressures", "Set Pieces", "Fouls"];
 
-export type TimeRange = "full" | "h1" | "h2";
+export type TimeRange = "full" | "h1" | "h2" | "custom";
 
 /** the selected video's halves (null: not known) */
 function usePeriods(videoId: string | null): MatchPeriods | null {

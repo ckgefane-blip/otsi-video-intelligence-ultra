@@ -103,7 +103,7 @@ export function AiAnalystPanel({ playerId, canAssess }: { playerId: string; canA
 
   const a = assessment ?? null;
   return (
-    <section id="p08-analyst" aria-label="AI Analyst" data-section="p08-s13" className="vie-panel p-4">
+    <section id="p08-analyst" aria-label="AI Analyst" data-section="p08-s13" className="min-w-0 border-t border-line pt-3">
       <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
         <h2 className="t-section font-normal">{dict.body.aiAnalyst.title}</h2>
         {a && (

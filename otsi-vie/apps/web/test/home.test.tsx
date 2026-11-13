@@ -9,6 +9,7 @@ vi.mock("@/components/home/RecentMatches", () => ({ RecentMatches: () => <sectio
 vi.mock("next/link", () => ({ default: ({ href, children, ...p }: { href: string; children: React.ReactNode }) => <a href={href} {...p}>{children}</a> }));
 
 import { HomeStage } from "@/components/home/HomeStage";
+import { reloadRenderedReels } from "@/components/home/renderedReels";
 
 const REEL = {
   id: "55555555-5555-4555-8555-555555555555", name: "Chinazom Godwin — highlights", source: "MATCH", aspect: "16:9", version: 3,
@@ -38,7 +39,7 @@ function mockApi(reels: unknown = [REEL]) {
   });
 }
 
-beforeEach(() => { api.mockReset(); });
+beforeEach(() => { api.mockReset(); reloadRenderedReels(); });   // the reels loader caches its promise: clear it so each test reads its own mock
 
 describe("Home (SOT)", () => {
   it("shows the start, the live picture, the featured reel, the KPIs and the three panels", async () => {
@@ -85,5 +86,21 @@ describe("Home (SOT)", () => {
     });
     render(<HomeStage />);
     await waitFor(() => expect(screen.getByText("Headline KPI strip: totals could not be read")).toBeInTheDocument());
+  });
+
+  it("names the Free tier and its 2 GB limit in the upload note, never '— tier includes 64 GB'", async () => {
+    mockApi();
+    render(<HomeStage />);
+    // the licence / limits reads fail in this test (unmocked) — the note still names the Free tier, as the SOT does
+    await waitFor(() => expect(screen.getByText(/Free tier includes 2 GB of video in total/)).toBeInTheDocument());
+    expect(screen.queryByText(/— tier includes/)).toBeNull();
+  });
+
+  it("shows an empty 16:9 frame for the featured reel when there is no rendered reel", async () => {
+    mockApi([]);
+    render(<HomeStage />);
+    await waitFor(() => expect(screen.getByText("No featured reel")).toBeInTheDocument());
+    expect(document.querySelector("[data-featured-empty]")).not.toBeNull();
+    expect(screen.getByText("Published reels appear here")).toBeInTheDocument();
   });
 });

@@ -75,8 +75,36 @@ describe("Export (SOT)", () => {
     await waitFor(() => expect(reads()).toBe(2));
   });
 
-  it("says to open a reel when the read succeeds with an empty list", async () => {
+  it("says to open a reel when the read succeeds with an empty list — and still shows the three panels, disabled and empty", async () => {
     await open([]);
     await waitFor(() => expect(screen.getByText("Open a reel to export")).toBeInTheDocument());
+    // the SOT always shows the three panels; with no reel they are a disabled, empty version
+    expect(screen.getByRole("heading", { name: "Render" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Delivery" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scouting Pack" })).toBeInTheDocument();
+    // the panels sit in a disabled fieldset (jsdom does not propagate a fieldset's disabled state to a
+    // control's .disabled, so assert the fieldset itself) and the email field is still present
+    const fieldset = document.querySelector("fieldset");
+    expect(fieldset).not.toBeNull();
+    expect((fieldset as HTMLFieldSetElement).disabled).toBe(true);
+    expect(screen.getByLabelText("Recipient email")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Render only" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Render & send" })).toBeDisabled();
+  });
+
+  it("offers H.265 and ProRes 422 as enabled codecs (the SOT's options), and the recipient email is always present", async () => {
+    await open();
+    const codec = screen.getByLabelText("Codec") as HTMLSelectElement;
+    const h265 = within(codec).getByText("H.265 / HEVC") as HTMLOptionElement;
+    const prores = within(codec).getByText("ProRes 422") as HTMLOptionElement;
+    expect(h265.disabled).toBe(false);
+    expect(prores.disabled).toBe(false);
+    fireEvent.change(codec, { target: { value: "h265" } });
+    expect(codec.value).toBe("h265");
+    // the recipient email field is there whatever Send to is (the SOT's field, not only for Client)
+    expect(screen.getByLabelText("Recipient email")).toBeInTheDocument();
+    const teamBtn = screen.getByRole("button", { name: "Team member" });
+    fireEvent.click(teamBtn);
+    expect(screen.getByLabelText("Recipient email")).toBeInTheDocument();
   });
 });

@@ -28,7 +28,8 @@ const INTRO_W = 0.11; // the Profile Intro segment is 11% of the track in the SO
 type Tool = "select" | "blade" | "trim";
 
 function LaneLabel({ children }: { children: React.ReactNode }) {
-  return <div className="t-small flex w-[96px] shrink-0 items-start justify-start pr-2 pt-1 text-muted">{children}</div>;
+  // SOT (Studio.dc.html): the label sits in the 96px column with 12px left padding, never clipped or wrapped.
+  return <div className="t-small flex w-[96px] shrink-0 items-start justify-start whitespace-nowrap py-1 pl-3 pr-2 text-muted">{children}</div>;
 }
 
 export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: Studio; ui: Ui; setBinTab?: (tab: number) => void }) {
@@ -149,11 +150,13 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
     addEventListener("pointermove", move); addEventListener("pointerup", up);
   }, [r, st, ui, s, tool, toTime, clipAt, items]);
 
-  // S split, M marker, Delete remove
+  // S split, M marker, Delete remove; SOT rebuild (Clip Studio): B blade tool, V select tool
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest("input, select, textarea, [contenteditable]")) return;
       if (e.key === "s" || e.key === "S") { e.preventDefault(); if (r?.canEdit) st.split(); }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "b" || e.key === "B")) { e.preventDefault(); setTool("blade"); }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); setTool("select"); }
       if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         if (!r?.canEdit) return;
@@ -182,7 +185,12 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
   }, [beats, r, st, clipAt, ui, s]);
 
   const ruler: number[] = [];
-  if (total > 0) { for (let t = 0; t <= total; t += 30_000_000) ruler.push(t); }
+  // SOT (Studio.dc.html): the ruler always reads 00:00…03:00. With no reel loaded the total is 0 and the old
+  // code built no ticks at all, so the ruler was blank — fall back to the SOT's 3:00 span. Ticks stop at the
+  // visible window (span) so a zoomed ruler does not spill past 100%.
+  const rulerSpan = span > 0 ? span : 180_000_000;
+  const rulerEnd = total > 0 ? Math.min(total, span) : 180_000_000;
+  for (let t = 0; t <= rulerEnd; t += 30_000_000) ruler.push(t);
 
   const introOn = reel?.settings.profile_intro !== false;
   const music = musicId ? st.brand?.find((a) => a.id === musicId) : null;
@@ -199,7 +207,8 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
             </button>
           ))}
         </div>
-        <button type="button" aria-pressed={snap} className={`vie-chip ${snap ? "ev-c" : ""}`} onClick={() => setSnap((v) => !v)}>{s.csSnap}</button>
+        <button type="button" aria-pressed={snap} className="vie-chip" onClick={() => setSnap((v) => !v)}
+          style={snap ? { background: "rgb(var(--raised))", color: "rgb(var(--ink))" } : undefined}>{s.csSnap}</button>
         <button type="button" className="vie-btn vie-btn-sm" onClick={cutToBeat}>{s.csCutToBeat}</button>
         <span className="flex-1" />
         <label className="t-small text-muted" htmlFor="cs-tl-zoom">{s.zoomSection}</label>
@@ -210,14 +219,16 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
       <div className="flex h-6 shrink-0 border-b border-line" style={{ paddingLeft: 96 }}>
         <div className="relative flex-1" onPointerDown={headDown}>
           {ruler.map((t) => (
-            <span key={t} className="t-small absolute top-1 text-muted" style={{ left: `${(t / span) * 100}%` }}>
+            <span key={t} className="t-small absolute top-1 text-muted" style={{ left: `${(t / rulerSpan) * 100}%` }}>
               {tc(t).slice(0, 5)}
             </span>
           ))}
         </div>
       </div>
-      {/* lanes */}
-      <div ref={trackRef} className="relative min-h-0 flex-1 overflow-hidden px-2.5 pb-2" onPointerDown={headDown}>
+      {/* lanes: SOT (Studio.dc.html) is a 96px label column + the track, no side padding — the ruler row above
+          (paddingLeft 96) and the playhead (left 96px) are measured from the same edge, so the container has
+          no left padding either; the old px-2.5 shifted the labels 10px right of the ruler and playhead. */}
+      <div ref={trackRef} className="relative min-h-0 flex-1 overflow-hidden pb-2 pr-2.5" onPointerDown={headDown}>
         {/* playhead */}
         <div className="pointer-events-none absolute bottom-0 top-[-24px] z-20" style={{ left: `calc(96px + ${headPct}% * (100% - 96px) / 100%)` }}>
           <div style={{ width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid rgb(var(--primary))" }} />
@@ -243,8 +254,11 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
           <div className="flex min-h-0 flex-[1.4]">
             <LaneLabel>{s.csVideoLane}</LaneLabel>
             <div className="relative min-w-0 flex-1">
-              {items.length === 0 && !introOn && (
-                <div className="absolute inset-y-1 left-0 right-0 flex items-center justify-center rounded-md border border-dashed border-line2 text-muted">
+              {/* SOT (Studio.dc.html): the Intro segment and the dashed "No clips on the timeline yet" box sit
+                  side by side in V1 — the box shows whenever there are no clips, even with the Intro on. */}
+              {items.length === 0 && (
+                <div className="absolute inset-y-1 flex items-center rounded-md border border-dashed border-line2 px-2.5 text-muted"
+                  style={{ left: introOn ? `${INTRO_W * 100}%` : 0, right: 0 }}>
                   <span className="t-small">{s.csNoClipsTimeline}</span>
                 </div>
               )}
@@ -290,9 +304,10 @@ export function Timeline({ r, st, ui, setBinTab }: { r: ReelState | null; st: St
                   <span className="t-small truncate">{music.name}</span>
                 </div>
               ) : (
-                <div className="absolute inset-y-1 left-0 right-0 flex items-center justify-center gap-2 rounded-md border border-dashed border-line2 text-muted">
-                  <span className="t-small">{s.csNoMusic}</span>
-                  <button type="button" className="vie-btn vie-btn-sm" onClick={() => setBinTab?.(3)}>{s.csUploadMusic}</button>
+                // SOT (Studio.dc.html): the text is left-aligned and takes the row, "Upload music" sits at the right end.
+                <div className="absolute inset-y-1 left-0 right-0 flex items-center gap-2 rounded-md border border-dashed border-line2 py-1 pl-2.5 pr-1 text-muted">
+                  <span className="t-small flex-1">{s.csNoMusic}</span>
+                  <button type="button" className="vie-btn vie-btn-sm shrink-0" onClick={() => setBinTab?.(3)}>{s.csUploadMusic}</button>
                 </div>
               )}
             </div>

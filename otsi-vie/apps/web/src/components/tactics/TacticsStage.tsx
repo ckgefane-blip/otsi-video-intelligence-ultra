@@ -18,7 +18,7 @@
  * moment, with that track selected. The tab is matched by NAME, not by position — ?tab=player-comparison used to open Transitions
  * (the old stage indexed the six-name list into the seven-view list). Malformed values are ignored.
  */
-import type { FormationName, Match, RunTeams, Video } from "@otsi-vie/contracts";
+import type { Match, RunTeams, Video } from "@otsi-vie/contracts";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { pickVideo } from "@/lib/currentVideo";
@@ -64,6 +64,36 @@ function SotPitch({ children, labelledBy }: { children?: React.ReactNode; labell
   );
 }
 
+/** Export image (SOT rebuild 2026-11-13): the pitch as a PNG. The pitch is SVG — the base pitch, the measured
+ *  overlays and the shape density — so it serialises to one standalone SVG (each layer's viewBox mapped onto
+ *  the master's 0 0 105 68; the shape density is centred, so its layer is translated by 52.5 34) and is then
+ *  rasterised on a canvas. If rasterising fails, the SVG itself downloads instead — still a faithful export. */
+function serializePitch(el: HTMLElement): string | null {
+  const svgs = el.querySelectorAll("svg");
+  if (!svgs.length) return null;
+  const parts: string[] = [];
+  svgs.forEach((svg) => {
+    const vb = (svg.getAttribute("viewBox") ?? "0 0 105 68").split(/\s+/).map(Number);
+    const minX = vb[0] ?? 0;
+    const minY = vb[1] ?? 0;
+    const inner = svg.innerHTML;
+    if (minX === 0 && minY === 0) parts.push(inner);
+    else parts.push(`<g transform="translate(${-minX} ${-minY})">${inner}</g>`);
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 105 68" width="1050" height="680">${parts.join("")}</svg>`;
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
   const { t: dict } = useLocale();
   const router = useRouter();
@@ -74,7 +104,6 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
   const [picking, setPicking] = useState(false);
   const [match, setMatch] = useState<Match | null>(null);
   const [kits, setKits] = useState<RunTeams | null>(null);
-  const [formRefresh, setFormRefresh] = useState(0);
   const runId = ws?.run?.id ?? null;
   const videoId = ws?.video?.id ?? null;
   useEffect(() => {
@@ -91,17 +120,47 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
   const sideGroups = side === "home" ? (sides[0]?.groups ?? []) : side === "away" ? (sides[1]?.groups ?? []) : [...(sides[0]?.groups ?? []), ...(sides[1]?.groups ?? [])];
   const shape = useTeamShape(runId, sideGroups, calKey);
   const sh = shape && shape !== "loading" && shape.moments > 0 ? shape : null;
-  const formationsData = useFormations(videoId, period, formRefresh);
+  const formationsData = useFormations(videoId, period, null);
   const currentFormation = formationsData && formationsData !== "loading"
     ? formationsData.teams.find((t) => sideGroups.includes(t.kit_group)) ?? null : null;
   // a moment's button opens Analysis at that moment, where the video plays (this page has no video of its own)
   const openAt = (us: number) => { if (videoId) router.push(`/analysis?video=${videoId}&t=${Math.round(us / 100_000) / 10}`); };
-  const confirmFormation = async (name: FormationName) => {
-    if (!videoId || !sideGroups.length) return;
+  /** the pitch export (Export image): the pitch is rendered only on the Team shape view, so the button is
+   *  live only there; while a PNG is being made it stays disabled. */
+  const pitchRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const exportPitchImage = async () => {
+    const el = pitchRef.current;
+    if (!el || exporting) return;
+    setExporting(true);
     try {
-      await api(`/v1/videos/${videoId}/formations/confirm`, { method: "POST", json: { kit_group: sideGroups[0], period, formation: name } });
-      setFormRefresh((k) => k + 1);
-    } catch { /* the formation stays inferred; the button stays */ }
+      const svg = serializePitch(el);
+      if (!svg) return;
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      try {
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("pitch image failed to load"));
+          img.src = url;
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = 1050;
+        canvas.height = 680;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no 2d context");
+        ctx.drawImage(img, 0, 0, 1050, 680);
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (!blob) throw new Error("no PNG");
+        downloadBlob(blob, "team-shape.png");
+      } catch {
+        downloadBlob(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), "team-shape.svg");
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setExporting(false);
+    }
   };
   // B.8: the tab the link from Analysis asked for, matched by NAME (not by position) — ?tab=player-comparison used to open Transitions
   const params = useSearchParams();
@@ -125,9 +184,11 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
   const defLineX = defLineFrac != null ? (side === "away" ? 105 - defLineFrac * 105 : defLineFrac * 105) : null;
   const metric = (v: string | null) => v ?? NM;
   return (
-    <div className="flex min-h-full w-full">
-      {/* left: the views, and what Team shape still needs */}
-      <aside className="side" aria-label={dict.body.tactics.viewsLabel}>
+    // data-stage="tactics": the shell's AppMain drops its gutter (has-[[data-stage]]:p-0) for staged pages,
+    // so the three columns run edge to edge — full height to the status bar — instead of floating in the gutter
+    <div className="flex min-h-full w-full" data-stage="tactics">
+      {/* left: the views, and what Team shape still needs (at the bottom) */}
+      <aside className="side" style={{ flex: "0 0 248px" }} aria-label={dict.body.tactics.viewsLabel}>
         <div className="ph"><h2 className="h3">{dict.body.tactics.viewsLabel}</h2></div>
         <nav className="sect" aria-label={dict.body.tactics.viewsLabel}>
           {VIEWS.map((v) => (
@@ -135,14 +196,17 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
               className={`flex h-[34px] w-full items-center rounded-md px-2 text-left text-sm ${view === v ? "bg-raised font-medium" : "text-muted hover:text-ink"}`}>{viewLabels[v]}</button>
           ))}
         </nav>
-        <div className="ph"><h2 className="h3">{dict.body.tactics.teamShapeNeeds}</h2></div>
-        <div className="sect flex flex-col gap-2">
-          {([[dict.body.tactics.needPitchCalibration, calDone], [dict.body.tactics.needTracking, trackDone], [dict.body.tactics.needLineups, lineupDone]] as const).map(([label, done]) => (
-            <div key={label} className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted">{label}</span>
-              <span className="tag">{done ? dict.body.tactics.needDone : dict.body.tactics.needRequired}</span>
-            </div>
-          ))}
+        {/* "Team shape needs" sits at the bottom of the left column (SOT: margin-top auto) */}
+        <div className="mt-auto">
+          <div className="ph"><h2 className="h3">{dict.body.tactics.teamShapeNeeds}</h2></div>
+          <div className="sect flex flex-col gap-2" style={{ borderBottom: 0 }}>
+            {([[dict.body.tactics.needPitchCalibration, calDone], [dict.body.tactics.needTracking, trackDone], [dict.body.tactics.needLineups, lineupDone]] as const).map(([label, done]) => (
+              <div key={label} className="flex items-center justify-between gap-2">
+                <span className="text-sm text-muted">{label}</span>
+                <span className="sm mu">{done ? dict.body.tactics.needDone : dict.body.tactics.needRequired}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
 
@@ -150,33 +214,35 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
       <main className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-[18px]">
         {view === "team-overview" ? (
           <>
-            <div className="flex flex-col gap-1">
-              <h1 className="h2">{dict.body.tactics.teamShape}</h1>
-              <p className="sub">{dict.body.tactics.teamShapeSub}</p>
+            {/* one-line header (SOT): the title and its subtitle on one baseline, the three segs at the right */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2.5">
+                <h1 className="h2">{dict.body.tactics.teamShape}</h1>
+                <span className="mu sm">{dict.body.tactics.teamShapeSub}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="seg shrink-0" role="group" aria-label={dict.body.tactics.teamSegLabel}>
+                  {(["home", "away", "both"] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => setSide(s)} aria-pressed={side === s} className={side === s ? "on" : ""}>
+                      {s === "home" ? dict.body.tactics.teamHome : s === "away" ? dict.body.tactics.teamAway : dict.body.tactics.teamBoth}
+                    </button>
+                  ))}
+                </div>
+                <div className="seg shrink-0" role="group" aria-label={dict.body.tactics.phaseLabel}>
+                  <button type="button" aria-pressed className="on">{dict.body.tactics.inPossessionTitle}</button>
+                  <button type="button" disabled title={dict.body.tactics.notDetectedYet}>{dict.body.tactics.outOfPossessionTitle}</button>
+                </div>
+                {/* the Period seg must not wrap: shrink-0 keeps it at its content width */}
+                <div className="seg shrink-0" role="group" aria-label={dict.body.tactics.periodLabel}>
+                  {(["FULL", "H1", "H2"] as const).map((p) => (
+                    <button key={p} type="button" onClick={() => setPeriod(p)} aria-pressed={period === p} className={period === p ? "on" : ""}>
+                      {p === "FULL" ? dict.body.tactics.periodMatch : p === "H1" ? dict.body.tactics.periodFirst : dict.body.tactics.periodSecond}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="eb">{dict.body.tactics.teamSegLabel}</span>
-              <div className="seg" role="group" aria-label={dict.body.tactics.teamSegLabel}>
-                {(["home", "away", "both"] as const).map((s) => (
-                  <button key={s} type="button" onClick={() => setSide(s)} aria-pressed={side === s} className={side === s ? "on" : ""}>
-                    {s === "home" ? dict.body.tactics.teamHome : s === "away" ? dict.body.tactics.teamAway : dict.body.tactics.teamBoth}
-                  </button>
-                ))}
-              </div>
-              <span className="eb">{dict.body.tactics.phaseLabel}</span>
-              <div className="seg" role="group" aria-label={dict.body.tactics.phaseLabel}>
-                <button type="button" aria-pressed className="on">{dict.body.tactics.inPossessionTitle}</button>
-                <button type="button" disabled title={dict.body.tactics.notDetectedYet}>{dict.body.tactics.outOfPossessionTitle}</button>
-              </div>
-              <span className="eb">{dict.body.tactics.periodLabel}</span>
-              <div className="seg" role="group" aria-label={dict.body.tactics.periodLabel}>
-                {(["FULL", "H1", "H2"] as const).map((p) => (
-                  <button key={p} type="button" onClick={() => setPeriod(p)} aria-pressed={period === p} className={period === p ? "on" : ""}>
-                    {p === "FULL" ? dict.body.tactics.periodMatch : p === "H1" ? dict.body.tactics.periodFirst : dict.body.tactics.periodSecond}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div ref={pitchRef} className="flex min-h-0 flex-1 items-center justify-center">
             <SotPitch labelledBy={sh ? dict.body.tactics.teamShape : dict.body.tactics.noTacticalData}>
               {sh && layers.avg && <ShapePicture shape={sh} />}
               {defLineX !== null && layers.lines && (
@@ -198,6 +264,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
                 </div>
               )}
             </SotPitch>
+            </div>
             <div className="grid items-center gap-2.5 px-1 py-1.5" style={{ gridTemplateColumns: "96px minmax(0, 1fr)" }}>
               <span className="eb">{dict.body.tactics.windowLabel}</span>
               <div className="relative h-[26px] rounded border border-line bg-p0">
@@ -223,7 +290,7 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
       </main>
 
       {/* right: the Layers, Shape metrics and Compare inspector */}
-      <aside className="insp" aria-label={dict.body.tactics.layersLabel}>
+      <aside className="insp" style={{ flex: "0 0 300px" }} aria-label={dict.body.tactics.layersLabel}>
         <div className="ph"><h2 className="h3">{dict.body.tactics.layersLabel}</h2></div>
         <div className="sect flex flex-col gap-2.5">
           {([[dict.body.tactics.layerAvgPositions, layers.avg, (v: boolean) => setLayers({ ...layers, avg: v })],
@@ -244,23 +311,9 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
             <dt>{dict.body.tactics.defLineHeightFull}</dt><dd>{metric(currentFormation?.defensive_line_height_m != null ? `${currentFormation.defensive_line_height_m} m` : null)}</dd>
             <dt>{dict.body.tactics.compactness}</dt><dd>{metric(sh?.compactness_m2 ? `${Math.round(sh.compactness_m2.mean)} m²` : null)}</dd>
           </dl>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {currentFormation && currentFormation.is_calibrated ? (
-              <>
-                <span className="t-section">{currentFormation.formation_display}</span>
-                {currentFormation.state === "CONFIRMED" ? (
-                  <span className="rounded bg-[rgba(16,185,129,0.18)] px-1.5 py-0.5 text-xs font-normal text-[#10b981]"
-                    title={currentFormation.decided_by_name ? dict.body.tactics.confirmedByName.replace("{a}", currentFormation.decided_by_name) : dict.body.tactics.confirmedByAnalyst}>{dict.body.tactics.confirmedCheck}</span>
-                ) : (
-                  <button type="button" onClick={() => void confirmFormation(currentFormation.formation)}
-                    className="rounded bg-[rgba(168,85,247,0.18)] px-1.5 py-0.5 text-xs font-normal text-[#a855f7]"
-                    title={dict.body.tactics.clickConfirmFormation}>{dict.body.tactics.inferredConfirm}</button>
-                )}
-              </>
-            ) : (
-              <span title={currentFormation?.not_measured_reason ?? sh?.not_measured?.formation ?? dict.body.tactics.formationNotMeasured} className="t-section">—</span>
-            )}
-          </div>
+          {/* SOT rebuild 2026-11-13: the SOT has no formation display, Confirmed/Inferred chip or
+              click-to-confirm under the pitch — removed. The formation is still measured (useFormations
+              above feeds the Defensive line height row); there is no confirm UI for it anywhere. */}
         </div>
         <div className="ph"><h2 className="h3">{dict.body.tactics.compareTwoPlayers}</h2></div>
         <div className="sect">
@@ -272,9 +325,18 @@ function Sections({ ws }: { ws: AnalysisWorkspaceState | null }) {
           </div>
           <p className="hint mt-2">{dict.body.tactics.compareConfirmedOnly}</p>
         </div>
-        <div className="sect mt-auto flex gap-2">
-          <button type="button" disabled className="btn flex-1">{dict.body.tactics.addToReport}</button>
-          <button type="button" disabled className="btn flex-1">{dict.body.tactics.exportImage}</button>
+        {/* the two buttons side by side (SOT): the .sect class is flex-direction column, so this row is
+            its own flex row with a top rule. "Add to report" stays disabled — re-verified 2026-11-13: the
+            SOT itself has it disabled (Tactical.dc.html lines 135–136) and there is no "add tactical
+            content to a report" action anywhere (POST /v1/players/:id/reports is per-player with the fixed
+            sections measures/heat/events/comparison/insights/assessment — no tactical section, and this
+            page has no player to report on). Do not wire it to an invented action. */}
+        <div className="mt-auto flex flex-row gap-2 border-t border-line px-3.5 py-3">
+          <button type="button" disabled className="btn sm flex-1">{dict.body.tactics.addToReport}</button>
+          <button type="button" onClick={() => void exportPitchImage()} disabled={view !== "team-overview" || exporting}
+            title={view !== "team-overview" ? dict.body.tactics.exportImageTeamOnly : undefined} className="btn sm flex-1">
+            {exporting ? "…" : dict.body.tactics.exportImage}
+          </button>
         </div>
       </aside>
       <VideoPicker open={picking} onOpenChange={setPicking} current={videoId} basePath="/tactics" />

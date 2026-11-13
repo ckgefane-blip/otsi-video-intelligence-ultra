@@ -6,11 +6,15 @@ describe("keyboard map", () => {
   it("has the keys the spec names, each listed once per page", () => {
     for (const list of [EVERYWHERE_KEYS, STUDIO_KEYS, ANALYSIS_KEYS, REELS_KEYS, REPORTS_KEYS]) expect(new Set(list.map((s) => s.keys)).size).toBe(list.length);
     const has = (list: { keys: string }[], k: string) => list.some((s) => s.keys === k);
-    for (const k of ["J", "K", "L", "I / O", "S", "C", "M"]) expect(has(STUDIO_KEYS, k)).toBe(true);
-    // dual timeline snapshot-and-swap (Blueprint §2.3): B snapshots Cut B, Shift+B applies it
-    for (const k of ["B", "Shift + B"]) expect(has(STUDIO_KEYS, k)).toBe(true);
+    for (const k of ["J", "K", "L", "I / P", "S", "C", "M"]) expect(has(STUDIO_KEYS, k)).toBe(true);
+    // SOT rebuild 2026-11-13: B is the Blade tool (split where you click) and V is the Select tool. The dual
+    // timeline's B (snapshot Cut B) and Shift + B (apply Cut B) are gone — that panel is never mounted.
+    for (const k of ["B", "V"]) expect(has(STUDIO_KEYS, k)).toBe(true);
+    expect(has(STUDIO_KEYS, "Shift + B")).toBe(false);
     for (const k of ["J", "K", "L", "N", "Space"]) expect(has(ANALYSIS_KEYS, k)).toBe(true);
-    for (const k of ["Ctrl + K", "?"]) expect(has(EVERYWHERE_KEYS, k)).toBe(true);
+    // the SOT's missing rows, now wired: frame step, speed, Confirm / Correct / Reject identity
+    for (const k of [", / .", "[ / ]", "C", "E", "X"]) expect(has(ANALYSIS_KEYS, k)).toBe(true);
+    for (const k of ["Ctrl + K", "?", "Ctrl + ,"]) expect(has(EVERYWHERE_KEYS, k)).toBe(true);
     // Reel Builder: the same undo / redo keys as Clip Studio, for the reel's own History
     for (const k of ["Ctrl + Z", "Ctrl + Shift + Z or Ctrl + Y"]) expect(has(REELS_KEYS, k)).toBe(true);
     // Player Reports: [ / ] move between the rail's sections
@@ -42,9 +46,10 @@ describe("keyboard map", () => {
     const keys = (q: string) => keymapFor("/studio", q).flatMap((g) => g.rows.map((r) => `${g.scope}:${r.keys}`));
     expect(keys("s")).toEqual(["studio:S"]);
     expect(keys("n")).toEqual(["analysis:N"]);
-    expect(keys("i")).toEqual(["studio:I / O"]);
+    expect(keys("i")).toEqual(["studio:I / P"]);
     expect(keys("?")).toEqual(["everywhere:?"]);
-    expect(keys("split")).toEqual(["studio:S"]);
+    expect(keys("split")).toEqual(["studio:S", "studio:B"]);
+    expect(keys("blade")).toEqual(["studio:B"]);
     expect(keys("marker")).toEqual(["studio:M"]);
     expect(keys("zzz")).toEqual([]);
   });

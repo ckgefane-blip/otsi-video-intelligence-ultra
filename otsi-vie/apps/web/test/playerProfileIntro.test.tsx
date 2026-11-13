@@ -15,7 +15,6 @@ vi.mock("@/lib/api", () => ({ api: (...a: unknown[]) => api(...a), apiBlob: vi.f
 
 import { PlayerProfileIntroPanel, PlayerProfileIntroView, ProfileIntroDialog } from "@/components/reels/PlayerProfileIntro";
 import { ReelBuilder, ReelOverlays, ReelProfileIntro, ReelSteps } from "@/components/reels/ReelBuilder";
-import { ReelExtras } from "@/components/reelstage/ReelExtras";
 import { buildDetailsPatch, PlayersList } from "@/components/players/PlayersList";
 
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = vi.fn() as never;
@@ -152,8 +151,10 @@ describe("PlayerProfileIntroView", () => {
     expect(screen.getByText("Recent form")).toBeTruthy();
     expect(screen.getByText("International")).toBeTruthy();
     expect(screen.getByText("Club & league")).toBeTruthy();
-    // footer: measured-by + continue
+    // footer: measured-by + continue, and the logo image (SOT) instead of the "OTSI" text
     expect(screen.getByText("Measured by the engine. Where something was not measured, it says so.")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "OTSI" })).toHaveAttribute("src", "/brand/otsi-logo.png");
+    expect(screen.queryByText("OTSI")).toBeNull();
     expect(screen.getByText("Continue to Reel")).toBeTruthy();
   });
 
@@ -183,17 +184,6 @@ describe("PlayerProfileIntroPanel and dialog", () => {
     api.mockRejectedValue(new Error("down"));
     render(<PlayerProfileIntroPanel playerId="0193132e-5034-7bc3-9565-df048bb01001" />);
     expect(await screen.findByText("The player profile could not be loaded.")).toBeTruthy();
-  });
-});
-
-describe("profile_intro setting", () => {
-  it("flips in the ReelExtras dialog (where the match card toggle lives)", () => {
-    api.mockResolvedValue([]);
-    const onChange = vi.fn();
-    render(<ReelExtras settings={SpotlightSettings.parse({})} onChange={onChange} onClose={() => undefined} />);
-    fireEvent.click(screen.getByText("Player Profile Intro"));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ profile_intro: false }));
-    expect(onChange.mock.calls[0]![0]).toMatchObject({ match_card: true });
   });
 });
 

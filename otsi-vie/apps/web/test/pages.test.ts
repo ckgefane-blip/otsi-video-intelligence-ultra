@@ -46,17 +46,17 @@ describe("page registry", () => {
 describe("navigation", () => {
   it("shows the eleven approved destinations in the approved order and marks the current one", () => {
     const items = navItems("/dashboard");
-    expect(items.map((i) => i.label)).toEqual(["Home", "Upload", "Processing", "Analysis", "Tactical", "Players", "Reel Builder", "Clip Studio", "Player Report", "Library", "Export"]);
+    expect(items.map((i) => i.label)).toEqual(["Home", "Media", "Processing", "Analysis", "Tactical", "Players", "Reports", "Reels", "Clip Studio", "Library", "Export"]);
     expect(items.filter((i) => i.active).map((i) => i.label)).toEqual(["Home"]);
   });
 
   it.each([
-    ["/upload", "Upload"], ["/processing", "Processing"], ["/videos/0190c6a0-0000-7000-8000-000000000000/processing", "Processing"],
+    ["/upload", "Media"], ["/processing", "Processing"], ["/videos/0190c6a0-0000-7000-8000-000000000000/processing", "Processing"],
     ["/analysis", "Analysis"], ["/videos/0190c6a0-0000-7000-8000-000000000000/analyze", "Analysis"],
     ["/tactics", "Tactical"], ["/videos/0190c6a0-0000-7000-8000-000000000000/tactics", "Tactical"],
     ["/players", "Players"],
-    ["/reels", "Reel Builder"], ["/reels/0190c6a0-0000-7000-8000-000000000000", "Reel Builder"], ["/studio", "Clip Studio"],
-    ["/reports", "Player Report"], ["/reports/players/OTSI-NGA-2026-000001", "Player Report"],
+    ["/reels", "Reels"], ["/reels/0190c6a0-0000-7000-8000-000000000000", "Reels"], ["/studio", "Clip Studio"],
+    ["/reports", "Reports"], ["/reports/players/OTSI-NGA-2026-000001", "Reports"],
     ["/library", "Library"], ["/matches", "Library"], ["/exports", "Export"],
   ])("marks exactly one current destination for %s", (path, label) => {
     const items = navItems(path);

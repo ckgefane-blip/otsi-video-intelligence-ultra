@@ -74,6 +74,13 @@ export const AppliedLineups = z.object({
 });
 export type AppliedLineups = z.infer<typeof AppliedLineups>;
 
+/** Rejecting (dismissing) one card: the reason is optional on the wire — the Analysis page dismisses with one click — but the
+ *  review inbox asks for it, because decisions are logged with a reason. It is stored on the audit row. */
+export const DismissLineupCard = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+export type DismissLineupCard = z.infer<typeof DismissLineupCard>;
+
 const CYR: Record<string, string> = { а: "a", б: "b", в: "v", г: "g", ґ: "g", д: "d", е: "e", ё: "e", є: "e", ж: "zh", з: "z", и: "i", і: "i", ї: "i", й: "i", к: "k",
   л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ў: "u", ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sh", ъ: "", ы: "i", ь: "",
   э: "e", ю: "iu", я: "ia", ј: "i", љ: "l", њ: "n", ћ: "c", ђ: "d", џ: "dz" };

@@ -107,6 +107,16 @@ export interface Dictionary {
     tokJobReport: string;
     tokJobExport: string;
     tokJobAi: string;
+    accuracyLineLead: string;
+    accuracyLineRest: string;
+    accuracyGateNotStarted: string;
+    accuracyGateMeasuring: string;
+    accuracyGatePassed: string;
+    accuracyGateFailed: string;
+    accuracyGateWaived: string;
+    releaseGates: string;
+    noPlayableTitle: string;
+    noPlayableBody: string;
   };
   nav: {
     home: string;
@@ -286,6 +296,8 @@ export interface Dictionary {
       hmReview: string;
       hmKeyPasses: string;
       hmXa: string;
+      recentMatchesSot: string;
+      viewAllSot: string;
     };
     analysis: {
       match: string;
@@ -1587,6 +1599,11 @@ export interface Dictionary {
       snapTitleOnBeats: string;
       snapTitleOnPlain: string;
       snapTitleOff: string;
+      csSearchBin: string;
+      csBrandTab: string;
+      csTransDip: string;
+      csTransSlide: string;
+      csTextPlaceholder: string;
     };
     reports: {
       choosePlayer: string;
@@ -2706,6 +2723,8 @@ export interface Dictionary {
       lbEventsMany: string;
       accessOwnerOnly: string;
       accessChosenMembers: string;
+      rangeCustomStart: string;
+      rangeCustomEnd: string;
     };
     exports: {
       projectSummary: string;
@@ -3910,6 +3929,7 @@ export interface Dictionary {
       photoBasisAria: string;
       photoAlt: string;
       playersListAria: string;
+      plSelectPlayer: string;
     };
     matches: {
       changeBtn: string;
@@ -4507,6 +4527,11 @@ export interface Dictionary {
       restored: string;
       couldNotRestore: string;
       undoRestoreAria: string;
+      mediaEyebrow: string;
+      mdQueueFile: string;
+      mdQueueSize: string;
+      mdQueueRights: string;
+      mdQueueStatus: string;
     };
     processing: {
       stageWaiting: string;
@@ -5042,6 +5067,7 @@ export interface Dictionary {
       exportImage: string;
       noTacticalData: string;
       noTacticalDataWhy: string;
+      exportImageTeamOnly: string;
     };
     workspace: {
       aTeam: string;
@@ -6050,6 +6076,14 @@ export interface Dictionary {
       gateRule: string;
       gateRef: string;
       gateNote: string;
+      healthReasonPh: string;
+      healthRejectUnsupported: string;
+      modelTaskDetect: string;
+      modelTaskEmbed: string;
+      modelTaskOcr: string;
+      modelTaskTextDetect: string;
+      modelTaskPitchKeypoints: string;
+      modelTaskBallDetect: string;
     };
     settings: {
       teamTitle: string;
@@ -6191,6 +6225,8 @@ export interface Dictionary {
       stSecNoPasskeys: string;
       stSecPasskeyHint: string;
       stSecRegister: string;
+      stPrefFolderLauncher: string;
+      stTeamCopyNeedsInvite: string;
     };
     wallet: {
       title: string;
@@ -6338,6 +6374,7 @@ export interface Dictionary {
       photoRemoveFailed: string;
       removePhoto: string;
       accountAria: string;
+      accountLabel: string;
       noOrg: string;
       pageHowMuch: string;
       guidedOrProAria: string;
@@ -6606,6 +6643,15 @@ export interface Dictionary {
       themeLightName: string;
       themeDarkName: string;
       themeSwitch: string;
+      ksSettings: string;
+      ksConfirmIdentity: string;
+      ksCorrectIdentity: string;
+      ksRejectIdentity: string;
+      ksFrameStep: string;
+      ksSpeed: string;
+      ksOpenLocal: string;
+      ksBladeTool: string;
+      ksSelectTool: string;
     };
     auth: {
       signIn: string;
@@ -6753,6 +6799,12 @@ export interface Dictionary {
       tourEvidenceBody: string;
       tourClose: string;
       inviteFullName: string;
+      sharedGateDescOrg: string;
+      sharedByOrgName: string;
+      showShort: string;
+      hideShort: string;
+      showPasswordShort: string;
+      hidePasswordShort: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -6806,7 +6858,7 @@ export const en: Dictionary = {
     accuracy: "Engine accuracy",
     accuracyNotMeasured: "Not measured",
     accuracyMeasured: "Measured",
-    tierLine: "{a} tier · {b} per video",
+    tierLine: "{a} tier · {b} included",
     tokens: "Tokens",
     modeGuided: "Guided interface",
     modeAdvanced: "Advanced interface",
@@ -6827,8 +6879,8 @@ export const en: Dictionary = {
     uploadTooLargeBody: "{f} is {s}. The {a} tier accepts MP4 or MOV up to {b} per video. Trim or compress the file, or move to Pro (24 GB) or Enterprise (64 GB) in Settings → Wallet.",
     uploadWrongTypeTitle: "Unsupported file type",
     uploadWrongTypeBody: "{f} is not MP4 or MOV. Export the match as MP4 or MOV and try again.",
-    noFootageTitle: "No verified playable footage was supplied",
-    noFootageBody: "Open the match file from this computer to play it here. The tracking overlay draws only from this file’s confirmed tracks.",
+    noFootageTitle: "No playable footage",
+    noFootageBody: "Open the match file from this computer to play it.",
     play: "Play",
     pause: "Pause",
     openLocal: "Open local footage",
@@ -6876,17 +6928,27 @@ export const en: Dictionary = {
     tokJobReport: "Player report",
     tokJobExport: "Export pack",
     tokJobAi: "AI analysis",
+    accuracyLineLead: "Accuracy not yet measured",
+    accuracyLineRest: "· every number and box is what the engine recorded on this footage",
+    accuracyGateNotStarted: "not started",
+    accuracyGateMeasuring: "measuring",
+    accuracyGatePassed: "passed",
+    accuracyGateFailed: "failed",
+    accuracyGateWaived: "waived",
+    releaseGates: "Release gates",
+    noPlayableTitle: "No playable footage",
+    noPlayableBody: "Open the match file from this computer to play it.",
   },
   nav: {
     home: "Home",
-    upload: "Upload",
+    upload: "Media",
     processing: "Processing",
     analysis: "Analysis",
     tactical: "Tactical",
     players: "Players",
-    reels: "Reel Builder",
+    reels: "Reels",
     studio: "Clip Studio",
-    reports: "Player Report",
+    reports: "Reports",
     library: "Library",
     export: "Export",
   },
@@ -6936,7 +6998,7 @@ export const en: Dictionary = {
     },
   },
   shell: {
-    searchAndCommands: "Search and commands (Ctrl+K)",
+    searchAndCommands: "Search players, matches, actions",
     searchHint: "Search matches, players, reels and projects, or run a command (Ctrl+K)",
     language: "Language",
   },
@@ -7067,6 +7129,8 @@ export const en: Dictionary = {
       hmReview: "Review",
       hmKeyPasses: "Key passes",
       hmXa: "xA",
+      recentMatchesSot: "Recent matches",
+      viewAllSot: "View all",
     },
     analysis: {
       match: "Match",
@@ -7853,7 +7917,7 @@ export const en: Dictionary = {
       intoClip: "Into clip {a}",
       introLabel: "Intro",
       introOutroVideo: "Intro / outro video",
-      ioMark: "I / O: mark the part to add",
+      ioMark: "I / P: mark the part to add",
       keepLabel: "Keep",
       keyMomentMoved: "Key moment moved",
       keyMomentOutside: "Its key moment is outside the clip now (after a trim): it does nothing until you set it again.",
@@ -8232,7 +8296,7 @@ export const en: Dictionary = {
       beatLabel: "Beat: {a}",
       drawnAt: "{a} drawn at {b} in clip {c}",
       toolDragHint: "{a}: drag on the picture; it draws on at the playhead",
-      ioMarkHint: "I / O mark a Media Bin moment in the preview; on the timeline use Alt+[ / Alt+] or drag a clip's edge",
+      ioMarkHint: "I / P mark a Media Bin moment in the preview; on the timeline use Alt+[ / Alt+] or drag a clip's edge",
       marksCleared: "Marks cleared",
       markedRangeSay: "Marked {a} – {b} ({c} s): + adds the marked part",
       inMarkedAt: "In marked at {a}",
@@ -8368,6 +8432,11 @@ export const en: Dictionary = {
       snapTitleOnBeats: "Snapping on: dragged edges jump to beats, playhead and markers",
       snapTitleOnPlain: "Snapping on: dragged edges jump to the playhead and markers",
       snapTitleOff: "Snapping off",
+      csSearchBin: "Search bin",
+      csBrandTab: "Brand",
+      csTransDip: "Dip to black",
+      csTransSlide: "Slide",
+      csTextPlaceholder: "Type the text…",
     },
     reports: {
       choosePlayer: "Choose a player",
@@ -8821,7 +8890,7 @@ export const en: Dictionary = {
       accessLoadFailed: "Access could not be loaded",
       accessNotSaved: "The change was not saved",
       accessWhoCanSee: "Who can see it",
-      accessEveryone: "Everyone in your organization",
+      accessEveryone: "Everyone in the organisation",
       accessRestricted: "Only the people listed below (and Owners / Admins)",
       accessOnlyManager: "Only an Owner, an Admin or this project's Manager can change this.",
       accessPeopleOn: "People on this project ({a})",
@@ -9486,6 +9555,8 @@ export const en: Dictionary = {
       lbEventsMany: "{a} events",
       accessOwnerOnly: "Only me and the owner",
       accessChosenMembers: "Chosen members",
+      rangeCustomStart: "Start",
+      rangeCustomEnd: "End",
     },
     exports: {
       projectSummary: "Project Summary",
@@ -10690,6 +10761,7 @@ export const en: Dictionary = {
       photoBasisAria: "{a} photo rights basis",
       photoAlt: "Photo of {a}",
       playersListAria: "Players",
+      plSelectPlayer: "Select a player to see and edit their profile",
     },
     matches: {
       changeBtn: "Change",
@@ -11287,6 +11359,11 @@ export const en: Dictionary = {
       restored: "Restored {title}",
       couldNotRestore: "It could not be restored",
       undoRestoreAria: "Undo: restore {title}",
+      mediaEyebrow: "Media",
+      mdQueueFile: "File",
+      mdQueueSize: "Size",
+      mdQueueRights: "Rights",
+      mdQueueStatus: "Status",
     },
     processing: {
       stageWaiting: "Waiting",
@@ -11739,8 +11816,8 @@ export const en: Dictionary = {
       notMeasuredNoMoment: "Not measured — no moment with {a}+ of this team on a measured pitch yet",
       currentPhase: "(Current Phase)",
       defensiveShape: "Defensive Shape",
-      inPossessionTitle: "In Possession",
-      outOfPossessionTitle: "Out of Possession",
+      inPossessionTitle: "In possession",
+      outOfPossessionTitle: "Out of possession",
       needsCalibratedPositions: "Needs calibrated positions",
       heatZonesPossession: "{a}: heat zones; possession not measured",
       possessionLabel: "Possession",
@@ -11822,6 +11899,7 @@ export const en: Dictionary = {
       exportImage: "Export image",
       noTacticalData: "No tactical data yet",
       noTacticalDataWhy: "Needs pitch calibration and confirmed lineups.",
+      exportImageTeamOnly: "Export is available on the Team shape view",
     },
     workspace: {
       aTeam: "A team",
@@ -12830,6 +12908,14 @@ export const en: Dictionary = {
       gateRule: "Release Rule: ",
       gateRef: "Evidence Ref: ",
       gateNote: "Note: ",
+      healthReasonPh: "Reason (logged with the decision)",
+      healthRejectUnsupported: "Reject is not supported for this kind of item",
+      modelTaskDetect: "Detection",
+      modelTaskEmbed: "Embedding",
+      modelTaskOcr: "Text recognition",
+      modelTaskTextDetect: "Text detection",
+      modelTaskPitchKeypoints: "Pitch keypoints",
+      modelTaskBallDetect: "Ball detection",
     },
     settings: {
       teamTitle: "Team and roles",
@@ -12971,6 +13057,8 @@ export const en: Dictionary = {
       stSecNoPasskeys: "No passkeys yet",
       stSecPasskeyHint: "Sign in with Windows Hello on this computer.",
       stSecRegister: "Register this device",
+      stPrefFolderLauncher: "The library folder is set by the launcher on this computer.",
+      stTeamCopyNeedsInvite: "Send an invite first — the link appears here after the invite is created.",
     },
     wallet: {
       title: "Token Wallet",
@@ -13118,6 +13206,7 @@ export const en: Dictionary = {
       photoRemoveFailed: "The photo was not removed.",
       removePhoto: "Remove my photo",
       accountAria: "Account: {a}",
+      accountLabel: "Account",
       noOrg: "No organization",
       pageHowMuch: "{a}: how much to show",
       guidedOrProAria: "{a}: Guided or Advanced",
@@ -13215,9 +13304,9 @@ export const en: Dictionary = {
       ctxProject: "Project",
       ctxMatch: "Match",
       ctxPlayer: "Player",
-      ctxNoneOpen: "none open",
-      ctxNoneChosen: "none chosen",
-      ctxNonePlayer: "—",
+      ctxNoneOpen: "None",
+      ctxNoneChosen: "None",
+      ctxNonePlayer: "None",
       ctxChange: "{a}: click to change",
       ctxChoose: "Choose the {a}",
       ctxOpen: "open",
@@ -13236,8 +13325,8 @@ export const en: Dictionary = {
       ctxOtsiId: "OTSI Player ID",
       ctxReel: "· Reel “{a}”",
       jobsTitle: "Jobs",
-      jobsAriaActive: "Jobs: {a} active",
-      jobsAriaLoading: "Jobs: loading",
+      jobsAriaActive: "Jobs Center, {a} active",
+      jobsAriaLoading: "Jobs Center",
       jobsTitleAttr: "{a} running, {b} waiting or paused",
       jobsTitleFailed: ", {a} failed today",
       jobsTitleFallback: "Jobs",
@@ -13386,6 +13475,15 @@ export const en: Dictionary = {
       themeLightName: "light",
       themeDarkName: "dark",
       themeSwitch: "Switch to the {a} theme",
+      ksSettings: "Settings",
+      ksConfirmIdentity: "Confirm identity",
+      ksCorrectIdentity: "Correct identity",
+      ksRejectIdentity: "Reject identity",
+      ksFrameStep: "Back / forward 1 frame",
+      ksSpeed: "Slower / faster",
+      ksOpenLocal: "Open local footage",
+      ksBladeTool: "Blade tool",
+      ksSelectTool: "Select tool",
     },
     auth: {
       signIn: "Sign in",
@@ -13533,6 +13631,12 @@ export const en: Dictionary = {
       tourEvidenceBody: "Every number carries a label: Confirmed means checked by a person, Detected means measured by the engine, Inferred means derived from other measurements, and Not measured means no measurement exists. Unmeasured values are never filled in.",
       tourClose: "Close tour",
       inviteFullName: "Полное имя",
+      sharedGateDescOrg: "{a} shared a Scouting Pack with you. Enter the password they gave you to open it.",
+      sharedByOrgName: "Shared with you by {a}",
+      showShort: "Show",
+      hideShort: "Hide",
+      showPasswordShort: "Show",
+      hidePasswordShort: "Hide",
     },
   },
   webauthn: {
@@ -13582,7 +13686,7 @@ export const ru: DeepPartial<Dictionary> = {
     accuracy: "Точность движка",
     accuracyNotMeasured: "Не измерена",
     accuracyMeasured: "Измерена",
-    tierLine: "Тариф {a} · {b} на видео",
+    tierLine: "Тариф {a} · {b} включено",
     tokens: "Токены",
     modeGuided: "Упрощённый интерфейс",
     modeAdvanced: "Расширенный интерфейс",
@@ -13603,8 +13707,8 @@ export const ru: DeepPartial<Dictionary> = {
     uploadTooLargeBody: "{f} весит {s}. Тариф {a} принимает MP4 или MOV до {b} на видео. Обрежьте или сожмите файл либо перейдите на Pro (24 ГБ) или Корпоративный (64 ГБ) в Настройки → Кошелёк.",
     uploadWrongTypeTitle: "Неподдерживаемый тип файла",
     uploadWrongTypeBody: "{f} — не MP4 и не MOV. Экспортируйте матч в MP4 или MOV и попробуйте снова.",
-    noFootageTitle: "Проверенное воспроизводимое видео не предоставлено",
-    noFootageBody: "Откройте файл матча с этого компьютера, чтобы воспроизвести его здесь. Слой трекинга рисует только подтверждённые треки этого файла.",
+    noFootageTitle: "Нет воспроизводимого видео",
+    noFootageBody: "Откройте файл матча с этого компьютера, чтобы воспроизвести его.",
     play: "Воспроизвести",
     pause: "Пауза",
     openLocal: "Открыть локальное видео",
@@ -13652,17 +13756,27 @@ export const ru: DeepPartial<Dictionary> = {
     tokJobReport: "Отчёт по игроку",
     tokJobExport: "Пакет экспорта",
     tokJobAi: "ИИ-анализ",
+    accuracyLineLead: "Точность ещё не измерена",
+    accuracyLineRest: "· каждое число и каждый прямоугольник — это то, что движок зафиксировал на этом материале",
+    accuracyGateNotStarted: "не начат",
+    accuracyGateMeasuring: "измеряется",
+    accuracyGatePassed: "пройден",
+    accuracyGateFailed: "не пройден",
+    accuracyGateWaived: "пропущен",
+    releaseGates: "Пороги релиза",
+    noPlayableTitle: "Нет воспроизводимого видео",
+    noPlayableBody: "Откройте файл матча с этого компьютера, чтобы воспроизвести его.",
   },
   nav: {
     home: "Главная",
-    upload: "Загрузка",
+    upload: "Медиа",
     processing: "Обработка",
     analysis: "Анализ",
     tactical: "Тактика",
     players: "Игроки",
-    reels: "Конструктор роликов",
+    reels: "Ролики",
     studio: "Клип-студия",
-    reports: "Отчёт игрока",
+    reports: "Отчёты",
     library: "Библиотека",
     export: "Экспорт",
   },
@@ -13712,7 +13826,7 @@ export const ru: DeepPartial<Dictionary> = {
     },
   },
   shell: {
-    searchAndCommands: "Поиск и команды (Ctrl+K)",
+    searchAndCommands: "Поиск игроков, матчей и действий",
     searchHint: "Ищите матчи, игроков, ролики и проекты или выполните команду (Ctrl+K)",
     language: "Язык",
   },
@@ -13843,6 +13957,8 @@ export const ru: DeepPartial<Dictionary> = {
       hmReview: "Проверить",
       hmKeyPasses: "Ключевые передачи",
       hmXa: "xA",
+      recentMatchesSot: "Недавние матчи",
+      viewAllSot: "Показать все",
     },
     analysis: {
       match: "Матч",
@@ -14629,7 +14745,7 @@ export const ru: DeepPartial<Dictionary> = {
       intoClip: "В клип {a}",
       introLabel: "Интро",
       introOutroVideo: "Видео интро / аутро",
-      ioMark: "I / O: отметьте часть для добавления",
+      ioMark: "I / P: отметьте часть для добавления",
       keepLabel: "Оставить",
       keyMomentMoved: "Ключевой момент перемещён",
       keyMomentOutside: "Его ключевой момент теперь вне клипа (после обрезки): он ничего не делает, пока вы не зададите его снова.",
@@ -15008,7 +15124,7 @@ export const ru: DeepPartial<Dictionary> = {
       beatLabel: "Бит: {a}",
       drawnAt: "{a} нарисован в {b} в клипе {c}",
       toolDragHint: "{a}: проведите по картинке; рисуется на плейхеде",
-      ioMarkHint: "I / O отмечают момент из медиабина в предпросмотре; на таймлайне используйте Alt+[ / Alt+] или перетащите край клипа",
+      ioMarkHint: "I / P отмечают момент из медиабина в предпросмотре; на таймлайне используйте Alt+[ / Alt+] или перетащите край клипа",
       marksCleared: "Метки сняты",
       markedRangeSay: "Отмечено {a} – {b} ({c} с): + добавляет отмеченную часть",
       inMarkedAt: "Начало отмечено в {a}",
@@ -15144,6 +15260,11 @@ export const ru: DeepPartial<Dictionary> = {
       snapTitleOnBeats: "Привязка вкл.: края притягиваются к битам, плейхеду и маркерам",
       snapTitleOnPlain: "Привязка вкл.: края притягиваются к плейхеду и маркерам",
       snapTitleOff: "Привязка выкл.",
+      csSearchBin: "Поиск в корзине",
+      csBrandTab: "Бренд",
+      csTransDip: "Затемнение",
+      csTransSlide: "Слайд",
+      csTextPlaceholder: "Введите текст…",
     },
     reports: {
       choosePlayer: "Выберите игрока",
@@ -16262,6 +16383,8 @@ export const ru: DeepPartial<Dictionary> = {
       lbEventsMany: "{a} событий",
       accessOwnerOnly: "Только я и владелец",
       accessChosenMembers: "Выбранные участники",
+      rangeCustomStart: "Начало",
+      rangeCustomEnd: "Конец",
     },
     exports: {
       projectSummary: "Сводка проекта",
@@ -17466,6 +17589,7 @@ export const ru: DeepPartial<Dictionary> = {
       photoBasisAria: "Основание для использования фото: {a}",
       photoAlt: "Фото: {a}",
       playersListAria: "Игроки",
+      plSelectPlayer: "Выберите игрока, чтобы посмотреть и изменить его профиль",
     },
     matches: {
       changeBtn: "Изменить",
@@ -18063,6 +18187,11 @@ export const ru: DeepPartial<Dictionary> = {
       restored: "Восстановлено: {title}",
       couldNotRestore: "Восстановить не удалось",
       undoRestoreAria: "Отменить: восстановить {title}",
+      mediaEyebrow: "Медиа",
+      mdQueueFile: "Файл",
+      mdQueueSize: "Размер",
+      mdQueueRights: "Права",
+      mdQueueStatus: "Статус",
     },
     processing: {
       pjHowProcessed: "Как обрабатывается каждое видео",
@@ -18598,6 +18727,7 @@ export const ru: DeepPartial<Dictionary> = {
       exportImage: "Экспорт изображения",
       noTacticalData: "Тактических данных пока нет",
       noTacticalDataWhy: "Нужны калибровка поля и подтверждённые составы.",
+      exportImageTeamOnly: "Экспорт доступен на виде «Форма команды»",
     },
     workspace: {
       aTeam: "Команда",
@@ -19606,6 +19736,14 @@ export const ru: DeepPartial<Dictionary> = {
       gateRule: "Правило релиза: ",
       gateRef: "Ссылка на доказательство: ",
       gateNote: "Примечание: ",
+      healthReasonPh: "Причина (записывается вместе с решением)",
+      healthRejectUnsupported: "Отклонить нельзя для такого элемента",
+      modelTaskDetect: "Обнаружение",
+      modelTaskEmbed: "Эмбеддинг",
+      modelTaskOcr: "Распознавание текста",
+      modelTaskTextDetect: "Обнаружение текста",
+      modelTaskPitchKeypoints: "Ключевые точки поля",
+      modelTaskBallDetect: "Обнаружение мяча",
     },
     settings: {
       teamTitle: "Команда и роли",
@@ -19747,6 +19885,8 @@ export const ru: DeepPartial<Dictionary> = {
       stSecNoPasskeys: "Пока нет ключей доступа",
       stSecPasskeyHint: "Входите с помощью Windows Hello на этом компьютере.",
       stSecRegister: "Зарегистрировать это устройство",
+      stPrefFolderLauncher: "Папка библиотеки задаётся программой запуска на этом компьютере.",
+      stTeamCopyNeedsInvite: "Сначала отправьте приглашение — ссылка появится здесь после его создания.",
     },
     wallet: {
       title: "Кошелёк токенов",
@@ -19894,6 +20034,7 @@ export const ru: DeepPartial<Dictionary> = {
       photoRemoveFailed: "Фото не удалено.",
       removePhoto: "Удалить моё фото",
       accountAria: "Учётная запись: {a}",
+      accountLabel: "Учётная запись",
       noOrg: "Нет организации",
       pageHowMuch: "{a}: сколько показывать",
       guidedOrProAria: "{a}: пошаговый или Расширенный",
@@ -19991,9 +20132,9 @@ export const ru: DeepPartial<Dictionary> = {
       ctxProject: "Проект",
       ctxMatch: "Матч",
       ctxPlayer: "Игрок",
-      ctxNoneOpen: "ничего не открыто",
-      ctxNoneChosen: "никто не выбран",
-      ctxNonePlayer: "—",
+      ctxNoneOpen: "Нет",
+      ctxNoneChosen: "Нет",
+      ctxNonePlayer: "Нет",
       ctxChange: "{a}: нажмите, чтобы изменить",
       ctxChoose: "Выберите: {a}",
       ctxOpen: "открыт",
@@ -20012,8 +20153,8 @@ export const ru: DeepPartial<Dictionary> = {
       ctxOtsiId: "OTSI Player ID",
       ctxReel: "· Ролик “{a}”",
       jobsTitle: "Задания",
-      jobsAriaActive: "Задания: активных: {a}",
-      jobsAriaLoading: "Задания: загрузка",
+      jobsAriaActive: "Центр задач, активных: {a}",
+      jobsAriaLoading: "Центр задач",
       jobsTitleAttr: "{a} выполняется, {b} ждёт или на паузе",
       jobsTitleFailed: ", неудачных сегодня: {a}",
       jobsTitleFallback: "Задания",
@@ -20162,6 +20303,15 @@ export const ru: DeepPartial<Dictionary> = {
       themeLightName: "светлая",
       themeDarkName: "тёмная",
       themeSwitch: "Переключить на тему: {a}",
+      ksSettings: "Настройки",
+      ksConfirmIdentity: "Подтвердить личность",
+      ksCorrectIdentity: "Исправить личность",
+      ksRejectIdentity: "Отклонить личность",
+      ksFrameStep: "Назад / вперёд на 1 кадр",
+      ksSpeed: "Медленнее / быстрее",
+      ksOpenLocal: "Открыть локальное видео",
+      ksBladeTool: "Инструмент «Лезвие»",
+      ksSelectTool: "Инструмент «Выбор»",
     },
     auth: {
       signIn: "Войти",
@@ -20309,6 +20459,12 @@ export const ru: DeepPartial<Dictionary> = {
       tourEvidenceBody: "У каждой цифры есть метка: «Подтверждено» — проверено человеком, «Обнаружено» — измерено движком, «Выведено» — получено из других измерений, «Не измерено» — измерения нет. Неизмеренные значения никогда не заполняются.",
       tourClose: "Закрыть тур",
       inviteFullName: "Nombre completo",
+      sharedGateDescOrg: "{a} поделился с вами Скаутинговым пакетом. Введите пароль, который вам дали, чтобы открыть его.",
+      sharedByOrgName: "Поделился с вами: {a}",
+      showShort: "Показать",
+      hideShort: "Скрыть",
+      showPasswordShort: "Показать",
+      hidePasswordShort: "Скрыть",
     },
   },
   webauthn: {
@@ -20358,7 +20514,7 @@ export const es: DeepPartial<Dictionary> = {
     accuracy: "Precisión del motor",
     accuracyNotMeasured: "No medida",
     accuracyMeasured: "Medida",
-    tierLine: "Plan {a} · {b} por vídeo",
+    tierLine: "Plan {a} · {b} incluidos",
     tokens: "Tokens",
     modeGuided: "Interfaz guiada",
     modeAdvanced: "Interfaz avanzada",
@@ -20379,8 +20535,8 @@ export const es: DeepPartial<Dictionary> = {
     uploadTooLargeBody: "{f} ocupa {s}. El plan {a} acepta MP4 o MOV de hasta {b} por vídeo. Recorta o comprime el archivo, o pasa a Pro (24 GB) o Empresa (64 GB) en Ajustes → Monedero.",
     uploadWrongTypeTitle: "Tipo de archivo no admitido",
     uploadWrongTypeBody: "{f} no es MP4 ni MOV. Exporta el partido en MP4 o MOV e inténtalo de nuevo.",
-    noFootageTitle: "No se proporcionó ningún vídeo reproducible verificado",
-    noFootageBody: "Abre el archivo del partido desde este equipo para reproducirlo aquí. La capa de seguimiento solo dibuja las trayectorias confirmadas de este archivo.",
+    noFootageTitle: "No hay material reproducible",
+    noFootageBody: "Abre el archivo del partido desde este ordenador para reproducirlo.",
     play: "Reproducir",
     pause: "Pausa",
     openLocal: "Abrir vídeo local",
@@ -20428,17 +20584,27 @@ export const es: DeepPartial<Dictionary> = {
     tokJobReport: "Informe de jugador",
     tokJobExport: "Paquete de exportación",
     tokJobAi: "Análisis de IA",
+    accuracyLineLead: "Precisión aún no medida",
+    accuracyLineRest: "· cada número y cada recuadro es lo que el motor registró en estas imágenes",
+    accuracyGateNotStarted: "no iniciado",
+    accuracyGateMeasuring: "midiendo",
+    accuracyGatePassed: "superado",
+    accuracyGateFailed: "fallido",
+    accuracyGateWaived: "eximido",
+    releaseGates: "Puertas de lanzamiento",
+    noPlayableTitle: "No hay vídeo reproducible",
+    noPlayableBody: "Abre el archivo del partido desde este ordenador para reproducirlo.",
   },
   nav: {
     home: "Inicio",
-    upload: "Subir",
+    upload: "Medios",
     processing: "Procesando",
     analysis: "Análisis",
     tactical: "Táctica",
     players: "Jugadores",
-    reels: "Creador de reels",
+    reels: "Reels",
     studio: "Estudio de clips",
-    reports: "Informe del jugador",
+    reports: "Informes",
     library: "Biblioteca",
     export: "Exportar",
   },
@@ -20488,7 +20654,7 @@ export const es: DeepPartial<Dictionary> = {
     },
   },
   shell: {
-    searchAndCommands: "Buscar y comandos (Ctrl+K)",
+    searchAndCommands: "Buscar jugadores, partidos y acciones",
     searchHint: "Busca partidos, jugadores, reels y proyectos, o ejecuta un comando (Ctrl+K)",
     language: "Idioma",
   },
@@ -20619,6 +20785,8 @@ export const es: DeepPartial<Dictionary> = {
       hmReview: "Revisar",
       hmKeyPasses: "Pases clave",
       hmXa: "xA",
+      recentMatchesSot: "Partidos recientes",
+      viewAllSot: "Ver todo",
     },
     analysis: {
       match: "Partido",
@@ -21405,7 +21573,7 @@ export const es: DeepPartial<Dictionary> = {
       intoClip: "Al clip {a}",
       introLabel: "Intro",
       introOutroVideo: "Vídeo de intro / outro",
-      ioMark: "I / O: marca la parte a añadir",
+      ioMark: "I / P: marca la parte a añadir",
       keepLabel: "Conservar",
       keyMomentMoved: "Momento clave movido",
       keyMomentOutside: "Su momento clave está ahora fuera del clip (tras un recorte): no hace nada hasta que lo vuelvas a fijar.",
@@ -21784,7 +21952,7 @@ export const es: DeepPartial<Dictionary> = {
       beatLabel: "Ritmo: {a}",
       drawnAt: "{a} dibujado en {b} en el clip {c}",
       toolDragHint: "{a}: arrastra sobre la imagen; se dibuja en el cabezal",
-      ioMarkHint: "I / O marcan un momento del Media Bin en la vista previa; en la línea de tiempo usa Alt+[ / Alt+] o arrastra el borde de un clip",
+      ioMarkHint: "I / P marcan un momento del Media Bin en la vista previa; en la línea de tiempo usa Alt+[ / Alt+] o arrastra el borde de un clip",
       marksCleared: "Marcas borradas",
       markedRangeSay: "Marcado {a} – {b} ({c} s): + añade la parte marcada",
       inMarkedAt: "Entrada marcada en {a}",
@@ -21920,6 +22088,11 @@ export const es: DeepPartial<Dictionary> = {
       snapTitleOnBeats: "Ajuste activado: los bordes se ajustan a los beats, el cabezal y los marcadores",
       snapTitleOnPlain: "Ajuste activado: los bordes se ajustan al cabezal y los marcadores",
       snapTitleOff: "Ajuste desactivado",
+      csSearchBin: "Buscar en la bandeja",
+      csBrandTab: "Marca",
+      csTransDip: "Fundido a negro",
+      csTransSlide: "Deslizar",
+      csTextPlaceholder: "Escribe el texto…",
     },
     reports: {
       choosePlayer: "Elige un jugador",
@@ -23038,6 +23211,8 @@ export const es: DeepPartial<Dictionary> = {
       lbEventsMany: "{a} eventos",
       accessOwnerOnly: "Solo yo y el propietario",
       accessChosenMembers: "Miembros elegidos",
+      rangeCustomStart: "Inicio",
+      rangeCustomEnd: "Fin",
     },
     exports: {
       projectSummary: "Resumen del proyecto",
@@ -24242,6 +24417,7 @@ export const es: DeepPartial<Dictionary> = {
       photoBasisAria: "Base de derechos de la foto de {a}",
       photoAlt: "Foto de {a}",
       playersListAria: "Jugadores",
+      plSelectPlayer: "Selecciona un jugador para ver y editar su perfil",
     },
     matches: {
       changeBtn: "Cambiar",
@@ -24839,6 +25015,11 @@ export const es: DeepPartial<Dictionary> = {
       restored: "Restaurado: {title}",
       couldNotRestore: "No se pudo restaurar",
       undoRestoreAria: "Deshacer: restaurar {title}",
+      mediaEyebrow: "Medios",
+      mdQueueFile: "Archivo",
+      mdQueueSize: "Tamaño",
+      mdQueueRights: "Derechos",
+      mdQueueStatus: "Estado",
     },
     processing: {
       stageWaiting: "Esperando",
@@ -25374,6 +25555,7 @@ export const es: DeepPartial<Dictionary> = {
       exportImage: "Exportar imagen",
       noTacticalData: "Aún no hay datos tácticos",
       noTacticalDataWhy: "Necesita calibración del campo y alineaciones confirmadas.",
+      exportImageTeamOnly: "La exportación está disponible en la vista Forma del equipo",
     },
     workspace: {
       aTeam: "Un equipo",
@@ -26382,6 +26564,14 @@ export const es: DeepPartial<Dictionary> = {
       gateRule: "Regla de lanzamiento: ",
       gateRef: "Ref. de prueba: ",
       gateNote: "Nota: ",
+      healthReasonPh: "Motivo (se registra con la decisión)",
+      healthRejectUnsupported: "No se puede rechazar este tipo de elemento",
+      modelTaskDetect: "Detección",
+      modelTaskEmbed: "Embedding",
+      modelTaskOcr: "Reconocimiento de texto",
+      modelTaskTextDetect: "Detección de texto",
+      modelTaskPitchKeypoints: "Puntos clave del campo",
+      modelTaskBallDetect: "Detección del balón",
     },
     settings: {
       teamTitle: "Equipo y roles",
@@ -26523,6 +26713,8 @@ export const es: DeepPartial<Dictionary> = {
       stSecNoPasskeys: "Aún no hay claves de acceso",
       stSecPasskeyHint: "Inicia sesión con Windows Hello en este equipo.",
       stSecRegister: "Registrar este dispositivo",
+      stPrefFolderLauncher: "La carpeta de la biblioteca la establece el lanzador en este equipo.",
+      stTeamCopyNeedsInvite: "Envía primero una invitación: el enlace aparecerá aquí después de crearla.",
     },
     wallet: {
       title: "Billetera de tokens",
@@ -26670,6 +26862,7 @@ export const es: DeepPartial<Dictionary> = {
       photoRemoveFailed: "La foto no se eliminó.",
       removePhoto: "Eliminar mi foto",
       accountAria: "Cuenta: {a}",
+      accountLabel: "Cuenta",
       noOrg: "Sin organización",
       pageHowMuch: "{a}: cuánto mostrar",
       guidedOrProAria: "{a}: guiado o Avanzado",
@@ -26767,9 +26960,9 @@ export const es: DeepPartial<Dictionary> = {
       ctxProject: "Proyecto",
       ctxMatch: "Partido",
       ctxPlayer: "Jugador",
-      ctxNoneOpen: "ninguno abierto",
-      ctxNoneChosen: "ninguno elegido",
-      ctxNonePlayer: "—",
+      ctxNoneOpen: "Ninguno",
+      ctxNoneChosen: "Ninguno",
+      ctxNonePlayer: "Ninguno",
       ctxChange: "{a}: haz clic para cambiar",
       ctxChoose: "Elige {a}",
       ctxOpen: "abierto",
@@ -26788,8 +26981,8 @@ export const es: DeepPartial<Dictionary> = {
       ctxOtsiId: "OTSI Player ID",
       ctxReel: "· Reel “{a}”",
       jobsTitle: "Trabajos",
-      jobsAriaActive: "Trabajos: {a} activos",
-      jobsAriaLoading: "Trabajos: cargando",
+      jobsAriaActive: "Centro de tareas, {a} activas",
+      jobsAriaLoading: "Centro de tareas",
       jobsTitleAttr: "{a} en curso, {b} en espera o en pausa",
       jobsTitleFailed: ", {a} fallidos hoy",
       jobsTitleFallback: "Trabajos",
@@ -26938,6 +27131,15 @@ export const es: DeepPartial<Dictionary> = {
       themeLightName: "claro",
       themeDarkName: "oscuro",
       themeSwitch: "Cambiar al tema {a}",
+      ksSettings: "Ajustes",
+      ksConfirmIdentity: "Confirmar identidad",
+      ksCorrectIdentity: "Corregir identidad",
+      ksRejectIdentity: "Rechazar identidad",
+      ksFrameStep: "Atrás / adelante 1 fotograma",
+      ksSpeed: "Más lento / más rápido",
+      ksOpenLocal: "Abrir vídeo local",
+      ksBladeTool: "Herramienta de cuchilla",
+      ksSelectTool: "Herramienta de selección",
     },
     auth: {
       signIn: "Iniciar sesión",
@@ -27085,6 +27287,12 @@ export const es: DeepPartial<Dictionary> = {
       tourEvidenceBody: "Cada número lleva una etiqueta: Confirmado significa revisado por una persona, Detectado significa medido por el motor, Inferido significa derivado de otras mediciones, y No medido significa que no existe medición. Los valores no medidos nunca se rellenan.",
       tourClose: "Cerrar recorrido",
       inviteFullName: "Vollständiger Name",
+      sharedGateDescOrg: "{a} compartió un Paquete de scouting contigo. Introduce la contraseña que te dieron para abrirlo.",
+      sharedByOrgName: "Compartido contigo por {a}",
+      showShort: "Mostrar",
+      hideShort: "Ocultar",
+      showPasswordShort: "Mostrar",
+      hidePasswordShort: "Ocultar",
     },
   },
   webauthn: {
@@ -27134,7 +27342,7 @@ export const de: DeepPartial<Dictionary> = {
     accuracy: "Engine-Genauigkeit",
     accuracyNotMeasured: "Nicht gemessen",
     accuracyMeasured: "Gemessen",
-    tierLine: "Tarif {a} · {b} pro Video",
+    tierLine: "Tarif {a} · {b} enthalten",
     tokens: "Token",
     modeGuided: "Geführte Oberfläche",
     modeAdvanced: "Erweiterte Oberfläche",
@@ -27155,8 +27363,8 @@ export const de: DeepPartial<Dictionary> = {
     uploadTooLargeBody: "{f} ist {s} groß. Der Tarif {a} akzeptiert MP4 oder MOV bis {b} pro Video. Kürzen oder komprimieren Sie die Datei oder wechseln Sie unter Einstellungen → Wallet zu Pro (24 GB) oder Enterprise (64 GB).",
     uploadWrongTypeTitle: "Nicht unterstützter Dateityp",
     uploadWrongTypeBody: "{f} ist weder MP4 noch MOV. Exportieren Sie das Spiel als MP4 oder MOV und versuchen Sie es erneut.",
-    noFootageTitle: "Es wurde kein verifiziertes abspielbares Video bereitgestellt",
-    noFootageBody: "Öffnen Sie die Spieldatei von diesem Computer, um sie hier abzuspielen. Das Tracking-Overlay zeichnet nur die bestätigten Spuren dieser Datei.",
+    noFootageTitle: "Kein abspielbares Material",
+    noFootageBody: "Öffne die Spieldatei von diesem Computer, um sie abzuspielen.",
     play: "Abspielen",
     pause: "Pause",
     openLocal: "Lokales Video öffnen",
@@ -27204,17 +27412,27 @@ export const de: DeepPartial<Dictionary> = {
     tokJobReport: "Spielerbericht",
     tokJobExport: "Exportpaket",
     tokJobAi: "KI-Analyse",
+    accuracyLineLead: "Genauigkeit noch nicht gemessen",
+    accuracyLineRest: "· jede Zahl und jeder Rahmen ist das, was die Engine auf diesem Material erfasst hat",
+    accuracyGateNotStarted: "nicht gestartet",
+    accuracyGateMeasuring: "wird gemessen",
+    accuracyGatePassed: "bestanden",
+    accuracyGateFailed: "fehlgeschlagen",
+    accuracyGateWaived: "ausgenommen",
+    releaseGates: "Release-Gates",
+    noPlayableTitle: "Kein abspielbares Video",
+    noPlayableBody: "Öffne die Spieldatei von diesem Computer, um sie abzuspielen.",
   },
   nav: {
     home: "Start",
-    upload: "Hochladen",
+    upload: "Medien",
     processing: "Verarbeitung",
     analysis: "Analyse",
     tactical: "Taktik",
     players: "Spieler",
-    reels: "Reel-Builder",
+    reels: "Reels",
     studio: "Clip-Studio",
-    reports: "Spielerbericht",
+    reports: "Berichte",
     library: "Bibliothek",
     export: "Export",
   },
@@ -27264,7 +27482,7 @@ export const de: DeepPartial<Dictionary> = {
     },
   },
   shell: {
-    searchAndCommands: "Suche und Befehle (Strg+K)",
+    searchAndCommands: "Spieler, Spiele und Aktionen suchen",
     searchHint: "Suchen Sie Spiele, Spieler, Reels und Projekte oder führen Sie einen Befehl aus (Strg+K)",
     language: "Sprache",
   },
@@ -27395,6 +27613,8 @@ export const de: DeepPartial<Dictionary> = {
       hmReview: "Prüfen",
       hmKeyPasses: "Schlüsselpässe",
       hmXa: "xA",
+      recentMatchesSot: "Letzte Spiele",
+      viewAllSot: "Alle ansehen",
     },
     analysis: {
       match: "Spiel",
@@ -28181,7 +28401,7 @@ export const de: DeepPartial<Dictionary> = {
       intoClip: "In Clip {a}",
       introLabel: "Intro",
       introOutroVideo: "Intro-/Outro-Video",
-      ioMark: "I / O: Markieren Sie den hinzuzufügenden Teil",
+      ioMark: "I / P: Markieren Sie den hinzuzufügenden Teil",
       keepLabel: "Behalten",
       keyMomentMoved: "Schlüsselmoment verschoben",
       keyMomentOutside: "Sein Schlüsselmoment liegt jetzt außerhalb des Clips (nach einem Schnitt): Er tut nichts, bis Sie ihn erneut setzen.",
@@ -28560,7 +28780,7 @@ export const de: DeepPartial<Dictionary> = {
       beatLabel: "Beat: {a}",
       drawnAt: "{a} gezeichnet bei {b} in Clip {c}",
       toolDragHint: "{a}: Ziehen auf dem Bild; es wird am Abspielkopf gezeichnet",
-      ioMarkHint: "I / O markieren einen Media-Bin-Moment in der Vorschau; auf der Timeline Alt+[ / Alt+] verwenden oder an einer Clip-Kante ziehen",
+      ioMarkHint: "I / P markieren einen Media-Bin-Moment in der Vorschau; auf der Timeline Alt+[ / Alt+] verwenden oder an einer Clip-Kante ziehen",
       marksCleared: "Marken gelöscht",
       markedRangeSay: "Markiert {a} – {b} ({c} s): + fügt den markierten Teil hinzu",
       inMarkedAt: "In markiert bei {a}",
@@ -28696,6 +28916,11 @@ export const de: DeepPartial<Dictionary> = {
       snapTitleOnBeats: "Einrasten ein: Kanten rasten an Beats, Abspielposition und Markern ein",
       snapTitleOnPlain: "Einrasten ein: Kanten rasten an Abspielposition und Markern ein",
       snapTitleOff: "Einrasten aus",
+      csSearchBin: "Ablage durchsuchen",
+      csBrandTab: "Marke",
+      csTransDip: "Abblenden auf Schwarz",
+      csTransSlide: "Schieben",
+      csTextPlaceholder: "Text eingeben…",
     },
     reports: {
       choosePlayer: "Wählen Sie einen Spieler",
@@ -29814,6 +30039,8 @@ export const de: DeepPartial<Dictionary> = {
       lbEventsMany: "{a} Ereignisse",
       accessOwnerOnly: "Nur ich und der Eigentümer",
       accessChosenMembers: "Ausgewählte Mitglieder",
+      rangeCustomStart: "Start",
+      rangeCustomEnd: "Ende",
     },
     exports: {
       projectSummary: "Projektübersicht",
@@ -31018,6 +31245,7 @@ export const de: DeepPartial<Dictionary> = {
       photoBasisAria: "Rechtsgrundlage des Fotos von {a}",
       photoAlt: "Foto von {a}",
       playersListAria: "Spieler",
+      plSelectPlayer: "Wähle einen Spieler, um sein Profil zu sehen und zu bearbeiten",
     },
     matches: {
       changeBtn: "Ändern",
@@ -31615,6 +31843,11 @@ export const de: DeepPartial<Dictionary> = {
       restored: "Wiederhergestellt: {title}",
       couldNotRestore: "Es konnte nicht wiederhergestellt werden",
       undoRestoreAria: "Rückgängig: {title} wiederherstellen",
+      mediaEyebrow: "Medien",
+      mdQueueFile: "Datei",
+      mdQueueSize: "Größe",
+      mdQueueRights: "Rechte",
+      mdQueueStatus: "Status",
     },
     processing: {
       stageWaiting: "Warten",
@@ -32150,6 +32383,7 @@ export const de: DeepPartial<Dictionary> = {
       exportImage: "Bild exportieren",
       noTacticalData: "Noch keine taktischen Daten",
       noTacticalDataWhy: "Braucht Spielfeldkalibrierung und bestätigte Aufstellungen.",
+      exportImageTeamOnly: "Export ist in der Ansicht Teamform verfügbar",
     },
     workspace: {
       aTeam: "Ein Team",
@@ -33158,6 +33392,14 @@ export const de: DeepPartial<Dictionary> = {
       gateRule: "Release-Regel: ",
       gateRef: "Nachweis-Ref.: ",
       gateNote: "Hinweis: ",
+      healthReasonPh: "Grund (wird mit der Entscheidung protokolliert)",
+      healthRejectUnsupported: "Ablehnen wird für diese Art von Element nicht unterstützt",
+      modelTaskDetect: "Detektion",
+      modelTaskEmbed: "Einbettung",
+      modelTaskOcr: "Texterkennung",
+      modelTaskTextDetect: "Textdetektion",
+      modelTaskPitchKeypoints: "Spielfeld-Schlüsselpunkte",
+      modelTaskBallDetect: "Ballerkennung",
     },
     settings: {
       teamTitle: "Team und Rollen",
@@ -33299,6 +33541,8 @@ export const de: DeepPartial<Dictionary> = {
       stSecNoPasskeys: "Noch keine Passkeys",
       stSecPasskeyHint: "Melde dich mit Windows Hello auf diesem Computer an.",
       stSecRegister: "Dieses Gerät registrieren",
+      stPrefFolderLauncher: "Der Bibliotheksordner wird vom Launcher auf diesem Computer festgelegt.",
+      stTeamCopyNeedsInvite: "Senden Sie zuerst eine Einladung — der Link erscheint hier nach dem Erstellen.",
     },
     wallet: {
       title: "Token-Wallet",
@@ -33446,6 +33690,7 @@ export const de: DeepPartial<Dictionary> = {
       photoRemoveFailed: "Das Foto wurde nicht entfernt.",
       removePhoto: "Mein Foto entfernen",
       accountAria: "Konto: {a}",
+      accountLabel: "Konto",
       noOrg: "Keine Organisation",
       pageHowMuch: "{a}: wie viel angezeigt wird",
       guidedOrProAria: "{a}: Geführt oder Erweitert",
@@ -33543,9 +33788,9 @@ export const de: DeepPartial<Dictionary> = {
       ctxProject: "Projekt",
       ctxMatch: "Spiel",
       ctxPlayer: "Spieler",
-      ctxNoneOpen: "nichts offen",
-      ctxNoneChosen: "keiner gewählt",
-      ctxNonePlayer: "—",
+      ctxNoneOpen: "Keine",
+      ctxNoneChosen: "Keine",
+      ctxNonePlayer: "Keine",
       ctxChange: "{a}: klicken zum Ändern",
       ctxChoose: "{a} wählen",
       ctxOpen: "offen",
@@ -33564,8 +33809,8 @@ export const de: DeepPartial<Dictionary> = {
       ctxOtsiId: "OTSI Player ID",
       ctxReel: "· Reel “{a}”",
       jobsTitle: "Aufträge",
-      jobsAriaActive: "Aufträge: {a} aktiv",
-      jobsAriaLoading: "Aufträge: werden geladen",
+      jobsAriaActive: "Auftragszentrale, {a} aktiv",
+      jobsAriaLoading: "Auftragszentrale",
       jobsTitleAttr: "{a} laufen, {b} warten oder pausiert",
       jobsTitleFailed: ", {a} heute fehlgeschlagen",
       jobsTitleFallback: "Aufträge",
@@ -33714,6 +33959,15 @@ export const de: DeepPartial<Dictionary> = {
       themeLightName: "hell",
       themeDarkName: "dunkel",
       themeSwitch: "Zum {a}-Design wechseln",
+      ksSettings: "Einstellungen",
+      ksConfirmIdentity: "Identität bestätigen",
+      ksCorrectIdentity: "Identität korrigieren",
+      ksRejectIdentity: "Identität ablehnen",
+      ksFrameStep: "1 Bild zurück / vor",
+      ksSpeed: "Langsamer / schneller",
+      ksOpenLocal: "Lokales Video öffnen",
+      ksBladeTool: "Klingen-Werkzeug",
+      ksSelectTool: "Auswahl-Werkzeug",
     },
     auth: {
       signIn: "Anmelden",
@@ -33861,6 +34115,12 @@ export const de: DeepPartial<Dictionary> = {
       tourEvidenceBody: "Jede Zahl trägt ein Label: Bestätigt heißt von einer Person geprüft, Erkannt heißt von der Engine gemessen, Abgeleitet heißt aus anderen Messungen abgeleitet, und Nicht gemessen heißt, es gibt keine Messung. Nicht gemessene Werte werden nie ausgefüllt.",
       tourClose: "Tour schließen",
       inviteFullName: "Nom complet",
+      sharedGateDescOrg: "{a} hat ein Scouting-Paket mit dir geteilt. Gib das Passwort ein, das du erhalten hast, um es zu öffnen.",
+      sharedByOrgName: "Mit dir geteilt von {a}",
+      showShort: "Anzeigen",
+      hideShort: "Ausblenden",
+      showPasswordShort: "Anzeigen",
+      hidePasswordShort: "Ausblenden",
     },
   },
   webauthn: {
@@ -33910,7 +34170,7 @@ export const fr: DeepPartial<Dictionary> = {
     accuracy: "Précision du moteur",
     accuracyNotMeasured: "Non mesurée",
     accuracyMeasured: "Mesurée",
-    tierLine: "Offre {a} · {b} par vidéo",
+    tierLine: "Offre {a} · {b} inclus",
     tokens: "Jetons",
     modeGuided: "Interface guidée",
     modeAdvanced: "Interface avancée",
@@ -33931,8 +34191,8 @@ export const fr: DeepPartial<Dictionary> = {
     uploadTooLargeBody: "{f} fait {s}. L’offre {a} accepte les MP4 ou MOV jusqu’à {b} par vidéo. Raccourcissez ou compressez le fichier, ou passez à Pro (24 Go) ou Entreprise (64 Go) dans Paramètres → Portefeuille.",
     uploadWrongTypeTitle: "Type de fichier non pris en charge",
     uploadWrongTypeBody: "{f} n’est ni un MP4 ni un MOV. Exportez le match en MP4 ou MOV et réessayez.",
-    noFootageTitle: "Aucune vidéo lisible vérifiée n’a été fournie",
-    noFootageBody: "Ouvrez le fichier du match depuis cet ordinateur pour le lire ici. Le calque de suivi ne dessine que les trajectoires confirmées de ce fichier.",
+    noFootageTitle: "Aucune séquence lisible",
+    noFootageBody: "Ouvrez le fichier du match depuis cet ordinateur pour le lire.",
     play: "Lire",
     pause: "Pause",
     openLocal: "Ouvrir une vidéo locale",
@@ -33980,17 +34240,27 @@ export const fr: DeepPartial<Dictionary> = {
     tokJobReport: "Rapport joueur",
     tokJobExport: "Pack d'export",
     tokJobAi: "Analyse IA",
+    accuracyLineLead: "Précision pas encore mesurée",
+    accuracyLineRest: "· chaque nombre et chaque cadre est ce que le moteur a enregistré sur ces images",
+    accuracyGateNotStarted: "pas commencé",
+    accuracyGateMeasuring: "en cours de mesure",
+    accuracyGatePassed: "réussi",
+    accuracyGateFailed: "échoué",
+    accuracyGateWaived: "exempté",
+    releaseGates: "Portes de lancement",
+    noPlayableTitle: "Aucune vidéo lisible",
+    noPlayableBody: "Ouvrez le fichier du match depuis cet ordinateur pour le lire.",
   },
   nav: {
     home: "Accueil",
-    upload: "Importer",
+    upload: "Médias",
     processing: "Traitement",
     analysis: "Analyse",
     tactical: "Tactique",
     players: "Joueurs",
-    reels: "Créateur de reels",
+    reels: "Reels",
     studio: "Studio de clips",
-    reports: "Rapport joueur",
+    reports: "Rapports",
     library: "Bibliothèque",
     export: "Exporter",
   },
@@ -34040,7 +34310,7 @@ export const fr: DeepPartial<Dictionary> = {
     },
   },
   shell: {
-    searchAndCommands: "Recherche et commandes (Ctrl+K)",
+    searchAndCommands: "Rechercher des joueurs, des matchs et des actions",
     searchHint: "Recherchez des matchs, joueurs, reels et projets, ou exécutez une commande (Ctrl+K)",
     language: "Langue",
   },
@@ -34171,6 +34441,8 @@ export const fr: DeepPartial<Dictionary> = {
       hmReview: "Réviser",
       hmKeyPasses: "Passes clés",
       hmXa: "xA",
+      recentMatchesSot: "Matchs récents",
+      viewAllSot: "Tout voir",
     },
     analysis: {
       match: "Match",
@@ -34957,7 +35229,7 @@ export const fr: DeepPartial<Dictionary> = {
       intoClip: "Dans le clip {a}",
       introLabel: "Intro",
       introOutroVideo: "Vidéo d’intro / outro",
-      ioMark: "I / O : marquez la partie à ajouter",
+      ioMark: "I / P : marquez la partie à ajouter",
       keepLabel: "Garder",
       keyMomentMoved: "Moment clé déplacé",
       keyMomentOutside: "Son moment clé est maintenant hors du clip (après un rognage) : il ne fait rien tant que vous ne le redéfinissez pas.",
@@ -35336,7 +35608,7 @@ export const fr: DeepPartial<Dictionary> = {
       beatLabel: "Rythme : {a}",
       drawnAt: "{a} dessiné à {b} dans le clip {c}",
       toolDragHint: "{a} : glissez sur l'image ; le dessin apparaît à la tête de lecture",
-      ioMarkHint: "I / O marquent un moment du Media Bin dans l'aperçu ; sur la timeline, utilisez Alt+[ / Alt+] ou glissez le bord d'un clip",
+      ioMarkHint: "I / P marquent un moment du Media Bin dans l'aperçu ; sur la timeline, utilisez Alt+[ / Alt+] ou glissez le bord d'un clip",
       marksCleared: "Marques effacées",
       markedRangeSay: "Marqué {a} – {b} ({c} s) : + ajoute la partie marquée",
       inMarkedAt: "Entrée marquée à {a}",
@@ -35472,6 +35744,11 @@ export const fr: DeepPartial<Dictionary> = {
       snapTitleOnBeats: "Magnétisme activé : les bords s'alignent sur les temps, la tête de lecture et les marqueurs",
       snapTitleOnPlain: "Magnétisme activé : les bords s'alignent sur la tête de lecture et les marqueurs",
       snapTitleOff: "Magnétisme désactivé",
+      csSearchBin: "Rechercher dans le bac",
+      csBrandTab: "Marque",
+      csTransDip: "Fondu au noir",
+      csTransSlide: "Glissement",
+      csTextPlaceholder: "Saisir le texte…",
     },
     reports: {
       choosePlayer: "Choisissez un joueur",
@@ -36590,6 +36867,8 @@ export const fr: DeepPartial<Dictionary> = {
       lbEventsMany: "{a} événements",
       accessOwnerOnly: "Seulement moi et le propriétaire",
       accessChosenMembers: "Membres choisis",
+      rangeCustomStart: "Début",
+      rangeCustomEnd: "Fin",
     },
     exports: {
       projectSummary: "Résumé du projet",
@@ -37794,6 +38073,7 @@ export const fr: DeepPartial<Dictionary> = {
       photoBasisAria: "Base des droits de la photo de {a}",
       photoAlt: "Photo de {a}",
       playersListAria: "Joueurs",
+      plSelectPlayer: "Sélectionnez un joueur pour voir et modifier son profil",
     },
     matches: {
       changeBtn: "Modifier",
@@ -38391,6 +38671,11 @@ export const fr: DeepPartial<Dictionary> = {
       restored: "Restauré : {title}",
       couldNotRestore: "Impossible de le restaurer",
       undoRestoreAria: "Annuler : restaurer {title}",
+      mediaEyebrow: "Médias",
+      mdQueueFile: "Fichier",
+      mdQueueSize: "Taille",
+      mdQueueRights: "Droits",
+      mdQueueStatus: "Statut",
     },
     processing: {
       stageWaiting: "En attente",
@@ -38926,6 +39211,7 @@ export const fr: DeepPartial<Dictionary> = {
       exportImage: "Exporter l'image",
       noTacticalData: "Pas encore de données tactiques",
       noTacticalDataWhy: "Nécessite une calibration du terrain et des compositions confirmées.",
+      exportImageTeamOnly: "L’export est disponible dans la vue Forme d’équipe",
     },
     workspace: {
       aTeam: "Une équipe",
@@ -39934,6 +40220,14 @@ export const fr: DeepPartial<Dictionary> = {
       gateRule: "Règle de lancement : ",
       gateRef: "Réf. de preuve : ",
       gateNote: "Note : ",
+      healthReasonPh: "Motif (enregistré avec la décision)",
+      healthRejectUnsupported: "Le rejet n’est pas pris en charge pour ce type d’élément",
+      modelTaskDetect: "Détection",
+      modelTaskEmbed: "Intégration",
+      modelTaskOcr: "Reconnaissance de texte",
+      modelTaskTextDetect: "Détection de texte",
+      modelTaskPitchKeypoints: "Points clés du terrain",
+      modelTaskBallDetect: "Détection du ballon",
     },
     settings: {
       teamTitle: "Équipe et rôles",
@@ -40075,6 +40369,8 @@ export const fr: DeepPartial<Dictionary> = {
       stSecNoPasskeys: "Aucune clé d'accès pour l'instant",
       stSecPasskeyHint: "Connectez-vous avec Windows Hello sur cet ordinateur.",
       stSecRegister: "Enregistrer cet appareil",
+      stPrefFolderLauncher: "Le dossier de la bibliothèque est défini par le lanceur sur cet ordinateur.",
+      stTeamCopyNeedsInvite: "Envoyez d’abord une invitation — le lien apparaîtra ici après sa création.",
     },
     wallet: {
       title: "Portefeuille de jetons",
@@ -40222,6 +40518,7 @@ export const fr: DeepPartial<Dictionary> = {
       photoRemoveFailed: "La photo n’a pas été supprimée.",
       removePhoto: "Supprimer ma photo",
       accountAria: "Compte : {a}",
+      accountLabel: "Compte",
       noOrg: "Aucune organisation",
       pageHowMuch: "{a} : combien afficher",
       guidedOrProAria: "{a} : guidé ou Avancé",
@@ -40319,9 +40616,9 @@ export const fr: DeepPartial<Dictionary> = {
       ctxProject: "Projet",
       ctxMatch: "Match",
       ctxPlayer: "Joueur",
-      ctxNoneOpen: "aucun ouvert",
-      ctxNoneChosen: "aucun choisi",
-      ctxNonePlayer: "—",
+      ctxNoneOpen: "Aucun",
+      ctxNoneChosen: "Aucun",
+      ctxNonePlayer: "Aucun",
       ctxChange: "{a} : cliquer pour changer",
       ctxChoose: "Choisissez {a}",
       ctxOpen: "ouvert",
@@ -40340,8 +40637,8 @@ export const fr: DeepPartial<Dictionary> = {
       ctxOtsiId: "OTSI Player ID",
       ctxReel: "· Reel “{a}”",
       jobsTitle: "Tâches",
-      jobsAriaActive: "Tâches : {a} actives",
-      jobsAriaLoading: "Tâches : chargement",
+      jobsAriaActive: "Centre des tâches, {a} actives",
+      jobsAriaLoading: "Centre des tâches",
       jobsTitleAttr: "{a} en cours, {b} en attente ou en pause",
       jobsTitleFailed: ", {a} échouées aujourd’hui",
       jobsTitleFallback: "Tâches",
@@ -40490,6 +40787,15 @@ export const fr: DeepPartial<Dictionary> = {
       themeLightName: "clair",
       themeDarkName: "sombre",
       themeSwitch: "Basculer vers le thème {a}",
+      ksSettings: "Paramètres",
+      ksConfirmIdentity: "Confirmer l'identité",
+      ksCorrectIdentity: "Corriger l'identité",
+      ksRejectIdentity: "Rejeter l'identité",
+      ksFrameStep: "Reculer / avancer d'1 image",
+      ksSpeed: "Plus lent / plus rapide",
+      ksOpenLocal: "Ouvrir une vidéo locale",
+      ksBladeTool: "Outil lame",
+      ksSelectTool: "Outil de sélection",
     },
     auth: {
       signIn: "Se connecter",
@@ -40637,6 +40943,12 @@ export const fr: DeepPartial<Dictionary> = {
       tourEvidenceBody: "Chaque chiffre porte une étiquette : Confirmé signifie vérifié par une personne, Détecté signifie mesuré par le moteur, Déduit signifie dérivé d'autres mesures, et Non mesuré signifie qu'aucune mesure n'existe. Les valeurs non mesurées ne sont jamais remplies.",
       tourClose: "Fermer la visite",
       inviteFullName: "Nome completo",
+      sharedGateDescOrg: "{a} a partagé un Pack de scouting avec vous. Saisissez le mot de passe qu'on vous a donné pour l'ouvrir.",
+      sharedByOrgName: "Partagé avec vous par {a}",
+      showShort: "Afficher",
+      hideShort: "Masquer",
+      showPasswordShort: "Afficher",
+      hidePasswordShort: "Masquer",
     },
   },
   webauthn: {
@@ -40687,7 +40999,7 @@ export const pt: DeepPartial<Dictionary> = {
     "accuracy": "Precisão do motor",
     "accuracyNotMeasured": "Não medida",
     "accuracyMeasured": "Medida",
-    "tierLine": "Plano {a} · {b} por vídeo",
+    "tierLine": "Plano {a} · {b} incluídos",
     "tokens": "Tokens",
     "modeGuided": "Interface guiada",
     "modeAdvanced": "Interface avançada",
@@ -40708,8 +41020,8 @@ export const pt: DeepPartial<Dictionary> = {
     "uploadTooLargeBody": "{f} tem {s}. O plano {a} aceita MP4 ou MOV de até {b} por vídeo. Corte ou comprima o arquivo, ou mude para Pro (24 GB) ou Empresarial (64 GB) em Configurações → Carteira.",
     "uploadWrongTypeTitle": "Tipo de arquivo não suportado",
     "uploadWrongTypeBody": "{f} não é MP4 nem MOV. Exporte a partida em MP4 ou MOV e tente novamente.",
-    "noFootageTitle": "Nenhum vídeo reproduzível verificado foi fornecido",
-    "noFootageBody": "Abra o arquivo da partida deste computador para reproduzi-lo aqui. A camada de rastreamento desenha apenas as trajetórias confirmadas deste arquivo.",
+    "noFootageTitle": "Nenhum material reproduzível",
+    "noFootageBody": "Abra o arquivo da partida neste computador para reproduzi-lo.",
     "play": "Reproduzir",
     "pause": "Pausar",
     "openLocal": "Abrir vídeo local",
@@ -40757,6 +41069,16 @@ export const pt: DeepPartial<Dictionary> = {
     "tokJobReport": "Relatório de jogador",
     "tokJobExport": "Pacote de exportação",
     "tokJobAi": "Análise de IA",
+    "accuracyLineLead": "Precisão ainda não medida",
+    "accuracyLineRest": "· cada número e cada quadro é o que o motor registrou nestas imagens",
+    "accuracyGateNotStarted": "não iniciado",
+    "accuracyGateMeasuring": "medindo",
+    "accuracyGatePassed": "aprovado",
+    "accuracyGateFailed": "falhou",
+    "accuracyGateWaived": "dispensado",
+    "releaseGates": "Portões de lançamento",
+    "noPlayableTitle": "Sem vídeo reproduzível",
+    "noPlayableBody": "Abre o ficheiro do jogo a partir deste computador para o reproduzir.",
   },
   "nav": {
     "home": "Início",
@@ -40826,7 +41148,7 @@ export const pt: DeepPartial<Dictionary> = {
     }
   },
   "shell": {
-    "searchAndCommands": "Pesquisa e comandos (Ctrl+K)",
+    "searchAndCommands": "Pesquisar jogadores, partidas e ações",
     "searchHint": "Pesquise partidas, jogadores, reels e projetos, ou execute um comando (Ctrl+K)",
     "language": "Idioma"
   },
@@ -40957,6 +41279,8 @@ export const pt: DeepPartial<Dictionary> = {
       "hmReview": "Rever",
       "hmKeyPasses": "Passes-chave",
       "hmXa": "xA",
+      "recentMatchesSot": "Partidas recentes",
+      "viewAllSot": "Ver tudo",
     },
     "analysis": {
       "match": "Partida",
@@ -41743,7 +42067,7 @@ export const pt: DeepPartial<Dictionary> = {
       "intoClip": "Para o clipe {a}",
       "introLabel": "Introdução",
       "introOutroVideo": "Vídeo de introdução / encerramento",
-      "ioMark": "I / O: marque a parte a adicionar",
+      "ioMark": "I / P: marque a parte a adicionar",
       "keepLabel": "Manter",
       "keyMomentMoved": "Momento-chave movido",
       "keyMomentOutside": "O momento-chave dele agora está fora do clipe (após um corte): não faz nada até você defini-lo novamente.",
@@ -42122,7 +42446,7 @@ export const pt: DeepPartial<Dictionary> = {
       "beatLabel": "Batida: {a}",
       "drawnAt": "{a} desenhado em {b} no clipe {c}",
       "toolDragHint": "{a}: arraste na imagem; o desenho surge na agulha de reprodução",
-      "ioMarkHint": "I / O marcam um momento do Banco de mídia na pré-visualização; na linha do tempo, use Alt+[ / Alt+] ou arraste a borda de um clipe",
+      "ioMarkHint": "I / P marcam um momento do Banco de mídia na pré-visualização; na linha do tempo, use Alt+[ / Alt+] ou arraste a borda de um clipe",
       "marksCleared": "Marcações limpas",
       "markedRangeSay": "Marcado {a} – {b} ({c} s): + adiciona a parte marcada",
       "inMarkedAt": "Entrada marcada em {a}",
@@ -42257,7 +42581,12 @@ export const pt: DeepPartial<Dictionary> = {
       "renderedWord": "renderizado",
       "snapTitleOnBeats": "Encaixe ativado: bordas arrastadas saltam para batidas, agulha de reprodução e marcadores",
       "snapTitleOnPlain": "Encaixe ativado: bordas arrastadas saltam para a agulha de reprodução e marcadores",
-      "snapTitleOff": "Encaixe desativado"
+      "snapTitleOff": "Encaixe desativado",
+      "csSearchBin": "Buscar na bandeja",
+      "csBrandTab": "Marca",
+      "csTransDip": "Fundido para preto",
+      "csTransSlide": "Deslizar",
+      "csTextPlaceholder": "Digite o texto…",
     },
     "reports": {
       "choosePlayer": "Escolha um jogador",
@@ -43376,6 +43705,8 @@ export const pt: DeepPartial<Dictionary> = {
       "lbEventsMany": "{a} eventos",
       "accessOwnerOnly": "Só eu e o proprietário",
       "accessChosenMembers": "Membros escolhidos",
+      "rangeCustomStart": "Início",
+      "rangeCustomEnd": "Fim",
     },
     "exports": {
       "projectSummary": "Resumo do projeto",
@@ -44579,7 +44910,8 @@ export const pt: DeepPartial<Dictionary> = {
       "photoHolderAria": "Titular dos direitos da foto de {a}",
       "photoBasisAria": "Base dos direitos da foto de {a}",
       "photoAlt": "Foto de {a}",
-      "playersListAria": "Jogadores"
+      "playersListAria": "Jogadores",
+      "plSelectPlayer": "Selecione um jogador para ver e editar o perfil",
     },
     "matches": {
       "changeBtn": "Alterar",
@@ -45176,7 +45508,12 @@ export const pt: DeepPartial<Dictionary> = {
       "undoRemove": "Desfazer remoção",
       "restored": "{title} restaurado",
       "couldNotRestore": "Não foi possível restaurar",
-      "undoRestoreAria": "Desfazer: restaurar {title}"
+      "undoRestoreAria": "Desfazer: restaurar {title}",
+      "mediaEyebrow": "Mídia",
+      "mdQueueFile": "Arquivo",
+      "mdQueueSize": "Tamanho",
+      "mdQueueRights": "Direitos",
+      "mdQueueStatus": "Estado",
     },
     "processing": {
       "stageWaiting": "Aguardando",
@@ -45712,6 +46049,7 @@ export const pt: DeepPartial<Dictionary> = {
       "exportImage": "Exportar imagem",
       "noTacticalData": "Ainda não há dados táticos",
       "noTacticalDataWhy": "Precisa de calibração do campo e escalações confirmadas.",
+      "exportImageTeamOnly": "A exportação está disponível na vista Forma da equipa",
     },
     "workspace": {
       "aTeam": "Uma equipe",
@@ -46719,7 +47057,15 @@ export const pt: DeepPartial<Dictionary> = {
       "gateEvidence": "Evidência exigida: ",
       "gateRule": "Regra de liberação: ",
       "gateRef": "Ref. da evidência: ",
-      "gateNote": "Nota: "
+      "gateNote": "Nota: ",
+      "healthReasonPh": "Motivo (registrado com a decisão)",
+      "healthRejectUnsupported": "Rejeitar não é suportado para este tipo de item",
+      "modelTaskDetect": "Detecção",
+      "modelTaskEmbed": "Incorporação",
+      "modelTaskOcr": "Reconhecimento de texto",
+      "modelTaskTextDetect": "Detecção de texto",
+      "modelTaskPitchKeypoints": "Pontos-chave do campo",
+      "modelTaskBallDetect": "Detecção da bola",
     },
     "settings": {
       "teamTitle": "Equipe e funções",
@@ -46861,6 +47207,8 @@ export const pt: DeepPartial<Dictionary> = {
       "stSecNoPasskeys": "Ainda não há chaves de acesso",
       "stSecPasskeyHint": "Entre com o Windows Hello neste computador.",
       "stSecRegister": "Registrar este dispositivo",
+      "stPrefFolderLauncher": "A pasta da biblioteca é definida pelo iniciador neste computador.",
+      "stTeamCopyNeedsInvite": "Envie primeiro um convite — o link aparece aqui depois de o criar.",
     },
     "wallet": {
       "title": "Carteira de tokens",
@@ -47008,6 +47356,7 @@ export const pt: DeepPartial<Dictionary> = {
       "photoRemoveFailed": "A foto não foi removida.",
       "removePhoto": "Remover minha foto",
       "accountAria": "Conta: {a}",
+      "accountLabel": "Conta",
       "noOrg": "Sem organização",
       "pageHowMuch": "{a}: quanto mostrar",
       "guidedOrProAria": "{a}: Guiado ou Avançado",
@@ -47105,9 +47454,9 @@ export const pt: DeepPartial<Dictionary> = {
       "ctxProject": "Projeto",
       "ctxMatch": "Partida",
       "ctxPlayer": "Jogador",
-      "ctxNoneOpen": "nenhum aberto",
-      "ctxNoneChosen": "nenhum escolhido",
-      "ctxNonePlayer": "—",
+      "ctxNoneOpen": "Nenhum",
+      "ctxNoneChosen": "Nenhum",
+      "ctxNonePlayer": "Nenhum",
       "ctxChange": "{a}: clique para alterar",
       "ctxChoose": "Escolher {a}",
       "ctxOpen": "aberto",
@@ -47126,8 +47475,8 @@ export const pt: DeepPartial<Dictionary> = {
       "ctxOtsiId": "OTSI Player ID",
       "ctxReel": "· Reel “{a}”",
       "jobsTitle": "Tarefas",
-      "jobsAriaActive": "Tarefas: {a} ativas",
-      "jobsAriaLoading": "Tarefas: carregando",
+      "jobsAriaActive": "Central de tarefas, {a} ativas",
+      "jobsAriaLoading": "Central de tarefas",
       "jobsTitleAttr": "{a} em execução, {b} aguardando ou pausadas",
       "jobsTitleFailed": ", {a} com falha hoje",
       "jobsTitleFallback": "Tarefas",
@@ -47275,7 +47624,16 @@ export const pt: DeepPartial<Dictionary> = {
       "themeDark": "Tema escuro",
       "themeLightName": "claro",
       "themeDarkName": "escuro",
-      "themeSwitch": "Mudar para o tema {a}"
+      "themeSwitch": "Mudar para o tema {a}",
+      "ksSettings": "Definições",
+      "ksConfirmIdentity": "Confirmar identidade",
+      "ksCorrectIdentity": "Corrigir identidade",
+      "ksRejectIdentity": "Rejeitar identidade",
+      "ksFrameStep": "Para trás / para a frente 1 fotograma",
+      "ksSpeed": "Mais lento / mais rápido",
+      "ksOpenLocal": "Abrir vídeo local",
+      "ksBladeTool": "Ferramenta de lâmina",
+      "ksSelectTool": "Ferramenta de seleção",
     },
     "auth": {
       "signIn": "Entrar",
@@ -47423,6 +47781,12 @@ export const pt: DeepPartial<Dictionary> = {
       "tourEvidenceBody": "Cada número tem um rótulo: Confirmado significa verificado por uma pessoa, Detetado significa medido pelo motor, Inferido significa derivado de outras medições, e Não medido significa que não existe medição. Os valores não medidos nunca são preenchidos.",
       "tourClose": "Fechar tour",
       "inviteFullName": "Nome completo",
+      "sharedGateDescOrg": "{a} partilhou um Scouting Pack contigo. Introduz a palavra-passe que te deram para o abrir.",
+      "sharedByOrgName": "Partilhado contigo por {a}",
+      "showShort": "Mostrar",
+      "hideShort": "Ocultar",
+      "showPasswordShort": "Mostrar",
+      "hidePasswordShort": "Ocultar",
     }
   },
   "webauthn": {

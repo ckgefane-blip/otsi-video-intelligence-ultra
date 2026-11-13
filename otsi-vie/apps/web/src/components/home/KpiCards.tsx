@@ -51,8 +51,9 @@ const KpiCard = memo(function KpiCard({ Icon, stat, label, href, stats, failed }
       </span>
     </>
   );
-  const cls = "vie-panel flex items-center gap-3 px-3.5 py-3";
-  return href ? <Link href={href} className={`${cls} hover:border-line2`} aria-label={ariaLabel} data-kpi={stat}>{body}</Link>
+  // SOT (Home): the KPI strip is plain text in a 4-column row between two thin rules — not boxed cards
+  const cls = "flex items-center gap-3 px-3.5 py-3";
+  return href ? <Link href={href} className={cls} aria-label={ariaLabel} data-kpi={stat}>{body}</Link>
     : <div className={cls} role="group" aria-label={ariaLabel} data-kpi={stat}>{body}</div>;
 });
 
@@ -65,7 +66,7 @@ export function KpiCards() {
   }, []);
   return (
     <section aria-label={t.body.home.kpiStripAria} data-section="p01-s04" data-loaded={stats ? "yes" : "no"} aria-busy={!stats && !failed}
-      className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      className="grid grid-cols-2 gap-3 border-y border-line py-3 xl:grid-cols-4">
       {CARDS.map(([Icon, key, href]) => <KpiCard key={key} Icon={Icon} stat={key} label={cardLabel(t, key)} href={href} stats={stats} failed={failed} />)}
     </section>
   );

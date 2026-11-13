@@ -80,11 +80,13 @@ dialog[data-player-full]::backdrop { background: #000; }
 .t-body { font-size: 14px; line-height: 20px; font-weight: 400; }
 .t-small { font-size: 12px; line-height: 18px; font-weight: 400; color: rgb(var(--muted)); }
 .t-label { font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(var(--muted)); }
-.t-th { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--muted)); }
+.t-th { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.06em; color: rgb(var(--muted)); }
 .t-button { font-size: 14px; line-height: 20px; font-weight: 400; }
 .t-metric { font-size: 16px; line-height: 22px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.t-tc { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10px; line-height: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
-.t-mono { font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+/* SOT typography lock (owner 2026-11-12): the SOT sets --mono to the body font, so timecodes, keycaps, ruler numbers
+   and step numbers render in regular type, not JetBrains Mono. */
+.t-tc { font-family: inherit; font-size: 10px; line-height: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.t-mono { font-family: inherit; }
 
 /* text on the accent is dark (contrast), whatever older markup asked for */
 .bg-primary.text-white, .bg-primary { color: rgb(var(--primary-ink)); }
@@ -120,7 +122,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .vie-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--muted)); transition: left .12s; }
 .vie-sw[aria-checked="true"] { background: rgb(var(--primary)); border-color: rgb(var(--primary)); }
 .vie-sw[aria-checked="true"]::after { left: 16px; background: rgb(var(--primary-ink)); }
-.vie-kbd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; line-height: 1; color: rgb(var(--ink2)); padding: 3px 5px; border: 1px solid rgb(var(--line2)); border-bottom-width: 2px; border-radius: 4px; background: rgb(var(--panel)); }
+.vie-kbd { font-family: inherit; font-size: 12px; line-height: 1; color: rgb(var(--ink2)); padding: 3px 5px; border: 1px solid rgb(var(--line2)); border-bottom-width: 2px; border-radius: 4px; background: rgb(var(--panel)); }
 .vie-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgb(var(--line)); }
 .vie-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--ink)); }
 .vie-range::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: rgb(var(--ink)); }
@@ -136,7 +138,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .seg.f button { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* Eyebrow section heading (SOT) */
-.eb { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--muted)); }
+.eb { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; color: rgb(var(--muted)); }
 
 /* List row (SOT): icon + label + trailing detail, 36px tall */
 .lr { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
@@ -166,7 +168,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .steps { display: flex; flex-wrap: wrap; gap: 0; padding: 18px 14px 16px; list-style: none; margin: 0; }
 .stp { flex: 1 1 110px; min-width: 0; display: flex; flex-direction: column; gap: 8px; position: relative; padding-right: 10px; }
 .stp .node { display: flex; align-items: center; gap: 0; }
-.stp .dotn { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); background: rgb(var(--panel)); display: grid; place-items: center; font: 600 12px "JetBrains Mono", ui-monospace, monospace; color: rgb(var(--ink2)); }
+.stp .dotn { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid rgb(var(--line2)); background: rgb(var(--panel)); display: grid; place-items: center; font-size: 12px; font-weight: 400; color: rgb(var(--ink2)); }
 .stp .bar { flex: 1; height: 1.5px; background: rgb(var(--line2)); margin-left: 6px; }
 .stp:last-child .bar { display: none; }
 .stp .nm2 { font-weight: 600; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -190,7 +192,7 @@ dialog[data-player-full]::backdrop { background: #000; }
 .ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; padding: 0 12px; border-bottom: 1px solid rgb(var(--line)); }
 .bud { position: relative; height: 10px; border-radius: 5px; background: rgb(var(--raised)); overflow: hidden; }
 .bud .used { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(var(--primary)); }
-.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: rgb(var(--raised)); color: rgb(var(--ink2)); }
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; background: rgb(var(--raised)); color: rgb(var(--ink2)); }
 .panel { background: rgb(var(--panel)); border: 1px solid rgb(var(--line)); border-radius: 8px; min-width: 0; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid rgb(var(--line2)); background: rgb(var(--raised)); color: rgb(var(--ink)); font-size: 13px; line-height: 20px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: rgb(var(--line)); }
@@ -198,7 +200,9 @@ dialog[data-player-full]::backdrop { background: #000; }
 .btn.sm { height: 30px; padding: 0 10px; }
 .btn.w { width: 100%; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+/* SOT typography lock: .mono renders in the body font at regular weight — the SOT uses .mono for numbers, ids and
+   times (token counts, gate ids, model names, log lines, PIN) but its --mono is the body font, so none of them is monospace. */
+.mono { font-family: inherit; font-weight: 400; }
 .sm { font-size: 12px; line-height: 18px; }
 .mu { color: rgb(var(--muted)); }
 .h1 { font-size: 16px; font-weight: 600; letter-spacing: -.005em; line-height: 24px; }
@@ -247,4 +251,4 @@ select.in { appearance: auto; }
 .tok span { color: rgb(var(--muted)); }
 .tok[aria-expanded="true"] { border-color: rgb(var(--primary)); }
 .tok.low { border-color: rgb(var(--amber)); }
-.ruler { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500; font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; color: rgb(var(--muted)); }
+.ruler { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 400; font-family: inherit; color: rgb(var(--muted)); }

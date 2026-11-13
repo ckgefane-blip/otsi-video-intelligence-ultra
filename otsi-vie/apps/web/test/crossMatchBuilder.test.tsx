@@ -1,7 +1,8 @@
 /**
- * Cross-match highlight reel (ADR-131 Build B): the Reel Builder UI — the source choice + length picker (a NEW reel, the
- * original untouched), the best-moments selection view (tiers, chain sequence labels, left-out reasons), the preview
- * switching source video per clip, and the Profile Intro dialog opening for a cross-match reel.
+ * Cross-match highlight reel (ADR-131 Build B), rebuilt to the SOT (Page 20, Reels.dc.html): the Reel Builder page itself has no
+ * cross-match creation flow, no Best Moments section and no auto-opening Profile Intro dialog — the Sequence IS the moments list,
+ * and the preview is the clip's footage with no scoreboard or render-mode toggle. The full source choice (ReelSourceChoice, which
+ * does create a cross-match reel) is tested on its own; the read-only summary of a cross-match reel stays in the settings sidebar.
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,23 +116,23 @@ beforeEach(() => { localStorage.clear(); sessionStorage.clear(); api.mockReset()
 async function openCross(reel: Reel = crossReel()) {
   mockApi(reel, selection);
   render(<ReelStage reelId={reel.id} />);
-  await waitFor(() => expect(screen.getByLabelText("Undo: Trimmed a clip")).not.toBeDisabled());
+  // the reel is loaded when its read-only source summary shows in the settings sidebar
+  await waitFor(() => expect(screen.getByText("All matches · 5 min · best moments rule v2.1")).toBeInTheDocument());
 }
 
 describe("Cross-match source choice", () => {
-  it("creates a new all-matches reel at 5 minutes and opens it, leaving the original reel alone", async () => {
+  it("the Moments-from switch is plain: picking All matches creates no reel on this page", async () => {
     const single = baseReel();
     mockApi(single, []);
     render(<ReelStage reelId={SINGLE_ID} />);
-    await waitFor(() => expect(screen.getByLabelText("Undo: Trimmed a clip")).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "All matches" })).not.toBeDisabled());
     fireEvent.click(screen.getByRole("button", { name: "All matches" }));
     fireEvent.click(screen.getByRole("button", { name: "5 minutes" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create all-matches reel" }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/reels", expect.objectContaining({
-      method: "POST", json: { source: "ALL_MATCHES", length_s: 300, player_id: PLAYER_ID },
-    })));
-    expect(push).toHaveBeenCalledWith(`/reels/${NEW_ID}`);
-    expect(api.mock.calls.filter(([u, init]) => String(u) === `/v1/reels/${SINGLE_ID}` && (init as { method?: string } | undefined)?.method === "PATCH")).toHaveLength(0);
+    expect(screen.getByText("5:00 target")).toBeInTheDocument();   // the Length seg still sets the reel's target length
+    expect(screen.queryByRole("button", { name: "Create all-matches reel" })).toBeNull();
+    expect(screen.queryByText(/One reel of .* best moments from all his matches/)).toBeNull();
+    expect(api.mock.calls.filter(([u, init]) => String(u) === "/v1/reels" && (init as { method?: string } | undefined)?.method === "POST")).toHaveLength(0);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("the full source choice offers the fixed lengths, default 3 min", async () => {
@@ -156,76 +157,65 @@ describe("Cross-match source choice", () => {
 });
 
 describe("Cross-match moments view", () => {
-  it("shows tiers, the chain's sequence label, match + minute, and the left-out reasons", async () => {
+  it("the Sequence is the moments list: the cross-match clip is in it, with no Best Moments section", async () => {
     await openCross();
-    await waitFor(() => expect(screen.getByText("Best Moments — All Matches (4)")).toBeTruthy());
-    expect(screen.getByText("Tier S")).toBeTruthy();
-    expect(screen.getByText("Tier B")).toBeTruthy();
-    expect(screen.getByText("Tackle (possible) → Key pass → Goal")).toBeTruthy();
-    expect(screen.getByText("Dynamo vs Ercakhu · Abkhazia Premier League · 67'")).toBeTruthy();
-    expect(screen.getByText("Nart vs Ercakhu · Abkhazia Premier League · 41'")).toBeTruthy();
-    expect(screen.getByText("per-match cap reached")).toBeTruthy();
-    expect(screen.getByText("rejected for this reel")).toBeTruthy();
-  });
-
-  it("hides Build a draft and Is this him?, and Add all counts only the selected moments not yet in the reel", async () => {
-    await openCross();
-    await waitFor(() => expect(screen.getByText("Best Moments — All Matches (4)")).toBeTruthy());
-    expect(screen.queryByText("✦ Build a draft")).toBeNull();
+    expect(screen.queryByText(/Best Moments — All Matches/)).toBeNull();
+    expect(screen.queryByText("Tier S")).toBeNull();
+    expect(screen.queryByText("per-match cap reached")).toBeNull();
+    expect(screen.queryByText("rejected for this reel")).toBeNull();
+    expect(screen.queryByText(/Add all/)).toBeNull();
+    expect(screen.queryByText(/Build a draft/)).toBeNull();
     expect(screen.queryByText("More moments of him: Is this him? ›")).toBeNull();
-    expect(screen.getByText("+ Add all (1)")).toBeTruthy();
+    const seq = screen.getByLabelText("Sequence");
+    expect(within(seq).getByText("[Tier S] Goal · 67' vs Ercakhu")).toBeInTheDocument();
   });
 
-  it("pins a selected moment by hand through addClip with its source video", async () => {
+  it("selecting the cross-match clip in the Sequence fills the Clip inspector", async () => {
     await openCross();
-    await waitFor(() => expect(screen.getByText("Best Moments — All Matches (4)")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Add moment 2 to the reel" }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${CROSS_ID}/clips`, expect.objectContaining({
-      method: "POST",
-      json: { in_pts_us: 38_000_000, out_pts_us: 46_500_000, origin: "SUGGESTED", label: "[Tier B] Dribble past opponent · 41' vs Nart", source_video_id: "vid-3" },
-    })));
+    const seq = screen.getByLabelText("Sequence");
+    fireEvent.click(within(seq).getByRole("button", { name: /1\. \[Tier S\] Goal/ }));
+    const insp = screen.getByLabelText("Clip");
+    expect(within(insp).getByText("1. [Tier S] Goal · 67' vs Ercakhu")).toBeInTheDocument();
+    expect(within(insp).getByLabelText("Clip 1 in (s)")).toHaveValue("5.0");
+    expect(within(insp).getByLabelText("Clip 1 out (s)")).toHaveValue("18.0");
   });
 
   it("never reads a single video for a cross-match reel", async () => {
     await openCross();
-    await waitFor(() => expect(screen.getByText("Best Moments — All Matches (4)")).toBeTruthy());
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/videos/vid-2/playback"));
     expect(api.mock.calls.some(([u]) => String(u).includes("/videos/null"))).toBe(false);
     expect(api.mock.calls.some(([u]) => String(u).includes("undefined"))).toBe(false);
   });
 });
 
 describe("Cross-match preview", () => {
-  it("switches source video per clip: the clip's video, playback and path — and shows the clip's match scoreboard", async () => {
+  it("plays the clip's own video, with no scoreboard overlay", async () => {
     await openCross();
-    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/videos/vid-2"));
     await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/videos/vid-2/playback"));
-    await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${CROSS_ID}/path?video_id=vid-2`));
     const preview = screen.getByRole("region", { name: "Cinematic spotlight preview" });
-    await waitFor(() => expect(within(preview).getByText("DYN")).toBeTruthy());
-    await waitFor(() => expect(within(preview).getByText("ERC")).toBeTruthy());
+    expect(within(preview).queryByText("DYN")).toBeNull();
+    expect(within(preview).queryByText("ERC")).toBeNull();
   });
 
-  it("in render mode shows an All matches note instead of a single match's scoreboard", async () => {
+  it("has no render-mode toggle and no All matches note on the preview", async () => {
     const rendered = crossReel({
       latest_render: { id: "render-1", state: "SUCCEEDED" },
       last_good_render: { id: "render-1", has_output: true },
     });
     await openCross(rendered);
-    await waitFor(() => expect(screen.getByText("Best Moments — All Matches (4)")).toBeTruthy());
-    fireEvent.click(screen.getByLabelText("Preview Render"));
+    expect(screen.queryByLabelText("Preview Render")).toBeNull();
     const preview = screen.getByRole("region", { name: "Cinematic spotlight preview" });
-    await waitFor(() => expect(within(preview).getByText("All matches")).toBeTruthy());
-    expect(within(preview).queryByText("DYN")).toBeNull();
+    expect(within(preview).queryByText("All matches")).toBeNull();
   });
 });
 
 describe("Cross-match Profile Intro", () => {
-  it("opens for a cross-match reel exactly as for a single-match reel, from the player's data", async () => {
+  it("does not auto-open the Profile Intro dialog; the intro is a card in the Sequence", async () => {
     await openCross();
-    await waitFor(() => expect(screen.getByRole("dialog", { name: "Player Profile Intro" })).toBeTruthy());
-    await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/players/${PLAYER_ID}/profile-intro?reel_id=${CROSS_ID}`));
-    const dialog = screen.getByRole("dialog", { name: "Player Profile Intro" });
-    await waitFor(() => expect(within(dialog).getByText("Player Identity Verified")).toBeTruthy());
-    expect(within(dialog).getByText("Continue to Reel")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
+    expect(api.mock.calls.some(([u]) => String(u).includes("/profile-intro"))).toBe(false);
+    const seq = screen.getByLabelText("Sequence");
+    expect(within(seq).getByText("Profile Intro")).toBeInTheDocument();
+    expect(within(seq).getByText("16:9 · always first")).toBeInTheDocument();
   });
 });

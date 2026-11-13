@@ -7,12 +7,30 @@
  * Weights / Status). Available to Owners and Admins.
  */
 import type { AdminDashboard, AdminModelEntry } from "@otsi-vie/contracts";
-import { AlertTriangle, CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
+import { AlertTriangle, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
 import { api, ApiProblem } from "@/lib/api";
+
+/** a dictionary key the reconciliation pass has not added yet (sot-rebuild-i18n/pages-d.json): read it when present, English until then. */
+const pendingKey = (dict: Record<string, string | undefined>, key: string, fallback: string) => dict[key] ?? fallback;
+
+/** the registry's task keys ("TEXT_DETECT") as readable words (SOT): the known tasks come from pages-d.json keys, anything else is decoded from the key itself. */
+const TASK_KEY: Record<string, { key: string; en: string }> = {
+  DETECT: { key: "modelTaskDetect", en: "Detection" },
+  EMBED: { key: "modelTaskEmbed", en: "Embedding" },
+  OCR: { key: "modelTaskOcr", en: "Text recognition" },
+  TEXT_DETECT: { key: "modelTaskTextDetect", en: "Text detection" },
+  PITCH_KEYPOINTS: { key: "modelTaskPitchKeypoints", en: "Pitch keypoints" },
+  BALL_DETECT: { key: "modelTaskBallDetect", en: "Ball detection" },
+};
+const decodeTask = (task: string) => {
+  const words = task.toLowerCase().split(/[_\s]+/).filter(Boolean);
+  if (!words.length) return task;
+  return words.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
+};
 
 export function ModelsAi() {
   const { organization } = useAuth();
@@ -58,6 +76,12 @@ export function ModelsAi() {
 
   const models: AdminModelEntry[] = dashboard?.models ?? [];
   const isEmpty = !loading && models.length === 0;
+  /** the task's readable wording (SOT): never the raw registry key. */
+  const taskLabel = (task: string) => {
+    const known = TASK_KEY[task];
+    if (!known) return decodeTask(task);
+    return pendingKey(t.body.admin as unknown as Record<string, string | undefined>, known.key, known.en);
+  };
 
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]" data-testid="admin-models-ai">
@@ -76,41 +100,44 @@ export function ModelsAi() {
         </div>
       )}
 
+      {/* SOT: open sections — a hairline top rule only, no boxed card */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.modelsRegistered}</span>
           <span className="t-section">{loading ? "—" : String(models.length)}</span>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.modelsAccuracy}</span>
           <span className="t-section leading-7 text-amber">{t.body.admin.modelsNotMeasured}</span>
           <Link href="/settings/admin/release" className="t-body text-primary hover:underline">
             {t.body.admin.modelsSeeGates}
           </Link>
         </div>
-        <div className="vie-panel flex flex-col gap-1 px-4 py-3">
+        <div className="flex flex-col gap-1 border-t border-line px-4 py-3">
           <span className="t-label">{t.body.admin.modelsRunsOn}</span>
           <span className="t-section leading-7">{t.body.admin.modelsThisComputer}</span>
           <span className="t-body text-muted">{t.body.admin.modelsLocalNote}</span>
         </div>
       </div>
 
-      <section className="vie-panel flex flex-col" aria-labelledby="models-registry">
+      <section className="flex flex-col border-t border-line" aria-labelledby="models-registry">
         <div className="vie-ph">
           <h2 id="models-registry" className="t-section">{t.body.admin.modelsRegistry}</h2>
-          {isEmpty && (
-            <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-dashed border-line2 px-2.5 t-small text-muted">
+          {!loading && (isEmpty ? (
+            <span className="inline-flex items-center gap-1.5 t-small text-muted">
               <span className="h-[5px] w-[5px] rounded-full border border-current" aria-hidden="true" />
               {t.body.admin.modelsEmpty}
             </span>
-          )}
+          ) : (
+            <span className="t-small text-muted">{t.body.admin.healthModelsCount.replace("{a}", String(models.length))}</span>
+          ))}
         </div>
         <div className="flex min-h-[34px] items-center gap-3 px-4 t-small text-muted">
-          <span className="flex-[2]">{t.body.admin.modelsColModel}</span>
-          <span className="flex-1">{t.body.admin.modelsColTask}</span>
-          <span className="flex-1">{t.body.admin.modelsColVersion}</span>
-          <span className="flex-1">{t.body.admin.modelsColWeights}</span>
-          <span className="flex-1">{t.body.admin.colStatus}</span>
+          <span className="min-w-0 flex-[2]">{t.body.admin.modelsColModel}</span>
+          <span className="min-w-0 flex-1">{t.body.admin.modelsColTask}</span>
+          <span className="min-w-0 flex-1">{t.body.admin.modelsColVersion}</span>
+          <span className="min-w-0 flex-1">{t.body.admin.modelsColWeights}</span>
+          <span className="min-w-0 flex-1">{t.body.admin.colStatus}</span>
         </div>
         {loading ? (
           <div className="flex h-32 items-center justify-center">
@@ -130,24 +157,27 @@ export function ModelsAi() {
             {models.map((mod) => {
               const allVerified = mod.files.length > 0 && mod.files.every((f) => f.verified);
               const presentCount = mod.files.filter((f) => f.present).length;
+              // SOT: the columns share the header's flex widths and truncate — a long version hash can no longer spill into Weights; model names and versions are regular type, the task is readable wording, the status is plain dot text
               return (
                 <div key={mod.key} className="flex items-center gap-3 px-4 py-3 hover:bg-raised/40">
-                  <span className="flex-[2] font-mono text-xs font-normal">{mod.key}</span>
-                  <span className="flex-1 capitalize t-body">{mod.task}</span>
-                  <span className="flex-1 font-mono text-xs">{mod.revision}</span>
-                  <span className="flex-1 t-body text-muted">
+                  <span className="min-w-0 flex-[2] truncate t-body" title={mod.key}>{mod.key}</span>
+                  <span className="min-w-0 flex-1 truncate t-body">{taskLabel(mod.task)}</span>
+                  <span className="min-w-0 flex-1 truncate t-body text-muted" title={mod.revision || undefined}>{mod.revision || "—"}</span>
+                  <span className="min-w-0 flex-1 truncate t-body text-muted">
                     {mod.files.length === 1
                       ? t.body.admin.modelFilesOne.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount))
                       : t.body.admin.modelFilesMany.replace("{a}", String(mod.files.length)).replace("{b}", String(presentCount))}
                   </span>
-                  <span className="flex-1">
+                  <span className="min-w-0 flex-1 truncate t-body">
                     {allVerified ? (
-                      <span className="inline-flex items-center gap-1 rounded bg-ok/10 px-2 py-0.5 text-xs font-normal text-ok">
-                        <CheckCircle2 className="h-3 w-3" /> {t.body.admin.modelReady}
+                      <span className="inline-flex items-center gap-1.5 text-ok">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                        {t.body.admin.modelReady}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded bg-muted/20 px-2 py-0.5 text-xs font-normal text-muted">
-                        <XCircle className="h-3 w-3" /> {t.body.admin.modelAbsent}
+                      <span className="inline-flex items-center gap-1.5 text-muted">
+                        <span className="h-[5px] w-[5px] shrink-0 rounded-full border border-current" aria-hidden="true" />
+                        {t.body.admin.modelAbsent}
                       </span>
                     )}
                   </span>

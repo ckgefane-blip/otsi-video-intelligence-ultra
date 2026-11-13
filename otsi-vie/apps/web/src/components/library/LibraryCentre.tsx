@@ -131,7 +131,7 @@ export function LibraryCentre({ items, all, facts, selected, onSelect, videoId, 
         </div>
       </div>
 
-      <section className="panel flex min-h-0 flex-1 flex-col" aria-label={dict.pages.library.title}>
+      <section className="flex min-h-0 flex-1 flex-col" style={{ background: "transparent", border: 0, borderRadius: 0 }} aria-label={dict.pages.library.title}>
         <div className="flex h-[38px] items-center gap-2.5 border-b border-line bg-p0 px-3">
           <input type="checkbox" aria-label={d.selectAllAria} checked={allOn} onChange={() => setChecked(allOn ? new Set() : new Set(shown.map((i) => i.key)))} />
           <span className="t-small flex-1 text-muted">{d.lbSelected.replace("{a}", String(checked.size))}</span>

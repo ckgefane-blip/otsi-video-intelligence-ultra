@@ -1,8 +1,8 @@
 /**
  * SOT Pages 25-28: the shared link (password gate + recipient view) and the sign-in page, rebuilt to the SOT.
- * The gate is the centred panel; the view has the header, the player, the three file panels, the comments
- * aside and the measured-figures footer. The sign-in page is the two-column layout with the two-step panel
- * beside the form — the boxes stay disabled until a challenge arrives, then they take the code.
+ * The gate is the centred panel; the view has the header, the player, the three file rows, the comments
+ * aside and the measured-figures footer. The sign-in page is the two-column layout with the form top-aligned
+ * and the two-step panel below it — the boxes stay disabled until a challenge arrives, then they take the code.
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,7 +31,8 @@ vi.mock("@/components/auth/AuthProvider", () => ({
     updateMe: vi.fn(),
   }),
 }));
-vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn: () => true }));
+const webauthn = vi.hoisted(() => ({ supported: true }));
+vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn: () => webauthn.supported }));
 vi.mock("@/lib/api", () => ({
   ApiProblem: class ApiProblem extends Error {
     constructor(readonly status: number, readonly code: string, message: string) { super(message); }
@@ -45,6 +46,10 @@ const VIDEO_VIEW = {
   kind: "VIDEO",
   title: "Chinazom Godwin — highlights",
   player_name: "Chinazom Godwin",
+  player_jersey_number: 4,
+  player_position: "DM",
+  player_club: "FC Ercakhu",
+  organization_name: "Gefane United",
   url: "https://example.invalid/reel.mp4",
   download_url: "https://example.invalid/reel.mp4?dl=1",
   mime: "video/mp4",
@@ -54,8 +59,16 @@ const VIDEO_VIEW = {
   comments: [],
 };
 
-function mockGet(body: unknown, ok = true, status = 200) {
-  const fetchMock = vi.fn().mockResolvedValue({ ok, status, json: async () => body });
+/** the page reads the gate (GET .../gate) and the view (GET ...) separately: route the stub by URL */
+function mockShare(gateBody: unknown, openBody: unknown, openOk = true, openStatus = 200) {
+  const fetchMock = vi.fn().mockImplementation((url: string) => {
+    if (url.endsWith("/gate")) {
+      return gateBody === null
+        ? Promise.resolve({ ok: false, status: 404, json: async () => ({ message: "This link does not exist." }) })
+        : Promise.resolve({ ok: true, status: 200, json: async () => gateBody });
+    }
+    return Promise.resolve({ ok: openOk, status: openStatus, json: async () => openBody });
+  });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -63,36 +76,57 @@ function mockGet(body: unknown, ok = true, status = 200) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  webauthn.supported = true;
 });
 
 describe("shared link password gate (Page 25)", () => {
-  it("shows the SOT gate: title, organisation line, password with Show, Open, and no expiry yet", async () => {
-    mockGet({ code: "PASSWORD_REQUIRED", message: "This video is protected by a password." }, false, 401);
+  it("shows the SOT gate: title, organisation line, password with Show, Open, and the expiry", async () => {
+    // the org and expiry come from the gate endpoint, not the 401 body
+    mockShare({ organization_name: "Gefane United", expires_at: "2026-12-01T00:00:00.000Z", has_password: true },
+      { code: "PASSWORD_REQUIRED", message: "This video is protected by a password." }, false, 401);
     render(<SharedReelPage />);
     await waitFor(() => expect(screen.getByRole("heading", { name: "This link is protected" })).toBeInTheDocument());
-    expect(screen.getByText(/An organisation shared a Scouting Pack with you/)).toBeInTheDocument();
+    expect(screen.getByText(/Gefane United shared a Scouting Pack with you/)).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show password" })).toBeInTheDocument();
+    // SOT: the Show button is text-only ("Show"), no eye icon
+    expect(screen.getByRole("button", { name: "Show password" })).toHaveTextContent(/^Show$/);
     expect(screen.getByRole("button", { name: "Open" })).toBeDisabled();
-    // the expiry is not known until the link is opened, so the gate does not show one
-    expect(screen.queryByText(/Link expires/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Link expires/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret" } });
     expect(screen.getByRole("button", { name: "Open" })).not.toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Show password" }));
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
   });
+
+  it("without an organisation or expiry from the gate keeps the generic line and shows no expiry", async () => {
+    mockShare({ organization_name: null, expires_at: null, has_password: true },
+      { code: "PASSWORD_REQUIRED", message: "This video is protected by a password." }, false, 401);
+    render(<SharedReelPage />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "This link is protected" })).toBeInTheDocument());
+    expect(screen.getByText(/An organisation shared a Scouting Pack with you/)).toBeInTheDocument();
+    expect(screen.queryByText(/Link expires/)).not.toBeInTheDocument();
+  });
+
+  it("a bad link shows the OTSI logo over 'This link does not exist.'", async () => {
+    mockShare(null, { message: "This link does not exist." }, false, 404);
+    render(<SharedReelPage />);
+    await waitFor(() => expect(screen.getByText("This link does not exist.")).toBeInTheDocument());
+    expect(screen.getByAltText("OTSI")).toBeInTheDocument();
+  });
 });
 
 describe("shared link recipient view (Page 26)", () => {
-  it("shows the header, the reel, the three file panels, the comments aside and the footer", async () => {
-    mockGet(VIDEO_VIEW);
+  it("shows the header, the reel, the three file rows, the comments aside and the footer", async () => {
+    mockShare({ organization_name: "Gefane United", expires_at: "2026-12-01T00:00:00.000Z", has_password: false }, VIDEO_VIEW);
     render(<SharedReelPage />);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Chinazom Godwin — highlights" })).toBeInTheDocument());
-    expect(screen.getByText("Shared with you by an organisation")).toBeInTheDocument();
+    expect(screen.getByText("Shared with you by Gefane United")).toBeInTheDocument();
+    // the expiry is plain text, not a chip
     expect(screen.getByText(/Link expires/)).toBeInTheDocument();
+    expect(screen.getByText(/Link expires/).className).not.toContain("chip");
     expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute("href", VIDEO_VIEW.download_url);
     expect(screen.getByText("Scouting Pack")).toBeInTheDocument();
-    expect(screen.getByText("Chinazom Godwin")).toBeInTheDocument();
+    expect(screen.getByText("Chinazom Godwin · #4 · DM · FC Ercakhu")).toBeInTheDocument();
     // the player plays the signed reel address; the SOT's "No playable footage" is the player's
     // no-footage state, which appears when the video cannot be played
     const video = document.querySelector("video");
@@ -103,8 +137,13 @@ describe("shared link recipient view (Page 26)", () => {
     fireEvent.error(video!);
     await waitFor(() => expect(screen.getByText("Playback unavailable")).toBeInTheDocument());
     expect(screen.getByText("Open local footage")).toBeInTheDocument();
-    // the three file panels
-    expect(screen.getByText("Highlight reel")).toBeInTheDocument();
+    // the three file rows are open rows with a top rule, not boxed panels
+    expect(screen.getByText("Highlight reel").closest("div")!.className).not.toContain("panel");
+    expect(document.querySelectorAll(".panel")).toHaveLength(0);
+    // the comments aside
+    expect(screen.getByText("Comments")).toBeInTheDocument();
+    // the comment count is regular type, not monospace
+    expect(within(screen.getByLabelText("Comments")).getByText("0").className).not.toContain("mono");
     expect(screen.getByText("MP4")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Download reel" })).toHaveAttribute("href", VIDEO_VIEW.download_url);
     expect(screen.getByText("Player report")).toBeInTheDocument();
@@ -131,8 +170,8 @@ describe("shared link recipient view (Page 26)", () => {
     fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Scout" } });
     fireEvent.change(screen.getByLabelText(/Comment at/), { target: { value: "Good run" } });
     fireEvent.click(screen.getByRole("button", { name: "Post comment" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    const postCall = fetchMock.mock.calls[1]!;
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const postCall = fetchMock.mock.calls[2]!;
     expect(postCall[0]).toContain("/comments");
     expect(JSON.parse(String(postCall[1].body))).toMatchObject({ name: "Scout", body: "Good run", at_s: 0 });
     await waitFor(() => expect(screen.getByText("Good run")).toBeInTheDocument());
@@ -140,17 +179,30 @@ describe("shared link recipient view (Page 26)", () => {
 });
 
 describe("sign-in page (Page 27)", () => {
-  it("shows the SOT two columns: the pitch and promise, the form, and the two-step panel (disabled)", async () => {
+  it("shows the SOT layout: the pitch and promise, the form top-aligned, and the two-step panel below it (disabled)", async () => {
     render(<LoginPage />);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Prove what a player did on the pitch." })).toBeInTheDocument());
     expect(screen.getByText("Video work stays on this computer")).toBeInTheDocument();
     expect(screen.getByText("Welcome back")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    // the form is top-aligned and the two-step card sits BELOW it, not beside it (SOT)
+    const main = screen.getByRole("main");
+    expect(main.className).toContain("flex-col");
+    expect(main.className).toContain("justify-start");
+    const form = main.querySelector("form")!;
+    const panel = screen.getByText("Enter your verification code").closest("section")!;
+    expect(form.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // no icons on the buttons (the SOT has none; a spinner shows only while a press is busy)
+    for (const name of ["Sign in", /Sign in with a passkey/, "Verify"] as const) {
+      expect(screen.getByRole("button", { name }).querySelector("svg")).toBeNull();
+    }
     expect(screen.getByLabelText("Email")).toHaveAttribute("placeholder", "you@club.com");
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Forgot password?" })).toBeInTheDocument();
+    // SOT: "Forgot password?" is a link, not a button — and there is still no self-service reset (ADR-143)
+    expect(screen.getByRole("link", { name: "Forgot password?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument();
+    expect(screen.getByText("v[—]")).toBeInTheDocument();
     expect(screen.getByText("Invited by your organisation?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Accept your invite" })).toHaveAttribute("href", "/invite");
     // the two-step panel is the "next step" preview: the boxes and Verify are disabled until a challenge
@@ -160,8 +212,19 @@ describe("sign-in page (Page 27)", () => {
     expect(screen.getByRole("button", { name: "Verify" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Use a recovery code instead" })).toBeInTheDocument();
     // the forgot-password note says there is no self-service reset
-    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+    fireEvent.click(screen.getByRole("link", { name: "Forgot password?" }));
     expect(screen.getByText(/no self-service password reset/)).toBeInTheDocument();
+  });
+
+  it("shows the passkey button even where passkeys do not work, and says so on click", async () => {
+    webauthn.supported = false;
+    render(<LoginPage />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument());
+    const passkey = screen.getByRole("button", { name: /Sign in with a passkey/ });
+    expect(passkey).toBeInTheDocument();
+    fireEvent.click(passkey);
+    expect(await screen.findByText("This browser does not support passkeys here. Use your password.")).toBeInTheDocument();
+    expect(signInWithPasskey).not.toHaveBeenCalled();
   });
 
   it("activates the two-step panel after the password is accepted, and verifies the code", async () => {

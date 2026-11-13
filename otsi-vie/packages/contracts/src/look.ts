@@ -93,15 +93,19 @@ export type ZoomEase = z.infer<typeof ZoomEase>;
 /** at_ms: milliseconds into the clip as it plays in the reel (with its speed effect) */
 export const ZoomKey = z.object({ at_ms: z.number().int().min(0).max(120_000), zoom: z.number().min(1).max(3), ease: ZoomEase.default("EASE") });
 export type ZoomKey = z.infer<typeof ZoomKey>;
-export const DrawKind = z.enum(["ARROW", "LINE", "CIRCLE"]);
+export const DrawKind = z.enum(["ARROW", "LINE", "CIRCLE", "FREEHAND", "SPOTLIGHT", "TEXT"]);
 export type DrawKind = z.infer<typeof DrawKind>;
 export const DrawColor = z.enum(["YELLOW", "WHITE", "CYAN", "RED"]);
 export type DrawColor = z.infer<typeof DrawColor>;
 export const DRAW_RGB: Record<z.infer<typeof DrawColor>, string> = { YELLOW: "#ffd400", WHITE: "#ffffff", CYAN: "#19d3ff", RED: "#ff4a4a" };
 const N = z.number().min(0).max(1);
-/** points normalised to the source picture (x, y of the match video); a circle is centred on (x1, y1) through (x2, y2) */
+/** points normalised to the source picture (x, y of the match video); a circle is centred on (x1, y1) through (x2, y2).
+ *  FREEHAND draws the polyline in points; SPOTLIGHT dims everything outside the circle centred on (x1, y1) through (x2, y2);
+ *  TEXT writes text at (x1, y1). */
 export const Drawing = z.object({
   kind: DrawKind, x1: N, y1: N, x2: N, y2: N, color: DrawColor.default("YELLOW"),
+  points: z.array(z.tuple([N, N])).max(400).optional(),
+  text: z.string().max(120).optional(),
   at_ms: z.number().int().min(0).max(120_000), draw_ms: z.number().int().min(100).max(3000).default(600), hold_ms: z.number().int().min(0).max(10_000).default(2000),
 });
 export type Drawing = z.infer<typeof Drawing>;

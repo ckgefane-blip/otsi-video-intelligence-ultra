@@ -4,19 +4,17 @@
  * keyboard shortcuts modal. "?" on any page (when no field or dialog has
  * the keys), Clip Studio's "?" button and the palette's "Keyboard
  * shortcuts" command open it. It is a fixed cheat sheet in the SOT's two
- * columns (General + Analysis | Video players + Clip Studio), not the
- * searchable full map: every row is a shortcut the engine really has.
- *
- * Rows the SOT lists that are NOT wired in the engine are left out, and
- * the omission is named in the commit, not hidden: Settings (Ctrl/Cmd ,),
- * Confirm / Correct / Reject identity (C / E / X), back / forward 1
- * frame (, .), slower / faster ([ ]), open local footage (O). Mark in /
- * out is I and O (the keys the Studio and Analysis really use); the SOT's
- * "P" is a slip. There is no Blade tool and no Select tool to bind B and
- * V to (the Studio's draw tools are A / D / R).
+ * columns (General + Analysis | Video players + Clip Studio): every row
+ * is a shortcut the engine really has, wired where its tool lives
+ * (lib/keymap.ts). SOT rebuild: all nine rows the SOT lists are shown
+ * and wired — Settings (Ctrl/Cmd ,), Confirm / Correct / Reject
+ * identity (C / E / X), back / forward 1 frame (, .), slower / faster
+ * ([ ]), Open local footage (O), Blade (B) and Select (V). Mark in /
+ * out is I and P (the SOT's keys).
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { KEYMAP_EVENT, typing } from "@/lib/keymap";
 import { useLocale } from "@/lib/i18n";
@@ -34,10 +32,14 @@ function Row({ label, keys }: { label: string; keys: string[] }) {
 
 export function KeyboardMap() {
   const { t } = useLocale();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || typing(e)) return;
+      if (e.defaultPrevented || typing(e)) return;
+      // Ctrl/Cmd , opens Settings (SOT, General) — from any page, like Ctrl/Cmd K and J
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === ",") { e.preventDefault(); router.push("/settings/preferences"); return; }
+      if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey) return;
       e.preventDefault();
       setOpen(true);
     };
@@ -45,7 +47,7 @@ export function KeyboardMap() {
     addEventListener("keydown", onKey);
     addEventListener(KEYMAP_EVENT, onOpen);
     return () => { removeEventListener("keydown", onKey); removeEventListener(KEYMAP_EVENT, onOpen); };
-  }, []);
+  }, [router]);
   const s = t.body.shell;
 
   return (
@@ -67,11 +69,15 @@ export function KeyboardMap() {
               <Row label={s.keysTitle} keys={["?"]} />
               <Row label={s.ksCollapseRail} keys={["Ctrl/Cmd B"]} />
               <Row label={s.ksJobsCenter} keys={["Ctrl/Cmd J"]} />
+              <Row label={s.ksSettings} keys={["Ctrl/Cmd ,"]} />
               <div className="lr" style={{ padding: 0, minHeight: 34, border: 0 }}>
                 <span style={{ flex: 1 }}>{s.ksCloseDialog}</span>
                 <span className="vie-kbd">Esc</span>
               </div>
               <span className="eb" style={{ padding: "14px 0 6px" }}>{s.scopeAnalysis}</span>
+              <Row label={s.ksConfirmIdentity} keys={["C"]} />
+              <Row label={s.ksCorrectIdentity} keys={["E"]} />
+              <Row label={s.ksRejectIdentity} keys={["X"]} />
               <div className="lr" style={{ padding: 0, minHeight: 34, border: 0 }}>
                 <span style={{ flex: 1 }}>{s.ksAddMarker}</span>
                 <span className="vie-kbd">M</span>
@@ -81,15 +87,16 @@ export function KeyboardMap() {
               <span className="eb" style={{ padding: "6px 0" }}>{s.ksVideoPlayers}</span>
               <Row label={s.ksPlayPause} keys={["Space"]} />
               <Row label={s.ksBackForwardSec} keys={["← →"]} />
-              <div className="lr" style={{ padding: 0, minHeight: 34, border: 0 }}>
-                <span style={{ flex: 1 }}>{s.ksFullscreen}</span>
-                <span className="vie-kbd">F</span>
-              </div>
+              <Row label={s.ksFrameStep} keys={[", ."]} />
+              <Row label={s.ksSpeed} keys={["[ ]"]} />
+              <Row label={s.ksFullscreen} keys={["F"]} />
+              <Row label={s.ksOpenLocal} keys={["O"]} />
               <span className="eb" style={{ padding: "14px 0 6px" }}>{s.scopeStudio}</span>
+              <Row label={s.ksMarkInOut} keys={["I", "P"]} />
+              <Row label={s.ksBladeTool} keys={["B"]} />
               <div className="lr" style={{ padding: 0, minHeight: 34, border: 0 }}>
-                <span style={{ flex: 1 }}>{s.ksMarkInOut}</span>
-                <span className="vie-kbd">I</span>
-                <span className="vie-kbd" style={{ marginLeft: 4 }}>O</span>
+                <span style={{ flex: 1 }}>{s.ksSelectTool}</span>
+                <span className="vie-kbd">V</span>
               </div>
             </div>
           </div>

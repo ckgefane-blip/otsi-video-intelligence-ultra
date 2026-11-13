@@ -19,7 +19,7 @@ import { useLocale } from "@/lib/i18n";
 import { TransitionsPanel } from "./EditPanels";
 import { locate, type Studio } from "./useStudio";
 
-export function MediaBin({ r, st, onPick, say, binTab, setBinTab }: { r: ReelState | null; st: Studio; onPick: () => void; say: (m: string) => void; binTab: number; setBinTab: (t: number) => void }) {
+export function MediaBin({ r, st, say, binTab, setBinTab }: { r: ReelState | null; st: Studio; say: (m: string) => void; binTab: number; setBinTab: (t: number) => void }) {
   const { t: dict } = useLocale();
   const s = dict.body.studio;
   const tab = binTab;
@@ -39,7 +39,7 @@ export function MediaBin({ r, st, onPick, say, binTab, setBinTab }: { r: ReelSta
 
   return (
     <aside className="flex w-[280px] shrink-0 flex-col border-r border-line" aria-label={s.csClips}>
-      <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist">
+      <div className="tabs flex flex-nowrap gap-0 border-b border-line px-1.5" role="tablist" style={{ flexWrap: "nowrap" }}>
         {TABS.map((l, i) => (
           <button key={l} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`tab ${tab === i ? "on" : ""}`}>
             {l}
@@ -48,7 +48,7 @@ export function MediaBin({ r, st, onPick, say, binTab, setBinTab }: { r: ReelSta
       </div>
 
       <div className="border-b border-line px-3 py-2.5">
-        <label htmlFor="cs-bin-search" className="sr-only">{s.csSearchClips}</label>
+        <label htmlFor="cs-bin-search" className="sr-only">{s.csSearchBin}</label>
         <input id="cs-bin-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={s.csSearchClips}
           className="in h-8 w-full" />
       </div>
@@ -56,6 +56,8 @@ export function MediaBin({ r, st, onPick, say, binTab, setBinTab }: { r: ReelSta
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
         {tab === 0 && (
           <>
+            {/* the Profile Intro is the reel's own first segment. The line reads "— · 16:9" with no player
+                (user's audit A27) — the name slot is the player's name when one is recorded, else a dash. */}
             <div className="flex items-center gap-2.5">
               <div className="grid aspect-[16/9] w-24 shrink-0 place-items-center rounded-[5px] border-[1.5px] bg-canvas" style={{ borderColor: "rgb(var(--primary))" }}>
                 <svg className="i s" viewBox="0 0 24 24" aria-hidden="true" style={{ color: "rgb(var(--primary))" }} fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -67,9 +69,9 @@ export function MediaBin({ r, st, onPick, say, binTab, setBinTab }: { r: ReelSta
                 <span className="t-small text-muted">{reel?.player?.display_name ?? "—"} · {reel?.aspect ?? "16:9"}</span>
               </span>
             </div>
-            {!reel ? (
-              <button type="button" onClick={onPick} className="vie-btn mx-auto mt-16 block">{s.chooseReelEdit}</button>
-            ) : clips.length === 0 ? (
+            {/* SOT (Studio.dc.html): with no reel the bin shows this empty state, not a "Choose a reel to edit"
+                button — the footer below links to the Reel Builder, where a reel is opened. */}
+            {!reel || clips.length === 0 ? (
               <div className="empty px-2 py-4">
                 <h3>{s.csNoClipsLoaded}</h3>
                 <p>{s.csOpenReelFromBuilder}</p>

@@ -36,11 +36,9 @@ function mockApi(r: Reel = reel, moments: unknown = []) {
     if (url === `/v1/reels/${r.id}/moments`) return Promise.resolve(moments);
     if (url === `/v1/reels/${r.id}/history`) return Promise.resolve(history);
     if (url === `/v1/reels/${r.id}/history/undo` || url === `/v1/reels/${r.id}/history/redo`) return Promise.resolve(r);
+    if (url === `/v1/reels/${r.id}/renders`) return Promise.resolve({});
     if (url === "/v1/reels") return Promise.resolve([r]);
-    if (url === "/v1/videos/vid-1") return Promise.resolve({ id: "vid-1", match_id: null });
     if (url === "/v1/videos/vid-1/playback") return Promise.resolve({ url: "" });
-    if (url === `/v1/reels/${r.id}/path`) return Promise.resolve({ points: [] });
-    if (url.startsWith("/v1/brand-assets")) return Promise.resolve([]);
     if (url.startsWith(`/v1/reels/${r.id}/clips`)) return Promise.resolve(r);
     return Promise.reject(new Error(`unexpected ${url}`));
   });
@@ -51,7 +49,9 @@ beforeEach(() => { localStorage.clear(); sessionStorage.clear(); api.mockReset()
 async function open(r: Reel = reel, moments: unknown = []) {
   mockApi(r, moments);
   render(<ReelStage reelId={r.id} />);
-  await waitFor(() => expect(screen.getByLabelText("Undo: Trimmed a clip")).not.toBeDisabled());
+  // the reel and its reel count are loaded when the header shows "Chinazom Godwin · 1 reel generated"
+  // (the Build reel button stays disabled for a reel with no clips, so it cannot be the readiness signal)
+  await waitFor(() => expect(screen.getByText("Chinazom Godwin · 1 reel generated")).toBeInTheDocument());
 }
 
 describe("Reel Builder (SOT)", () => {
@@ -81,6 +81,15 @@ describe("Reel Builder (SOT)", () => {
     expect(screen.getByText("0:08")).toBeInTheDocument();
     expect(screen.getByText("3:00 target")).toBeInTheDocument();
     expect(screen.getByText("5:00 cap — never exceeded")).toBeInTheDocument();
+    // the SOT's right column is clip details only, and the centre ends at the Sequence: no Spotlight/Overlays/Branding
+    // inspector, no Suggested Moments, no Timeline, no second budget bar, no cross-match creation flow
+    expect(screen.queryByText("Spotlight Controls")).toBeNull();
+    expect(screen.queryByText("Generate Reel")).toBeNull();
+    expect(screen.queryByText(/Suggested Key Moments/)).toBeNull();
+    expect(screen.queryByText("Create all-matches reel")).toBeNull();
+    expect(screen.queryByText(/Remove all/)).toBeNull();
+    // the Profile Intro is a card in the Sequence, never an auto-opening dialog on this page
+    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
   });
 
   it("the length seg switches the per-match cap and the budget target", async () => {
@@ -116,10 +125,23 @@ describe("Reel Builder (SOT)", () => {
     expect(within(seq).getByText("Tier S empty (0 goals, 0 assists). Build to rank 0 events.")).toBeInTheDocument();
   });
 
-  it("Build reel opens the render confirmation", async () => {
+  it("Build reel starts the render directly, with no confirmation dialog", async () => {
     await open();
     fireEvent.click(screen.getByRole("button", { name: /Build reel/ }));
-    await waitFor(() => expect(screen.getByRole("dialog", { name: "Render this reel?" })).toBeInTheDocument());
+    await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/reels/${ID}/renders`, expect.objectContaining({
+      method: "POST", json: expect.objectContaining({ codec: "h264" }),
+    })));
+    expect(screen.queryByRole("dialog", { name: "Render this reel?" })).toBeNull();
+  });
+
+  it("the empty-state preview has a Play button and a transport bar below the picture", async () => {
+    await open();
+    // the reel has clips but no footage to play, so the preview is the SOT's "No playable footage" empty state
+    expect(screen.getByText("No playable footage")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Play" })).toHaveLength(2);   // one in the picture, one in the bar below
+    expect(screen.getByText("00:00 / --:--")).toBeInTheDocument();
+    expect(screen.getByLabelText("Playback speed")).toBeInTheDocument();
+    expect(document.querySelector("[data-player-controls-empty]")).not.toBeNull();
   });
 
   it("without a reel the same page shows the full builder with the empty state, not a bare list", async () => {
@@ -141,6 +163,23 @@ describe("Reel Builder (SOT)", () => {
     expect(build).toBeInTheDocument();
     expect(build).toBeDisabled();
     expect(build).toHaveTextContent("10 tokens");
+    // the page chrome is there too, with honest empty values — not just the preview
+    expect(screen.getByRole("heading", { name: "Reel Builder" })).toBeInTheDocument();
+    expect(screen.getByText("No player selected")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Export reel" })).toHaveAttribute("href", "/exports");
+    expect(screen.getByText("Budget")).toBeInTheDocument();
+    expect(screen.getAllByText("0:00")).toHaveLength(2);   // the budget total and the legend's start, both 0:00 with no reel
+    expect(screen.getByText("3:00 target")).toBeInTheDocument();
+    const seq = screen.getByLabelText("Sequence");
+    expect(within(seq).getByText("Intro is fixed first")).toBeInTheDocument();
+    expect(within(seq).getByText("No ranked moments in this view")).toBeInTheDocument();
+    expect(within(seq).getByText("Tier S empty (0 goals, 0 assists). Build to rank 0 events.")).toBeInTheDocument();
+    // the empty-state preview has its Play button and transport bar, and nothing beyond the Sequence
+    expect(screen.getAllByRole("button", { name: "Play" })).toHaveLength(2);
+    expect(screen.getByText("00:00 / --:--")).toBeInTheDocument();
+    expect(screen.queryByText(/Suggested Key Moments/)).toBeNull();
+    expect(screen.queryByText("Spotlight Controls")).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Player Profile Intro" })).toBeNull();
   });
 
   it("without a reel id it opens the first reel on its own", async () => {

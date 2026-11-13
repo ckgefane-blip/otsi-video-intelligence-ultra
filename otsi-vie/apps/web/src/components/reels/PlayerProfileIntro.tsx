@@ -253,7 +253,9 @@ export function PlayerProfileIntroView({ intro, onContinue, progress = 0.32 }: {
           {/* footer: mark + measured-by + progress + continue */}
           <div style={{ gridColumn: "1 / -1", position: "relative", display: "flex", alignItems: "center", gap: 24, margin: "0 -64px", padding: "0 64px", borderTop: "1px solid var(--p2)", background: "var(--bg)" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontWeight: 600, letterSpacing: ".08em", fontSize: 16 }}>OTSI</span>
+              {/* SOT: the footer carries the logo image, not the "OTSI" text */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/otsi-logo.png" alt="OTSI" style={{ height: 28, width: "auto", display: "block" }} draggable={false} />
               <span style={{ color: "var(--mu)", fontWeight: 500, letterSpacing: ".14em", fontSize: 12 }}>VIE</span>
             </span>
             <span style={{ fontSize: 13, color: "var(--mu)" }}>{d.piMeasuredBy}</span>

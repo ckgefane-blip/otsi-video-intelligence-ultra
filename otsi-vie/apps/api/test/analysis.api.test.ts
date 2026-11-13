@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Db } from "../src/core/db";
 import { OutboxDispatcher } from "../src/core/outbox/dispatcher";
 import { analyzeJobStarter, proxyJobStarter } from "../src/core/outbox/subscribers";
-import { appDb, Member, rootDb, seedMember, seedRights, startApi } from "./helpers";
+import { appDb, key, Member, rootDb, seedMember, seedRights, startApi } from "./helpers";
 
 let app: NestFastifyApplication;
 let db: Db;
@@ -116,7 +116,20 @@ describe("tracks and the overlay window", () => {
   it("label every track honestly: no identity without a confirmed decision", async () => {
     const t = await call(a, "GET", `/v1/analysis-runs/${run}/tracks`);
     expect(t.body.map((x: { label: string }) => x.label)).toEqual(["Unidentified person · track 1", "Ball · track 2"]);
-    expect(t.body[0]).toMatchObject({ identity_state: "UNRESOLVED", canonical_otsi_id: null, observation_count: 10, shot_number: 1 });
+    expect(t.body[0]).toMatchObject({ identity_state: "UNRESOLVED", canonical_otsi_id: null, observation_count: 10, shot_number: 1, jersey_number: null, position: null, club: null });
+  });
+
+  it("carries the confirmed player's line for the identity row: shirt number, position, club", async () => {
+    const person = (await root.query("SELECT id FROM tracks WHERE run_id = ? AND internal_track_number = 1", [run]))[0] as { id: string }[];
+    const player = (await call(a, "POST", "/v1/players", { display_name: "Line Player" }, { "idempotency-key": key() })).body.player_id as string;
+    expect((await call(a, "POST", `/v1/tracks/${person[0]!.id}/identity-decisions`, { state: "CONFIRMED", player_id: player })).status).toBe(201);
+    const home = uuidv7(), away = uuidv7(), match = uuidv7();
+    await root.query("INSERT INTO clubs (id, canonical_name) VALUES (?, 'FC Ercakhu'), (?, 'Nart Sukhum')", [home, away]);
+    await root.query("INSERT INTO matches (id, organization_id, home_club_id, away_club_id, kickoff_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(6))", [match, a.orgId, home, away]);
+    await root.query("INSERT INTO match_rosters (match_id, player_id, club_id, jersey_number, role, position) VALUES (?, ?, ?, 4, 'STARTER', 'DM')", [match, player, home]);
+    const t = await call(a, "GET", `/v1/analysis-runs/${run}/tracks`);
+    expect(t.body[0]).toMatchObject({ identity_state: "CONFIRMED", jersey_number: 4, position: "DM", club: "FC Ercakhu" });
+    expect(t.body[1]).toMatchObject({ jersey_number: null, position: null, club: null });   // the ball track has no player
   });
 
   it("serve the boxes between two times, with shot boundaries, and only within a bounded window", async () => {

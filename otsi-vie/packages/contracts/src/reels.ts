@@ -46,6 +46,8 @@ export const SpotlightSettings = z.object({
   /** brand assets (with a rights declaration) shown in the corner; null = off */
   competition_logo_id: z.string().uuid().nullable().default(null),
   custom_logo_id: z.string().uuid().nullable().default(null),
+  /** where the logo overlay sits (SOT Clip Studio logo grid); null = the renderer's fixed corners (competition top-right, custom bottom-right) */
+  logo_position: z.enum(["TOP_LEFT", "TOP_CENTRE", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTRE", "BOTTOM_RIGHT"]).nullable().default(null),
   /** ADR-047: music uploaded with a rights declaration, under the whole reel; null = the clips' match sound only */
   music_id: z.string().uuid().nullable().default(null),
   /** the music's loudness, and the match sound's under it (0 = silent, 1 = as recorded) */
@@ -193,9 +195,9 @@ export const ReviewComment = z.object({
 export type ReviewComment = z.infer<typeof ReviewComment>;
 
 /** ADR-055. A transition into a clip (from the clip before it), drawn over that clip's first moments: the picture of the clip before keeps
- * running past its out point (its handle) and blends into this one, so the reel's length and its sound do not change. FADE goes through
- * black on purpose; the others never show a black frame. */
-export const TransitionKind = z.enum(["FADE", "DISSOLVE", "ZOOM", "SPIN"]);
+ * running past its out point (its handle) and blends into this one, so the reel's length and its sound do not change. FADE and DIP go
+ * through black on purpose; the others never show a black frame. SLIDE moves the new clip in from the side. */
+export const TransitionKind = z.enum(["FADE", "DISSOLVE", "ZOOM", "SPIN", "DIP", "SLIDE"]);
 export type TransitionKind = z.infer<typeof TransitionKind>;
 export const TRANSITION_MIN_MS = 200, TRANSITION_MAX_MS = 1000, TRANSITION_DEFAULT_MS = 600;
 export const ReelTransition = z.object({

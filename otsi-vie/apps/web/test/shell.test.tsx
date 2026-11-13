@@ -72,17 +72,42 @@ describe("command palette", () => {
     expect(screen.getByText("#4 · DM · FC Ercakhu")).toBeInTheDocument();
     expect(screen.getByText("Nart v Ercakhu – round 2")).toBeInTheDocument();
     expect(await screen.findByText("78 events")).toBeInTheDocument();
-    // "Players" and "Matches" each appear twice: the section heading and the action row of the same name
-    expect(screen.getAllByText("Players")).toHaveLength(2);
-    expect(screen.getAllByText("Matches")).toHaveLength(2);
+    // "Players" and "Matches" each appear once: the section heading only — the SOT's Actions group is
+    // exactly Upload / Jobs Center / Shortcuts, so the Players / Matches action rows are not shown
+    expect(screen.getAllByText("Players")).toHaveLength(1);
+    expect(screen.getAllByText("Matches")).toHaveLength(1);
     expect(screen.getByText("Actions")).toBeInTheDocument();
-    // a Viewer: Players, Matches, Token Wallet, Show keyboard shortcuts, Security, Open Jobs Center (no Upload, no Team)
+    // a Viewer: only Open Jobs Center and Show keyboard shortcuts in Actions (no Upload, no Team, no
+    // Players / Matches / Token Wallet / Security action rows)
     expect(screen.queryByText("Upload a match video")).toBeNull();
+    expect(screen.queryByText("Token Wallet")).toBeNull();
+    expect(screen.queryByText("Security")).toBeNull();
     expect(screen.getByText("Open Jobs Center · pause or resume jobs")).toBeInTheDocument();
     expect(screen.getByText("Show keyboard shortcuts")).toBeInTheDocument();
     // the SOT's palette has no Pages group
     expect(screen.queryByText("Home")).toBeNull();
     expect(input).toHaveAttribute("placeholder", "Search a player, a match or an action");
+  });
+
+  it("Open Jobs Center goes to /processing: the palette row and Ctrl+J navigate, no drawer event", async () => {
+    mockLists();
+    const input = await openPalette();
+    expect(await screen.findByText("Chinazom Godwin")).toBeInTheDocument();
+    // the palette row navigates to the jobs page
+    fireEvent.change(input, { target: { value: "jobs" } });
+    fireEvent.click(screen.getByText("Open Jobs Center · pause or resume jobs"));
+    expect(push).toHaveBeenCalledWith("/processing");
+    // and so does Ctrl/Cmd + J (the Jobs Center drawer is gone)
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    await screen.findByText("Chinazom Godwin");
+    fireEvent.keyDown(document.body, { key: "j", ctrlKey: true });
+    expect(push).toHaveBeenCalledWith("/processing");
+  });
+
+  it("the search field is borderless: no focus outline (SOT Palette.dc.html)", async () => {
+    mockLists();
+    const input = await openPalette();
+    expect(input.style.outline).toBe("none");
   });
 
   it("the dialog is a centred 720px modal, not full-width: its width is an inline style, not only a Tailwind class", async () => {
@@ -130,7 +155,7 @@ describe("command palette", () => {
 });
 
 describe("keyboard map (A.9, SOT)", () => {
-  it("opens with ?, not while typing; shows the SOT's four groups and only real shortcuts; the palette's command opens it too", () => {
+  it("opens with ?, not while typing; shows all 9 SOT rows; Ctrl+, opens Settings", () => {
     render(<><KeyboardMap /><input aria-label="field" /></>);
     fireEvent.keyDown(screen.getByLabelText("field"), { key: "?" });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -149,17 +174,21 @@ describe("keyboard map (A.9, SOT)", () => {
     expect(d).toHaveTextContent("Back / forward 1 second");
     expect(d).toHaveTextContent("Fullscreen");
     expect(d).toHaveTextContent("Mark in / out");
-    // the SOT's rows that are not wired in the engine are left out, not shown as working keys
-    expect(d).not.toHaveTextContent("Confirm identity");
-    expect(d).not.toHaveTextContent("Correct identity");
-    expect(d).not.toHaveTextContent("Reject identity");
-    expect(d).not.toHaveTextContent("Back / forward 1 frame");
-    expect(d).not.toHaveTextContent("Slower / faster");
-    expect(d).not.toHaveTextContent("Open local footage");
-    expect(d).not.toHaveTextContent("Blade tool");
-    expect(d).not.toHaveTextContent("Select tool");
+    // the SOT's 9 rows, now wired: their labels are new dictionary keys (pages-b.json, not added yet),
+    // so the test asserts the literal key hints, in SOT order, instead of the labels
+    const kbds = [...d.querySelectorAll(".vie-kbd")].map((el) => el.textContent);
+    expect(kbds).toEqual(["Ctrl/Cmd K", "?", "Ctrl/Cmd B", "Ctrl/Cmd J", "Ctrl/Cmd ,", "Esc",
+      "C", "E", "X", "M", "Space", "← →", ", .", "[ ]", "F", "O", "I", "P", "B", "V"]);
     fireEvent.keyDown(d, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("Ctrl/Cmd , opens Settings, not while typing", () => {
+    render(<><KeyboardMap /><input aria-label="field" /></>);
+    fireEvent.keyDown(screen.getByLabelText("field"), { key: ",", ctrlKey: true });
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    expect(push).toHaveBeenCalledWith("/settings/preferences");
   });
 
   it("the palette's Show keyboard shortcuts command opens the map", () => {
