@@ -5,7 +5,9 @@
  * is never read on a linked desktop, so restoring old files or reinstalling cannot bring tokens back.
  *
  * Forwarded: /v1/wallet/..., /v1/billing/... (the organization's own pages, not /v1/admin) and GET /v1/licence. A receipt
- * upload (application/octet-stream) is passed on as bytes with its file headers. Nothing is forwarded on a local-only
+ * upload (application/octet-stream) is passed on as bytes with its file headers. While central cannot be reached, GET
+ * /v1/licence answers from the signed licence kept on this computer (the person still has a licence offline, in its
+ * grace); the wallet and billing say plainly that the account cannot be reached. Nothing is forwarded on a local-only
  * engine or on the central server itself.
  */
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
@@ -13,6 +15,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { from, type Observable } from "rxjs";
 import type { Principal } from "../../core/auth";
 import { PROOF_MAX_BYTES } from "@otsi-vie/contracts";
+import { ApiError } from "../../core/problem";
 import { readRawBody } from "../billing/billing";
 import { CentralLinkService } from "./link";
 
@@ -41,9 +44,17 @@ export class CentralForwardInterceptor implements NestInterceptor {
         for (const h of ["x-content-type", "x-file-name"]) if (req.headers[h]) headers[h] = String(req.headers[h]);
         raw = { body: await readRawBody(req.body, PROOF_MAX_BYTES), headers };
       }
-      const r = await this.central.forward(p.organizationId, p.userId, req.method, url, req.body, raw);
-      void res.status(r.status);
-      return r.body;
+      try {
+        const r = await this.central.forward(p.organizationId, p.userId, req.method, url, req.body, raw);
+        void res.status(r.status);
+        return r.body;
+      } catch (e) {
+        if (path === "/v1/licence" && e instanceof ApiError && e.code === "CENTRAL_UNREACHABLE") {
+          const snap = await this.central.offlineSnapshot(p.organizationId);
+          if (snap) return snap;
+        }
+        throw e;
+      }
     })());
   }
 }

@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, useLocale, type Locale } from "@/lib/i18n";
+import { planName } from "@/lib/planName";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { INTERFACE_SCALES, useInterfaceScale } from "@/lib/interfaceScale";
 import { useNotificationPrefs, type NotificationPrefs } from "@/lib/notificationPrefs";
@@ -85,7 +86,7 @@ export function PreferencesView() {
   const licenceLine = !verified
     ? t.desktop.licenceNotVerified
     : lic.valid_until
-      ? `${lic.plan} · ${t.desktop.licenceValidUntil.replace("{a}", lic.valid_until.slice(0, 10))}`
+      ? `${planName(lic.plan, t.body.plans.freeName)} · ${t.desktop.licenceValidUntil.replace("{a}", lic.valid_until.slice(0, 10))}`
       : t.desktop.licenceFree;
   const rows: { key: keyof NotificationPrefs; title: string; desc: string }[] = [
     { key: "jobs", title: s.stPrefNotifJobs, desc: s.stPrefNotifJobsDesc },

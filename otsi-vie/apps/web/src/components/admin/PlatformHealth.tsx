@@ -37,6 +37,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
+import { planName } from "@/lib/planName";
 import { api, ApiProblem } from "@/lib/api";
 
 type QueueKey = "analysis" | "renders" | "ingest";
@@ -196,7 +197,7 @@ export function PlatformHealth() {
       : lic === null
         ? d.licenceNotVerified
         : lic.valid_until
-          ? `${lic.plan} · ${d.licenceValidUntil.replace("{a}", lic.valid_until.slice(0, 10))}`
+          ? `${planName(lic.plan, t.body.plans.freeName)} · ${d.licenceValidUntil.replace("{a}", lic.valid_until.slice(0, 10))}`
           : d.licenceFree;
 
   const items = inbox?.items ?? [];

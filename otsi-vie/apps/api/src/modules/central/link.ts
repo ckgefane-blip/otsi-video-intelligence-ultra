@@ -20,6 +20,7 @@
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import {
   LicenceClaims,
+  type LicenceSnapshot,
   type MfaChallenge,
   SessionResponse,
   type TicketSettleResponse,
@@ -320,6 +321,17 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
       if (c?.centralJwksUrl) return createRemoteJWKSet(new URL(c.centralJwksUrl));
       throw new ApiError(503, "LICENCE_NOT_CONFIGURED", "No licence verification key is configured on this engine.");
     })());
+  }
+
+  /** GET /v1/licence while central cannot be reached: the snapshot of the signed licence kept on this computer
+   *  (verified with central's key, valid or in its grace), or null when there is none. Offline, the licence is good
+   *  on this computer until the signed copy expires, so that instant is valid_until here. */
+  async offlineSnapshot(orgId: string): Promise<LicenceSnapshot | null> {
+    const { claims } = await this.licence(orgId);
+    if (!claims) return null;
+    const graceMs = (this.cfg.central?.licenceGraceDays ?? 14) * 86_400_000;
+    const { expires_at, ...rest } = claims;
+    return { ...rest, valid_until: expires_at, grace_until: new Date(Date.parse(expires_at) + graceMs).toISOString() };
   }
 
   /** The organization's licence on this computer: valid, in its offline grace, or none. Verified, never a flag. */

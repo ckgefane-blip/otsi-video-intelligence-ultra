@@ -189,6 +189,10 @@ describe("linked desktop against a central server (ADR-146)", () => {
     expect(off.map((x) => `${x.source}:${x.state}`)).toEqual(["OFFLINE:ACTIVE", "OFFLINE:ACTIVE"]);
     // the wallet page says plainly that the account cannot be reached
     expect((await call(laptop, "GET", "/v1/wallet", undefined, laptopHeaders)).body.code).toBe("CENTRAL_UNREACHABLE");
+    // the licence still shows, from the signed copy on this computer (valid until that copy expires, then its grace)
+    const lic = await call(laptop, "GET", "/v1/licence", undefined, laptopHeaders);
+    expect([lic.status, lic.body.organization_id, lic.body.offline_allowance]).toEqual([200, orgId, 200]);
+    expect(Date.parse(lic.body.grace_until) - Date.parse(lic.body.valid_until)).toBe(14 * 86_400_000);
     // sign-in on this computer with the local copy of the password
     const login = await call(laptop, "POST", "/v1/auth/login", { email, password: PASSWORD });
     expect(login.status).toBe(200);

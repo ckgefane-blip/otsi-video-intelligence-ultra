@@ -25,14 +25,13 @@ import { ApiProblem, api } from "@/lib/api";
 import { AccuracyBanner } from "@/components/evidence/AccuracyBanner";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { fill } from "@/lib/fill";
+import { planName } from "@/lib/planName";
 import { formatGB, useTierLimit } from "@/lib/uploadTier";
 import { useLocale, type Dictionary } from "@/lib/i18n";
 import { HeroLive } from "./HeroLive";
 import { HomeInboxProvider, useHomeInbox } from "./HomeInbox";
 import { RecentMatches } from "./RecentMatches";
 import { codec, quality, mmss, reelSeconds, reloadRenderedReels, useReelPlayback, useRenderedReels } from "./renderedReels";
-
-const cap = (code: string) => code.charAt(0) + code.slice(1).toLowerCase();
 
 /** an inbox row's title in the person's language, from its kind and count (the server's English title is the fallback) */
 export function inboxTitle(t: Dictionary, it: InboxItem): string {
@@ -65,9 +64,9 @@ function Start() {
   const inbox = useHomeInbox();
   const lim = useTierLimit();
   const n = inbox?.next;
-  const planName = lim?.plan ? (lim.plan === "FREE" ? t.body.plans.freeName : cap(lim.plan)) : null;
+  const plan = lim?.plan ? planName(lim.plan, t.body.plans.freeName) : null;
   const note = lim?.maxBytes
-    ? planName ? fill(h.hmUploadNotePlan, { a: planName, b: formatGB(lim.maxBytes) }) : fill(h.hmUploadNoteServer, { b: formatGB(lim.maxBytes) })
+    ? plan ? fill(h.hmUploadNotePlan, { a: plan, b: formatGB(lim.maxBytes) }) : fill(h.hmUploadNoteServer, { b: formatGB(lim.maxBytes) })
     : null;
   return (
     <section aria-label="Start" className="flex min-w-0 flex-col justify-center gap-3.5">

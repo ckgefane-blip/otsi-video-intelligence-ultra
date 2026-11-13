@@ -4,16 +4,18 @@
  * left: "● Licence: Not verified", "● Engine accuracy: Not measured"; right: "Free tier · 2 GB included", "Tokens 10",
  * "Advanced interface". Everything on it is read from the API; nothing is assumed. Licence from GET /v1/licence ("Not verified"
  * when the server cannot give one), engine accuracy from the accuracy gates (ADR-063: "Not measured" until G05–G07 pass), the
- * upload tier and its limit, the token balance from GET /v1/wallet, and the interface mode of this browser.
+ * upload tier and its limit, the token balance from GET /v1/wallet (the shared live balance, lib/wallet), and the interface mode of this browser.
  */
-import type { LicenceSnapshot, WalletBalance } from "@otsi-vie/contracts";
+import type { LicenceSnapshot } from "@otsi-vie/contracts";
 import { accuracyMeasured } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { fill } from "@/lib/fill";
+import { planName } from "@/lib/planName";
 import { useLocale } from "@/lib/i18n";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { formatGB, useTierLimit } from "@/lib/uploadTier";
+import { useWalletBalance } from "@/lib/wallet";
 import { ActivityLine } from "./ActivityLine";
 
 export function StatusBar() {
@@ -22,16 +24,16 @@ export function StatusBar() {
   const { mode } = useInterfaceMode();
   const lim = useTierLimit();
   const [lic, setLic] = useState<LicenceSnapshot | null | undefined>(undefined);
-  const [wallet, setWallet] = useState<WalletBalance | null | undefined>(undefined);
+  // the same live balance as the header chip (lib/wallet refreshes it), so the two never disagree
+  const wallet = useWalletBalance();
   useEffect(() => {
     let live = true;
     api<LicenceSnapshot>("/v1/licence").then((x) => live && setLic(x), () => live && setLic(null));
-    api<WalletBalance>("/v1/wallet").then((x) => live && setWallet(x), () => live && setWallet(null));
     return () => { live = false; };
   }, []);
 
   const licence = lic === undefined ? "…" : lic === null ? d.licenceNotVerified
-    : lic.valid_until ? `${lic.plan} · ${fill(d.licenceValidUntil, { a: lic.valid_until.slice(0, 10) })}` : d.licenceFree;
+    : lic.valid_until ? `${planName(lic.plan, t.body.plans.freeName)} · ${fill(d.licenceValidUntil, { a: lic.valid_until.slice(0, 10) })}` : d.licenceFree;
   const measured = accuracyMeasured();
   const tierName = lim?.plan === "FREE" ? d.tierFree : lim?.plan === "ENTERPRISE" ? d.tierEnterprise : lim?.tier ?? null;
 
