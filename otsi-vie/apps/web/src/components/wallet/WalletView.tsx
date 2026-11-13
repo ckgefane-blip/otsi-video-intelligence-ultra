@@ -7,7 +7,8 @@
  * owner issues an invoice, the organization pays by bank transfer, and the owner confirms receipt before any
  * tokens arrive. No card, no payment gateway. "Export CSV" downloads the ledger rows shown.
  */
-import type { PackRequest, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
+import type { PackRequest, PackRequestPayment, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
+import { FREE_GRANT_TOKENS } from "@otsi-vie/contracts";
 import { FileText, List, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -42,6 +43,9 @@ export function WalletView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [payFor, setPayFor] = useState<string | null>(null);
+  const [pay, setPay] = useState<PackRequestPayment | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +71,24 @@ export function WalletView() {
   useEffect(() => { void load(); }, [load]);
 
   const claimedFreeGrant = entries.some((e) => e.kind === "FREE_GRANT");
+
+  /** Payment details for one pack request (GET /v1/wallet/packs/requests/:id): the bank details and the
+   *  invoice reference, so the organization knows where to pay. Bank details appear only once the owner
+   *  has issued the invoice; before that the request is still being prepared. */
+  async function togglePayment(id: string) {
+    if (payFor === id) { setPayFor(null); setPay(null); return; }
+    setPayFor(id);
+    setPay(null);
+    setPayLoading(true);
+    try {
+      setPay(await api<PackRequestPayment>(`/v1/wallet/packs/requests/${id}`));
+    } catch (e) {
+      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setPayFor(null);
+    } finally {
+      setPayLoading(false);
+    }
+  }
 
   async function act(label: string, fn: () => Promise<unknown>, done: string) {
     setBusy(label);
@@ -132,8 +154,9 @@ export function WalletView() {
         {catalogue && !claimedFreeGrant && (
           <section className="flex min-w-0 flex-col gap-2 border-t border-line pt-3" aria-labelledby="fg">
             <div className="flex items-center justify-between"><span id="fg" className="eb">{w.wlFreeGrant}</span><span className="t-small text-muted">{w.wlOneTime}</span></div>
-            <div className="flex items-baseline gap-2.5"><span className="metric">25</span><span className="sm mu">{w.wlFreeOnce.replace(/^\S+\s/, "")}</span></div>
+            <div className="flex items-baseline gap-2.5"><span className="metric">{FREE_GRANT_TOKENS}</span><span className="sm mu">{w.wlFreeOnce.replace(/^\S+\s/, "")}</span></div>
             <p className="sm mu">{w.wlFreeValid}</p>
+            <p className="sm mu">{w.wlFreeCovers}</p>
             <button className="btn pri self-start" type="button" disabled={busy !== null}
               onClick={() => void act("grant", () => api("/v1/wallet/free-grant", { method: "POST" }), w.freeAdded)}>
               {busy === "grant" ? w.claiming : w.wlClaimFree}
@@ -192,12 +215,59 @@ export function WalletView() {
           ) : (
             <ul className="mt-2 space-y-2 p-3.5">
               {requests.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-ctl border border-line bg-canvas px-3 py-2">
-                  <span>{r.pack_code} · {r.tokens} {w.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: w.statusRequested, INVOICED: w.statusInvoiced, PAID: w.statusPaid, CANCELLED: w.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</span>
-                  {(r.status === "REQUESTED" || r.status === "INVOICED") && (
-                    <button type="button" disabled={busy !== null}
-                      onClick={() => void act(`cancel-${r.id}`, () => api(`/v1/wallet/packs/requests/${r.id}/cancel`, { method: "POST" }), w.requestCancelled)}
-                      className="btn sm">{w.cancel}</button>
+                <li key={r.id} className="flex flex-col gap-2 rounded-ctl border border-line bg-canvas px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>{r.pack_code} · {r.tokens} {w.tokensUnit} · {money(r.amount_minor, r.currency)} · {({ REQUESTED: w.statusRequested, INVOICED: w.statusInvoiced, PAID: w.statusPaid, CANCELLED: w.statusCancelled } as Record<string, string>)[r.status] ?? r.status}{r.invoice_ref ? ` · ${r.invoice_ref}` : ""}</span>
+                    <span className="flex items-center gap-2">
+                      {r.status !== "CANCELLED" && (
+                        <button type="button" className="btn sm" disabled={payLoading}
+                          onClick={() => void togglePayment(r.id)}>
+                          {payFor === r.id ? w.wlHidePay : w.wlShowPay}
+                        </button>
+                      )}
+                      {(r.status === "REQUESTED" || r.status === "INVOICED") && (
+                        <button type="button" disabled={busy !== null}
+                          onClick={() => void act(`cancel-${r.id}`, () => api(`/v1/wallet/packs/requests/${r.id}/cancel`, { method: "POST" }), w.requestCancelled)}
+                          className="btn sm">{w.cancel}</button>
+                      )}
+                    </span>
+                  </div>
+                  {payFor === r.id && (
+                    payLoading || !pay ? (
+                      <p className="sm mu">{t.common.loading}</p>
+                    ) : (
+                      <div className="border-t border-line pt-2">
+                        <p className="t-small">{w.wlPayHow}</p>
+                        <dl className="kv mt-1">
+                          <dt>{w.blReference}</dt>
+                          <dd className="font-normal">{pay.request.invoice_ref ?? "—"}</dd>
+                          <dt>{w.blAmountToPay}</dt>
+                          <dd>{money(pay.request.amount_minor, pay.request.currency)}</dd>
+                          {pay.bank_account ? (
+                            <>
+                              <dt>{w.blAccountName}</dt>
+                              <dd>{pay.bank_account.account_name}</dd>
+                              <dt>{w.blBank}</dt>
+                              <dd>{pay.bank_account.bank_name}</dd>
+                              <dt>{w.blAccountNumber}</dt>
+                              <dd>{pay.bank_account.account_number}</dd>
+                              {pay.bank_account.swift_iban && (
+                                <>
+                                  <dt>{w.blSwift}</dt>
+                                  <dd>{pay.bank_account.swift_iban}</dd>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <dt>{w.blBankDetails}</dt>
+                              <dd>{r.status === "REQUESTED" ? w.wlInvoicePending : w.wlBankNotSet}</dd>
+                            </>
+                          )}
+                        </dl>
+                        <p className="sm mu mt-2">{pay.pay_reference_note}</p>
+                      </div>
+                    )
                   )}
                 </li>
               ))}

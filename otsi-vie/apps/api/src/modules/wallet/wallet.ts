@@ -24,6 +24,8 @@ import {
   IssueInvoiceRequest,
   PACK_EXPIRY_MONTHS,
   PackRequest,
+  PackRequestPayment,
+  PAY_REFERENCE_NOTE,
   RequestPackRequest,
   TokenPackCatalogue,
   WalletBalance,
@@ -219,12 +221,13 @@ export class WalletService {
     return this.append(ex, organizationId, actorId, { ...row });
   }
 
-  /** The one-time 25-token free grant (scope §4). One per organization, enforced by wallet_free_grants. */
+  /** The one-time 100-token free grant (scope §4): one full match plus one reel — "your first match
+   *  free". One per organization, enforced by wallet_free_grants. */
   async grantFreeTier(p: Principal): Promise<WalletLedgerEntry> {
     return this.db.tx(async (c) => {
       await this.lockWallet(c, p.organizationId);
       const already = await this.db.one<RowDataPacket>("SELECT organization_id FROM wallet_free_grants WHERE organization_id = ?", [p.organizationId], c);
-      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", "The 25 free tokens are granted once per organization. This organization has already claimed them.");
+      if (already) throw new ApiError(409, "FREE_GRANT_ALREADY_CLAIMED", "The 100 free tokens are granted once per organization. This organization has already claimed them.");
       const user = await this.db.one<RowDataPacket>("SELECT email FROM users WHERE id = ?", [p.userId], c);
       const now = new Date().toISOString();
       const expiresAt = addDays(now, FREE_GRANT_EXPIRY_DAYS);
@@ -234,7 +237,7 @@ export class WalletService {
       );
       const entry = await this.append(c, p.organizationId, p.userId, {
         kind: "FREE_GRANT", amount: FREE_GRANT_TOKENS, idempotencyKey: `free-grant:${p.organizationId}`,
-        reason: "One-time free tier: 25 tokens on signup, expiring 30 days after signup.", expiresAt,
+        reason: "One-time free tier: 100 tokens on signup, expiring 30 days after signup.", expiresAt,
       });
       await recordChange(c, userActor(p), { action: "wallet.free_grant", entityType: "organization", entityId: p.organizationId, after: { tokens: FREE_GRANT_TOKENS, expires_at: expiresAt } });
       return entry;
@@ -331,6 +334,32 @@ export class WalletService {
     if (!["REQUESTED", "INVOICED"].includes(String(req.status))) throw new ApiError(409, "PACK_REQUEST_NOT_OPEN", "Only an open pack request can be cancelled.");
     await this.db.rows("UPDATE wallet_pack_requests SET status = 'CANCELLED' WHERE id = ?", [requestId]);
     return this.packRequest(requestId, p.organizationId);
+  }
+
+  /**
+   * What the requester needs to pay for a pack: the request plus the owner's bank details for its
+   * currency — but only once the owner has issued the invoice (INVOICED or PAID). While the request is
+   * still REQUESTED the bank details stay hidden: paying before the invoice exists would leave the
+   * payment unmatched. This returns only the public pay-to fields for the request's own currency;
+   * the admin bank-account endpoints are never exposed to regular users.
+   */
+  async packRequestPayment(p: Principal, requestId: string): Promise<PackRequestPayment> {
+    const request = await this.packRequest(requestId, p.organizationId);
+    const invoiced = request.status === "INVOICED" || request.status === "PAID";
+    const account = invoiced
+      ? await this.db.one<RowDataPacket>("SELECT * FROM bank_accounts WHERE currency = ? AND is_active = true", [request.currency])
+      : null;
+    return PackRequestPayment.parse({
+      request,
+      bank_account: account
+        ? {
+            account_name: String(account.account_name), bank_name: String(account.bank_name),
+            account_number: String(account.account_number), swift_iban: account.swift_iban ?? null,
+            currency: request.currency,
+          }
+        : null,
+      pay_reference_note: PAY_REFERENCE_NOTE,
+    });
   }
 
   // -- admin: every organization's wallet and ledger; top-up, refund, adjust, each with a reason --
@@ -442,6 +471,11 @@ export class WalletController {
   @Get("wallet/packs/requests")
   packRequests(@CurrentPrincipal() p: Principal): Promise<PackRequest[]> {
     return this.wallet.packRequests(p);
+  }
+
+  @Get("wallet/packs/requests/:id")
+  packRequestPayment(@CurrentPrincipal() p: Principal, @Param("id") id: string): Promise<PackRequestPayment> {
+    return this.wallet.packRequestPayment(p, id);
   }
 
   @Post("wallet/packs/requests/:id/cancel")

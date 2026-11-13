@@ -331,4 +331,97 @@ describe("bank-transfer billing", () => {
     const otherList = await call(owner, "GET", "/v1/billing/orders");
     expect(otherList.body.map((o: { id: string }) => o.id)).not.toContain(created.order.id);
   });
+
+  it("reads the live subscription: null before any order, ACTIVE after confirm, gone after a refund", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    expect((await call(m, "GET", "/v1/billing/subscription")).body).toBeNull();
+    const created = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
+    const confirmed = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-SUB-1" });
+    expect(confirmed.status).toBe(201);
+    const sub = await call(m, "GET", "/v1/billing/subscription");
+    expect(sub.status).toBe(200);
+    expect(sub.body).toMatchObject({ plan_code: "CLUB", state: "ACTIVE", id: confirmed.body.subscription_id });
+    expect(sub.body.period_end).toBeTruthy();
+    // a refund cancels the subscription, so the read goes back to null
+    const refunded = await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/refund`, { reason: "Duplicate payment" });
+    expect(refunded.status).toBe(201);
+    expect((await call(m, "GET", "/v1/billing/subscription")).body).toBeNull();
+  });
+
+  it("sums the revenue: confirmed, outstanding, refunded and part-payments, per currency", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    // one confirmed order (CLUB, ₦60,000), one outstanding (STARTER, ₦15,000, still ORDERED),
+    // one part-paid (ACADEMY, ₦120,000, ₦20,000 received) and one refunded (SEASON, ₦250,000)
+    const confirmed = await createOrder(m, "CLUB", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${confirmed.order.id}/proof`, {});
+    await call(m, "POST", `/v1/admin/billing/orders/${confirmed.order.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-REV-1" });
+    await createOrder(m, "STARTER", 1, "NGN");
+    const partial = await createOrder(m, "ACADEMY", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${partial.order.id}/proof`, {});
+    const part = await call(m, "POST", `/v1/admin/billing/orders/${partial.order.id}/record-partial`, { amount_received_minor: 2_000_000, bank_reference: "BANK-REV-2" });
+    expect(part.status).toBe(201);
+    const refunded = await createOrder(m, "SEASON", 1, "NGN");
+    await call(m, "POST", `/v1/billing/orders/${refunded.order.id}/proof`, {});
+    await call(m, "POST", `/v1/admin/billing/orders/${refunded.order.id}/confirm`, { amount_received_minor: 25_000_000, bank_reference: "BANK-REV-3" });
+    const ref = await call(m, "POST", `/v1/admin/billing/orders/${refunded.order.id}/refund`, { reason: "Charged twice" });
+    expect(ref.status).toBe(201);
+    const summary = await call(m, "GET", "/v1/admin/billing/revenue-summary");
+    expect(summary.status).toBe(200);
+    expect(summary.body.currencies).toHaveLength(1);
+    expect(summary.body.currencies[0]).toMatchObject({
+      currency: "NGN",
+      confirmed: { count: 1, total_minor: 6_000_000 },
+      outstanding: { count: 2, total_minor: 11_500_000 },
+      refunded: { count: 1, total_minor: 25_000_000 },
+      partial: { count: 1, total_minor: 2_000_000 },
+    });
+    expect((await call(viewer, "GET", "/v1/admin/billing/revenue-summary")).status).toBe(403);
+  });
+
+  it("shows a pack request's payment details to its own organization only, and only after invoicing", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const req = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "CLUB", currency: "NGN" });
+    expect(req.status).toBe(201);
+    // requested, not yet invoiced: no bank details, only the pay-reference note
+    const before = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);
+    expect(before.status).toBe(200);
+    expect(before.body).toMatchObject({ request: { id: req.body.id, status: "REQUESTED", invoice_ref: null }, bank_account: null });
+    expect(before.body.pay_reference_note).toBeTruthy();
+    // after the invoice, the bank details the owner saved are on the read
+    const invoiced = await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-2026-777" });
+    expect(invoiced.status).toBe(201);
+    const after = await call(m, "GET", `/v1/wallet/packs/requests/${req.body.id}`);
+    expect(after.status).toBe(200);
+    expect(after.body.bank_account).toMatchObject({ bank_name: "Zenith Bank", account_number: "1234567890", currency: "NGN" });
+    expect(after.body.request.invoice_ref).toBe("INV-2026-777");
+    // another organization, and a viewer, cannot read it
+    expect((await call(owner, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(403);
+    expect((await call(viewer, "GET", `/v1/wallet/packs/requests/${req.body.id}`)).status).toBe(403);
+  });
+
+  it("streams the uploaded receipt back to the admin, and 404s when there is none", async () => {
+    const m = await seedBareMember();
+    await seedBankAccount(m, "NGN");
+    const created = await createOrder(m, "STARTER", 1, "NGN");
+    expect((await call(m, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`)).status).toBe(404);
+    const pdf = Buffer.from("%PDF-1.4 fake receipt for the download test\\n", "utf8");
+    const uploaded = await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, pdf,
+      { "content-type": "application/octet-stream", "x-content-type": "application/pdf", "x-file-name": "transfer-receipt.pdf" });
+    expect(uploaded.status).toBe(201);
+    const download = await app.inject({
+      method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`,
+      headers: { ...(m.headers ?? {}) },
+    });
+    expect(download.statusCode).toBe(200);
+    expect(download.headers["content-type"]).toBe("application/pdf");
+    expect(download.headers["content-disposition"]).toContain("transfer-receipt.pdf");
+    expect(Buffer.compare(Buffer.from(download.rawPayload as Buffer), pdf)).toBe(0);
+    // a viewer cannot download it, and another organization cannot either
+    expect((await call(viewer, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`)).status).toBe(403);
+    expect((await call(owner, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`)).status).toBe(403);
+  });
 });

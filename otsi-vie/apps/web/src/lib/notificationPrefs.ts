@@ -4,10 +4,11 @@
  * wants to see. Kept in this browser (per person, per browser); every read and write tolerates blocked storage
  * (the defaults apply). Defaults match the SOT: everything on except Team changes.
  *
- * The bell's feed (GET /v1/notifications) has kinds JOB_DONE, JOB_FAILED, REVIEW, COMMENT and RIGHTS. The SOT's
- * "Job finished or failed" covers JOB_DONE + JOB_FAILED, "Identity review needed" is REVIEW, "Comment on a
- * shared link" is COMMENT. The wallet and team rows have no feed kind yet — the preference is stored and shown,
- * and there is nothing to filter for them until the server records those notifications.
+ * The bell's feed (GET /v1/notifications) has kinds JOB_DONE, JOB_FAILED, REVIEW, COMMENT, RIGHTS and
+ * BILLING. The SOT's "Job finished or failed" covers JOB_DONE + JOB_FAILED, "Identity review needed" is
+ * REVIEW, "Comment on a shared link" is COMMENT. BILLING (plan orders, payments, renewals) is covered by
+ * the wallet row — the preference is stored and shown, and the server records those notifications.
+ * The team row has no feed kind yet.
  */
 import { useCallback, useEffect, useState } from "react";
 import type { NotificationKind } from "@otsi-vie/contracts";
@@ -34,6 +35,7 @@ export const kindVisible = (prefs: NotificationPrefs, kind: NotificationKind): b
     case "JOB_FAILED": return prefs.jobs;
     case "REVIEW": return prefs.review;
     case "COMMENT": return prefs.comment;
+    case "BILLING": return prefs.wallet;
     case "RIGHTS": return true; // rights ending has no SOT row; always shown
   }
 };

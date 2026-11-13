@@ -169,6 +169,42 @@ export const PAY_REFERENCE_NOTE = "Put this reference in your transfer descripti
 export const OrderWithInvoice = z.object({ order: BankTransferOrder, invoice: ProFormaInvoice });
 export type OrderWithInvoice = z.infer<typeof OrderWithInvoice>;
 
+/** The organization's current subscription, if it has one that is still live (ACTIVE or inside the grace
+ *  period as PAST_DUE). Null when there is none — a fresh organization, or one that dropped to free. */
+export const SubscriptionStatus = z.object({
+  id: z.string().uuid(),
+  plan_code: PlanCode,
+  period_start: z.string(),
+  period_end: z.string().nullable(),
+  state: z.enum(["ACTIVE", "PAST_DUE", "CANCELED"]),
+});
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
+
+/**
+ * Revenue totals read from the orders table (admin only, own organization). One bucket per currency —
+ * naira and dollars are never added together. Definitions: confirmed = orders with status CONFIRMED,
+ * totalled on the amount actually received; outstanding = orders still open (ORDERED, AWAITING_CONFIRMATION
+ * or PARTIAL), totalled on what is still owed (amount minus amount received); refunded = orders with
+ * status REFUNDED, totalled on the money refunded; partial = orders with status PARTIAL, totalled on
+ * what has arrived so far. Counts are orders in each bucket.
+ */
+export const RevenueSummaryBucket = z.object({
+  count: z.number().int().nonnegative(),
+  total_minor: z.number().int().nonnegative(),
+});
+export type RevenueSummaryBucket = z.infer<typeof RevenueSummaryBucket>;
+
+export const RevenueSummary = z.object({
+  currencies: z.array(z.object({
+    currency: BankTransferCurrency,
+    confirmed: RevenueSummaryBucket,
+    outstanding: RevenueSummaryBucket,
+    refunded: RevenueSummaryBucket,
+    partial: RevenueSummaryBucket,
+  })),
+});
+export type RevenueSummary = z.infer<typeof RevenueSummary>;
+
 export const PlanCatalogue = z.object({
   plans: z.array(PlanCatalogueEntry),
   periods_months: z.array(z.union([z.literal(1), z.literal(12)])),

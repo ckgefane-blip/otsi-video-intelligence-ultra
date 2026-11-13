@@ -7,8 +7,11 @@
  *   GET  /v1/billing/orders/:id                     one order, with its pro-forma invoice
  *   POST /v1/billing/orders/:id/proof               upload a receipt, or mark "I have paid" with no file
  *   GET  /v1/billing/plans                         the plan catalogue (prices, periods, "Pay online — Coming soon")
+ *   GET  /v1/billing/subscription                  the caller's live subscription, if any (ACTIVE / PAST_DUE)
  *   GET  /v1/admin/billing/orders                  pending first (OWNER / ADMIN, own organization)
  *   GET  /v1/admin/billing/orders/:id              one order (admin view)
+ *   GET  /v1/admin/billing/orders/:id/proof        download the receipt the payer uploaded (admin view)
+ *   GET  /v1/admin/billing/revenue-summary        confirmed / outstanding / refunded / part-payment totals
  *   POST /v1/admin/billing/orders/:id/confirm      confirm the money arrived -> activates plan + wallet
  *   POST /v1/admin/billing/orders/:id/reject       reject with a reason (never activates)
  *   POST /v1/admin/billing/orders/:id/record-partial  record a part-payment (never activates)
@@ -32,7 +35,7 @@
  * optional — a JSON body ({}) marks "I have paid" with no file. A receipt upload with no storage configured
  * answers 503 STORAGE_NOT_CONFIGURED, like media uploads; marking paid without a file always works.
  */
-import { Body, Controller, Get, Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   BankAccount,
   BankAccountUpsertRequest,
@@ -55,14 +58,19 @@ import {
   RENEWAL_GRACE_DAYS,
   RENEWAL_WINDOW_DAYS,
   RenewalRunResult,
+  RevenueSummary,
+  SubscriptionStatus,
   type BankTransferOrder as BankTransferOrderType,
   type PlanCatalogue as PlanCatalogueType,
   type ProFormaInvoice,
+  type RevenueSummary as RevenueSummaryType,
+  type SubscriptionStatus as SubscriptionStatusType,
 } from "@otsi-vie/contracts";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, serviceActor, userActor } from "../../core/audit";
@@ -363,6 +371,47 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
     return this.orderWithInvoice(id, p.organizationId);
   }
 
+  /** The organization's live subscription, if any (ACTIVE, or PAST_DUE inside the grace period). Null
+   *  when there is none — a fresh organization, or one that dropped to free after expiry + grace. */
+  async subscription(p: Principal): Promise<SubscriptionStatusType | null> {
+    const row = await this.db.one<RowDataPacket>(
+      `SELECT s.id, s.period_start, s.period_end, s.state, p.code AS plan_code
+       FROM subscriptions s JOIN plan_versions pv ON pv.id = s.plan_version_id JOIN plans p ON p.id = pv.plan_id
+       WHERE s.organization_id = ? AND s.state IN ('ACTIVE', 'PAST_DUE') ORDER BY s.period_end DESC LIMIT 1`,
+      [p.organizationId]);
+    if (!row) return null;
+    return SubscriptionStatus.parse({
+      id: String(row.id), plan_code: String(row.plan_code),
+      period_start: dbIso(row.period_start), period_end: dbIso(row.period_end), state: String(row.state),
+    });
+  }
+
+  /** Revenue totals from the orders table (admin, own organization). One bucket per currency — naira
+   *  and dollars are never added together. See the RevenueSummary contract for the bucket definitions. */
+  async revenueSummary(p: Principal): Promise<RevenueSummaryType> {
+    const rows = await this.db.rows<RowDataPacket>(
+      `SELECT currency,
+         SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count,
+         SUM(CASE WHEN status = 'CONFIRMED' THEN amount_received_minor ELSE 0 END) AS confirmed_total,
+         SUM(CASE WHEN status IN ('ORDERED', 'AWAITING_CONFIRMATION', 'PARTIAL') THEN 1 ELSE 0 END) AS outstanding_count,
+         SUM(CASE WHEN status IN ('ORDERED', 'AWAITING_CONFIRMATION', 'PARTIAL') THEN amount_minor - amount_received_minor ELSE 0 END) AS outstanding_total,
+         SUM(CASE WHEN status = 'REFUNDED' THEN 1 ELSE 0 END) AS refunded_count,
+         SUM(CASE WHEN status = 'REFUNDED' THEN COALESCE(amount_refunded_minor, 0) ELSE 0 END) AS refunded_total,
+         SUM(CASE WHEN status = 'PARTIAL' THEN 1 ELSE 0 END) AS partial_count,
+         SUM(CASE WHEN status = 'PARTIAL' THEN amount_received_minor ELSE 0 END) AS partial_total
+       FROM bank_transfer_orders WHERE organization_id = ? GROUP BY currency ORDER BY currency ASC`,
+      [p.organizationId]);
+    return RevenueSummary.parse({
+      currencies: rows.map((r) => ({
+        currency: r.currency,
+        confirmed: { count: Number(r.confirmed_count), total_minor: Number(r.confirmed_total) },
+        outstanding: { count: Number(r.outstanding_count), total_minor: Number(r.outstanding_total) },
+        refunded: { count: Number(r.refunded_count), total_minor: Number(r.refunded_total) },
+        partial: { count: Number(r.partial_count), total_minor: Number(r.partial_total) },
+      })),
+    });
+  }
+
   /**
    * Proof of payment, two shapes on one endpoint (the receipt is optional):
    * - application/json {} (or {"note": "..."}) — "I have paid", no file. Always works, needs no storage.
@@ -470,6 +519,33 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
     const row = await this.orderRow(id);
     ownOrgOrDeny(p, String(row.organization_id));
     return this.parseOrder(row);
+  }
+
+  /**
+   * Download the receipt file an order's payer uploaded (admin, own organization). The proof is stored
+   * under the configured storage dir at the key recorded on the order row; this streams it back with its
+   * original content type and file name. No proof file, or no storage configured, is a 404 / 503 — the
+   * admin still sees the file name, size and sha256 on the order itself.
+   */
+  async downloadProof(p: Principal, orderId: string, res: FastifyReply): Promise<void> {
+    const row = await this.orderRow(orderId);
+    ownOrgOrDeny(p, String(row.organization_id));
+    const order = this.parseOrder(row);
+    const key = row.proof_storage_key as string | null;
+    if (!order.proof_filename || !key) throw notFound("Receipt");
+    if (!this.store) throw new ApiError(503, "STORAGE_NOT_CONFIGURED", "Receipt storage is not configured on this server.");
+    const file = this.store.resolve(key);
+    let size: number;
+    try {
+      size = (await stat(file)).size;
+    } catch {
+      throw notFound("Receipt");
+    }
+    const safeName = order.proof_filename.replace(/[^A-Za-z0-9._-]+/g, "_");
+    void res.header("content-type", order.proof_content_type ?? "application/octet-stream")
+      .header("content-length", size)
+      .header("content-disposition", `attachment; filename="${safeName}"`)
+      .send(createReadStream(file));
   }
 
   /**
@@ -846,6 +922,11 @@ export class BillingController {
     return this.billing.getOrder(p, uuidParam(id, "Order"));
   }
 
+  @Get("billing/subscription")
+  subscription(@CurrentPrincipal() p: Principal): Promise<SubscriptionStatusType | null> {
+    return this.billing.subscription(p);
+  }
+
   @Post("billing/orders/:id/proof")
   proof(@CurrentPrincipal() p: Principal, @Param("id") id: string, @Req() req: FastifyRequest): Promise<BankTransferOrderType> {
     return this.billing.uploadProof(p, uuidParam(id, "Order"), req);
@@ -869,6 +950,16 @@ export class AdminBillingController {
   @Get("billing/orders/:id")
   order(@CurrentPrincipal() p: Principal, @Param("id") id: string): Promise<BankTransferOrderType> {
     return this.billing.adminGetOrder(p, uuidParam(id, "Order"));
+  }
+
+  @Get("billing/orders/:id/proof")
+  proof(@CurrentPrincipal() p: Principal, @Param("id") id: string, @Res() res: FastifyReply): Promise<void> {
+    return this.billing.downloadProof(p, uuidParam(id, "Order"), res);
+  }
+
+  @Get("billing/revenue-summary")
+  revenueSummary(@CurrentPrincipal() p: Principal): Promise<RevenueSummaryType> {
+    return this.billing.revenueSummary(p);
   }
 
   @Post("billing/orders/:id/confirm")

@@ -85,4 +85,52 @@ describe("notifications bell", () => {
     expect((await bell(m)).items).toHaveLength(7);
     expect(await bell(other)).toEqual({ items: [], unread: 0, seen_at: null, window_days: 14 });
   });
+
+  it("billing: order placed, marked paid, confirmed, rejected and refunded show as BILLING items linking to the order; a subscription ending within 7 days is news too", async () => {
+    const m = await seedMember(root, "OWNER");
+    const bank = await call(m, "POST", "/v1/admin/billing/bank-accounts",
+      { currency: "NGN", account_name: "Osio & Tee Solutions International Ltd", bank_name: "Zenith Bank", account_number: "1234567890", swift_iban: null, is_active: true });
+    expect(bank.status).toBe(201);
+    const create = async (plan: string) =>
+      (await call(m, "POST", "/v1/billing/orders", { plan_code: plan, period_months: 1, currency: "NGN" })).body.order as { id: string; reference: string };
+    // confirmed (placed -> marked paid -> confirmed)
+    const done = await create("CLUB");
+    await call(m, "POST", `/v1/billing/orders/${done.id}/proof`, {});
+    expect((await call(m, "POST", `/v1/admin/billing/orders/${done.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-1" })).status).toBe(201);
+    // still awaiting: marked paid, not yet confirmed — the "marked paid" item only fires while it awaits
+    const awaiting = await create("STARTER");
+    await call(m, "POST", `/v1/billing/orders/${awaiting.id}/proof`, { note: "Sent from Karo" });
+    // rejected
+    const rejected = await create("STARTER");
+    expect((await call(m, "POST", `/v1/admin/billing/orders/${rejected.id}/reject`, { reason: "Wrong plan" })).status).toBe(201);
+    // refunded (placed -> marked paid -> confirmed -> refunded)
+    const refunded = await create("CLUB");
+    await call(m, "POST", `/v1/billing/orders/${refunded.id}/proof`, {});
+    await call(m, "POST", `/v1/admin/billing/orders/${refunded.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-2" });
+    expect((await call(m, "POST", `/v1/admin/billing/orders/${refunded.id}/refund`, { reason: "Charged twice" })).status).toBe(201);
+
+    const b = await bell(m);
+    const billing = b.items.filter((i) => i.kind === "BILLING");
+    const got = billing.map((i) => [i.title, i.href]);
+    expect(got).toEqual(expect.arrayContaining([
+      ["Order placed — CLUB", `/settings/billing/orders/${done.id}`],
+      ["Payment confirmed — CLUB active", `/settings/billing/orders/${done.id}`],
+      ["Marked paid — no receipt", `/settings/billing/orders/${awaiting.id}`],
+      ["Order rejected", `/settings/billing/orders/${rejected.id}`],
+      ["Refund issued", `/settings/billing/orders/${refunded.id}`],
+    ]));
+    const confirmedItem = billing.find((i) => i.title === "Payment confirmed — CLUB active")!;
+    expect(confirmedItem.detail).toMatch(/^OTSI-INV-\d{4}-\d{6} · 500 tokens$/);
+    const rejectedItem = billing.find((i) => i.title === "Order rejected")!;
+    expect(rejectedItem.detail).toContain("Wrong plan");
+    // the confirmed order's subscription ends in a month, so it is not news yet; move it to 3 days out
+    const [subs] = await root.query<mysql.RowDataPacket[]>("SELECT id FROM subscriptions WHERE organization_id = ? AND state = 'ACTIVE'", [m.orgId]);
+    expect(subs).toHaveLength(1);
+    await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subs[0]!.id]);
+    const b2 = await bell(m);
+    const subItem = b2.items.find((i) => i.title.startsWith("Subscription ends in"))!;
+    expect(subItem).toMatchObject({ kind: "BILLING", href: "/settings/billing" });
+    expect(subItem.title).toBe("Subscription ends in 3 days");
+    expect(subItem.detail).toMatch(/^CLUB · until \d{4}-\d{2}-\d{2}$/);
+  });
 });

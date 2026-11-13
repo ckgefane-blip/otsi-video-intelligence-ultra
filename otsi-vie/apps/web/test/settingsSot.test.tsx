@@ -210,7 +210,7 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(screen.getByText("1 token / min")).toBeInTheDocument();
     expect(screen.getByText("10 tokens")).toBeInTheDocument();
     expect(screen.getByText("Free grant")).toBeInTheDocument();
-    expect(screen.getByText("25")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByText("Valid 30 days. One per organisation.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument();
     expect(screen.getByText("Free · 2 GB in total")).toBeInTheDocument();

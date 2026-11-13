@@ -16,6 +16,7 @@ export type SettingsSideNavCurrent =
   | "team"
   | "security"
   | "wallet"
+  | "plans"
   | "admin"
   | "models"
   | "release"
@@ -45,6 +46,7 @@ export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }
       {link("team", "/settings/team", t.body.shell.teamRoles)}
       {link("security", "/settings/security", t.body.shell.twoStep)}
       {link("wallet", "/settings/wallet", t.body.shell.tokenWallet)}
+      {link("plans", "/settings/billing", t.body.wallet.wlBillingNav)}
       <span className={`${eyebrow} pt-[18px]`}>{t.body.shell.adminConsole}</span>
       {link("admin", "/settings/admin", t.body.admin.navPlatformHealth)}
       {link("models", "/settings/admin/models", t.body.admin.navModelsAi)}

@@ -272,3 +272,14 @@ select.in { appearance: auto; }
 html.vie-desktop body { padding-top: 32px; }
 html.vie-desktop .vie-shell, html.vie-desktop .vie-main, html.vie-desktop .h-screen { height: calc(100vh - 32px); }
 html.vie-desktop .min-h-screen { min-height: calc(100vh - 32px); }
+
+/* Print views (ADR-144 billing): the pro-forma invoice and the final receipt print through the browser's
+   print / save-as-PDF only — no PDF library, no PDF generation. When a print is requested, the section
+   being printed gets .print-active; everything else on the page is hidden so the print is just the
+   invoice or the receipt on a white page. */
+@media print {
+  body * { visibility: hidden !important; }
+  [data-print-area].print-active, [data-print-area].print-active * { visibility: visible !important; }
+  [data-print-area].print-active { position: absolute; left: 0; top: 0; width: 100%; background: #fff; color: #000; padding: 24px; }
+  [data-print-area].print-active button { display: none !important; }
+}

@@ -12,6 +12,9 @@
  *                          approval (-> Analysis)
  *   COMMENT                someone left a comment through a share link (-> Export, where the links and their comments are)
  *   RIGHTS                 the current rights of a video end within 14 days, or ended in the last 14 (-> Export, where rights are set)
+ *   BILLING                a plan order's money events — placed, receipt uploaded or marked paid, confirmed, rejected,
+ *                          refunded, a renewal order created — plus a subscription ending within 7 days and an open
+ *                          order expiring within 3 days (-> Billing, the order's own page)
  * The caller's organization only; projects hidden from the person, and removed items, are left out. "Unread": recorded after the person
  * last opened the bell in this organization.
  */
@@ -25,6 +28,8 @@ import { Db } from "../../core/db";
 const WINDOW = `CURRENT_TIMESTAMP(6) - INTERVAL ${NOTIFICATION_WINDOW_DAYS} DAY`;
 const DAY = 86_400_000;
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+const money = (minor: number, currency: string) =>
+  currency === "NGN" ? `₦${(minor / 100).toLocaleString("en-NG")}` : `$${(minor / 100).toFixed(2)}`;
 const videoTitle = (r: RowDataPacket) => (r.title as string | null) ?? (r.original_filename as string | null) ?? "Untitled video";
 type Item = Omit<Notification, "unread" | "at"> & { at: Date };
 
@@ -104,6 +109,74 @@ export class NotificationsService {
       items.push({ id: `rights:${r.id}:${ended ? "ended" : "ending"}`, kind: "RIGHTS", at: ended ? until : soon,
         title: ended ? "Rights have ended" : `Rights end in ${plural(days, "day")}`,
         detail: `${videoTitle(r)} · until ${until.toISOString().slice(0, 10)}`, href: "/exports" });
+    }
+
+    // billing: a plan order's money events are rows read where they live — an order is news when it is
+    // placed, when the payer uploads a receipt or marks paid, when the admin confirms / rejects / refunds
+    // it, and when the daily job creates its renewal. A row counts if any of its event times falls in the
+    // window, so an old order confirmed recently still notifies.
+    const orders = await this.db.rows<RowDataPacket>(
+      `SELECT id, reference, plan_code, period_months, amount_minor, currency, status, created_at, updated_at,
+         confirmed_at, proof_uploaded_at, proof_filename, proof_note, reject_reason, refund_reason,
+         renews_subscription_id, expires_at, tokens_granted
+       FROM bank_transfer_orders WHERE organization_id = ?
+         AND (created_at >= ${WINDOW} OR confirmed_at >= ${WINDOW} OR proof_uploaded_at >= ${WINDOW} OR updated_at >= ${WINDOW})
+       ORDER BY created_at DESC LIMIT ${L}`, [org]);
+    for (const o of orders) {
+      const href = `/settings/billing/orders/${o.id}`;
+      const plan = `${o.plan_code as string} · ${Number(o.period_months)} month${Number(o.period_months) === 1 ? "" : "s"}`;
+      const amount = money(Number(o.amount_minor), String(o.currency));
+      items.push({ id: `order:${o.id}:created`, kind: "BILLING", at: new Date(o.created_at),
+        title: `Order placed — ${plan}`, detail: `${o.reference as string} · ${amount}`, href });
+      if (o.proof_uploaded_at) {
+        items.push({ id: `order:${o.id}:proof`, kind: "BILLING", at: new Date(o.proof_uploaded_at),
+          title: "Receipt uploaded", detail: `${(o.proof_filename as string | null) ?? "Receipt"} · ${o.reference as string}`, href });
+      } else if (o.status === "AWAITING_CONFIRMATION") {
+        // no file: the payer marked paid. updated_at is the last transition, which for an awaiting order
+        // is the mark-paid step (a part-payment leaves the order PARTIAL, not awaiting).
+        items.push({ id: `order:${o.id}:marked-paid`, kind: "BILLING", at: new Date(o.updated_at),
+          title: "Marked paid — no receipt", detail: `${o.reference as string}${o.proof_note ? ` · ${o.proof_note as string}` : ""}`, href });
+      }
+      if (o.confirmed_at) {
+        items.push({ id: `order:${o.id}:confirmed`, kind: "BILLING", at: new Date(o.confirmed_at),
+          title: `Payment confirmed — ${plan} active`, detail: `${o.reference as string} · ${Number(o.tokens_granted).toLocaleString("en-GB")} tokens`, href });
+      }
+      if (o.status === "REJECTED") {
+        items.push({ id: `order:${o.id}:rejected`, kind: "BILLING", at: new Date(o.updated_at),
+          title: "Order rejected", detail: `${o.reference as string}${o.reject_reason ? ` · ${o.reject_reason as string}` : ""}`, href });
+      }
+      if (o.status === "REFUNDED") {
+        items.push({ id: `order:${o.id}:refunded`, kind: "BILLING", at: new Date(o.updated_at),
+          title: "Refund issued", detail: `${o.reference as string}${o.refund_reason ? ` · ${o.refund_reason as string}` : ""}`, href });
+      }
+      if (o.renews_subscription_id) {
+        items.push({ id: `order:${o.id}:renewal`, kind: "BILLING", at: new Date(o.created_at),
+          title: `Renewal order created — ${plan}`, detail: `${o.reference as string} · ${amount}`, href });
+      }
+      if (o.status === "ORDERED" && o.expires_at) {
+        const exp = new Date(o.expires_at);
+        if (exp > now && exp.getTime() - now.getTime() <= 3 * DAY) {
+          const days = Math.max(1, Math.ceil((exp.getTime() - now.getTime()) / DAY));
+          items.push({ id: `order:${o.id}:expiring`, kind: "BILLING", at: new Date(Math.max(new Date(o.created_at).getTime(), exp.getTime() - 3 * DAY)),
+            title: `Order expires in ${plural(days, "day")}`, detail: `${o.reference as string} · pay by ${exp.toISOString().slice(0, 10)}`, href });
+        }
+      }
+    }
+
+    // a live subscription ending within 7 days is news 7 days before its end (same shape as the rights warning)
+    const subs = await this.db.rows<RowDataPacket>(
+      `SELECT s.id, s.period_start, s.period_end, p.code AS plan_code FROM subscriptions s
+         JOIN plan_versions pv ON pv.id = s.plan_version_id JOIN plans p ON p.id = pv.plan_id
+       WHERE s.organization_id = ? AND s.state = 'ACTIVE' AND s.period_end IS NOT NULL
+         AND s.period_end > CURRENT_TIMESTAMP(6) AND s.period_end <= CURRENT_TIMESTAMP(6) + INTERVAL 7 DAY
+       ORDER BY s.period_end LIMIT ${L}`, [org]);
+    for (const s of subs) {
+      const end = new Date(s.period_end), start = new Date(s.period_start);
+      const days = Math.max(1, Math.ceil((end.getTime() - now.getTime()) / DAY));
+      const soon = new Date(Math.max(start.getTime(), end.getTime() - 7 * DAY));
+      items.push({ id: `sub:${s.id}:expiring`, kind: "BILLING", at: soon,
+        title: `Subscription ends in ${plural(days, "day")}`,
+        detail: `${s.plan_code as string} · until ${end.toISOString().slice(0, 10)}`, href: "/settings/billing" });
     }
 
     const seen = await this.db.one<RowDataPacket>("SELECT seen_at FROM notification_reads WHERE user_id = ? AND organization_id = ?", [p.userId, org]);

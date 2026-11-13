@@ -492,6 +492,10 @@ describe("dictionaries (ADR-139)", () => {
       "body.wallet.wlPlan",             // Spanish "Plan" is the same word
       "body.wallet.wlPlanPro",          // Spanish/German "Pro · 24 GB" is the same
       "body.wallet.wlPlanEnterprise",   // Spanish/German "Enterprise · 64 GB" is the same
+      "body.wallet.blSwift",          // "SWIFT / IBAN" is a code, the same in every language
+      "body.wallet.blBank",           // German "Bank" is the same word
+      "body.wallet.blPlan",           // Spanish "Plan" is the same word
+      "body.wallet.blProofNote",      // French "Note" is the same word
       "body.wallet.wlLedgerTitle",      // German "Ledger" is the same word
       "body.reels.rbHeading",          // the page name, the same in every language
       "body.reels.rbClip",             // French/Spanish/German "Clip" is the same word
@@ -665,7 +669,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // player card, review inbox, active jobs).
     expect(bodyKeys("admin").length).toBe(282);
     expect(bodyKeys("settings").length).toBe(141);
-    expect(bodyKeys("wallet").length).toBe(129);
+    expect(bodyKeys("wallet").length).toBe(238);
     expect(bodyKeys("shell").length).toBe(292);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
     // SOT rebuild reconciliation (2026-11-13): +6 auth keys (shared-gate org

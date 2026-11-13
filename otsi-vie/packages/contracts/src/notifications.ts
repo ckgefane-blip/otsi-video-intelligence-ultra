@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 
-export const NotificationKind = z.enum(["JOB_DONE", "JOB_FAILED", "REVIEW", "COMMENT", "RIGHTS"]);
+export const NotificationKind = z.enum(["JOB_DONE", "JOB_FAILED", "REVIEW", "COMMENT", "RIGHTS", "BILLING"]);
 export type NotificationKind = z.infer<typeof NotificationKind>;
 
 export const Notification = z.object({
