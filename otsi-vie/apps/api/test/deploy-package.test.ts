@@ -42,9 +42,10 @@ describe("deploy package (staging plan B)", () => {
       expect(lock.packages["node_modules/@otsi-vie/contracts"]).toBeTruthy();
 
       // the host's step, on a clean copy: npm ci installs, and the API modules load from it
+      // (npm is npm.cmd on Windows: spawnSync needs a shell to find it there)
       const installDir = path.join(out, "installed");
       cpSync(pkgDir, installDir, { recursive: true });
-      const ci = spawnSync("npm", ["ci", "--omit=dev", "--ignore-scripts"], { cwd: installDir, encoding: "utf8", timeout: 240_000 });
+      const ci = spawnSync("npm", ["ci", "--omit=dev", "--ignore-scripts"], { cwd: installDir, encoding: "utf8", timeout: 240_000, shell: process.platform === "win32" });
       expect(ci.status).toBe(0);
       execFileSync(process.execPath, ["-e",
         "require('./dist/app.js'); require('./dist/core/config.js'); require('@otsi-vie/contracts'); console.log('ok')"],

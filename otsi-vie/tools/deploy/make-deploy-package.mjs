@@ -20,12 +20,25 @@
  */
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const API_DIR = path.join(ROOT, "otsi-vie", "apps", "api");
 const CONTRACTS_DIR = path.join(ROOT, "otsi-vie", "packages", "contracts");
+
+/** Resolve a file inside a package from a base package, following the workspace install wherever it
+ *  actually put it. The repo's .npmrc uses node-linker=hoisted, so on the owner's PC the packages live
+ *  in the workspace root (otsi-vie/node_modules), not under apps/api/node_modules — a plain path join
+ *  misses them there, while this resolve works in either layout. Returns null when it cannot resolve. */
+function resolveFrom(fromDir, spec) {
+  try {
+    return createRequire(path.join(fromDir, "package.json")).resolve(spec);
+  } catch {
+    return null;
+  }
+}
 
 function log(msg) {
   console.log(`[deploy-package] ${msg}`);
@@ -38,17 +51,34 @@ function fail(msg) {
 
 function run(cmd, args, cwd) {
   log(`$ ${cmd} ${args.join(" ")}  (in ${path.relative(ROOT, cwd)})`);
-  execFileSync(cmd, args, { cwd, stdio: "inherit" });
+  // npm is npm.cmd on Windows: execFileSync needs a shell to find it there.
+  execFileSync(cmd, args, { cwd, stdio: "inherit", shell: cmd === "npm" && process.platform === "win32" });
 }
 
 function readJson(p) {
   return JSON.parse(readFileSync(p, "utf8"));
 }
 
-/** The exact installed version of a dependency, read from the workspace's own install — never guessed. */
+/** Find a package's package.json by walking up from a base directory, checking node_modules at each
+ *  level. This finds the package whether the install is hoisted (workspace root) or nested, and it does
+ *  not depend on the package's exports map — some packages do not export ./package.json, so
+ *  require.resolve(name + "/package.json") throws ERR_PACKAGE_PATH_NOT_EXPORTED for them. */
+function findPackageJson(name, fromDir) {
+  let dir = path.resolve(fromDir);
+  while (true) {
+    const p = path.join(dir, "node_modules", ...name.split("/"), "package.json");
+    if (existsSync(p)) return p;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/** The exact installed version of a dependency, read from the workspace's own install — never guessed.
+ *  Resolved from the package, so it works whether the install is hoisted (workspace root) or nested. */
 function installedVersion(name, fromDir) {
-  const p = path.join(fromDir, "node_modules", ...name.split("/"), "package.json");
-  if (!existsSync(p)) fail(`cannot pin ${name}: no installed copy at ${path.relative(ROOT, p)} (run the workspace install first)`);
+  const p = findPackageJson(name, fromDir);
+  if (!p) fail(`cannot pin ${name}: no installed copy (run the workspace install first)`);
   const v = readJson(p).version;
   if (typeof v !== "string" || !v) fail(`cannot pin ${name}: no version in ${path.relative(ROOT, p)}`);
   return v;
@@ -62,15 +92,18 @@ function main() {
   const skipLockfile = args.includes("--skip-lockfile");
   if (outArg >= 0 && !args[outArg + 1]) fail("--out needs a directory");
 
-  const tsc = path.join(API_DIR, "node_modules", ".bin", "tsc");
-  if (!existsSync(tsc)) fail(`no TypeScript in the workspace install (expected ${path.relative(ROOT, tsc)})`);
+  // TypeScript, resolved from the workspace install (hoisted to the workspace root on the owner's PC,
+  // not under apps/api). Run it with node: the resolved file is the tsc script itself, which runs on
+  // any platform — the .bin shim would not.
+  const tsc = resolveFrom(API_DIR, "typescript/bin/tsc");
+  if (!tsc || !existsSync(tsc)) fail("no TypeScript in the workspace install (run the workspace install first)");
 
   if (!skipBuild) {
     log("clean build: contracts, then the API");
     rmSync(path.join(CONTRACTS_DIR, "dist"), { recursive: true, force: true });
     rmSync(path.join(API_DIR, "dist"), { recursive: true, force: true });
-    run(tsc, ["-p", "tsconfig.json"], CONTRACTS_DIR);
-    run(tsc, ["-p", "tsconfig.build.json"], API_DIR);
+    run(process.execPath, [tsc, "-p", "tsconfig.json"], CONTRACTS_DIR);
+    run(process.execPath, [tsc, "-p", "tsconfig.build.json"], API_DIR);
   }
   const apiDist = path.join(API_DIR, "dist", "main.js");
   const contractsDist = path.join(CONTRACTS_DIR, "dist", "index.js");

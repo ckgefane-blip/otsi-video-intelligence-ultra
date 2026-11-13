@@ -15,6 +15,13 @@ export class AccountService {
    *  setting is absent, in which case no membership is the company organisation (fail closed). */
   private readonly companyOrgId: string | undefined;
 
+  /** The company organisation id central reported, cached per person for a few minutes. Without it,
+   *  every Me read asks central; on a linked laptop whose connection hangs instead of failing, each
+   *  page load waits up to the 10 s request timeout. Only a successful answer is cached — a failed ask
+   *  is retried on the next read, never cached. */
+  private readonly centralCompanyOrg = new Map<string, { value: string | undefined; until: number }>();
+  private static readonly COMPANY_ORG_CACHE_MS = 5 * 60_000;
+
   constructor(
     private readonly db: Db,
     @Inject(CONFIG) cfg: Config,
@@ -44,12 +51,16 @@ export class AccountService {
   private async companyOrgIdFor(userId: string, ms: RowDataPacket[]): Promise<string | undefined> {
     if (this.companyOrgId) return this.companyOrgId;
     if (!this.central.linked || ms.length === 0) return undefined;
+    const hit = this.centralCompanyOrg.get(userId);
+    if (hit && hit.until > Date.now()) return hit.value;
     try {
       const r = await this.central.call(String(ms[0]!.organization_id), userId, "GET", "/v1/me");
       if (r.status !== 200) return undefined;
       const parsed = Me.safeParse(r.body);
       if (!parsed.success) return undefined;
-      return parsed.data.memberships.find((m) => m.is_company_org)?.organization_id;
+      const value = parsed.data.memberships.find((m) => m.is_company_org)?.organization_id;
+      this.centralCompanyOrg.set(userId, { value, until: Date.now() + AccountService.COMPANY_ORG_CACHE_MS });
+      return value;
     } catch { return undefined; }
   }
 
