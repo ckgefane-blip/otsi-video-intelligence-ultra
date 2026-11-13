@@ -1,11 +1,13 @@
 "use client";
 /**
- * Settings / Admin Console side navigation (SOT, AdminModels.dc.html).
- * The 248px side nav shared by the Settings and Admin Console pages:
- * Settings (Preferences, Team, Security, Token Wallet), Admin Console
- * (Platform Health, Models & AI, Release Control, Organization,
- * Security & Compliance, Billing & Usage), and the Interface mode
- * switch (Guided / Advanced) at the bottom. Both modes are free.
+ * Settings / Admin Console side navigation (SOT, AdminModels.dc.html): the 248px side nav, with the
+ * Interface mode switch (Guided / Advanced) at the bottom. Both modes are free.
+ *
+ * Settings and Admin are two separate places (owner, 2026-11-13: "Admin and Settings open on same page"):
+ * a Settings page lists only Settings (Preferences, Team, 2-step sign-in, Token Wallet, Plans & billing);
+ * an Admin page lists only the Admin Console (Platform health, Models & AI, Release control, Organization,
+ * Security & compliance, and Billing for the company organisation). The rail's Settings and Admin buttons
+ * open one each, so the two never look like the same page.
  */
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -29,6 +31,7 @@ const item =
   "flex min-h-[34px] items-center rounded-md border-0 px-3 t-body text-ink2 transition-colors hover:bg-raised hover:text-ink";
 const itemCurrent = "bg-raised text-ink shadow-[inset_2px_0_0_rgb(var(--primary))]";
 const eyebrow = "px-3 pb-2 pt-1.5 t-th";
+const ADMIN_PAGES: readonly SettingsSideNavCurrent[] = ["admin", "models", "release", "organization", "compliance", "billing"];
 
 export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }) {
   const { t } = useLocale();
@@ -42,22 +45,30 @@ export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }
       {label}
     </Link>
   );
+  const admin = ADMIN_PAGES.includes(current);
   return (
-    <nav aria-label={t.desktop.navSettings} data-settings-side-nav
+    <nav aria-label={admin ? t.body.shell.adminConsole : t.desktop.navSettings} data-settings-side-nav={admin ? "admin" : "settings"}
       className="flex w-[248px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line bg-p0 px-2.5 py-3.5">
-      <span className={eyebrow}>{t.desktop.navSettings}</span>
-      {link("preferences", "/settings/preferences", t.body.admin.navPreferences)}
-      {link("team", "/settings/team", t.body.shell.teamRoles)}
-      {link("security", "/settings/security", t.body.shell.twoStep)}
-      {link("wallet", "/settings/wallet", t.body.shell.tokenWallet)}
-      {link("plans", "/settings/billing", t.body.wallet.wlBillingNav)}
-      <span className={`${eyebrow} pt-[18px]`}>{t.body.shell.adminConsole}</span>
-      {link("admin", "/settings/admin", t.body.admin.navPlatformHealth)}
-      {link("models", "/settings/admin/models", t.body.admin.navModelsAi)}
-      {link("release", "/settings/admin/release", t.body.admin.navReleaseControl)}
-      {link("organization", "/settings/team", t.body.admin.navOrganization)}
-      {link("compliance", "/settings/admin/compliance", t.body.admin.navCompliance)}
-      {isCompanyOrg && link("billing", "/settings/admin/billing", t.body.admin.navBillingUsage)}
+      {admin ? (
+        <>
+          <span className={eyebrow}>{t.body.shell.adminConsole}</span>
+          {link("admin", "/settings/admin", t.body.admin.navPlatformHealth)}
+          {link("models", "/settings/admin/models", t.body.admin.navModelsAi)}
+          {link("release", "/settings/admin/release", t.body.admin.navReleaseControl)}
+          {link("organization", "/settings/admin/organization", t.body.admin.navOrganization)}
+          {link("compliance", "/settings/admin/compliance", t.body.admin.navCompliance)}
+          {isCompanyOrg && link("billing", "/settings/admin/billing", t.body.admin.navBillingUsage)}
+        </>
+      ) : (
+        <>
+          <span className={eyebrow}>{t.desktop.navSettings}</span>
+          {link("preferences", "/settings/preferences", t.body.admin.navPreferences)}
+          {link("team", "/settings/team", t.body.shell.teamRoles)}
+          {link("security", "/settings/security", t.body.shell.twoStep)}
+          {link("wallet", "/settings/wallet", t.body.shell.tokenWallet)}
+          {link("plans", "/settings/billing", t.body.wallet.wlBillingNav)}
+        </>
+      )}
       <div className="mt-auto flex flex-col gap-2 px-2.5 pb-1 pt-3">
         <span className="t-th">{t.body.admin.navInterface}</span>
         <div className="seg f" role="group" aria-label={t.body.admin.navInterface}>

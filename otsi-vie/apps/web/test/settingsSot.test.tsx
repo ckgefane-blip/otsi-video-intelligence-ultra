@@ -29,6 +29,7 @@ import { TeamSettings } from "@/components/account/TeamSettings";
 import { TwoStepSettings } from "@/components/account/TwoStepSettings";
 import { PreferencesView } from "@/components/settings/PreferencesView";
 import { WalletView } from "@/components/wallet/WalletView";
+import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 
 const ORG = "0190a000-0000-7000-8000-000000000001";
 const licence = { organization_id: ORG, plan: "FREE", features: [], tokens: 10, expires_at: "2027-01-01T00:00:00.000Z", valid_until: null, grace_until: null };
@@ -274,5 +275,22 @@ describe("Settings — Token Wallet (SOT, Page 24)", () => {
     expect(box).toHaveTextContent("Test Bank");
     expect(box).toHaveTextContent("1234567890");
     expect(screen.getByRole("status")).toHaveTextContent("Top-up ordered: Player pack (₦3,000). Pay to the account below, with your reference.");
+  });
+});
+
+describe("Settings and Admin are separate places (owner 2026-11-13)", () => {
+  it("a Settings page lists only Settings; an Admin page lists only the Admin Console", () => {
+    const { unmount } = render(<SettingsSideNav current="wallet" />);
+    let nav = screen.getByRole("navigation", { name: "Settings" });
+    for (const name of ["Preferences", "Team and roles", "2-step sign-in", "Token Wallet", "Plans & billing"]) expect(nav).toHaveTextContent(name);
+    expect(screen.queryByRole("link", { name: "Platform health" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Models & AI" })).toBeNull();
+    unmount();
+    render(<SettingsSideNav current="admin" />);
+    nav = screen.getByRole("navigation", { name: "Admin console" });
+    expect(screen.getByRole("link", { name: "Platform health" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Organization" })).toHaveAttribute("href", "/settings/admin/organization");
+    expect(screen.queryByRole("link", { name: "Preferences" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Token Wallet" })).toBeNull();
   });
 });

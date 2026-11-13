@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SettingsNav } from "@/components/settings/SettingsNav";
+import { SettingsSideNav } from "@/components/settings/SettingsSideNav";
 import { AdminBillingView } from "@/components/wallet/AdminBillingView";
 
 export const metadata: Metadata = { title: "Billing" };
@@ -10,9 +10,11 @@ export const metadata: Metadata = { title: "Billing" };
  */
 export default function BillingPage() {
   return (
-    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4" data-page="settings-admin-billing">
-      <SettingsNav current="billing" />
-      <AdminBillingView />
+    <div className="flex h-full w-full" data-stage="settings-admin-billing" data-page="settings-admin-billing">
+      <SettingsSideNav current="billing" />
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-7 py-[18px]">
+        <AdminBillingView />
+      </main>
     </div>
   );
 }
