@@ -1,15 +1,25 @@
 /** The signed-in user and the organizations they can act for (GET /v1/me) — the same for local sign-in and an external OIDC provider. */
-import { Body, Controller, Delete, Get, Headers, HttpCode, Injectable, Param, Patch, Put, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Injectable, Param, Patch, Put, Res, UseGuards } from "@nestjs/common";
 import { Me, PageModes, SetPageMode, UiPage, UpdateMeRequest } from "@otsi-vie/contracts";
 import type { FastifyReply } from "fastify";
 import { RowDataPacket } from "mysql2/promise";
 import { Account, AccountOnly, AuthGuard, CurrentAccount } from "../../core/auth";
+import { CONFIG, type Config } from "../../core/config";
 import { Db } from "../../core/db";
 import { ApiError } from "../../core/problem";
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly db: Db) {}
+  /** The company organisation id from the server setting (OTSI_VIE_COMPANY_ORG_ID); undefined when the
+   *  setting is absent, in which case no membership is the company organisation (fail closed). */
+  private readonly companyOrgId: string | undefined;
+
+  constructor(
+    private readonly db: Db,
+    @Inject(CONFIG) cfg: Config,
+  ) {
+    this.companyOrgId = cfg.companyOrganizationId;
+  }
 
   async me(userId: string): Promise<Me> {
     const u = await this.db.one<RowDataPacket>(
@@ -19,7 +29,8 @@ export class AccountService {
       `SELECT m.organization_id, o.name AS organization_name, m.role FROM memberships m JOIN organizations o ON o.id = m.organization_id
         WHERE m.user_id = ? AND m.status = 'ACTIVE' ORDER BY o.name`, [userId]);
     return Me.parse({ user: { id: u.id, email: u.email, display_name: u.display_name, avatar_updated_at: u.avatar_updated_at ? new Date(u.avatar_updated_at).toISOString() : null,
-      onboarded_at: u.onboarded_at ? new Date(u.onboarded_at).toISOString() : null }, memberships: ms.map((m) => ({ ...m })) });
+      onboarded_at: u.onboarded_at ? new Date(u.onboarded_at).toISOString() : null },
+      memberships: ms.map((m) => ({ ...m, is_company_org: String(m.organization_id) === this.companyOrgId })) });
   }
 
   /** a person's own name and the end of their welcome tour (never anyone else's account) */

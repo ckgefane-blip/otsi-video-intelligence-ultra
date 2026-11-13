@@ -16,6 +16,8 @@ import { Member, key, rootDb, seedMember, seedRights, startApi, token } from "./
 let app: NestFastifyApplication;
 let root: mysql.Connection;
 let owner: Member, viewer: Member;
+/** The company organisation (OTSI) and its owner: the only one who may do the company billing actions. */
+let company: Member;
 
 async function call(m: Member | null, method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH", url: string, body?: unknown, extra: Record<string, string> = {}) {
   const r = await app.inject({ method, url, headers: { ...(m?.headers ?? {}), ...extra }, ...(body === undefined ? {} : { payload: body as object }) });
@@ -44,8 +46,12 @@ async function seedVideo(m: Member, durationUs = 90 * 60 * 1_000_000): Promise<s
 const balance = async (m: Member) => (await call(m, "GET", "/v1/wallet")).body;
 
 beforeAll(async () => {
-  app = await startApi();
   root = await rootDb();
+  // the company organisation (OTSI): the setting names it, so the API under test runs with it set.
+  const companyOrgId = uuidv7();
+  await root.query("INSERT INTO organizations (id, name, slug) VALUES (?, ?, ?)", [companyOrgId, "OTSI", "otsi"]);
+  company = await seedMember(root, "OWNER", companyOrgId);
+  app = await startApi({ companyOrganizationId: companyOrgId });
   owner = await seedMember(root, "OWNER");
   viewer = await seedMember(root, "VIEWER", owner.orgId);
 });
@@ -85,11 +91,13 @@ describe("token wallet", () => {
     const req = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "CLUB", currency: "NGN" });
     expect(req.status).toBe(201);
     expect(req.body).toMatchObject({ pack_code: "CLUB", currency: "NGN", amount_minor: 6_000_000, tokens: 500, status: "REQUESTED" });
-    const invoiced = await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-2026-001" });
+    const invoiced = await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/invoice`, { invoice_ref: "INV-2026-001" });
     expect(invoiced.body).toMatchObject({ status: "INVOICED", invoice_ref: "INV-2026-001" });
-    // an OWNER of another organization cannot confirm receipt for this one (ADR-140 §8: Admin is own-org only)
+    // only the company organisation may confirm receipt (ADR-140 §8): neither another customer's owner
+    // nor the pack's own owner can — the pack's own owner confirming it would be free tokens.
     expect((await call(owner, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(403);
-    expect((await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(201);
+    expect((await call(m, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(403);
+    expect((await call(company, "POST", `/v1/admin/wallet/pack-requests/${req.body.id}/confirm-receipt`, { invoice_ref: "INV-2026-001" })).status).toBe(201);
     const paid = await call(m, "GET", "/v1/wallet/packs/requests");
     expect(paid.body[0]).toMatchObject({ status: "PAID", invoice_ref: "INV-2026-001" });
     expect(await balance(m)).toMatchObject({ balance: 500, spendable_balance: 500, low_balance: false });
@@ -110,7 +118,7 @@ describe("token wallet", () => {
   it("charges 90 tokens for a 90-minute analysis at enqueue, and refunds them when the queued run is cancelled", async () => {
     const m = await seedBareMember();
     await call(m, "POST", "/v1/wallet/free-grant");
-    const topup = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 100, reason: "Test top-up", invoice_ref: "INV-TEST-1" });
+    const topup = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 100, reason: "Test top-up", invoice_ref: "INV-TEST-1" });
     expect(topup.body).toMatchObject({ kind: "PURCHASE", amount: 100, balance_after: 200 });
     const video = await seedVideo(m);
     const run = await call(m, "POST", `/v1/videos/${video}/analysis-runs`, {});
@@ -130,15 +138,21 @@ describe("token wallet", () => {
     expect(wallets.status).toBe(200);
     expect(wallets.body).toHaveLength(1);
     expect(wallets.body[0]).toMatchObject({ organization_id: m.orgId });
-    // an OWNER of another organization cannot touch this wallet (ADR-140 §8)
+    // only the company organisation may top a wallet up (ADR-140 §8): another customer's owner cannot,
+    // and neither can the wallet's own owner — a top-up is the company crediting tokens it was paid for.
     expect((await call(owner, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 10, reason: "x", invoice_ref: "INV-X" })).status).toBe(403);
+    expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 10, reason: "x", invoice_ref: "INV-X" })).status).toBe(403);
+    const topped = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/topup`, { amount: 10, reason: "Company top-up", invoice_ref: "INV-X" });
+    expect(topped.body).toMatchObject({ kind: "PURCHASE", amount: 10, balance_after: 10 });
+    // refund and adjust are NOT covered by the company-org lock (owner to decide), so the wallet's own
+    // owner can still do them here.
     const refund = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/refund`, { amount: 10, reason: "Goodwill refund" });
-    expect(refund.body).toMatchObject({ kind: "REFUND", amount: 10, balance_after: 10 });
+    expect(refund.body).toMatchObject({ kind: "REFUND", amount: 10, balance_after: 20 });
     const adjust = await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back 4 tokens for a refunded payment" });
-    expect(adjust.body).toMatchObject({ kind: "ADJUSTMENT", amount: -4, balance_after: 6 });
+    expect(adjust.body).toMatchObject({ kind: "ADJUSTMENT", amount: -4, balance_after: 16 });
     expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: 5, reason: "" })).status).toBe(400);
     const adminLedger = await call(m, "GET", `/v1/admin/wallet/${m.orgId}/ledger`);
-    expect(adminLedger.body.balance).toMatchObject({ balance: 6 });
+    expect(adminLedger.body.balance).toMatchObject({ balance: 16 });
     expect((await call(viewer, "GET", `/v1/admin/wallet/${m.orgId}/ledger`)).status).toBe(403);
   });
 

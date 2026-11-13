@@ -10,19 +10,27 @@
  * run, and the revenue summary. Nothing activates before Confirm, and Confirm needs the received amounts
  * to add up to exactly the order amount. The bank details shown on an invoice are the ones saved here.
  *
- * Scoping (ADR-140 §8): this codebase has no platform-wide owner role, so Admin acts only on the caller's own
- * organization — the API refuses any other organization with 403.
+ * Scoping (ADR-140 §8): the company billing actions (bank accounts, plan order confirm / part-pay /
+ * reject / refund, pack invoice / confirm, top-up) are the company organisation's (OTSI) alone — the API
+ * refuses everybody else with 403. The reads here (own wallet, own orders) stay own-organisation. A
+ * customer admin never reaches this view: the nav hides it and the view below refuses to render it.
  */
 import type { BankAccount, BankTransferOrder, ProFormaInvoice, RenewalRunResult, RevenueSummary, SubscriptionStatus, AdminWalletRow, PackRequest, WalletLedgerEntry, WalletLedgerPage } from "@otsi-vie/contracts";
 import { PAY_REFERENCE_NOTE } from "@otsi-vie/contracts";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api, apiBlob } from "@/lib/api";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
 import { InvoiceCard, OrderStatusLabel, ReceiptCard, money, planMonths, usePrintTarget } from "./BillingShared";
 
 export function AdminBillingView() {
   const { t } = useLocale();
+  const { organization } = useAuth();
+  // The company organisation's screen (OTSI): a customer admin never sees the billing console — the nav
+  // hides the link and this view refuses to render (and never calls the admin endpoints). The API refuses
+  // the actions too; this is only the entry point.
+  const isCompanyOrg = organization?.is_company_org === true;
   const [wallets, setWallets] = useState<AdminWalletRow[]>([]);
   const [requests, setRequests] = useState<PackRequest[]>([]);
   const [ledger, setLedger] = useState<WalletLedgerEntry[]>([]);
@@ -81,7 +89,7 @@ export function AdminBillingView() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (isCompanyOrg) void load(); }, [load, isCompanyOrg]);
 
   const orgId = wallets[0]?.organization_id ?? null;
 
@@ -168,6 +176,22 @@ export function AdminBillingView() {
     } finally {
       setBusy(null);
     }
+  }
+
+  if (!isCompanyOrg) {
+    return (
+      <div className="w-full max-w-4xl">
+        <div className="flex items-center gap-3 rounded-card border border-danger/30 bg-danger/10 p-4 text-danger">
+          <ShieldAlert className="h-6 w-6 shrink-0" />
+          <div>
+            <h2 className="font-normal">{t.body.admin.accessRequired}</h2>
+            <p className="t-body opacity-90">
+              {t.body.admin.accessOnly}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (loading && wallets.length === 0) {

@@ -74,7 +74,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, serviceActor, userActor } from "../../core/audit";
-import { AuthGuard, CurrentPrincipal, Principal, Roles } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, Principal, requireCompanyOrg, Roles } from "../../core/auth";
 import { CONFIG, type Config } from "../../core/config";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
@@ -93,11 +93,14 @@ const PROOF_EXTENSIONS: Record<string, string> = {
 const RENEWAL_JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** ADR-140 §8: this codebase has no platform-wide owner role — Admin is the organization's own OWNER / ADMIN.
- *  Billing Admin therefore acts only on the caller's own organization. In the current single-tenant deployment
- *  the organization's OWNER is the engine owner, so the confirm flow is performed by them. The one exception is
- *  the renewal run (POST /v1/admin/billing/renewals/run): it is the daily-job trigger and processes every
- *  organization, because renewals cannot wait for each organization to ask — in multi-tenant use it needs a
- *  platform-owner role, the same known limit as the wallet Admin. */
+ *  Billing Admin therefore acts only on the caller's own organization, EXCEPT the company billing actions
+ *  (change bank accounts, confirm / part-pay / reject / refund a plan order): those are the company
+ *  organisation's alone. The company organisation is the one named by the server setting
+ *  OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses everybody else, and refuses
+ *  everybody at all when the setting is missing (fail closed). The one exception is the renewal run
+ *  (POST /v1/admin/billing/renewals/run): it is the daily-job trigger and processes every organization,
+ *  because renewals cannot wait for each organization to ask — in multi-tenant use it needs the same
+ *  company-org check, the same known limit as the wallet Admin. */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "BILLING_ADMIN_OTHER_ORG", "Billing Admin acts only on your own organization.");
 }
@@ -167,6 +170,9 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
   private readonly store: LocalStore | null;
   /** Central mode only (OTSI_VIE_CENTRAL_MODE=yes): a local / vetting engine must never run renewals. */
   private readonly centralMode: boolean;
+  /** The company organisation id from the server setting (OTSI_VIE_COMPANY_ORG_ID); undefined when the
+   *  setting is absent, in which case the company billing actions are refused for everybody. */
+  private readonly companyOrgId: string | undefined;
   /** The daily renewal job: one chained timer, first run at start-up (catch-up), then every interval. */
   private renewalsTimer: NodeJS.Timeout | null = null;
   private renewalsSchedulerOn = false;
@@ -179,6 +185,9 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.store = cfg.storage ? new LocalStore(cfg.storage.dir) : null;
     this.centralMode = cfg.central?.centralMode === true;
+    /** The company organisation (OTSI_VIE_COMPANY_ORG_ID); undefined when the setting is absent, in which
+     *  case the company billing actions are refused for everybody (fail closed — see requireCompanyOrg). */
+    this.companyOrgId = cfg.companyOrganizationId;
   }
 
   /**
@@ -480,6 +489,7 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
   /** Create or update the bank account for a currency (one row per currency, by the UNIQUE key). Bank
    *  details are entered here and nowhere else — they are never hard-coded and never in the repo. */
   async upsertBankAccount(p: Principal, body: BankAccountUpsertRequest): Promise<BankAccount> {
+    requireCompanyOrg(p, this.companyOrgId);
     const id = await this.db.tx(async (c) => {
       await c.query(
         `INSERT INTO bank_accounts (id, currency, account_name, bank_name, account_number, swift_iban, is_active, created_by)
@@ -560,8 +570,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
    * subscription it renews from its current end, so paying early never loses paid time.
    */
   async confirmOrder(p: Principal, orderId: string, body: ConfirmOrderRequest): Promise<BankTransferOrderType> {
+    requireCompanyOrg(p, this.companyOrgId);
     const row = await this.orderRow(orderId);
-    ownOrgOrDeny(p, String(row.organization_id));
     const order = this.parseOrder(row);
     if (!["AWAITING_CONFIRMATION", "PARTIAL"].includes(order.status)) {
       throw new ApiError(409, "ORDER_NOT_AWAITING_CONFIRMATION", `Only an order awaiting confirmation can be confirmed. This order is ${order.status}.`);
@@ -657,8 +667,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
 
   /** Reject with a reason. A rejection never activates anything — no subscription, no grant, no wallet row. */
   async rejectOrder(p: Principal, orderId: string, body: RejectOrderRequest): Promise<BankTransferOrderType> {
+    requireCompanyOrg(p, this.companyOrgId);
     const row = await this.orderRow(orderId);
-    ownOrgOrDeny(p, String(row.organization_id));
     const order = this.parseOrder(row);
     if (!["ORDERED", "AWAITING_CONFIRMATION", "PARTIAL"].includes(order.status)) {
       throw new ApiError(409, "ORDER_NOT_OPEN", `Only an open order can be rejected. This order is ${order.status}.`);
@@ -675,8 +685,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
 
   /** Record a part-payment. The order becomes PARTIAL and stays inactive until the remainder is confirmed. */
   async recordPartial(p: Principal, orderId: string, body: RecordPartialRequest): Promise<BankTransferOrderType> {
+    requireCompanyOrg(p, this.companyOrgId);
     const row = await this.orderRow(orderId);
-    ownOrgOrDeny(p, String(row.organization_id));
     const order = this.parseOrder(row);
     if (!["AWAITING_CONFIRMATION", "PARTIAL"].includes(order.status)) {
       throw new ApiError(409, "ORDER_NOT_AWAITING_CONFIRMATION", `Only an order awaiting confirmation can take a part-payment. This order is ${order.status}.`);
@@ -708,8 +718,8 @@ export class BillingService implements OnModuleInit, OnModuleDestroy {
    * manually; a refund never takes a balance below zero.
    */
   async refundOrder(p: Principal, orderId: string, body: RefundOrderRequest): Promise<BankTransferOrderType> {
+    requireCompanyOrg(p, this.companyOrgId);
     const row = await this.orderRow(orderId);
-    ownOrgOrDeny(p, String(row.organization_id));
     const order = this.parseOrder(row);
     if (order.status !== "CONFIRMED") {
       throw new ApiError(409, "ORDER_NOT_CONFIRMED", `Only a confirmed order can be refunded. This order is ${order.status}.`);

@@ -18,6 +18,10 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
+// The billing console is the company organisation's screen (OTSI): the tests sign in as its owner.
+const mockAuth = vi.hoisted(() => ({ useAuth: vi.fn() }));
+vi.mock("@/components/auth/AuthProvider", () => ({ useAuth: mockAuth.useAuth }));
+
 import { PAY_REFERENCE_NOTE, planCatalogue, tokenPackCatalogue } from "@otsi-vie/contracts";
 import { AdminBillingView } from "@/components/wallet/AdminBillingView";
 import { OrderDetailView } from "@/components/wallet/OrderDetailView";
@@ -203,7 +207,18 @@ describe("Wallet pack payment details", () => {
 });
 
 describe("Admin billing console", () => {
+  // the console is the company organisation's screen: the tests sign in as its owner, so the
+  // view renders (a customer admin gets the access panel instead — see the last test here).
+  beforeEach(() => {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
+    });
+  });
+
   function mockAdmin(orders: unknown[] = [order({ status: "AWAITING_CONFIRMATION" })]) {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
+    });
     api.mockImplementation((url: string) => {
       if (url === "/v1/admin/wallet") return Promise.resolve([{ organization_id: ORG, organization_name: "Osio & Tee", balance: 10, spendable_balance: 10, low_balance: true, last_activity_at: null }]);
       if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve([]);
@@ -277,5 +292,15 @@ describe("Admin billing console", () => {
       json: expect.objectContaining({ amount_received_minor: 6_000_000, bank_reference: "ZEN-REF-778" }),
     })));
     await waitFor(() => expect(screen.getByText("Payment confirmed. The plan is active.")).toBeInTheDocument());
+  });
+
+  it("hides the console from a customer admin: the access panel shows and no admin endpoint is called", async () => {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "A Customer Club", role: "OWNER", is_company_org: false },
+    });
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Administrator access required")).toBeInTheDocument());
+    expect(screen.queryByText("Billing orders")).not.toBeInTheDocument();
+    expect(api).not.toHaveBeenCalled();
   });
 });

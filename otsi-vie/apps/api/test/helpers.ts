@@ -12,12 +12,13 @@ import { testDbBackend } from "./db-harness";
 export const ISSUER = "https://issuer.test.otsi.invalid/";
 export const AUDIENCE = "otsi-vie-api";
 
-export async function startApi(opts: { storageDir?: string; partBytes?: number; maxUploadBytes?: number; credentialKey?: string; centralMode?: boolean } = {}): Promise<NestFastifyApplication> {
+export async function startApi(opts: { storageDir?: string; partBytes?: number; maxUploadBytes?: number; credentialKey?: string; centralMode?: boolean; companyOrganizationId?: string } = {}): Promise<NestFastifyApplication> {
   // SQLite mode: the app opens the scratch file (global-setup hands out its path as appDsn); MySQL mode: the DSN.
   const backend = testDbBackend();
   return createApp({
     ...(backend === "sqlite" ? { dbBackend: "sqlite" as const, dbPath: inject("appDsn") } : { dbDsn: inject("appDsn") }),
     jwtIssuer: ISSUER, jwtAudience: AUDIENCE, jwtPublicKeyPem: inject("publicKeyPem"), port: 0,
+    ...(opts.companyOrganizationId ? { companyOrganizationId: opts.companyOrganizationId } : {}),
     ...(opts.centralMode ? { central: { centralMode: true, licenceGraceDays: 14 } } : {}),
     ...(opts.credentialKey ? { credentialKey: opts.credentialKey } : {}),
     ...(opts.storageDir ? { storage: { dir: opts.storageDir, partBytes: opts.partBytes ?? 1024 * 1024, maxUploadBytes: opts.maxUploadBytes ?? 64 * 1024 ** 3 } } : {}),

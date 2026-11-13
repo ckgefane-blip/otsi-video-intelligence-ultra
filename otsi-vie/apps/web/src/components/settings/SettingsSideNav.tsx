@@ -8,6 +8,7 @@
  * switch (Guided / Advanced) at the bottom. Both modes are free.
  */
 import Link from "next/link";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { useLocale } from "@/lib/i18n";
 
@@ -32,6 +33,9 @@ const eyebrow = "px-3 pb-2 pt-1.5 t-th";
 export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }) {
   const { t } = useLocale();
   const { mode, setMode } = useInterfaceMode();
+  const { organization } = useAuth();
+  // Admin › Billing is the company organisation's screen (OTSI): a customer admin never sees the link.
+  const isCompanyOrg = organization?.is_company_org === true;
   const link = (id: SettingsSideNavCurrent, href: string, label: string) => (
     <Link key={id} href={href} aria-current={current === id ? "page" : undefined}
       className={`${item} ${current === id ? itemCurrent : ""}`}>
@@ -53,7 +57,7 @@ export function SettingsSideNav({ current }: { current: SettingsSideNavCurrent }
       {link("release", "/settings/admin/release", t.body.admin.navReleaseControl)}
       {link("organization", "/settings/team", t.body.admin.navOrganization)}
       {link("compliance", "/settings/admin/compliance", t.body.admin.navCompliance)}
-      {link("billing", "/settings/admin/billing", t.body.admin.navBillingUsage)}
+      {isCompanyOrg && link("billing", "/settings/admin/billing", t.body.admin.navBillingUsage)}
       <div className="mt-auto flex flex-col gap-2 px-2.5 pb-1 pt-3">
         <span className="t-th">{t.body.admin.navInterface}</span>
         <div className="seg f" role="group" aria-label={t.body.admin.navInterface}>

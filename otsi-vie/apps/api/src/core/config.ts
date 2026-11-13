@@ -40,6 +40,12 @@ export interface Config {
   /** Central server (ADR-144 §1.4/§1.5): the same API deployed on the owner's hosting. Absent = local mode,
    *  which behaves exactly as before. */
   central?: CentralConfig;
+  /** The company organisation (OTSI) — the ONLY organisation whose owner/admin may do the company billing
+   *  actions: change bank accounts, confirm / part-pay / reject / refund a plan order, invoice or confirm a
+   *  token pack, and top up a wallet (ADR-140 §8, the bank-account/order fix). Read from
+   *  OTSI_VIE_COMPANY_ORG_ID (the organisation's id, never a name). Absent = NOBODY may do those actions
+   *  (fail closed): a missing setting never falls back to letting every admin do them. */
+  companyOrganizationId?: string;
 }
 
 /** Central-server mode (ADR-144): every setting is optional and comes from the environment. A local engine
@@ -158,6 +164,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (env.OTSI_VIE_MEDIA_SIGNING_KEY) cfg.mediaSigningKey = env.OTSI_VIE_MEDIA_SIGNING_KEY;
   if (env.OTSI_VIE_CACHE_DIR) cfg.cacheDir = env.OTSI_VIE_CACHE_DIR;
   if (env.OTSI_VIE_CREDENTIAL_KEY) cfg.credentialKey = env.OTSI_VIE_CREDENTIAL_KEY;
+  // The company organisation (OTSI_VIE_COMPANY_ORG_ID, ADR-140 §8): the organisation id of the company
+  // organisation (OTSI). Optional and never defaulted: when it is absent the company billing actions are
+  // refused for everybody (fail closed), never opened to every admin.
+  if (env.OTSI_VIE_COMPANY_ORG_ID?.trim()) cfg.companyOrganizationId = env.OTSI_VIE_COMPANY_ORG_ID.trim();
   // AI Analyst (ADR-141): all three or none. A URL without a key or model fails at start-up rather than
   // half-configuring the feature; no URL at all means 'not configured' (the API answers 503, the UI says so).
   if (env.OTSI_VIE_AI_ANALYST_API_URL) {

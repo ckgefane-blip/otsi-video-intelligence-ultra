@@ -13,7 +13,7 @@
  * Idempotency: a SPEND carries `spend:<jobType>:<jobId>` and a REFUND `refund:<jobType>:<jobId>`; charging or
  * refunding the same job twice returns the first row instead of moving tokens again.
  */
-import { Body, Controller, Get, Injectable, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Injectable, Param, Post, Query, UseGuards } from "@nestjs/common";
 import {
   AdminWalletAdjustmentRequest,
   AdminWalletCreditRequest,
@@ -41,17 +41,21 @@ import {
 import type { RowDataPacket } from "mysql2/promise";
 import { v7 as uuidv7 } from "uuid";
 import { recordChange, userActor } from "../../core/audit";
-import { AuthGuard, CurrentPrincipal, Principal, Roles } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, Principal, requireCompanyOrg, Roles } from "../../core/auth";
+import { CONFIG, type Config } from "../../core/config";
 import { Db, type Executor } from "../../core/db";
 import { ApiError, notFound } from "../../core/problem";
 
 export const INSUFFICIENT_TOKENS = "INSUFFICIENT_TOKENS";
 
 /** ADR-140 §8: this codebase has no platform-wide owner role — Admin is the organization's own OWNER / ADMIN
- *  (the same scoping as AdminController). Wallet Admin therefore acts only on the caller's own organization;
- *  cross-organization billing admin needs a platform-owner role that does not exist yet, so an OWNER of one
- *  organization cannot touch another's wallet. In the current single-tenant deployment the organization's OWNER
- *  is the engine owner, so the pack confirm flow is performed by them (see ADR-140). */
+ *  (the same scoping as AdminController). Wallet Admin therefore acts only on the caller's own organization,
+ *  EXCEPT the company billing actions (invoice or confirm a token pack, top up a wallet): those are the
+ *  company organisation's alone. The company organisation is the one named by the server setting
+ *  OTSI_VIE_COMPANY_ORG_ID (never hard-coded); `requireCompanyOrg` refuses everybody else, and refuses
+ *  everybody at all when the setting is missing (fail closed). NOT locked here (owner to decide): the wallet
+ *  admin refund, adjustment and expiry endpoints still use ownOrgOrDeny, so a customer's owner/admin can
+ *  refund or adjust their own wallet — the same hole, one decision away from the same fix. */
 function ownOrgOrDeny(p: Principal, organizationId: string): void {
   if (organizationId !== p.organizationId) throw new ApiError(403, "WALLET_ADMIN_OTHER_ORG", "Wallet Admin acts only on your own organization.");
 }
@@ -91,7 +95,16 @@ function rowToEntry(r: RowDataPacket): WalletLedgerEntry {
 
 @Injectable()
 export class WalletService {
-  constructor(private readonly db: Db) {}
+  /** The company organisation id from the server setting (OTSI_VIE_COMPANY_ORG_ID); undefined when the
+   *  setting is absent, in which case the company billing actions are refused for everybody. */
+  private readonly companyOrgId: string | undefined;
+
+  constructor(
+    private readonly db: Db,
+    @Inject(CONFIG) cfg: Config,
+  ) {
+    this.companyOrgId = cfg.companyOrganizationId;
+  }
 
   /** Every ledger row of an organization, oldest first. The caller holds the wallet lock when mutating. */
   async ledgerRows(organizationId: string, ex: Executor = this.db.pool): Promise<WalletLedgerEntry[]> {
@@ -295,9 +308,9 @@ export class WalletService {
 
   /** Owner: issue the invoice for a requested pack (bank details, amount, due days go on the invoice itself). */
   async issueInvoice(p: Principal, requestId: string, body: IssueInvoiceRequest): Promise<PackRequest> {
+    requireCompanyOrg(p, this.companyOrgId);
     const req = await this.db.one<RowDataPacket>("SELECT * FROM wallet_pack_requests WHERE id = ?", [requestId]);
     if (!req) throw notFound("Pack request");
-    ownOrgOrDeny(p, String(req.organization_id));
     if (req.status !== "REQUESTED") throw new ApiError(409, "PACK_REQUEST_NOT_OPEN", "Only a requested pack can be invoiced.");
     await this.db.tx(async (c) => {
       await c.query("UPDATE wallet_pack_requests SET status = 'INVOICED', invoice_ref = ? WHERE id = ?", [body.invoice_ref, requestId]);
@@ -308,9 +321,9 @@ export class WalletService {
 
   /** Owner: confirm the bank transfer arrived — the wallet is topped up and the ledger records a PURCHASE. */
   async confirmReceipt(p: Principal, requestId: string, body: ConfirmReceiptRequest): Promise<PackRequest> {
+    requireCompanyOrg(p, this.companyOrgId);
     const req = await this.db.one<RowDataPacket>("SELECT * FROM wallet_pack_requests WHERE id = ?", [requestId]);
     if (!req) throw notFound("Pack request");
-    ownOrgOrDeny(p, String(req.organization_id));
     if (req.status !== "INVOICED") throw new ApiError(409, "PACK_REQUEST_NOT_INVOICED", "Only an invoiced pack can be confirmed paid. Issue the invoice first.");
     const orgId = String(req.organization_id);
     const now = new Date().toISOString();
@@ -394,7 +407,7 @@ export class WalletService {
 
   /** Owner top-up against a bank transfer: a PURCHASE row with the invoice reference. */
   async adminTopUp(p: Principal, organizationId: string, body: AdminWalletCreditRequest): Promise<WalletLedgerEntry> {
-    ownOrgOrDeny(p, organizationId);
+    requireCompanyOrg(p, this.companyOrgId);
     return this.db.tx(async (c) => {
       const entry = await this.credit(c, organizationId, p.userId, {
         kind: "PURCHASE", amount: body.amount, idempotencyKey: `topup:${organizationId}:${uuidv7()}`,

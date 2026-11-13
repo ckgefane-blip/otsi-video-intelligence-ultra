@@ -7,6 +7,7 @@
  * Advanced screens (lib/interfaceMode), so in Guided mode they are not offered here, exactly as in the rail.
  */
 import Link from "next/link";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useInterfaceMode } from "@/lib/interfaceMode";
 import { useLocale } from "@/lib/i18n";
 
@@ -15,6 +16,10 @@ export type SettingsNavCurrent = "team" | "security" | "wallet" | "admin" | "bil
 export function SettingsNav({ current }: { current: SettingsNavCurrent }) {
   const { t } = useLocale();
   const { mode } = useInterfaceMode();
+  const { organization } = useAuth();
+  // Admin › Billing is the company organisation's screen (OTSI): a customer admin never sees the link,
+  // even in Advanced mode. The API refuses the actions too — this only hides the entry point.
+  const isCompanyOrg = organization?.is_company_org === true;
   const entries = [
     { id: "team" as const, href: "/settings/team", label: t.body.shell.teamRoles },
     { id: "security" as const, href: "/settings/security", label: t.body.shell.twoStep },
@@ -22,7 +27,9 @@ export function SettingsNav({ current }: { current: SettingsNavCurrent }) {
     ...(mode === "advanced"
       ? [
           { id: "admin" as const, href: "/settings/admin", label: t.body.shell.adminConsole },
-          { id: "billing" as const, href: "/settings/admin/billing", label: t.body.wallet.billingTitle },
+          ...(isCompanyOrg
+            ? [{ id: "billing" as const, href: "/settings/admin/billing", label: t.body.wallet.billingTitle }]
+            : []),
         ]
       : []),
   ];

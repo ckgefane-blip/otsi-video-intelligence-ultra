@@ -28,7 +28,10 @@ export const Me = z.object({
     /** when this person finished the first-run welcome (name and tour); null = not yet */
     onboarded_at: z.string().nullable().default(null) }),
   /** ACTIVE memberships only: the organizations this user can act for */
-  memberships: z.array(z.object({ organization_id: z.string().uuid(), organization_name: z.string(), role: MembershipRole })),
+  memberships: z.array(z.object({ organization_id: z.string().uuid(), organization_name: z.string(), role: MembershipRole,
+    /** true when this organisation is the company organisation (OTSI) — the only one whose owner/admin may
+     *  do the company billing actions. Defaults to false (fail closed) when the server does not send it. */
+    is_company_org: z.boolean().default(false) })),
 });
 export type Me = z.infer<typeof Me>;
 

@@ -39,6 +39,20 @@ export const CurrentAccount = createParamDecorator((_: unknown, ctx: ExecutionCo
 });
 /** Restrict a route to these membership roles (deny by default: a route without @Roles allows any ACTIVE member). */
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+
+/**
+ * Company-organisation guard (ADR-140 §8, the bank-account/order fix): the company organisation is the one
+ * named by the server setting (OTSI_VIE_COMPANY_ORG_ID). Only a member of that organisation may do the company
+ * billing actions (change bank accounts, confirm / part-pay / reject / refund a plan order, invoice or confirm
+ * a token pack, top up a wallet). Fail closed: when the setting is absent — or the caller's organisation is
+ * any other — the action is refused (403). It never falls back to letting every admin do it. The existing
+ * @Roles("OWNER", "ADMIN") still applies on top: the caller must be an owner/admin of the company org.
+ */
+export function requireCompanyOrg(p: Principal, companyOrganizationId: string | undefined): void {
+  if (!companyOrganizationId || p.organizationId !== companyOrganizationId) {
+    throw new ApiError(403, "COMPANY_ORG_ONLY", "Only the company organisation can do this.");
+  }
+}
 export const CurrentPrincipal = createParamDecorator((_: unknown, ctx: ExecutionContext): Principal => {
   const p = (ctx.switchToHttp().getRequest<FastifyRequest>() as FastifyRequest & { principal?: Principal }).principal;
   if (!p) throw new ApiError(401, "UNAUTHENTICATED", "Sign in first.");
