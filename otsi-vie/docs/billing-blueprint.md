@@ -193,7 +193,7 @@ Source: `PLAN_CATALOGUE` in `otsi-vie/packages/contracts/src/bank-transfer.ts` (
 
 | Plan | Tokens | Naira | USD (exact at ₦1,500=$1) | USD (rounded — PROPOSAL) | Per token (NGN) | What it covers |
 |---|---|---|---|---|---|---|
-| Free | 25, once | Free | Free | Free | — | A first try — a short analysis and a reel |
+| Free | 100, once | Free | Free | Free | — | One full match + its reel |
 | Player pack (one-off) | 100 | ₦3,000 | $2.00 | $2 | ₦30 | 1 match + reel |
 | Starter (per month) | 300 | ₦7,500 | $5.00 | $5 | ₦25 | ~3 matches + reels a month |
 | Club (per month) | 1,000 | ₦20,000 | $13.33 | $13 | ₦20 | ~10 matches + reels |
