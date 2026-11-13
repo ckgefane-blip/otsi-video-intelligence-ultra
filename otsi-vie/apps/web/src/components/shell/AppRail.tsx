@@ -2,11 +2,12 @@
 /**
  * The left rail (SOT rebuild 2026-11-13): the SOT's shared rail, not a resizable sidebar.
  *
- * - 240 px with labels by default, 64 px icons-only when collapsed — fixed widths, no drag-resize handle (the SOT has none in any
- *   .dc.html; its `.rsz` CSS is dead). The Collapse toggle (and Ctrl/Cmd+B) switches between the two; the choice is remembered
- *   in this browser (localStorage `otsi-vie.rail.v3.work` / `.page`, 240 or 64 only), separately for the five work pages and the rest.
- * - The SOT's per-page default: the rail ships collapsed on Analysis, Tactical, Reels, Clip Studio and Library, expanded on the
- *   other shelled pages. Until the person toggles it (which stores a choice), navigating to another page takes that page's default.
+ * - 240 px with labels, 64 px icons-only when collapsed — fixed widths, no drag-resize handle (the SOT has none in any
+ *   .dc.html; its `.rsz` CSS is dead).
+ * - Open (240 px, labels) on EVERY page by default (owner 2026-11-13: "It should always be open/visible"); this overrides the
+ *   SOT's per-page collapsed default on Analysis/Tactical/Reels/Clip Studio/Library, which made the rail jump between pages.
+ *   Only the person's own Collapse (or Ctrl/Cmd+B) collapses it, and that one choice holds on every page until they expand it
+ *   again (localStorage `otsi-vie.rail.v4`, 240 or 64 only).
  * - All eleven destinations in the SOT's order — Home, Media, Processing, Analysis, Tactical, Players, Reports, Reels, Clip Studio,
  *   Library, Export — shown always; then Settings (Preferences) and Admin in the footer. The SOT has no Guided-mode gating.
  * - Icons are the SOT's own inline SVGs (stroke, 1.6), copied from reel-builder/Reels.dc.html — Media is a download tray,
@@ -15,17 +16,14 @@
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { navItems } from "@/lib/pages";
 import { EMPTY_CTX, navHref, onCtx, readCtx } from "@/lib/workContext";
 import { useLocale } from "@/lib/i18n";
 
-export const RAIL_STORAGE_KEY = "otsi-vie.rail.v3";
+export const RAIL_STORAGE_KEY = "otsi-vie.rail.v4";
 const MIN_W = 64, DEFAULT_W = 240;
 
-/** the SOT's five pages that ship with the rail collapsed (class="app shell rc") */
-const COLLAPSED_DEFAULT = /^\/(analysis|tactics|reels|studio|library)(\/|$)/;
-const defaultWidth = (path: string) => (COLLAPSED_DEFAULT.test(path) ? MIN_W : DEFAULT_W);
 
 type NavKey = "home" | "upload" | "processing" | "analysis" | "tactical" | "players" | "reports" | "reels" | "studio" | "library" | "export";
 interface RailEntry { key: NavKey; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> }
@@ -72,40 +70,32 @@ const ENTRIES: Record<string, RailEntry> = {
   Export: { key: "export", icon: ICONS.export },
 };
 
-/** the choice is remembered separately for the five work pages (SOT default: icons) and the other pages (default: labels),
- *  so collapsing on Home never stops Analysis opening as icons, and the reverse (owner 2026-11-13) */
-const railKey = (path: string) => `${RAIL_STORAGE_KEY}.${COLLAPSED_DEFAULT.test(path) ? "work" : "page"}`;
-function readRail(path: string): number | null {
+function readRail(): number | null {
   try {
-    const raw = localStorage.getItem(railKey(path));
+    const raw = localStorage.getItem(RAIL_STORAGE_KEY);
     if (raw === null) return null;
     const v = Number(raw);
     return v === MIN_W || v === DEFAULT_W ? v : null;
   } catch { return null; }
 }
-function saveRail(path: string, w: number) {
-  try { localStorage.setItem(railKey(path), String(w)); } catch { /* blocked storage: this visit only */ }
+function saveRail(w: number) {
+  try { localStorage.setItem(RAIL_STORAGE_KEY, String(w)); } catch { /* blocked storage: this visit only */ }
 }
 
 export function AppRail() {
   const path = usePathname() ?? "/";
   const items = navItems(path);
   const { t } = useLocale();
-  const [width, setWidth] = useState(() => defaultWidth(path));
-  const pathRef = useRef(path);
-  pathRef.current = path;
+  const [width, setWidth] = useState(DEFAULT_W);
   const collapsed = width <= MIN_W;
   const [ctx, setCtx] = useState(EMPTY_CTX);
   useEffect(() => { setCtx(readCtx()); return onCtx(() => setCtx(readCtx())); }, []);
-  // a stored choice wins; without one the page takes the SOT's per-page default (collapsed on the five rc pages)
-  useEffect(() => {
-    const stored = readRail(path);
-    setWidth(stored ?? defaultWidth(path));
-  }, [path]);
+  // open by default; only the person's own stored Collapse keeps it collapsed, the same on every page
+  useEffect(() => { setWidth(readRail() ?? DEFAULT_W); }, []);
 
   const toggle = () => setWidth((w) => {
     const next = w <= MIN_W ? DEFAULT_W : MIN_W;
-    saveRail(pathRef.current, next);
+    saveRail(next);
     return next;
   });
   useEffect(() => {

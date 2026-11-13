@@ -28,13 +28,13 @@ describe("rail (SOT)", () => {
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/settings/admin");
   });
 
-  it("ships collapsed (64 px) on the SOT's five collapsed pages", () => {
-    for (const p of ["/analysis", "/tactics", "/reels", "/studio", "/library"]) {
+  it("is open (240 px, labels) on every page by default, including the five work pages (owner 2026-11-13)", () => {
+    for (const p of ["/dashboard", "/analysis", "/tactics", "/reels", "/studio", "/library", "/export"]) {
       path.value = p;
       const { unmount } = render(<AppRail />);
       const rail = screen.getByRole("complementary", { name: "Main" });
-      expect(rail, p).toHaveAttribute("data-rail", "collapsed");
-      expect(rail.getAttribute("style"), p).toContain("width: 64px");
+      expect(rail, p).toHaveAttribute("data-rail", "expanded");
+      expect(rail.getAttribute("style"), p).toContain("width: 240px");
       unmount();
     }
   });
@@ -44,23 +44,26 @@ describe("rail (SOT)", () => {
     const rail = screen.getByRole("complementary", { name: "Main" });
     fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }));
     expect(rail).toHaveAttribute("data-rail", "collapsed");
-    expect(localStorage.getItem(`${RAIL_STORAGE_KEY}.page`)).toBe("64");
+    expect(localStorage.getItem(RAIL_STORAGE_KEY)).toBe("64");
     fireEvent.click(screen.getByRole("button", { name: "Expand navigation" }));
     expect(rail).toHaveAttribute("data-rail", "expanded");
-    expect(localStorage.getItem(`${RAIL_STORAGE_KEY}.page`)).toBe("240");
+    expect(localStorage.getItem(RAIL_STORAGE_KEY)).toBe("240");
   });
 
-  it("collapsing on Home does not stop the work pages opening collapsed, and expanding a work page leaves Home alone", () => {
-    localStorage.setItem(`${RAIL_STORAGE_KEY}.page`, "64");
-    path.value = "/analysis";
-    const a = render(<AppRail />);
-    fireEvent.click(screen.getByRole("button", { name: "Expand navigation" }));
-    expect(localStorage.getItem(`${RAIL_STORAGE_KEY}.work`)).toBe("240");
-    expect(localStorage.getItem(`${RAIL_STORAGE_KEY}.page`)).toBe("64");
-    a.unmount();
-    path.value = "/dashboard";
+  it("one choice holds on every page: no page collapses or expands it by itself", () => {
+    const home = render(<AppRail />);
+    fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }));
+    home.unmount();
+    for (const p of ["/analysis", "/players", "/library"]) {
+      path.value = p;
+      const { unmount } = render(<AppRail />);
+      expect(screen.getByRole("complementary", { name: "Main" }), p).toHaveAttribute("data-rail", "collapsed");
+      unmount();
+    }
+    localStorage.setItem(RAIL_STORAGE_KEY, "240");
+    path.value = "/studio";
     render(<AppRail />);
-    expect(screen.getByRole("complementary", { name: "Main" })).toHaveAttribute("data-rail", "collapsed");
+    expect(screen.getByRole("complementary", { name: "Main" })).toHaveAttribute("data-rail", "expanded");
   });
 
   it("has no resize handle", () => {
