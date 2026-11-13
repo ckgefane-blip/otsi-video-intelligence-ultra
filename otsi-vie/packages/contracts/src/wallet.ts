@@ -88,7 +88,7 @@ export const TokenPackCatalogue = z.object({
   max_blocks: z.literal(TOPUP_MAX_BLOCKS),
   /** The offered sizes; empty for Enterprise. */
   packs: z.array(TokenPack),
-  free_grant_tokens: z.literal(100),
+  free_grant_tokens: z.literal(25),
   free_grant_expiry_days: z.literal(30),
   pack_expiry_months: z.literal(12),
   costs: z.object({
@@ -140,9 +140,9 @@ export function tokenPackCatalogue(planCode: string | null | undefined = null): 
 export const TOKEN_COSTS = { analysisPerMinute: 1, reelRender: 10, playerReport: 10, exportPack: 10, aiAnalysis: 10 } as const;
 /** Scope §7: low-balance warning below the cost of one full match. */
 export const LOW_BALANCE_THRESHOLD = 90;
-/** 100 free tokens, once, claimed with the "Claim free grant" button (never automatic), expiring 30 days after
- *  signup. Owner APPROVED 2026-11-13 (supersedes the earlier 25). */
-export const FREE_GRANT_TOKENS = 100;
+/** 25 free tokens, once, claimed with the "Claim free grant" button (never automatic), expiring 30 days after
+ *  signup. Owner decision 2026-11-14 (back to 25; supersedes the 2026-11-13 approval of 100). */
+export const FREE_GRANT_TOKENS = 25;
 export const FREE_GRANT_EXPIRY_DAYS = 30;
 /** Scope §3: paid tokens expire 12 months after purchase. */
 export const PACK_EXPIRY_MONTHS = 12;

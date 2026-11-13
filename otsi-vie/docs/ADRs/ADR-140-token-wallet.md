@@ -66,7 +66,7 @@ happens, the merge is the problem, not this number — never renumber a migratio
 - **These prices are recommendations, not measured costs.** They must be validated against the unit-cost worksheet
   once the owner fills in host/analyst rates and margin, and confirmed by the paid pilots (scope §3). The catalogue
   is data in `TOKEN_PACKS`, not scattered literals, so a validated price change is one edit.
-- **Free tier:** 25 tokens, once per organization, expiring 30 days after signup (scope §4). One grant per
+- **Free tier:** 25 tokens, once per organization, expiring 30 days after signup (scope §4). Owner decision 2026-11-14 (the grant had been raised to 100 by the 2026-11-13 approval; the owner changed it back to 25). One grant per
   organization is enforced by `wallet_free_grants` (one row per organization, primary key). The scope says "one
   grant per organisation (verified email)": **there is no `email_verified` column on `users`** — email verification
   lives with the identity provider, not in this database — so the grant records the requesting member's email as

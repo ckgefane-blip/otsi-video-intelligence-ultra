@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
+import { walletChanged } from "@/lib/wallet";
 import { UsageHistory } from "./UsageHistory";
 
 const money = (minor: number, currency: "NGN" | "USD") =>
@@ -164,6 +165,7 @@ export function WalletView() {
     setError(null);
     try {
       await fn();
+      walletChanged(); // the top token chip and the status bar read the shared balance — refresh them now
       setNotice(done);
       await load();
     } catch (e) {

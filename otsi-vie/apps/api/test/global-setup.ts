@@ -54,7 +54,11 @@ export default async function setup({ provide }: GlobalSetupContext) {
   const appUser = `otsi_app_t_${randomBytes(3).toString("hex")}`;
   const appPw = randomBytes(18).toString("hex");
   const admin = await mysql.createConnection({ host: "127.0.0.1", port: PORT, user: "root", password: pw });
-  await admin.query(`CREATE DATABASE \`${db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`);
+  // MySQL 8.4's default collation is utf8mb4_0900_ai_ci; MariaDB 10.11 (this VM) does not have it, so
+  // MariaDB mode uses utf8mb4_unicode_ci (MariaDB 11.4 has both). The collation is only the scratch
+  // database's default; the migrations set their own collations.
+  const collation = MARIA ? "utf8mb4_unicode_ci" : "utf8mb4_0900_ai_ci";
+  await admin.query(`CREATE DATABASE \`${db}\` CHARACTER SET utf8mb4 COLLATE ${collation}`);
   const rootDsn = `mysql://root:${encodeURIComponent(pw)}@127.0.0.1:${PORT}/${db}`;
   execFileSync(PY, [path.join(APP, "tools", "db", "migrate.py"), "up", "--dsn", rootDsn], { stdio: "pipe" });
   execFileSync(PY, [path.join(APP, "tools", "db", "roles.py"), "--dsn", rootDsn], { stdio: "pipe" });

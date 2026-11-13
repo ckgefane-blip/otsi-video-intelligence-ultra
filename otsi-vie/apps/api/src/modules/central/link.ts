@@ -49,14 +49,24 @@ export function linkedCentralUrl(cfg: Config): string | null {
   return null; // a central server is a real domain over HTTPS (or this computer, for development); nothing else is guessed
 }
 
-/** Central could not be reached at all (network down, DNS, timeout) — not an answer from central. */
-export class CentralUnreachable extends Error {}
+/** Central could not be reached at all (network down, DNS, timeout) — not an answer from central.
+ *  `timedOut` is true when the server was too slow to answer (a timeout), false for a real network
+ *  failure (no internet, DNS). Callers show the "internet" text only for a real network failure. */
+export class CentralUnreachable extends Error {
+  readonly timedOut: boolean;
+  constructor(message: string, timedOut = false) {
+    super(message);
+    this.timedOut = timedOut;
+  }
+}
 
 const LICENCE_REQUIRED = () => new ApiError(402, "LICENCE_REQUIRED", "Sign in to your OTSI account to run paid work.");
 const OFFLINE_ALLOWANCE_USED = () => new ApiError(402, "OFFLINE_ALLOWANCE_USED", "Connect to the internet to start more paid work.");
 const SIGN_IN_FIRST = () => new ApiError(402, "LICENCE_REQUIRED", "Sign in to your OTSI account to use the token wallet.");
 
 const REQUEST_TIMEOUT_MS = 10_000;
+/** A slow central server gets one retry on sign-up with a longer wait (owner decision 2026-11-14). */
+const SIGN_UP_RETRY_TIMEOUT_MS = 20_000;
 const SYNC_EVERY_MS = 5 * 60_000;
 /** A licence older than this is refreshed by the background sync (it is good for 30 days). */
 const LICENCE_REFRESH_AFTER_MS = 24 * 3_600_000;
@@ -117,8 +127,9 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
   // ---- HTTP to central ------------------------------------------------------------------------------------------
 
   /** One request to central. A network failure or timeout is CentralUnreachable; any HTTP answer is returned.
-   *  With `rawResponse` the answer is returned as bytes (a receipt download is a file, not JSON). */
-  async http(method: string, path: string, opts: { json?: unknown; raw?: { body: Buffer; headers: Record<string, string> }; bearer?: string; orgId?: string; refresh?: string; csrf?: boolean; rawResponse?: boolean } = {}): Promise<CentralReply> {
+   *  With `rawResponse` the answer is returned as bytes (a receipt download is a file, not JSON).
+   *  `timeoutMs` overrides the 10 s default wait for one call (a sign-up retry waits longer). */
+  async http(method: string, path: string, opts: { json?: unknown; raw?: { body: Buffer; headers: Record<string, string> }; bearer?: string; orgId?: string; refresh?: string; csrf?: boolean; rawResponse?: boolean; timeoutMs?: number } = {}): Promise<CentralReply> {
     if (!this.url) throw new ApiError(404, "NOT_FOUND", "Not found.");
     const headers: Record<string, string> = { accept: "application/json" };
     if (opts.json !== undefined) headers["content-type"] = "application/json";
@@ -130,11 +141,14 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
     let res: Response;
     try {
       res = await fetch(`${this.url}${path}`, {
-        method, headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        method, headers, signal: AbortSignal.timeout(opts.timeoutMs ?? REQUEST_TIMEOUT_MS),
         ...(opts.json !== undefined ? { body: JSON.stringify(opts.json) } : opts.raw ? { body: opts.raw.body } : {}),
       });
-    } catch {
-      throw new CentralUnreachable(`central server ${this.url} could not be reached`);
+    } catch (e) {
+      // AbortSignal.timeout rejects with a TimeoutError (Node) / AbortError; anything else is a real
+      // network failure (no internet, DNS). The caller needs to tell them apart.
+      const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+      throw new CentralUnreachable(`central server ${this.url} could not be reached`, timedOut);
     }
     const text = opts.rawResponse ? null : await res.text();
     let body: unknown = null;
@@ -169,9 +183,19 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
     return { userId: await this.adopt(r, null) };
   }
 
-  /** Create the OTSI account and organization at central (public sign-up), then mirror it here. */
+  /** Create the OTSI account and organization at central (public sign-up), then mirror it here.
+   *  A slow server gets one retry with a longer wait (20 s); a real network failure is not retried. */
   async signUp(body: { email: string; display_name: string; organization_name: string; password: string }): Promise<{ userId: string }> {
-    const r = await this.http("POST", "/v1/auth/sign-up", { json: body, csrf: true });
+    try {
+      return await this.signUpOnce(body);
+    } catch (e) {
+      if (e instanceof CentralUnreachable && e.timedOut) return this.signUpOnce(body, SIGN_UP_RETRY_TIMEOUT_MS);
+      throw e;
+    }
+  }
+
+  private async signUpOnce(body: { email: string; display_name: string; organization_name: string; password: string }, timeoutMs?: number): Promise<{ userId: string }> {
+    const r = await this.http("POST", "/v1/auth/sign-up", { json: body, csrf: true, ...(timeoutMs ? { timeoutMs } : {}) });
     if (r.status !== 200) this.fail(r);
     return { userId: await this.adopt(r, body.password) };
   }

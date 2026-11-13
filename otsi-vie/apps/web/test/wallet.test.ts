@@ -57,9 +57,9 @@ describe("token wallet costs", () => {
     expect(analysisCostTokens(-5)).toBeNull();
   });
 
-  it("publishes the approved grassroots price list (owner 2026-11-13): plans, free grant, top-up rates and upload limits", () => {
+  it("publishes the approved grassroots price list (owner 2026-11-13; free grant 25 by owner decision 2026-11-14): plans, free grant, top-up rates and upload limits", () => {
     const row = (code: string) => PLAN_CATALOGUE.find((p) => p.code === code)!;
-    expect(FREE_GRANT_TOKENS).toBe(100);
+    expect(FREE_GRANT_TOKENS).toBe(25);
     expect(LOW_BALANCE_THRESHOLD).toBe(90);
     // plans: tokens a month and the monthly price in kobo; dollars at ₦1,500 = $1, to the cent
     expect(row("STARTER")).toMatchObject({ tokens_per_month: 300, price_ngn_minor: 750_000, price_usd_minor: 500, upload_gb_per_video: 8, orderable: true });
@@ -74,7 +74,7 @@ describe("token wallet costs", () => {
     expect(topUpPrice("ENTERPRISE", 1)).toBeNull();
     // the Wallet's offer: the caller's own rate; no plan (or an unknown old plan) is the Free / Player rate; Enterprise has none
     const free = tokenPackCatalogue(null);
-    expect(free).toMatchObject({ rate_plan: "FREE", block_tokens: 100, block_price_ngn_minor: 300_000, free_grant_tokens: 100 });
+    expect(free).toMatchObject({ rate_plan: "FREE", block_tokens: 100, block_price_ngn_minor: 300_000, free_grant_tokens: 25 });
     expect(free.packs.map((p) => [p.blocks, p.tokens, p.price_ngn_minor, p.label])).toEqual([
       [1, 100, 300_000, "Player pack"], [3, 300, 900_000, "300 tokens"], [5, 500, 1_500_000, "500 tokens"], [10, 1000, 3_000_000, "1000 tokens"]]);
     expect(tokenPackCatalogue("SEASON").packs[0]).toMatchObject({ blocks: 1, price_ngn_minor: 125_000, label: "100 tokens" });

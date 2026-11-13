@@ -5,7 +5,7 @@
  * (GET /v1/billing/orders) and the live subscription (GET /v1/billing/subscription). An order is placed by
  * bank transfer; its pro-forma invoice — with the owner's bank details — lives on the order's own page.
  * "Pay online — Coming soon" is a disabled button only: it never opens a checkout and never charges.
- * The approved grassroots price list (owner 2026-11-13): Free first (its 100 free tokens are claimed here or in Token Wallet),
+ * The approved grassroots price list (owner 2026-11-13; free grant 25 tokens by owner decision 2026-11-14): Free first (its 25 free tokens are claimed here or in Token Wallet),
  * the four orderable plans, then Enterprise ("Contact us", from a monthly price, agreed per customer). Every card shows its
  * upload limit per video and its top-up rate — all read from the catalogue the server sends.
  */
@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
+import { walletChanged } from "@/lib/wallet";
 import { money, OrderStatusLabel, planMonths } from "./BillingShared";
 
 const BILLABLE = ["STARTER", "CLUB", "ACADEMY", "SEASON"] as const;
@@ -85,6 +86,7 @@ export function PlanOrdersView() {
     setError(null);
     try {
       await api("/v1/wallet/free-grant", { method: "POST" });
+      walletChanged(); // the top token chip and the status bar read the shared balance — refresh them now
       setNotice(w.freeAdded);
     } catch (e) {
       setError(e instanceof ApiProblem ? e.message : w.actionFailed);

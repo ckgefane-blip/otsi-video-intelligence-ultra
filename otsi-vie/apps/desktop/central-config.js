@@ -31,10 +31,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-/** Where the file lives: the packaged app's resources folder, else the repo checkout (dev). */
+/** Where the file lives: the repo checkout (dev, when running from code) first, else the packaged app's
+ *  resources folder. process.resourcesPath is set even when running from code, so it must not win over
+ *  the repo file — a staging run from code otherwise reads the wrong folder and starts in local mode. */
 function defaultConfigPath() {
+  const repoPath = path.join(__dirname, 'resources', 'central.json');
+  if (fs.existsSync(repoPath)) return repoPath;
   if (process.resourcesPath) return path.join(process.resourcesPath, 'central.json');
-  return path.join(__dirname, 'resources', 'central.json');
+  return repoPath;
 }
 
 /** The parsed file, or {} when it is missing, unreadable, or not an object. Never throws. */

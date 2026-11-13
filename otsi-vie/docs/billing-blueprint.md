@@ -48,7 +48,7 @@ This document is a specification. Any developer — human or AI — who implemen
 | `TOKEN_COSTS.exportPack` | 10 | Tokens per export pack (Scouting Pack). |
 | `TOKEN_COSTS.aiAnalysis` | 10 | Tokens per AI Analyst assessment. |
 | `LOW_BALANCE_THRESHOLD` | 90 | Below this balance, the wallet warns the user. |
-| `FREE_GRANT_TOKENS` | **100** | Tokens in the one-time free grant. APPROVED 2026-11-13 (supersedes the earlier approved 25). **Built** on `claude/billing-merge` (2026-11-13): contracts `FREE_GRANT_TOKENS = 100`, migration 0076 sets the column default to 100. |
+| `FREE_GRANT_TOKENS` | **25** | Tokens in the one-time free grant. Owner decision 2026-11-14 (back to 25; supersedes the 2026-11-13 approval of 100). **Built** on `claude/billing-merge` (2026-11-13) as 100, changed to 25 on 2026-11-14: contracts `FREE_GRANT_TOKENS = 25`. Migration 0076 sets the column default to 100, but the API always writes the value explicitly, so the default is not used. |
 | `FREE_GRANT_EXPIRY_DAYS` | 30 | Days after signup before the free grant expires. |
 | `PACK_EXPIRY_MONTHS` | 12 | Months after purchase before paid tokens expire. |
 
@@ -66,7 +66,7 @@ analysisCostTokens(durationUs) = ceil(durationUs / 60,000,000) × 1
 
 | Source | Tokens | Rule |
 |---|---|---|
-| Free grant | **100, once** | **NOT granted automatically at signup.** The customer claims it by pressing a "Claim Free grant" button in the Wallet. One click gives 100 tokens straight away, no approval, once per organisation, expiring 30 days after signup. Enforced by the `wallet_free_grants` table (one row per organisation). A second claim is rejected with HTTP 409 `FREE_GRANT_ALREADY_CLAIMED`. |
+| Free grant | **25, once** | **NOT granted automatically at signup.** The customer claims it by pressing a "Claim Free grant" button in the Wallet. One click gives 25 tokens straight away, no approval, once per organisation, expiring 30 days after signup. Enforced by the `wallet_free_grants` table (one row per organisation). A second claim is rejected with HTTP 409 `FREE_GRANT_ALREADY_CLAIMED`. |
 | Player pack (one-off) | 100 | One-off purchase, bank transfer. Expires 12 months after purchase. |
 | Plans (subscription) | 300 / 1,000 / 3,000 / 6,000 per month | Monthly or 12-month subscription, bank transfer. See §5.2. |
 | Top-up (blocks) | 100 per block (Naira) | A top-up costs the same per token as the customer's own plan (see §5.4). Sold in blocks of 100 tokens (one match + its reel). |
@@ -193,7 +193,7 @@ Source: `PLAN_CATALOGUE` in `otsi-vie/packages/contracts/src/bank-transfer.ts` (
 
 | Plan | Tokens | Naira | USD (exact at ₦1,500=$1) | USD (rounded — PROPOSAL) | Per token (NGN) | What it covers |
 |---|---|---|---|---|---|---|
-| Free | 100, once | Free | Free | Free | — | 1 full match + its reel |
+| Free | 25, once | Free | Free | Free | — | A first try — a short analysis and a reel |
 | Player pack (one-off) | 100 | ₦3,000 | $2.00 | $2 | ₦30 | 1 match + reel |
 | Starter (per month) | 300 | ₦7,500 | $5.00 | $5 | ₦25 | ~3 matches + reels a month |
 | Club (per month) | 1,000 | ₦20,000 | $13.33 | $13 | ₦20 | ~10 matches + reels |
@@ -355,7 +355,7 @@ Known limitations: every member of an organisation sees "receipt uploaded" / "ma
 | Printable invoice view + final receipt view | Print view only. No PDF library. |
 | BILLING kind in the bell | `apps/api/src/modules/overview/notifications.ts` + `packages/contracts/src/notifications.ts`. |
 | Admin revenue summary | `GET /v1/admin/billing/revenue-summary` + UI. (See the two-summaries merge item in §6.4.) |
-| Free grant claim button | "Claim Free grant" button in Token Wallet and on the Free plan card, once per organisation, 30-day expiry, **100 tokens** (built 2026-11-13). |
+| Free grant claim button | "Claim Free grant" button in Token Wallet and on the Free plan card, once per organisation, 30-day expiry, **25 tokens** (built 2026-11-13 as 100, changed to 25 by owner decision 2026-11-14). |
 | Live token display | Cost preview before every charged action, live job readout as ActivityLine narration, usage history. Commit `4028dbfc`. |
 | ActivityLine, global | Live narration + real-time timing across every engine action. Commit `0eaf0b36`. |
 | Bank-account + order-action lock (OTSI only) | `OTSI_VIE_COMPANY_ORG_ID` setting, fail closed. Commit `556d160a`. |
@@ -370,7 +370,7 @@ Known limitations: every member of an organisation sees "receipt uploaded" / "ma
 
 | Item | What exists |
 |---|---|
-| Plan cards | Settings › Plans & billing shows Free (claim 100 free tokens), Starter ₦7,500 / 300, Club ₦20,000 / 1,000, Academy ₦45,000 / 3,000, Season ₦75,000 / 6,000 tokens a month, and Enterprise "Contact us" from ₦250,000. Each card shows its upload limit per video and its top-up rate. 12 months = 10 payments. |
+| Plan cards | Settings › Plans & billing shows Free (claim 25 free tokens), Starter ₦7,500 / 300, Club ₦20,000 / 1,000, Academy ₦45,000 / 3,000, Season ₦75,000 / 6,000 tokens a month, and Enterprise "Contact us" from ₦250,000. Each card shows its upload limit per video and its top-up rate. 12 months = 10 payments. |
 | Top-ups | Blocks of 100 tokens at the customer's own plan rate (Free / Player ₦3,000, Starter ₦2,500, Club ₦2,000, Academy ₦1,500, Season ₦1,250). The caller sends only the number of blocks; the server prices them. Enterprise top-ups are refused with 409 `TOPUP_AGREED_WITH_OTSI`. `wallet_pack_requests.pack_code` records the plan whose rate applied (migration 0076 adds `FREE`). |
 | Upload limit per video | Free 2, Starter 8, Club 24, Academy 48, Season 64 GB; Enterprise no plan limit. Enforced by the server at upload start (413 `PLAN_UPLOAD_LIMIT`), reported by `GET /v1/upload-limits` (plan, plan limit, server limit), shown on the Media page and status bar. |
 | Not yet | Enterprise has no self-serve subscription: OTSI sets it up (licensing build). "Contact us" shows a note only — OTSI's contact email / phone is not in the app yet (owner to supply). Plans by features (§5.3) stay a proposal. Dollar rounding and dollar top-ups stay OPEN. |
@@ -432,7 +432,7 @@ Grassroots players often have only phones or weak laptops, and analysing a match
 
 - **1 token = 1 started minute analysed.**
 - **A full match + its reel = 100 tokens.**
-- **Free: 100 tokens, once, 30 days, claim button (NOT automatic). (APPROVED.)**
+- **Free: 25 tokens, once, 30 days, claim button (NOT automatic). (APPROVED 2026-11-13 as 100; changed to 25 by owner decision 2026-11-14.)**
 - **Player pack 100 · ₦3,000 / $2.00 — Starter 300/mo · ₦7,500 / $5.00 — Club 1,000/mo · ₦20,000 / $13.33 — Academy 3,000/mo · ₦45,000 / $30.00 — Season 6,000/mo · ₦75,000 / $50.00 — Enterprise from ₦250,000 / from $166.67, "Contact us".**
 - **Exchange rate: ₦1,500 = $1. (APPROVED.) Dollar rounding to whole dollars: PROPOSAL, pending.**
 - **Top-ups: same per-token price as the customer's plan; 100-token blocks (Naira): ₦3,000 / ₦2,500 / ₦2,000 / ₦1,500 / ₦1,250. Dollar 1,000-token bundles: PROPOSAL, pending.**

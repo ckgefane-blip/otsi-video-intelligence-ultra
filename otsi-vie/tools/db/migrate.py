@@ -219,8 +219,12 @@ def up(dsn: str, migrations: list[Migration] | None = None, applied_by: str = "m
             try:
                 # MariaDB (the central server's host, ADR-146 §6): each statement passes through mariadb_compat.rewrite()
                 cur.execute("SELECT VERSION()")
-                maria = mariadb_compat.is_mariadb(str(cur.fetchone()[0]))
-                cur.execute(BOOTSTRAP)
+                version = str(cur.fetchone()[0])
+                maria = mariadb_compat.is_mariadb(version)
+                # MariaDB older than 11.4 (this VM's 10.11 test server) has no utf8mb4_0900_ai_ci: the
+                # BOOTSTRAP and the migrations name it, so it is rewritten to utf8mb4_unicode_ci there.
+                fix_collation = maria and mariadb_compat.collation_needs_rewrite(version)
+                cur.execute(mariadb_compat.rewrite_collation(BOOTSTRAP) if fix_collation else BOOTSTRAP)
                 pending = plan(cur, migrations)
                 if pending:
                     run_pre_migration_backup()
@@ -229,6 +233,8 @@ def up(dsn: str, migrations: list[Migration] | None = None, applied_by: str = "m
                     for k, stmt in enumerate(split_statements(m.sql), 1):
                         if maria:
                             stmt = mariadb_compat.rewrite(stmt)
+                        if fix_collation:
+                            stmt = mariadb_compat.rewrite_collation(stmt)
                         try:
                             cur.execute(stmt)
                         except pymysql.MySQLError as e:
@@ -253,7 +259,10 @@ def status(dsn: str) -> list[tuple[str, str, str]]:
     conn = connect(dsn)
     try:
         with conn.cursor() as cur:
-            cur.execute(BOOTSTRAP)
+            cur.execute("SELECT VERSION()")
+            version = str(cur.fetchone()[0])
+            fix_collation = mariadb_compat.is_mariadb(version) and mariadb_compat.collation_needs_rewrite(version)
+            cur.execute(mariadb_compat.rewrite_collation(BOOTSTRAP) if fix_collation else BOOTSTRAP)
             done = applied(cur)
     finally:
         conn.close()

@@ -20,7 +20,7 @@ import { inject } from "vitest";
 import { createApp } from "../src/app";
 import { publicKeyOf, type Config } from "../src/core/config";
 import { Db } from "../src/core/db";
-import { resetSignUpLimits, SIGN_UP_LIMIT } from "../src/modules/auth/auth.service";
+import { resetSignUpLimits, SIGN_UP_LIMIT_PER_IP } from "../src/modules/auth/auth.service";
 import { verifyLicenceToken } from "../src/modules/licence/licence";
 import { TICKET_AUDIENCE, verifyTicketToken } from "../src/modules/tickets/tickets";
 import { appDb, AUDIENCE, ISSUER, key, rootDb, seedWallet } from "./helpers";
@@ -112,7 +112,7 @@ describe("licensing circle on the central server (ADR-146)", () => {
     it("is rate-limited per network address", async () => {
       resetSignUpLimits();
       const ip = "10.77.77.77";
-      for (let i = 0; i < SIGN_UP_LIMIT; i++) expect((await signUp({ ip })).status).toBe(200);
+      for (let i = 0; i < SIGN_UP_LIMIT_PER_IP; i++) expect((await signUp({ ip })).status).toBe(200);
       const over = await signUp({ ip });
       expect([over.status, over.body.code]).toEqual([429, "TOO_MANY_SIGN_UPS"]);
       resetSignUpLimits();

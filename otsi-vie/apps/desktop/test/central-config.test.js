@@ -113,6 +113,30 @@ test('no file = local mode: with no central.json and no env, the desktop is loca
   assert.equal(licence.licenceStatus('/tmp/userdata-nonexistent').state, 'local-only');
 });
 
+test('running from code: the repo central.json wins even when process.resourcesPath is set', () => {
+  clearEnv();
+  centralConfig.resetConfigCache();
+  // process.resourcesPath is set even when the app runs from code (not packaged), so a staging run
+  // from code used to read the packaged path (no file there) and start in local mode. The repo file
+  // must win when it exists.
+  const repoFile = path.join(__dirname, '..', 'resources', 'central.json');
+  const savedResourcesPath = process.resourcesPath;
+  const fakePackaged = path.join(os.tmpdir(), 'otsi-packaged-resources');
+  fs.mkdirSync(fakePackaged, { recursive: true });
+  fs.writeFileSync(repoFile, JSON.stringify(STAGING), 'utf8');
+  process.resourcesPath = fakePackaged;
+  try {
+    assert.equal(centralConfig.defaultConfigPath(), repoFile);
+    assert.equal(centralConfig.loadConfig().central_server_url, 'https://accounts.otsi.cc');
+  } finally {
+    fs.rmSync(repoFile, { force: true });
+    if (savedResourcesPath === undefined) delete process.resourcesPath;
+    else process.resourcesPath = savedResourcesPath;
+    fs.rmSync(fakePackaged, { recursive: true, force: true });
+    centralConfig.resetConfigCache();
+  }
+});
+
 test('a broken config file is local mode, never an error', () => {
   clearEnv();
   withTempConfig('{not json', (file) => {

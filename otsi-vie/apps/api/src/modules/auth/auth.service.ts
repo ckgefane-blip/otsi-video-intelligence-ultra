@@ -40,13 +40,17 @@ export const MFA_TOKEN_SECONDS = 300;
 
 const BAD_LOGIN = () => new ApiError(401, "INVALID_CREDENTIALS", "Email or password is incorrect.");
 
-/** Sign-ups allowed per hour from one network address, and for one email address. */
-export const SIGN_UP_LIMIT = 5;
+/** Sign-ups allowed per hour. Per email address: 3 (one person can create at most 3 accounts per hour).
+ *  Per network address (one place / one connection, e.g. a club sharing a Wi-Fi): 4, so a club can sign up
+ *  a few people at once, but not unlimited. The per-place limit counts every attempt from that connection,
+ *  whatever email address is used. Owner decision 2026-11-14. */
+export const SIGN_UP_LIMIT_PER_EMAIL = 3;
+export const SIGN_UP_LIMIT_PER_IP = 4;
 const signUps = new Map<string, number[]>();
-/** Count one sign-up attempt for `key`; false when the last hour already has SIGN_UP_LIMIT. */
-function signUpAllowed(key: string, now = Date.now()): boolean {
+/** Count one sign-up attempt for `key`; false when the last hour already has `limit`. */
+function signUpAllowed(key: string, limit: number, now = Date.now()): boolean {
   const recent = (signUps.get(key) ?? []).filter((t) => now - t < 3_600_000);
-  if (recent.length >= SIGN_UP_LIMIT) { signUps.set(key, recent); return false; }
+  if (recent.length >= limit) { signUps.set(key, recent); return false; }
   recent.push(now);
   signUps.set(key, recent);
   if (signUps.size > 10_000) for (const [k, v] of signUps) if (v.every((t) => now - t >= 3_600_000)) signUps.delete(k);
@@ -215,7 +219,9 @@ export class AuthService {
           organization_name: body.organization_name?.trim() || body.display_name, password: body.password });
         return this.issueSession(userId, client);
       } catch (e) {
-        if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", "Creating an OTSI account needs the internet. Check the connection.");
+        if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", e.timedOut
+          ? "The OTSI account server is taking too long to answer. Try again."
+          : "Creating an OTSI account needs the internet. Check the connection.");
         throw e;
       }
     }
@@ -234,13 +240,14 @@ export class AuthService {
   /**
    * Public sign-up (ADR-146 §2): central server only (anywhere else 404 — a local install is set up once, by its
    * owner). A new organization with the person as OWNER, no invitation; the same email and password rules as setup.
-   * Rate-limited per address and per network address (SIGN_UP_LIMIT per hour, kept in memory: one central process).
+   * Rate-limited per email address (3 per hour) and per network address (4 per hour, counting every attempt
+ * from that connection whatever the email), kept in memory: one central process.
    * Email verification waits for an email provider (ADR-146 open decision) — recorded, not faked.
    */
   async signUp(body: SignUpRequest, client: ClientInfo): Promise<IssuedSession> {
     if (!this.cfg.central?.centralMode) throw new ApiError(404, "NOT_FOUND", "Not found.");
     const email = body.email.trim().toLowerCase();
-    if (!signUpAllowed(`ip:${client.ip ?? "unknown"}`) || !signUpAllowed(`email:${email}`)) {
+    if (!signUpAllowed(`ip:${client.ip ?? "unknown"}`, SIGN_UP_LIMIT_PER_IP) || !signUpAllowed(`email:${email}`, SIGN_UP_LIMIT_PER_EMAIL)) {
       throw new ApiError(429, "TOO_MANY_SIGN_UPS", "Too many new accounts from here. Try again in an hour.");
     }
     let userId: string;

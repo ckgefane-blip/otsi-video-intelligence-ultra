@@ -52,5 +52,28 @@ def rewrite(stmt: str) -> str:
     return stmt
 
 
+# MySQL 8.4's default collation utf8mb4_0900_ai_ci: MariaDB 11.4 has it, MariaDB 10.11 (this VM's test server)
+# does not, and refuses any statement that names it. The migrations name it in 47 files, and the migrator's
+# own BOOTSTRAP names it too. On a MariaDB older than 11.4 the collation is rewritten to utf8mb4_unicode_ci
+# (the closest MariaDB collation; the data here is identifiers and names, where the two agree). On 11.4 and
+# on MySQL the statement runs as written. Nothing else rewrites the collation.
+_COLLATION_0900 = re.compile(r"utf8mb4_0900_ai_ci", re.I)
+
+
+def collation_needs_rewrite(version: str) -> bool:
+    """True when this MariaDB is too old to have utf8mb4_0900_ai_ci (before 11.4)."""
+    if not is_mariadb(version):
+        return False
+    m = re.match(r"(\d+)\.(\d+)", version.strip())
+    if not m:
+        return False
+    major, minor = int(m.group(1)), int(m.group(2))
+    return (major, minor) < (11, 4)
+
+
+def rewrite_collation(stmt: str) -> str:
+    return _COLLATION_0900.sub("utf8mb4_unicode_ci", stmt)
+
+
 def is_mariadb(version: str) -> bool:
     return "mariadb" in version.lower()

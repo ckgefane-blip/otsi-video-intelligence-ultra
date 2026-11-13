@@ -76,3 +76,7 @@ otsi-vie/release-evidence/db-check/
 otsi-vie/release-evidence/integration-audit/
 otsi-vie/release-evidence/*.png
 otsi-vie/dist-deploy/
+
+# Staging desktop build settings (ADR-146 step 6 D): the build machine's central.json holds the
+# staging server address and the licence public key. It is written locally, never committed.
+otsi-vie/apps/desktop/resources/central.json

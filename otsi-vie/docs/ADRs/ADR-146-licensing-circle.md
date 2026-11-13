@@ -19,7 +19,8 @@
 
 - The central server is the one identity. A linked desktop shows **Sign in with your OTSI account** and **Create account**.
 - **Public sign-up** (central only, `POST /v1/auth/sign-up`): email, password, name, organisation name → a new organisation
-  with the person as OWNER, no invitation. Rate-limited per address and per IP; the same password rules as today. The free
+  with the person as OWNER, no invitation. Rate-limited per email address (3 per hour) and per IP (4 per hour,
+  counting every attempt from that connection whatever the email; owner decision 2026-11-14); the same password rules as today. The free
   grant stays a claim button. Email verification waits for an email provider (open decision 5) — recorded, not faked.
 - The desktop's local API signs in to central on the person's behalf (`/v1/central/*`), stores the central session sealed
   on this PC, and mirrors the central user and organisation into the local database **with the same ids**, so local data
