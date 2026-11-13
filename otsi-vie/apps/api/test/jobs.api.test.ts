@@ -143,11 +143,16 @@ describe("a charged job that fails is refunded (ADR-140 §7)", () => {
     const { runId, jobId } = await analysisJob(a);
     // the charge at enqueue, as the real analysis run writes it: the 60-second video costs 1 token.
     // (the charge path itself is covered by the analysis and wallet tests; here the ledger state is the fixture.)
+    // the balance carries on from whatever the organization already holds (seedMember funds it), so the
+    // fixture's running balance is real and the refund's balance_after can be checked exactly.
+    const [[held]] = await root.query<RowDataPacket[]>(
+      "SELECT COALESCE((SELECT balance_after FROM wallet_ledger WHERE organization_id = ? ORDER BY created_at DESC, id DESC LIMIT 1), 0) AS b", [a.orgId]);
+    const start = Number(held!.b);
     const purchaseId = uuidv7();
-    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, idempotency_key, invoice_ref, reason) VALUES (?, ?, 'PURCHASE', 100, 100, ?, 'INV-TEST-REFUND', 'Test funding')",
-      [purchaseId, a.orgId, `test-purchase:${purchaseId}`]);
-    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, job_type, job_id, idempotency_key, reason) VALUES (?, ?, 'SPEND', -1, 99, 'ANALYSIS', ?, ?, 'Test analysis charge')",
-      [uuidv7(), a.orgId, runId, `spend:ANALYSIS:${runId}`]);
+    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, idempotency_key, invoice_ref, reason) VALUES (?, ?, 'PURCHASE', 100, ?, ?, 'INV-TEST-REFUND', 'Test funding')",
+      [purchaseId, a.orgId, start + 100, `test-purchase:${purchaseId}`]);
+    await root.query("INSERT INTO wallet_ledger (id, organization_id, kind, amount, balance_after, job_type, job_id, idempotency_key, reason) VALUES (?, ?, 'SPEND', -1, ?, 'ANALYSIS', ?, ?, 'Test analysis charge')",
+      [uuidv7(), a.orgId, start + 99, runId, `spend:ANALYSIS:${runId}`]);
     // the worker marks the run FAILED directly in the database and never calls the API. A failed
     // job MUST carry an error code (worker_jobs.ck_worker_jobs_failed_has_error): marking it failed
     // without one is refused by the database, so the test sets it, as the real worker does.
@@ -160,7 +165,7 @@ describe("a charged job that fails is refunded (ADR-140 §7)", () => {
       "SELECT kind, amount, balance_after, job_type, job_id, idempotency_key, created_at FROM wallet_ledger WHERE organization_id = ? AND kind = 'REFUND'",
       [a.orgId]);
     expect(refunds).toHaveLength(1);
-    expect(refunds[0]).toMatchObject({ kind: "REFUND", amount: 1, balance_after: 100, job_type: "ANALYSIS", job_id: runId, idempotency_key: `refund:ANALYSIS:${runId}` });
+    expect(refunds[0]).toMatchObject({ kind: "REFUND", amount: 1, balance_after: start + 100, job_type: "ANALYSIS", job_id: runId, idempotency_key: `refund:ANALYSIS:${runId}` });
     // the refund must land after the failure and within the 5-minute window the ActivityLine reads
     // (tokenCost.refundForJob), or the line could not say "refunded".
     const [[job]] = await root.query<RowDataPacket[]>("SELECT finished_at FROM worker_jobs WHERE id = ?", [jobId]);

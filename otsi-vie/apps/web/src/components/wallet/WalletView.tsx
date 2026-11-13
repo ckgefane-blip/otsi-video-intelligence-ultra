@@ -7,7 +7,7 @@
  * owner issues an invoice, the organization pays by bank transfer, and the owner confirms receipt before any
  * tokens arrive. No card, no payment gateway. "Export CSV" downloads the ledger rows shown.
  */
-import type { PackRequest, PackRequestPayment, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
+import type { LicenceSnapshot, PackRequest, PackRequestPayment, PlanCatalogue, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
 import { FREE_GRANT_TOKENS } from "@otsi-vie/contracts";
 import { FileText, List, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -44,6 +44,12 @@ export function WalletView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // the organization's plan (GET /v1/licence) by its catalogue name; null until read, and never guessed
+  const [planName, setPlanName] = useState<string | null>(null);
+  useEffect(() => {
+    void Promise.all([api<LicenceSnapshot>("/v1/licence"), api<PlanCatalogue>("/v1/billing/plans")])
+      .then(([l, c]) => setPlanName(c.plans.find((p) => p.code === l.plan)?.label ?? l.plan), () => setPlanName(null));
+  }, []);
   const [payFor, setPayFor] = useState<string | null>(null);
   const [pay, setPay] = useState<PackRequestPayment | null>(null);
   const [payLoading, setPayLoading] = useState(false);
@@ -170,11 +176,10 @@ export function WalletView() {
 
       <section className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line py-2.5" aria-labelledby="pl">
         <span id="pl" className="h3">{w.wlPlan}</span>
-        <span className="t-small"><span className="text-primary" aria-hidden>•</span> {w.wlPlanFree}</span>
-        <span className="t-small text-muted"><span aria-hidden>•</span> {w.wlPlanPro}</span>
-        <span className="t-small text-muted"><span aria-hidden>•</span> {w.wlPlanEnterprise}</span>
-        <span className="sm mu flex-1">{w.wlPlanHint}</span>
-        <button className="btn sm" type="button" onClick={() => setNotice(w.wlAskProNote)}>{w.wlAskPro}</button>
+        {/* the real plan from the licence, and the way to Plans & billing (merge 2026-11-13; the old invented Free / Pro / Enterprise strip is gone) */}
+        {planName && <span className="t-small" data-current-plan><span className="text-primary" aria-hidden>•</span> {t.body.plans.yourPlan.replace("{a}", planName)}</span>}
+        <span className="flex-1" />
+        <Link href="/settings/billing" className="btn sm pri" data-see-plans>{t.body.plans.seePlans}</Link>
       </section>
 
       {catalogue && (

@@ -333,6 +333,7 @@ The notifications bell (`GET /v1/notifications`, 14-day window, max 30) covers t
 | Renewal order created | A renewal order is created (7 days before expiry). |
 | Order expiring | 3 days before an order's 14-day invoice expiry. |
 | Subscription expiring | Before a subscription expires. |
+| Customer paid (OTSI only) | A customer uploaded a receipt or marked an order paid and it awaits confirmation; or asked for a token pack that awaits its invoice. Only the company organisation (OTSI) sees it; it links to Admin › Billing and leaves the list once OTSI confirms, rejects or invoices. Added at the merge, 2026-11-13. |
 
 Known limitations: every member of an organisation sees "receipt uploaded" / "marked paid" alerts; an old order changing recently can bring back an old "Order placed" alert. **Email notifications: NOT BUILT.** The same events by email need an email provider and the owner's email setup. There is no email sender anywhere in the app. Nothing is built until the owner chooses a provider. (OPEN decision, §9.)
 
@@ -354,7 +355,7 @@ Known limitations: every member of an organisation sees "receipt uploaded" / "ma
 | Printable invoice view + final receipt view | Print view only. No PDF library. |
 | BILLING kind in the bell | `apps/api/src/modules/overview/notifications.ts` + `packages/contracts/src/notifications.ts`. |
 | Admin revenue summary | `GET /v1/admin/billing/revenue-summary` + UI. (See the two-summaries merge item in §6.4.) |
-| Free grant at 100 tokens (APPROVED) | `FREE_GRANT_TOKENS` = 100, claim button, once per organisation, 30-day expiry. (The earlier revert to 25 is commit `6238383f`, superseded by the 2026-11-13 approval.) **Not yet in the code** — see §8.3. |
+| Free grant claim button | "Claim Free grant" button, once per organisation, 30-day expiry. The code still grants **25**; the approved 100 is in §8.3 (not built). |
 | Live token display | Cost preview before every charged action, live job readout as ActivityLine narration, usage history. Commit `4028dbfc`. |
 | ActivityLine, global | Live narration + real-time timing across every engine action. Commit `0eaf0b36`. |
 | Bank-account + order-action lock (OTSI only) | `OTSI_VIE_COMPANY_ORG_ID` setting, fail closed. Commit `556d160a`. |

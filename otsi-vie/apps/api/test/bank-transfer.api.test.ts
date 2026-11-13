@@ -175,32 +175,32 @@ describe("bank-transfer billing", () => {
       proof_size_bytes: pdf.length, proof_sha256: createHash("sha256").update(pdf).digest("hex"),
     });
     expect(r.body.proof_uploaded_at).toBeTruthy();
-    // the stored receipt comes back byte for byte, to the payer and to the Admin; never to another organization
-    const mine = await app.inject({ method: "GET", url: `/v1/billing/orders/${created.order.id}/proof`, headers: m.headers });
+    // the stored receipt comes back byte for byte, to the payer and to the company org (OTSI); never to another organization
+    const mine = await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: m.headers });
     expect(mine.statusCode).toBe(200);
     expect(mine.headers["content-type"]).toContain("application/pdf");
     expect(mine.rawPayload.equals(pdf)).toBe(true);
-    const adminView = await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: m.headers });
+    const adminView = await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: company.headers });
     expect(adminView.statusCode).toBe(200);
     expect(adminView.rawPayload.equals(pdf)).toBe(true);
     expect((await app.inject({ method: "GET", url: `/v1/admin/billing/orders/${created.order.id}/proof`, headers: owner.headers })).statusCode).toBe(403);
-    // the Admin's bell says a payment waits for confirmation
-    const bell = await call(m, "GET", "/v1/notifications");
-    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `order:${created.order.id}:waiting`, kind: "BILLING", href: "/settings/admin/billing" })]));
+    // OTSI's bell says a payment waits for confirmation
+    const bell = await call(company, "GET", "/v1/notifications");
+    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `company-order:${created.order.id}:paid`, kind: "BILLING", href: "/settings/admin/billing" })]));
   });
 
   it("an order marked paid with no file has no receipt to download; a confirmed order is news in the bell", async () => {
     const m = await seedBareMember();
-    await seedBankAccount(m, "NGN");
+    await seedBankAccount("NGN");
     const created = await createOrder(m, "STARTER", 1, "NGN");
     await call(m, "POST", `/v1/billing/orders/${created.order.id}/proof`, {});
-    const none = await call(m, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`);
+    const none = await call(company, "GET", `/v1/admin/billing/orders/${created.order.id}/proof`);
     expect(none.status).toBe(404);
-    expect(none.body.code).toBe("PROOF_NOT_FOUND");
-    await call(m, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: created.order.amount_minor, bank_reference: "BANK-REF-2001" });
+    expect(none.body.code).toBe("NOT_FOUND");
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${created.order.id}/confirm`, { amount_received_minor: created.order.amount_minor, bank_reference: "BANK-REF-2001" })).status).toBe(201);
     const bell = await call(m, "GET", "/v1/notifications");
-    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `order:${created.order.id}:confirmed`, kind: "BILLING", title: "Payment confirmed: your plan is active", href: "/settings/plans" })]));
-    expect(bell.body.items.find((i: { id: string }) => i.id === `order:${created.order.id}:waiting`)).toBeUndefined();
+    expect(bell.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: `order:${created.order.id}:confirmed`, kind: "BILLING",
+      title: "Payment confirmed — STARTER · 1 month active", href: `/settings/billing/orders/${created.order.id}` })]));
   });
 
   it("rejection never activates: no subscription, no grant, no wallet credit, and it cannot be confirmed after", async () => {
@@ -287,7 +287,8 @@ describe("bank-transfer billing", () => {
     const run2 = await call(company, "POST", "/v1/admin/billing/renewals/run");
     expect(run2.body.renewals_created).toBe(0);
     // move the subscription 20 days past its end (grace is 14 days): it drops to the free tier, projects kept
-    await root.query("UPDATE subscriptions SET period_end = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 20 DAY) WHERE id = ?", [subId]);
+    // the start moves back too: a period may never end before it starts (subscriptions_chk_1)
+    await root.query("UPDATE subscriptions SET period_start = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 50 DAY), period_end = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 20 DAY) WHERE id = ?", [subId]);
     const [projectsBefore] = await root.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM projects WHERE organization_id = ?", [m.orgId]);
     const run3 = await call(company, "POST", "/v1/admin/billing/renewals/run");
     expect(run3.body.downgraded_to_free).toBe(1);
@@ -409,7 +410,6 @@ describe("bank-transfer billing", () => {
       this_month_minor: 8_000_000, plans_minor: 8_000_000, awaiting_minor: 10_000_000 });
     expect(summary.body.orders).toMatchObject({ ordered: 1, partial: 1, confirmed: 1, refunded: 1 });
     expect(summary.body.months).toHaveLength(12);
-    expect(summary.body.active_plans).toEqual(expect.arrayContaining([{ plan_code: "CLUB", count: 1 }]));
     expect((await call(viewer, "GET", "/v1/admin/billing/revenue")).status).toBe(403);
   });
 

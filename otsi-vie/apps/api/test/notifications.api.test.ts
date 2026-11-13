@@ -125,24 +125,56 @@ describe("notifications bell", () => {
     const billing = b.items.filter((i) => i.kind === "BILLING");
     const got = billing.map((i) => [i.title, i.href]);
     expect(got).toEqual(expect.arrayContaining([
-      ["Order placed — CLUB", `/settings/billing/orders/${done.id}`],
-      ["Payment confirmed — CLUB active", `/settings/billing/orders/${done.id}`],
+      ["Order placed — CLUB · 1 month", `/settings/billing/orders/${done.id}`],
+      ["Payment confirmed — CLUB · 1 month active", `/settings/billing/orders/${done.id}`],
       ["Marked paid — no receipt", `/settings/billing/orders/${awaiting.id}`],
       ["Order rejected", `/settings/billing/orders/${rejected.id}`],
       ["Refund issued", `/settings/billing/orders/${refunded.id}`],
     ]));
-    const confirmedItem = billing.find((i) => i.title === "Payment confirmed — CLUB active")!;
+    const confirmedItem = billing.find((i) => i.title === "Payment confirmed — CLUB · 1 month active")!;
     expect(confirmedItem.detail).toMatch(/^OTSI-INV-\d{4}-\d{6} · 500 tokens$/);
     const rejectedItem = billing.find((i) => i.title === "Order rejected")!;
     expect(rejectedItem.detail).toContain("Wrong plan");
-    // the confirmed order's subscription ends in a month, so it is not news yet; move it to 3 days out
-    const [subs] = await root.query<mysql.RowDataPacket[]>("SELECT id FROM subscriptions WHERE organization_id = ? AND state = 'ACTIVE'", [m.orgId]);
+    // the refund above ended this organisation's plan, so the subscription warning is checked on a second
+    // customer with one confirmed CLUB order: it ends in a month, so it is not news yet; move it to 3 days out
+    const m2 = await seedMember(root, "OWNER");
+    const o2 = (await call(m2, "POST", "/v1/billing/orders", { plan_code: "CLUB", period_months: 1, currency: "NGN" })).body.order as { id: string };
+    await call(m2, "POST", `/v1/billing/orders/${o2.id}/proof`, {});
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${o2.id}/confirm`, { amount_received_minor: 6_000_000, bank_reference: "BANK-NOTIF-3" })).status).toBe(201);
+    const [subs] = await root.query<mysql.RowDataPacket[]>("SELECT id FROM subscriptions WHERE organization_id = ? AND state = 'ACTIVE'", [m2.orgId]);
     expect(subs).toHaveLength(1);
     await root.query("UPDATE subscriptions SET period_end = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 3 DAY) WHERE id = ?", [subs[0]!.id]);
-    const b2 = await bell(m);
+    const b2 = await bell(m2);
     const subItem = b2.items.find((i) => i.title.startsWith("Subscription ends in"))!;
     expect(subItem).toMatchObject({ kind: "BILLING", href: "/settings/billing" });
     expect(subItem.title).toBe("Subscription ends in 3 days");
     expect(subItem.detail).toMatch(/^CLUB · until \d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("company bell (owner 2026-11-13): OTSI hears when a customer pays", () => {
+  it("the company org sees a customer's paid order and pack request until it acts; the customer and other orgs do not", async () => {
+    const m = await seedMember(root, "OWNER");
+    const other = await seedMember(root, "OWNER");
+    const [[org]] = await root.query<mysql.RowDataPacket[]>("SELECT name FROM organizations WHERE id = ?", [m.orgId]);
+    const name = String(org!.name);
+    const order = (await call(m, "POST", "/v1/billing/orders", { plan_code: "STARTER", period_months: 1, currency: "NGN" })).body.order as { id: string; reference: string; amount_minor: number };
+    expect((await call(m, "POST", `/v1/billing/orders/${order.id}/proof`, { note: "Sent today" })).status).toBe(201);
+    const pack = await call(m, "POST", "/v1/wallet/packs/request", { pack_code: "STARTER", currency: "NGN" });
+    expect(pack.status).toBe(201);
+
+    const mine = (await bell(company)).items.filter((i) => i.id.startsWith("company-") && (i.id.includes(order.id) || i.id.includes(pack.body.id)));
+    expect(mine.map((i) => [i.title, i.href, i.unread])).toEqual(expect.arrayContaining([
+      [`${name} paid — confirm the money`, "/settings/admin/billing", true],
+      [`${name} wants a token pack — send the invoice`, "/settings/admin/billing", true],
+    ]));
+    expect(mine.find((i) => i.id.includes(order.id))!.detail).toContain(order.reference);
+    // the customer's own bell and another customer's bell carry no company alerts
+    expect((await bell(m)).items.some((i) => i.id.startsWith("company-"))).toBe(false);
+    expect((await bell(other)).items.some((i) => i.id.startsWith("company-"))).toBe(false);
+
+    // once OTSI confirms the money, the alert is gone
+    expect((await call(company, "POST", `/v1/admin/billing/orders/${order.id}/confirm`, { amount_received_minor: order.amount_minor, bank_reference: "BANK-BELL-1" })).status).toBe(201);
+    expect((await bell(company)).items.some((i) => i.id === `company-order:${order.id}:paid`)).toBe(false);
   });
 });

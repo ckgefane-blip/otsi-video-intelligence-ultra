@@ -15,14 +15,18 @@
  *   BILLING                a plan order's money events — placed, receipt uploaded or marked paid, confirmed, rejected,
  *                          refunded, a renewal order created — plus a subscription ending within 7 days and an open
  *                          order expiring within 3 days (-> Billing, the order's own page)
+ *   BILLING (company)      for the company organisation (OTSI, OTSI_VIE_COMPANY_ORG_ID) only: a customer uploaded a receipt or
+ *                          marked an order paid and it waits for confirmation, or a customer asked for a token pack that
+ *                          waits for an invoice (-> Admin › Billing). Owner 2026-11-13: OTSI must hear when a customer pays.
  * The caller's organization only; projects hidden from the person, and removed items, are left out. "Unread": recorded after the person
  * last opened the bell in this organization.
  */
-import { Controller, Get, HttpCode, Injectable, Post, UseGuards } from "@nestjs/common";
+import { Controller, Get, HttpCode, Inject, Injectable, Post, UseGuards } from "@nestjs/common";
 import { NOTIFICATION_LIMIT, NOTIFICATION_WINDOW_DAYS, Notifications, type Notification } from "@otsi-vie/contracts";
 import { RowDataPacket } from "mysql2/promise";
 import { notHidden } from "../../core/access";
-import { AuthGuard, CurrentPrincipal, Principal } from "../../core/auth";
+import { AuthGuard, CurrentPrincipal, isCompanyOrg, Principal } from "../../core/auth";
+import { CONFIG, type Config } from "../../core/config";
 import { Db } from "../../core/db";
 
 const WINDOW = `CURRENT_TIMESTAMP(6) - INTERVAL ${NOTIFICATION_WINDOW_DAYS} DAY`;
@@ -35,7 +39,12 @@ type Item = Omit<Notification, "unread" | "at"> & { at: Date };
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly db: Db) {}
+  /** The company organisation (OTSI_VIE_COMPANY_ORG_ID); undefined when unset, and then nobody gets the company alerts. */
+  private readonly companyOrgId: string | undefined;
+
+  constructor(private readonly db: Db, @Inject(CONFIG) cfg: Config) {
+    this.companyOrgId = cfg.companyOrganizationId;
+  }
 
   async list(p: Principal, now = new Date()): Promise<Notifications> {
     const org = p.organizationId, vh = notHidden(p, "v.project_id"), rh = notHidden(p, "r.project_id"), L = NOTIFICATION_LIMIT;
@@ -177,6 +186,35 @@ export class NotificationsService {
       items.push({ id: `sub:${s.id}:expiring`, kind: "BILLING", at: soon,
         title: `Subscription ends in ${plural(days, "day")}`,
         detail: `${s.plan_code as string} · until ${end.toISOString().slice(0, 10)}`, href: "/settings/billing" });
+    }
+
+    // the company organisation (OTSI) hears about every customer's money that waits on it: a receipt uploaded or an
+    // order marked paid (still awaiting confirmation), and a token pack request still waiting for its invoice. Once
+    // OTSI confirms, rejects or invoices, the row no longer matches and the alert is gone from the list.
+    if (isCompanyOrg(p, this.companyOrgId)) {
+      const paid = await this.db.rows<RowDataPacket>(
+        `SELECT o.id, o.reference, o.plan_code, o.period_months, o.amount_minor, o.amount_received_minor, o.currency, o.proof_uploaded_at, o.updated_at, g.name AS org_name
+           FROM bank_transfer_orders o JOIN organizations g ON g.id = o.organization_id
+          WHERE o.organization_id <> ? AND o.status = 'AWAITING_CONFIRMATION' AND COALESCE(o.proof_uploaded_at, o.updated_at) >= ${WINDOW}
+          ORDER BY COALESCE(o.proof_uploaded_at, o.updated_at) DESC LIMIT ${L}`, [org]);
+      for (const o of paid) {
+        const owed = money(Number(o.amount_minor) - Number(o.amount_received_minor ?? 0), String(o.currency));
+        items.push({ id: `company-order:${o.id}:paid`, kind: "BILLING", at: new Date(o.proof_uploaded_at ?? o.updated_at),
+          title: `${o.org_name as string} paid — confirm the money`,
+          detail: `${o.reference as string} · ${o.plan_code as string} · ${owed}${o.proof_uploaded_at ? " · receipt uploaded" : " · no receipt"}`,
+          href: "/settings/admin/billing" });
+      }
+      const packs = await this.db.rows<RowDataPacket>(
+        `SELECT k.id, k.pack_code, k.tokens, k.amount_minor, k.currency, k.created_at, g.name AS org_name
+           FROM wallet_pack_requests k JOIN organizations g ON g.id = k.organization_id
+          WHERE k.organization_id <> ? AND k.status = 'REQUESTED' AND k.created_at >= ${WINDOW}
+          ORDER BY k.created_at DESC LIMIT ${L}`, [org]);
+      for (const k of packs) {
+        items.push({ id: `company-pack:${k.id}:requested`, kind: "BILLING", at: new Date(k.created_at),
+          title: `${k.org_name as string} wants a token pack — send the invoice`,
+          detail: `${k.pack_code as string} · ${Number(k.tokens).toLocaleString("en-GB")} tokens · ${money(Number(k.amount_minor), String(k.currency))}`,
+          href: "/settings/admin/billing" });
+      }
     }
 
     const seen = await this.db.one<RowDataPacket>("SELECT seen_at FROM notification_reads WHERE user_id = ? AND organization_id = ?", [p.userId, org]);

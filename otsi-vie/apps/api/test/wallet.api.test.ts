@@ -37,8 +37,12 @@ async function seedBareMember(role = "OWNER"): Promise<Member> {
 async function seedVideo(m: Member, durationUs = 90 * 60 * 1_000_000): Promise<string> {
   const project = uuidv7(), video = uuidv7();
   await root.query("INSERT INTO projects (id, organization_id, name, created_by) VALUES (?, ?, 'P', ?)", [project, m.orgId, m.userId]);
-  await root.query("INSERT INTO video_sources (id, organization_id, project_id, ingest_mode, state, duration_us, created_by) VALUES (?, ?, ?, 'UPLOAD', 'INGESTED', ?, ?)",
-    [video, m.orgId, project, durationUs, m.userId]);
+  // an INGESTED video always has its source file (video_sources.ck_ingested_source_asset)
+  const source = uuidv7();
+  await root.query("INSERT INTO assets (id, organization_id, project_id, kind, object_key, storage_bucket, byte_size) VALUES (?, ?, ?, 'SOURCE', ?, 'local', 1)",
+    [source, m.orgId, project, `org/${m.orgId}/videos/${video}/source.mp4`]);
+  await root.query("INSERT INTO video_sources (id, organization_id, project_id, ingest_mode, state, duration_us, created_by, source_asset_id) VALUES (?, ?, ?, 'UPLOAD', 'INGESTED', ?, ?, ?)",
+    [video, m.orgId, project, durationUs, m.userId, source]);
   await seedRights(root, m.orgId, video);
   return video;
 }
@@ -161,7 +165,8 @@ describe("token wallet", () => {
     expect((await call(m, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back" })).status).toBe(403);
     const adjust = await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: -4, reason: "Claw back 4 tokens for a refunded payment" });
     expect(adjust.body).toMatchObject({ kind: "ADJUSTMENT", amount: -4, balance_after: 16 });
-    expect((await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: 5, reason: "" })).status).toBe(400);
+    // a bad request is refused with 422 INVALID_REQUEST (the API's Zod convention)
+    expect((await call(company, "POST", `/v1/admin/wallet/${m.orgId}/adjust`, { amount: 5, reason: "" })).status).toBe(422);
     const adminLedger = await call(m, "GET", `/v1/admin/wallet/${m.orgId}/ledger`);
     expect(adminLedger.body.balance).toMatchObject({ balance: 16 });
     expect((await call(viewer, "GET", `/v1/admin/wallet/${m.orgId}/ledger`)).status).toBe(403);

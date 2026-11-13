@@ -635,7 +635,10 @@ describe("dictionaries (ADR-139)", () => {
       // Pages 25-28 Shared link + Sign in (2026-11-12) raise it by one:
       // "Windows Hello" (the new webauthn key) is the same in French.
       // French is the highest at 289.
-      expect(same.length, locale).toBeLessThan(292);
+      // Billing merge (2026-11-13: Muse's payment circle + Claude's revenue panel and pricing entry
+      // points) raises it from 292 to 295: the new same-in-French leaves are listed in COGNATES above
+      // (the binding check). French is the highest at 293.
+      expect(same.length, locale).toBeLessThan(295);
       expect(dict.nav.home).not.toBe(en.nav.home);
       expect(dict.common.language).not.toBe(en.common.language);
     }
