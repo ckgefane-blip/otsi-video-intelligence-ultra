@@ -7157,6 +7157,9 @@ export interface Dictionary {
       signupBonus: string;
       setupCodeLabel: string;
       setupCodePlaceholder: string;
+      copyCode: string;
+      codeCopied: string;
+      linkLocalNote: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -14341,6 +14344,9 @@ export const en: Dictionary = {
       signupBonus: "You were invited — you get +{bonus} tokens on signup, on top of the 100-token free grant.",
       setupCodeLabel: "Invite code (optional)",
       setupCodePlaceholder: "Paste the code from your invite link",
+      copyCode: "Copy code",
+      codeCopied: "Code copied",
+      linkLocalNote: "Only opens on this computer — your friend types the code into their own app.",
     },
   },
   webauthn: {
@@ -21521,6 +21527,9 @@ export const ru: DeepPartial<Dictionary> = {
       signupBonus: "Вас пригласили — вы получите +{bonus} токенов при регистрации, вдобавок к бесплатным 100 токенам.",
       setupCodeLabel: "Код приглашения (необязательно)",
       setupCodePlaceholder: "Вставьте код из ссылки-приглашения",
+      copyCode: "Скопировать код",
+      codeCopied: "Код скопирован",
+      linkLocalNote: "Открывается только на этом компьютере — ваш друг вводит код в своём приложении.",
     },
   },
   webauthn: {
@@ -28701,6 +28710,9 @@ export const es: DeepPartial<Dictionary> = {
       signupBonus: "Te invitaron: recibirás +{bonus} tokens al registrarte, además de los 100 tokens gratis.",
       setupCodeLabel: "Código de invitación (opcional)",
       setupCodePlaceholder: "Pega el código de tu enlace de invitación",
+      copyCode: "Copiar código",
+      codeCopied: "Código copiado",
+      linkLocalNote: "Solo se abre en este ordenador: tu amigo escribe el código en su propia aplicación.",
     },
   },
   webauthn: {
@@ -35881,6 +35893,9 @@ export const de: DeepPartial<Dictionary> = {
       signupBonus: "Du wurdest eingeladen — du erhältst +{bonus} Tokens bei der Anmeldung, zusätzlich zu den 100 kostenlosen Tokens.",
       setupCodeLabel: "Einladungscode (optional)",
       setupCodePlaceholder: "Code aus deinem Einladungslink einfügen",
+      copyCode: "Code kopieren",
+      codeCopied: "Code kopiert",
+      linkLocalNote: "Öffnet sich nur auf diesem Computer — dein Freund tippt den Code in seiner eigenen App ein.",
     },
   },
   webauthn: {
@@ -43061,6 +43076,9 @@ export const fr: DeepPartial<Dictionary> = {
       signupBonus: "Vous avez été invité — vous recevez +{bonus} jetons à l'inscription, en plus des 100 jetons gratuits.",
       setupCodeLabel: "Code d’invitation (facultatif)",
       setupCodePlaceholder: "Collez le code de votre lien d’invitation",
+      copyCode: "Copier le code",
+      codeCopied: "Code copié",
+      linkLocalNote: "Ne s'ouvre que sur cet ordinateur — ton ami saisit le code dans sa propre application.",
     },
   },
   webauthn: {
@@ -50250,7 +50268,10 @@ export const pt: DeepPartial<Dictionary> = {
       "loadFailed": "Não foi possível carregar o seu link de convite.",
       "signupBonus": "Você foi convidado — recebe +{bonus} tokens ao registar-se, além dos 100 tokens grátis.",
       "setupCodeLabel": "Código de convite (opcional)",
-      "setupCodePlaceholder": "Cole o código do seu link de convite"
+      "setupCodePlaceholder": "Cole o código do seu link de convite",
+      "copyCode": "Copiar código",
+      "codeCopied": "Código copiado",
+      "linkLocalNote": "Só abre neste computador — o teu amigo escreve o código na sua própria aplicação."
     }
   },
   "webauthn": {

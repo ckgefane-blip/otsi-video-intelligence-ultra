@@ -1,9 +1,11 @@
 /**
- * User-to-user Invite (owner decision 2026-11-14): the gift button in the top bar links to the invite
- * share view, which shows the caller's own invite link and code, a copy button, and what both sides get
- * in plain words — the friend gets +25 tokens on signup (on top of the 100-token free grant), and the
- * inviter gets +100 when the friend analyses their first match or buys their first pack. The sign-up page
- * reads ?invite=CODE, shows the bonus line, and passes the code through to the server.
+ * User-to-user Invite (owner decision 2026-11-14): the gift button in the top bar opens the invite card
+ * over the current page (it does not navigate away), which shows the caller's own invite code big with a
+ * Copy code button, the localhost link small with a note that it only opens on this computer, and what
+ * both sides get in plain words — the friend gets +25 tokens on signup (on top of the 100-token free
+ * grant), and the inviter gets +100 when the friend analyses their first match or buys their first pack.
+ * /invite-share stays as the address for direct links. The sign-up page reads ?invite=CODE, shows the
+ * bonus line, and passes the code through to the server.
  *
  * This is NOT the staff/team invite (/invite page): that one adds a member to an organisation, this one
  * brings a new user to OTSI.
@@ -61,10 +63,88 @@ beforeEach(() => {
 });
 
 describe("the gift button in the top bar", () => {
-  it("links to the invite share view", () => {
+  it("opens the invite card over the current page, it does not navigate away", async () => {
+    myInvite.mockResolvedValue({ code: CODE });
     render(<AppTopBar />);
-    const gift = screen.getByRole("link", { name: "Invite friends" });
-    expect(gift).toHaveAttribute("href", "/invite-share");
+    // a button, not a link: there is no navigation to /invite-share
+    const gift = screen.getByRole("button", { name: "Invite friends" });
+    expect(gift.tagName).toBe("BUTTON");
+    expect(gift).not.toHaveAttribute("href");
+    fireEvent.click(gift);
+    const card = await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    expect(card).toHaveAttribute("data-invite-card");
+    // the code is first and big, with a Copy code button
+    const codeEl = screen.getByText(CODE);
+    expect(codeEl.tagName).toBe("CODE");
+    expect(codeEl.className).toContain("text-2xl");
+    expect(screen.getByRole("button", { name: "Copy code" })).toBeInTheDocument();
+    // the localhost link is small, with the note that it only opens on this computer
+    expect(screen.getByText(/Only opens on this computer/)).toBeInTheDocument();
+    const linkInput = screen.getByLabelText("Your invite link") as HTMLInputElement;
+    expect(linkInput.value).toContain(`/setup?invite=${CODE}`);
+    expect(screen.getByText(/Your friend gets \+25 tokens on signup/)).toBeInTheDocument();
+    expect(screen.getByText(/You get \+100 tokens when they analyse their first match or buy their first pack/)).toBeInTheDocument();
+  });
+
+  it("copies the code, and the confirmation shows at the Copy code button only", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    myInvite.mockResolvedValue({ code: CODE });
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(CODE));
+    // the confirmation is at the button that was clicked; the link button is unchanged
+    await waitFor(() => expect(screen.getByRole("button", { name: "Code copied" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+  });
+
+  it("copies the link, and the confirmation shows at the Copy link button only", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    myInvite.mockResolvedValue({ code: CODE });
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining(`/setup?invite=${CODE}`)));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Link copied" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Copy code" })).toBeInTheDocument();
+  });
+
+  it("closes with the ✕ button", async () => {
+    myInvite.mockResolvedValue({ code: CODE });
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("closes with Esc", async () => {
+    myInvite.mockResolvedValue({ code: CODE });
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    const card = await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    fireEvent.keyDown(card, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("closes with a click outside it", async () => {
+    myInvite.mockResolvedValue({ code: CODE });
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await screen.findByRole("dialog", { name: "Invite friends, earn tokens" });
+    fireEvent.pointerDown(document.body);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("says so when the code cannot be loaded", async () => {
+    myInvite.mockRejectedValue(new Error("offline"));
+    render(<AppTopBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Could not load your invite link."));
   });
 });
 

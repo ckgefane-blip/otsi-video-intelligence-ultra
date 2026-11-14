@@ -1,9 +1,11 @@
 "use client";
 /**
- * Invite friends (user-to-user Invite, owner decision 2026-11-14): the gift button in the top bar links
- * here. The page shows the caller's own invite link and code, a copy button, and what both sides get in
- * plain words — the friend gets +25 tokens on signup (on top of the 100-token free grant), and the inviter
- * gets +100 tokens when the friend analyses their first match or buys their first pack.
+ * Invite friends (user-to-user Invite, owner decision 2026-11-14): the full /invite-share page, kept as
+ * the address for direct links. The gift button in the top bar no longer navigates here — since 2026-11-14
+ * it opens the InviteCard over the current page instead (you do not lose your place). The page shows the
+ * caller's own invite link and code, a copy button, and what both sides get in plain words — the friend
+ * gets +25 tokens on signup (on top of the 100-token free grant), and the inviter gets +100 tokens when
+ * the friend analyses their first match or buys their first pack.
  *
  * This is NOT the staff/team invite (invite a person by email to join your club with a role — the /invite
  * page): that one adds a member to an organization, this one brings a new user to OTSI. The link is built

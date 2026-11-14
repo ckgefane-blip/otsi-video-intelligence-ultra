@@ -14,6 +14,7 @@ import { useLocale } from "@/lib/i18n";
 import styles from "./AppTopBar.module.css";
 import { CommandPalette } from "./CommandPalette";
 import { ContextBar } from "./ContextBar";
+import { InviteCard } from "./InviteCard";
 import { JobTray } from "./JobTray";
 import { KeyboardMap } from "./KeyboardMap";
 import { NotificationBell } from "./NotificationBell";
@@ -24,6 +25,7 @@ import { TokenCounter } from "./TokenCounter";
 export function AppTopBar() {
   const { t } = useLocale();
   const [search, setSearch] = useState(false);
+  const [invite, setInvite] = useState(false);
   return (
     <header className={styles.bar} data-section="shell-header">
       <div className={styles.ctx}>
@@ -36,9 +38,12 @@ export function AppTopBar() {
         <span className="vie-kbd">Ctrl K</span>
       </button>
       <TokenCounter />
-      <Link href="/invite-share" className={styles.gift} aria-label={t.body.shell.invite} title={t.body.shell.invite}>
+      {/* Invite card (owner decision 2026-11-14): the gift button opens a small card over the current
+          page instead of navigating to /invite-share — you do not lose your place. /invite-share stays
+          as the address for direct links. */}
+      <button type="button" className={styles.gift} onClick={() => setInvite(true)} aria-label={t.body.shell.invite} title={t.body.shell.invite} data-header-invite>
         <Gift className={styles.giftIcon} aria-hidden />
-      </Link>
+      </button>
       <Link href="/settings/billing" className="btn sm" data-upgrade title={t.body.plans.title}>{t.body.plans.upgrade}</Link>
       <ThemeSwitch />
       <JobTray styles={styles} />
@@ -46,6 +51,7 @@ export function AppTopBar() {
       <Link href="/shortcuts" className={styles.keys} aria-label={t.desktop.shortcuts} title={t.desktop.shortcuts}>?</Link>
       <ProfileChip styles={styles} />
       <CommandPalette open={search} onOpenChange={setSearch} />
+      <InviteCard open={invite} onOpenChange={setInvite} />
       <KeyboardMap />
     </header>
   );

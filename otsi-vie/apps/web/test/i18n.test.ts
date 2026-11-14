@@ -691,7 +691,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(bodyKeys("auth").length).toBe(151);
     // user-to-user Invite (2026-11-14): the invite share page + sign-up bonus line
     // Invite signup fix (2026-11-14): +2 invite keys (the typed invite-code field on setup)
-    expect(bodyKeys("invite").length).toBe(13);
+    // Invite card (2026-11-14): +3 invite keys (Copy code, Code copied, localhost-link note)
+    expect(bodyKeys("invite").length).toBe(16);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {
