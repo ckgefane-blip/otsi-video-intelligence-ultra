@@ -189,6 +189,23 @@ function main() {
     "",
     "That runs `node dist/main.js`. Node 22.11–22.x is required.",
     "",
+    "## cPanel (nodevenv): the vendor symlink, needed before `npm ci`",
+    "",
+    "On cPanel the app's `node_modules` is a symlink into the nodevenv",
+    "(`~/nodevenv/<app>/<node-version>/lib/node_modules`), and `npm ci` resolves the",
+    "`file:./vendor/...` contracts tarball from that nodevenv lib folder, not from this",
+    "folder — so it fails unless the vendor folder is visible there too. Create the",
+    "symlink once per nodevenv (before the first `npm ci`, and again if the nodevenv is",
+    "recreated), replacing <app> and <node-version> with the host's values. Find the",
+    "nodevenv path from where this folder's `node_modules` symlink points",
+    "(`readlink node_modules`):",
+    "",
+    "    ln -s \"$PWD/vendor\" ~/nodevenv/<app>/<node-version>/lib/vendor",
+    "",
+    "Then run `npm ci --omit=dev` in this folder as usual. If `npm ci` still cannot find",
+    "the tarball, check the symlink target exists (`ls ~/nodevenv/<app>/<node-version>/lib/vendor/`",
+    "must list the `otsi-vie-contracts-<version>.tgz` file).",
+    "",
     "## Settings",
     "",
     "Set the environment from `otsi-vie/docs/central-server-deploy.md` step 4 (central mode,",
@@ -225,6 +242,9 @@ function main() {
   }
   log(`package ready: ${out}`);
   log(`  API ${apiPkg.version}, contracts ${contractsPkg.version}, ${Object.keys(dependencies).length} dependencies pinned${skipLockfile ? " (no lockfile — pass no --skip-lockfile for the host)" : ""}`);
+  log("cPanel: before the first `npm ci` on the host, create the vendor symlink (see README.md):");
+  log("  ln -s \"$PWD/vendor\" ~/nodevenv/<app>/<node-version>/lib/vendor");
+  log("  (find the nodevenv path from `readlink node_modules` in the app folder)");
 }
 
 main();

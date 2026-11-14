@@ -58,6 +58,10 @@ export function AdminBillingView() {
   const [selectedOrder, setSelectedOrder] = useState<BankTransferOrder | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [bankDraft, setBankDraft] = useState<Record<string, { account_name: string; bank_name: string; account_number: string; swift_iban: string; is_active: boolean }>>({});
+  /** Which currency's bank details were just saved: the page-top notice sits far above the bank form,
+   *  so a save that only sets it looks like nothing happened where the person is looking. This shows
+   *  "Bank details saved" inside the form that was saved, until that form is edited again. */
+  const [bankSaved, setBankSaved] = useState<Record<string, boolean>>({});
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [renewal, setRenewal] = useState<RenewalRunResult | null>(null);
   const [confirmForm, setConfirmForm] = useState({ amount: "", bankReference: "", confirmedAt: "" });
@@ -158,10 +162,11 @@ export function AdminBillingView() {
   async function saveBank(currency: "NGN" | "USD") {
     const d = bankDraft[currency];
     if (!d) return;
-    await act(`bank-${currency}`, () => api("/v1/admin/billing/bank-accounts", {
+    const ok = await act(`bank-${currency}`, () => api("/v1/admin/billing/bank-accounts", {
       method: "POST",
       json: { currency, account_name: d.account_name.trim(), bank_name: d.bank_name.trim(), account_number: d.account_number.trim(), swift_iban: d.swift_iban.trim() || null, is_active: d.is_active },
     }), t.body.wallet.blBankSaved);
+    if (ok) setBankSaved((cur) => ({ ...cur, [currency]: true }));
   }
 
   async function runRenewals() {
@@ -180,7 +185,7 @@ export function AdminBillingView() {
     }
   }
 
-  async function act(label: string, fn: () => Promise<unknown>, done: string) {
+  async function act(label: string, fn: () => Promise<unknown>, done: string): Promise<boolean> {
     setBusy(label);
     setNotice(null);
     setError(null);
@@ -188,8 +193,10 @@ export function AdminBillingView() {
       await fn();
       setNotice(done);
       await load();
+      return true;
     } catch (e) {
       setError(e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed);
+      return false;
     } finally {
       setBusy(null);
     }
@@ -427,7 +434,7 @@ export function AdminBillingView() {
               const d = bankDraft[c] ?? { account_name: "", bank_name: "", account_number: "", swift_iban: "", is_active: true };
               const saved = bankAccounts.find((a) => a.currency === c);
               return (
-                <form key={c} className="space-y-2 rounded-ctl border border-line bg-canvas p-3" onSubmit={(e) => { e.preventDefault(); void saveBank(c); }}>
+                <form key={c} className="space-y-2 rounded-ctl border border-line bg-canvas p-3" onSubmit={(e) => { e.preventDefault(); void saveBank(c); }} onChange={() => setBankSaved((cur) => ({ ...cur, [c]: false }))}>
                   <h3 className="t-panel">{c}{saved ? ` · ${saved.is_active ? t.body.wallet.blBankActive : t.body.wallet.blBankInactive}` : ""}</h3>
                   <input aria-label={t.body.wallet.blAccountName} required value={d.account_name} onChange={(e) => setBankDraft({ ...bankDraft, [c]: { ...d, account_name: e.target.value } })} placeholder={t.body.wallet.blAccountName} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                   <input aria-label={t.body.wallet.blBank} required value={d.bank_name} onChange={(e) => setBankDraft({ ...bankDraft, [c]: { ...d, bank_name: e.target.value } })} placeholder={t.body.wallet.blBank} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
@@ -438,6 +445,7 @@ export function AdminBillingView() {
                     {t.body.wallet.blBankActive}
                   </label>
                   <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri w-full">{busy === `bank-${c}` ? t.common.loading : t.body.wallet.blSaveBank}</button>
+                  {bankSaved[c] && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{t.body.wallet.blBankSaved}</p>}
                 </form>
               );
             })}

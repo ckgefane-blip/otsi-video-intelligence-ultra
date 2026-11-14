@@ -42,6 +42,23 @@ function withTempConfig(obj, fn) {
   }
 }
 
+/** A copy of central-config.js + licence.js in a temp folder, for the "no real file" assertions. The temp
+ *  licence.js requires the temp central-config.js (./central-config), whose __dirname is the temp folder,
+ *  so its defaultConfigPath points at <temp>/resources/central.json, which never exists. This makes the
+ *  "local-only" assertions independent of whether the repo's real resources/central.json exists — on a
+ *  staging machine that file holds the live staging config, and three tests used to fail there because
+ *  they read the real file. Everything is deleted afterwards. */
+function withTempModules(fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'otsi-central-nofile-'));
+  try {
+    fs.copyFileSync(path.join(__dirname, '..', 'central-config.js'), path.join(dir, 'central-config.js'));
+    fs.copyFileSync(path.join(__dirname, '..', 'licence.js'), path.join(dir, 'licence.js'));
+    return fn({ central: require(path.join(dir, 'central-config.js')), licence: require(path.join(dir, 'licence.js')) });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 test('config file read: a central.json with a URL and key is honoured', () => {
   clearEnv();
   withTempConfig(STAGING, (file) => {
@@ -54,7 +71,12 @@ test('config file read: a central.json with a URL and key is honoured', () => {
     assert.equal(centralConfig.appName(cfg), 'OTSI VIE Staging');
     assert.equal(centralConfig.appId(cfg), 'cc.otsi.vie.staging');
     // licence.js reads through the same resolver: the staging URL is live, not local-only.
-    assert.equal(licence.centralServerUrl(), null); // licence.js reads the real file, not the temp one
+    // (Checked on a temp copy with no config file, so this does not depend on the real
+    // resources/central.json being absent: with a real staging file present the real licence
+    // module would rightly return that file's URL here.)
+    withTempModules(({ licence: tempLicence }) => {
+      assert.equal(tempLicence.centralServerUrl(), null);
+    });
   });
 });
 
@@ -100,17 +122,21 @@ test('data folder override: the staging folder is used, never the production one
 
 test('no file = local mode: with no central.json and no env, the desktop is local-only', () => {
   clearEnv();
-  centralConfig.resetConfigCache();
-  // The repo ships no resources/central.json (only the .example), so the default file is missing.
-  assert.equal(fs.existsSync(centralConfig.defaultConfigPath()), false);
-  assert.deepEqual(centralConfig.loadConfig(), {});
-  assert.equal(centralConfig.centralServerUrl({}), null);
-  assert.equal(centralConfig.licencePublicKeyPem({}), null);
-  assert.equal(centralConfig.dataDirOverride({}), null);
-  assert.equal(centralConfig.appName({}), null);
-  assert.equal(centralConfig.appId({}), null);
-  assert.equal(licence.centralServerUrl(), null);
-  assert.equal(licence.licenceStatus('/tmp/userdata-nonexistent').state, 'local-only');
+  // Checked on a temp copy of the modules (no resources/central.json in the temp folder), so this
+  // does not depend on the repo's real resources/central.json being absent — on a staging machine
+  // that file holds the live staging config, and the real modules would rightly read it.
+  withTempModules(({ central, licence: tempLicence }) => {
+    central.resetConfigCache();
+    assert.equal(fs.existsSync(central.defaultConfigPath()), false);
+    assert.deepEqual(central.loadConfig(), {});
+    assert.equal(central.centralServerUrl({}), null);
+    assert.equal(central.licencePublicKeyPem({}), null);
+    assert.equal(central.dataDirOverride({}), null);
+    assert.equal(central.appName({}), null);
+    assert.equal(central.appId({}), null);
+    assert.equal(tempLicence.centralServerUrl(), null);
+    assert.equal(tempLicence.licenceStatus('/tmp/userdata-nonexistent').state, 'local-only');
+  });
 });
 
 test('running from code: the repo central.json wins even when process.resourcesPath is set', () => {
@@ -205,15 +231,19 @@ test('app identity override: a staging build gets its own name and id, a normal 
 
 test('the worker gets the licence public key from the file when the env is absent', () => {
   clearEnv();
-  // licenceEnvForWorker reads the key through central-config; with no env and no real file it is absent.
-  const env = licence.licenceEnvForWorker('/tmp/userdata-nonexistent');
-  assert.equal(env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM, undefined);
-  // With the env set, the key is forwarded.
-  process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = 'ENV-KEY';
-  try {
-    const env2 = licence.licenceEnvForWorker('/tmp/userdata-nonexistent');
-    assert.equal(env2.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM, 'ENV-KEY');
-  } finally {
-    clearEnv();
-  }
+  // Checked on a temp copy of the modules (no resources/central.json in the temp folder), so this
+  // does not depend on the repo's real resources/central.json being absent.
+  withTempModules(({ licence: tempLicence }) => {
+    // licenceEnvForWorker reads the key through central-config; with no env and no file it is absent.
+    const env = tempLicence.licenceEnvForWorker('/tmp/userdata-nonexistent');
+    assert.equal(env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM, undefined);
+    // With the env set, the key is forwarded.
+    process.env.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM = 'ENV-KEY';
+    try {
+      const env2 = tempLicence.licenceEnvForWorker('/tmp/userdata-nonexistent');
+      assert.equal(env2.OTSI_VIE_LICENCE_PUBLIC_KEY_PEM, 'ENV-KEY');
+    } finally {
+      clearEnv();
+    }
+  });
 });

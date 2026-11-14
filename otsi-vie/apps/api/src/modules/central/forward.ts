@@ -4,10 +4,11 @@
  * person is signed in here and a member of the organization; central checks again with its own rules. The local ledger
  * is never read on a linked desktop, so restoring old files or reinstalling cannot bring tokens back.
  *
- * Forwarded: /v1/wallet/..., /v1/billing/... (the organization's own pages), /v1/admin/billing/... (the company
- * organisation's pages — bank details, every customer's orders, confirmations and refunds; central enforces the
- * company rule, so a customer asking here gets central's 403) and GET /v1/licence. A receipt upload
- * (application/octet-stream) is passed on as bytes with its file headers, and a receipt download
+ * Forwarded: /v1/wallet/..., /v1/billing/... (the organization's own pages), /v1/admin/billing/... and
+ * /v1/admin/wallet/... (the company organisation's pages — bank details, every customer's orders,
+ * confirmations and refunds, and every customer's wallet, pack requests, ledger, top-ups, refunds,
+ * adjustments and expiry; central enforces the company rule, so a customer asking here gets central's
+ * 403) and GET /v1/licence. A receipt upload (application/octet-stream) is passed on as bytes with its
  * (GET /v1/admin/billing/orders/:id/proof) comes back as bytes with central's file headers. While central cannot be
  * reached, GET /v1/licence answers from the signed licence kept on this computer (the person still has a licence
  * offline, in its grace); the wallet and billing say plainly that the account cannot be reached. Nothing is forwarded
@@ -22,7 +23,10 @@ import { ApiError } from "../../core/problem";
 import { readRawBody } from "../billing/billing";
 import { CentralLinkService } from "./link";
 
-const FORWARDED = /^\/v1\/(wallet|billing|admin\/billing)(\/|$)/;
+/** The Admin wallet pages (/v1/admin/wallet/...) belong here too: the company org's pack requests, wallets and
+ * ledger live on central, and without them OTSI cannot confirm a top-up from the desktop — the Admin screen
+ * would read the laptop's empty local copy and show "No pack requests". */
+const FORWARDED = /^\/v1\/(wallet|billing|admin\/billing|admin\/wallet)(\/|$)/;
 /** A receipt download: a file, not JSON — its bytes and file headers pass through. */
 const PROOF_DOWNLOAD = /^\/v1\/admin\/billing\/orders\/[^/]+\/proof$/;
 

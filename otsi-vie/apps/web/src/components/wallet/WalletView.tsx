@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { walletChanged } from "@/lib/wallet";
+import { useWalletBalance, walletChanged } from "@/lib/wallet";
 import { UsageHistory } from "./UsageHistory";
 
 const money = (minor: number, currency: "NGN" | "USD") =>
@@ -37,6 +37,10 @@ export function WalletView() {
   const { t } = useLocale();
   const w = t.body.wallet;
   const [balance, setBalance] = useState<WalletBalance | null>(null);
+  /** The shared live balance (lib/wallet.ts): it keeps the last balance the app actually saw, in
+   *  localStorage, so when central cannot be reached the page shows that last known balance instead
+   *  of "—". Only a value the server really returned is ever shown. */
+  const sharedBalance = useWalletBalance();
   const [entries, setEntries] = useState<WalletLedgerEntry[]>([]);
   const [catalogue, setCatalogue] = useState<TokenPackCatalogue | null>(null);
   const [requests, setRequests] = useState<PackRequest[]>([]);
@@ -45,11 +49,20 @@ export function WalletView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  // the organization's plan (GET /v1/licence) by its catalogue name; null until read, and never guessed
-  const [planName, setPlanName] = useState<string | null>(null);
+  // the organization's plan (GET /v1/licence) by its catalogue name; null until read, and never guessed.
+  // The last plan the app actually saw is kept in localStorage, so when central cannot be reached the
+  // page shows that last known plan instead of nothing. Only a value the server really returned is shown.
+  const PLAN_KEY = "otsi-wallet-last-known-plan";
+  const [planName, setPlanName] = useState<string | null>(() => {
+    try { return localStorage.getItem(PLAN_KEY); } catch { return null; }
+  });
   useEffect(() => {
     void Promise.all([api<LicenceSnapshot>("/v1/licence"), api<PlanCatalogue>("/v1/billing/plans")])
-      .then(([l, c]) => setPlanName(c.plans.find((p) => p.code === l.plan)?.label ?? l.plan), () => setPlanName(null));
+      .then(([l, c]) => {
+        const name = c.plans.find((p) => p.code === l.plan)?.label ?? l.plan;
+        setPlanName(name);
+        try { localStorage.setItem(PLAN_KEY, name); } catch { /* storage unavailable */ }
+      }, () => { /* offline: keep the last known plan, do not clear it */ });
   }, []);
   const [payFor, setPayFor] = useState<string | null>(null);
   const [pay, setPay] = useState<PackRequestPayment | null>(null);
@@ -214,7 +227,7 @@ export function WalletView() {
       <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         <section className="flex min-w-0 flex-col gap-2 border-t border-line pt-3" aria-labelledby="bl">
           <span id="bl" className="eb">{w.balance}</span>
-          <div className="flex items-baseline gap-2.5"><span className="metric">{balance?.balance ?? "—"}</span><span className="sm mu">{w.tokensUnit}</span></div>
+          <div className="flex items-baseline gap-2.5"><span className="metric">{(balance ?? sharedBalance ?? null)?.balance ?? "—"}</span><span className="sm mu">{w.tokensUnit}</span></div>
           <dl className="kv mt-1.5">
             <dt>{w.wlAnalysis}</dt><dd>{w.wlAnalysisCost}</dd>
             <dt>{w.wlRender}</dt><dd>{w.wlRenderCost}</dd>

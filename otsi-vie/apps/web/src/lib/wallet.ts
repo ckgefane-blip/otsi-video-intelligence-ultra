@@ -13,7 +13,22 @@ const POLL_MS = 15_000;
 const BUSY_MS = 5_000;                                              // while jobs run (setWalletBusy)
 let readAt: number | null = null;
 let busy = false;
-let last: WalletBalance | null | undefined;
+/** The last balance the app actually saw, kept in localStorage so the Wallet page can show it when central
+ *  cannot be reached — even after a reload. Only a value the server really returned is ever shown; when
+ *  nothing was ever read, there is no cached value and the page shows "—" as before. */
+const LAST_KNOWN_KEY = "otsi-wallet-last-known";
+function readLastKnown(): WalletBalance | null {
+  try {
+    const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(LAST_KNOWN_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<WalletBalance>;
+    return typeof v?.balance === "number" && typeof v?.organization_id === "string" ? v as WalletBalance : null;
+  } catch { return null; }
+}
+function saveLastKnown(w: WalletBalance): void {
+  try { localStorage.setItem(LAST_KNOWN_KEY, JSON.stringify(w)); } catch { /* storage unavailable: in-memory only */ }
+}
+let last: WalletBalance | null | undefined = readLastKnown() ?? undefined;
 const subs = new Set<(w: WalletBalance | null) => void>();
 let timer: ReturnType<typeof setInterval> | null = null;
 let inflight = false;
@@ -21,7 +36,7 @@ let inflight = false;
 async function read() {
   if (inflight || (typeof document !== "undefined" && document.hidden)) return;
   inflight = true;
-  try { last = await api<WalletBalance>("/v1/wallet"); readAt = Date.now(); } catch { last = last ?? null; } finally { inflight = false; }
+  try { last = await api<WalletBalance>("/v1/wallet"); readAt = Date.now(); saveLastKnown(last); } catch { last = last ?? null; } finally { inflight = false; }
   subs.forEach((f) => f(last ?? null));
 }
 const onWake = () => { if (!document.hidden) void read(); };

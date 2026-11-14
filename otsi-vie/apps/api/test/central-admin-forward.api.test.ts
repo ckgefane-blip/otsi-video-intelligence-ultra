@@ -24,6 +24,7 @@ import { inject } from "vitest";
 import { createApp } from "../src/app";
 import { publicKeyOf, type Config } from "../src/core/config";
 import { Db } from "../src/core/db";
+import { forwardedToCentral } from "../src/modules/central/forward";
 import { key, rootDb, seedWallet } from "./helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -60,6 +61,37 @@ async function call(a: NestFastifyApplication, method: "GET" | "POST", url: stri
   const contentType = r.headers["content-type"]?.toString() ?? "";
   return { status: r.statusCode, body: contentType.includes("json") ? JSON.parse(r.body) : r.rawPayload, headers: r.headers, rawBody: r.rawPayload };
 }
+
+describe("forwardedToCentral routing (the admin/wallet blocker)", () => {
+  it("forwards every admin/wallet route, read and write", () => {
+    for (const [method, path] of [
+      ["GET", "/v1/admin/wallet"],
+      ["GET", "/v1/admin/wallet/pack-requests"],
+      ["GET", "/v1/admin/wallet/some-org/ledger"],
+      ["POST", "/v1/admin/wallet/pack-requests/some-id/invoice"],
+      ["POST", "/v1/admin/wallet/pack-requests/some-id/confirm-receipt"],
+      ["POST", "/v1/admin/wallet/some-org/topup"],
+      ["POST", "/v1/admin/wallet/some-org/refund"],
+      ["POST", "/v1/admin/wallet/some-org/adjust"],
+      ["POST", "/v1/admin/wallet/some-org/expire"],
+    ] as const) expect(forwardedToCentral(method, path)).toBe(true);
+  });
+
+  it("does not forward other admin routes, and does not match a longer prefix", () => {
+    for (const [method, path] of [
+      ["GET", "/v1/admin/members"],
+      ["GET", "/v1/admin/dashboard"],
+      ["GET", "/v1/admin/organization"],
+      ["GET", "/v1/admin/monitoring"],
+      ["GET", "/v1/admin/retention"],
+      ["GET", "/v1/admin/walletish"],
+      ["GET", "/v1/admin/billingish"],
+    ] as const) expect(forwardedToCentral(method, path)).toBe(false);
+    // the routes that were already forwarded stay forwarded
+    expect(forwardedToCentral("GET", "/v1/admin/billing/orders")).toBe(true);
+    expect(forwardedToCentral("GET", "/v1/wallet")).toBe(true);
+  });
+});
 
 describe("company billing on a linked desktop (ADR-146 §7c)", () => {
   beforeAll(async () => {
@@ -195,6 +227,37 @@ describe("company billing on a linked desktop (ADR-146 §7c)", () => {
     expect(subs[0]?.state).toBe("ACTIVE");
     const [w] = await root.query<RowDataPacket[]>("SELECT COALESCE(SUM(amount), 0) AS b FROM wallet_ledger WHERE organization_id = ?", [customerOrgId]);
     expect(Number(w[0]?.b)).toBe(100 + 1000);
+  });
+
+  it("the company lists and confirms a customer's pack request on the laptop; the wallet is credited on central (admin/wallet forwarding)", async () => {
+    // the customer orders a top-up pack on the laptop (1 block of 100 tokens, NGN — the bank account
+    // was entered in the first test, so the request is invoiced at once). The pack request lives on
+    // central; the laptop's local copy is empty, so if /v1/admin/wallet were not forwarded the company
+    // would see "No pack requests" and could never confirm it.
+    const requested = await call(laptop, "POST", "/v1/wallet/packs/request", { blocks: 1, currency: "NGN" }, customerHeaders);
+    expect(requested.status).toBe(201);
+    expect(requested.body).toMatchObject({ status: "INVOICED", tokens: 100, currency: "NGN" });
+    expect(typeof requested.body.invoice_ref).toBe("string");
+    const packId = requested.body.id as string;
+    // the company lists pack requests on the laptop and sees the customer's, named
+    const listed = await call(laptop, "GET", "/v1/admin/wallet/pack-requests", undefined, companyHeaders);
+    expect(listed.status).toBe(200);
+    const found = (listed.body as Array<{ id: string; organization_name?: string; status: string }>).find((r) => r.id === packId);
+    expect(found).toBeTruthy();
+    expect(found?.organization_name).toBe("Riverside Youth FC");
+    expect(found?.status).toBe("INVOICED");
+    // the company wallet list on the laptop shows the customer's wallet from central, not 0
+    const wallets = await call(laptop, "GET", "/v1/admin/wallet", undefined, companyHeaders);
+    expect(wallets.status).toBe(200);
+    expect((wallets.body as Array<{ organization_id: string }>).map((w) => w.organization_id)).toContain(customerOrgId);
+    // confirm it on the laptop: central credits exactly the pack's tokens
+    const [before] = await root.query<RowDataPacket[]>("SELECT COALESCE(SUM(amount), 0) AS b FROM wallet_ledger WHERE organization_id = ?", [customerOrgId]);
+    const confirmed = await call(laptop, "POST", `/v1/admin/wallet/pack-requests/${packId}/confirm-receipt`,
+      { invoice_ref: requested.body.invoice_ref }, companyHeaders);
+    expect(confirmed.status).toBe(201);
+    expect(confirmed.body).toMatchObject({ status: "PAID" });
+    const [after] = await root.query<RowDataPacket[]>("SELECT COALESCE(SUM(amount), 0) AS b FROM wallet_ledger WHERE organization_id = ?", [customerOrgId]);
+    expect(Number(after[0]?.b) - Number(before[0]?.b)).toBe(100);
   });
 
   it("central down: the company pages say the account cannot be reached, never a local empty list", async () => {
