@@ -40,9 +40,13 @@ describe("deploy package (staging plan B)", () => {
       // directory — on cPanel npm runs it with cwd ~/nodevenv/<app>/<version>/lib, so
       // a plain `node scripts/install-contracts.mjs` fails there with MODULE_NOT_FOUND
       // and `npm ci` exits 1. It never fails the install (any error is caught and
-      // logged); the server self-installs the contracts on start as a backstop.
+      // logged LOUDLY, with the path tried — never silently skipped); the server
+      // self-installs the contracts on start as a backstop. The installer is loaded
+      // through `pathToFileURL`: `import()` rejects a plain Windows `D:\...` path
+      // (ERR_UNSUPPORTED_ESM_URL_SCHEME — `D:` reads as a URL scheme).
       expect(pkg.scripts?.postinstall).toContain("npm_package_json");
       expect(pkg.scripts?.postinstall).toContain("install-contracts.mjs");
+      expect(pkg.scripts?.postinstall).toContain("pathToFileURL");
       expect(pkg.scripts?.postinstall).toContain("catch");
       expect(existsSync(path.join(pkgDir, "dist", "main.js"))).toBe(true);
       expect(existsSync(path.join(pkgDir, "vendor", "contracts", "dist", "index.js"))).toBe(true);
@@ -115,6 +119,44 @@ describe("deploy package (staging plan B)", () => {
       expect(postFromLib.status).toBe(0);
       expect(existsSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
       expect(lstatSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
+
+      // the Windows failure (05c2cc5): the postinstall one-liner loads the installer
+      // with `await import(<path>)`, but on Windows npm_package_json is a plain
+      // `D:\...` path and Node rejects it as a module specifier
+      // (ERR_UNSUPPORTED_ESM_URL_SCHEME — `D:` reads as a URL scheme), so the copy
+      // never happens and the quiet catch hides it. The one-liner now normalises the
+      // backslashes and loads through `pathToFileURL`, and logs LOUDLY when it cannot.
+      // Simulation on Linux: a directory literally named `D:` holds the app tree, so
+      // a Windows-style npm_package_json (`D:\otsi\app\package.json`) resolves to a
+      // real file through the same normalise → dirname → file-URL path the one-liner
+      // takes. On real Windows the path is absolute (drive letter), so the working
+      // directory does not matter; here the `D:` tree sits under the run directory
+      // so pathToFileURL can resolve it, and the run directory is NOT the app folder
+      // (the cPanel wrong-cwd condition). The old one-liner fails this step (exit 0,
+      // no copy — the bug); Claude's Windows run is the final proof.
+      const winRoot = path.join(out, "win");
+      const winApp = path.join(winRoot, "D:", "otsi", "app");
+      cpSync(pkgDir, winApp, { recursive: true });
+      const winPost = spawnSync(pkg.scripts.postinstall as string, [], {
+        cwd: winRoot, encoding: "utf8", timeout: 60_000, shell: true,
+        env: { ...process.env, npm_package_json: "D:\\otsi\\app\\package.json" },
+      });
+      expect(winPost.status).toBe(0);
+      expect(existsSync(path.join(winApp, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
+      expect(lstatSync(path.join(winApp, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
+
+      // the same Windows-style path, but pointing at an app that does not exist:
+      // the install must still exit 0, and the failure must be LOUD — the exact
+      // script path tried and the npm_package_json value, not a quiet "skipped".
+      const winMissing = spawnSync(pkg.scripts.postinstall as string, [], {
+        cwd: winRoot, encoding: "utf8", timeout: 60_000, shell: true,
+        env: { ...process.env, npm_package_json: "D:\\nope\\missing\\package.json" },
+      });
+      expect(winMissing.status).toBe(0);
+      expect(winMissing.stderr).toContain("[install-contracts] ERROR");
+      expect(winMissing.stderr).toContain("D:/nope/missing/scripts/install-contracts.mjs");
+      expect(winMissing.stderr).toContain("npm_package_json=D:\\nope\\missing\\package.json");
+      expect(winMissing.stderr).toContain("NOT copied by postinstall");
 
       // The fix: the server installs the contracts itself on start
       // (apps/api/src/ensure-contracts.ts, imported first by dist/main.js),

@@ -279,6 +279,10 @@ function mockPlayersApi(entry: ReturnType<typeof playerEntry>, updatedProfile?: 
 async function openDetails() {
   render(<PlayersList />);
   expect(await screen.findAllByText("Sugh")).toBeTruthy();
+  // Wait for the inspector itself, not just the table row: the strength input is
+  // the interaction target, and under full-suite load the inspector can lag the
+  // row by a render — a synchronous getBy* right after "Sugh" appears is a flake.
+  await screen.findByPlaceholderText("Type a strength, press Enter");
 }
 
 describe("PlayersList profile details", () => {
@@ -313,11 +317,15 @@ describe("PlayersList profile details", () => {
     mockPlayersApi(playerEntry());
     await openDetails();
     expect(screen.getByText("Pace")).toBeInTheDocument();
+    // Await each added chip instead of assuming the state update lands
+    // synchronously in a tight fireEvent loop: under full-suite load the
+    // update can lag the next event, and a synchronous getByText then fails.
+    // The assertions are unchanged — same chips, same cap, same refusal.
     for (const s of ["Vision", "Tackling", "Stamina", "Composure", "Speed"]) {
       fireEvent.change(screen.getByPlaceholderText("Type a strength, press Enter"), { target: { value: s } });
       fireEvent.keyDown(screen.getByPlaceholderText("Type a strength, press Enter"), { key: "Enter" });
+      expect(await screen.findByText(s)).toBeInTheDocument();
     }
-    expect(screen.getByText("Speed")).toBeInTheDocument();
     // the sixth strength fills the cap; a seventh is refused
     fireEvent.change(screen.getByPlaceholderText("Type a strength, press Enter"), { target: { value: "Heading" } });
     fireEvent.keyDown(screen.getByPlaceholderText("Type a strength, press Enter"), { key: "Enter" });

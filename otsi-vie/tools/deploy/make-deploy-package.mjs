@@ -222,10 +222,16 @@ function main() {
     // path of the package.json being installed), never through the working directory:
     // on cPanel npm runs postinstall with cwd ~/nodevenv/<app>/<version>/lib, so a plain
     // `node scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and `npm ci`
-    // exits 1. It never fails the install: any error is logged and the command exits 0
+    // exits 1. It never fails the install: any error is logged LOUDLY (the script path
+    // tried, the npm_package_json value, and the full error) and the command exits 0
     // — the server installs the contracts itself on start (ensure-contracts.ts).
-    // Single quotes only inside the -e code, so the command runs under both sh and cmd.
-    scripts: { start: "node dist/main.js", postinstall: "node --input-type=module -e \"import path from 'node:path'; const root = path.dirname(process.env.npm_package_json || 'package.json'); try { await import(path.join(root, 'scripts', 'install-contracts.mjs')); } catch (e) { console.error('[install-contracts] skipped: ' + e.message); }\"" },
+    // Two Windows details: `import()` rejects a plain `D:\...` path
+    // (ERR_UNSUPPORTED_ESM_URL_SCHEME — Node reads `D:` as a URL scheme), so the path
+    // is loaded through `pathToFileURL`; and the backslashes are normalised first
+    // (String.fromCharCode(92) is the backslash — a literal `\\` in this command would
+    // be mangled by the shell's double quotes on POSIX). Single quotes only inside
+    // the -e code, so the command runs under both sh and cmd.
+    scripts: { start: "node dist/main.js", postinstall: "node --input-type=module -e \"import path from 'node:path'; import { pathToFileURL } from 'node:url'; const raw = process.env.npm_package_json || 'package.json'; const root = path.dirname(raw.split(String.fromCharCode(92)).join('/')); const script = path.join(root, 'scripts', 'install-contracts.mjs'); try { await import(pathToFileURL(script)); } catch (e) { console.error('[install-contracts] ERROR: postinstall could not run ' + script + ' (npm_package_json=' + raw + '): ' + (e && e.stack || e)); console.error('[install-contracts] The contracts were NOT copied by postinstall. The server installs them itself on start (ensure-contracts.ts).'); }\"" },
     dependencies,
   }, null, 2) + "\n", "utf8");
 
