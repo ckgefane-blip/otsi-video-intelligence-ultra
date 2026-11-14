@@ -19,6 +19,7 @@ import { ApiProblem, api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { walletChanged } from "@/lib/wallet";
 import { money, OrderStatusLabel, planMonths } from "./BillingShared";
+import { FieldMessage, useFieldMessages } from "./FieldMessage";
 
 const BILLABLE = ["STARTER", "CLUB", "ACADEMY", "SEASON"] as const;
 
@@ -32,8 +33,11 @@ export function PlanOrdersView() {
   const [period, setPeriod] = useState<1 | 12>(1);
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
+  /** Load errors only — they have no button, so they stay at the top of the page. Every action's
+   *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /** One result message per action, keyed by the action's slot, rendered next to its button. */
+  const { msgs: fieldMsg, set: setFieldMsg } = useFieldMessages();
   const [busy, setBusy] = useState<string | null>(null);
   const [contact, setContact] = useState(false);
 
@@ -60,20 +64,19 @@ export function PlanOrdersView() {
 
   async function order(planCode: (typeof BILLABLE)[number]) {
     setBusy(`order-${planCode}`);
-    setNotice(null);
-    setError(null);
+    setFieldMsg(`order-${planCode}`, null);
     try {
       const created = await api<{ order: BankTransferOrder }>("/v1/billing/orders", {
         method: "POST",
         json: { plan_code: planCode, period_months: period, currency },
       });
-      setNotice(w.blOrderCreated);
+      // success navigates to the order's own page — that page is the result, so no message here.
       router.push(`/settings/billing/orders/${created.order.id}`);
     } catch (e) {
       if (e instanceof ApiProblem && e.code === "BANK_ACCOUNT_NOT_CONFIGURED") {
-        setError(w.blNoBankAccount.replace("{a}", currency));
+        setFieldMsg(`order-${planCode}`, { ok: false, text: w.blNoBankAccount.replace("{a}", currency) });
       } else {
-        setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+        setFieldMsg(`order-${planCode}`, { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
       }
     } finally {
       setBusy(null);
@@ -82,14 +85,13 @@ export function PlanOrdersView() {
 
   async function claimFree() {
     setBusy("free");
-    setNotice(null);
-    setError(null);
+    setFieldMsg("free", null);
     try {
       await api("/v1/wallet/free-grant", { method: "POST" });
       walletChanged(); // the top token chip and the status bar read the shared balance — refresh them now
-      setNotice(w.freeAdded);
+      setFieldMsg("free", { ok: true, text: w.freeAdded });
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setFieldMsg("free", { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
     } finally {
       setBusy(null);
     }
@@ -123,7 +125,6 @@ export function PlanOrdersView() {
       <p className="t-body text-muted">{w.blSubtitle}</p>
 
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
       <section className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line py-2.5" aria-labelledby="sub">
         <span id="sub" className="h3">{w.blSubscription}</span>
@@ -201,6 +202,8 @@ export function PlanOrdersView() {
                   <button type="button" className="btn sm" aria-expanded={contact} onClick={() => setContact((c) => !c)}>{w.blContactUs}</button>
                 )}
               </div>
+              {billable(plan) && <FieldMessage msg={fieldMsg[`order-${plan.code}`]} />}
+              {plan.code === "FREE" && <FieldMessage msg={fieldMsg["free"]} />}
               {plan.code === "ENTERPRISE" && contact && <p role="status" className="sm">{w.blEnterpriseNote}</p>}
             </div>
           ))}

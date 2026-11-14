@@ -7,14 +7,15 @@
  * owner issues an invoice, the organization pays by bank transfer, and the owner confirms receipt before any
  * tokens arrive. No card, no payment gateway. "Export CSV" downloads the ledger rows shown.
  */
-import type { LicenceSnapshot, PackRequest, PackRequestPayment, PlanCatalogue, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
+import type { PackRequest, PackRequestPayment, TokenPackCatalogue, WalletBalance, WalletLedgerEntry } from "@otsi-vie/contracts";
 import { FREE_GRANT_TOKENS } from "@otsi-vie/contracts";
 import { FileText, List, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale, type Dictionary } from "@/lib/i18n";
-import { useWalletBalance, walletChanged } from "@/lib/wallet";
+import { useWalletBalance, usePlanName, walletChanged } from "@/lib/wallet";
+import { FieldMessage, useFieldMessages } from "./FieldMessage";
 import { UsageHistory } from "./UsageHistory";
 
 const money = (minor: number, currency: "NGN" | "USD") =>
@@ -33,6 +34,24 @@ const csvOf = (entries: WalletLedgerEntry[]) =>
   ["when,kind,tokens,balance_after,note", ...entries.map((e) =>
     [e.created_at, e.kind, e.amount, e.balance_after, [e.reason, e.invoice_ref].filter(Boolean).join(" ")].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
 
+/** The last ledger entries and pack requests the app actually saw, kept in localStorage so the
+ *  page can show them when central cannot be reached. Only rows the server really returned are
+ *  ever shown; when nothing was ever read, there is no cached value and the page says plainly
+ *  that it cannot load them offline, instead of the wrong "no entries yet". */
+const LEDGER_KEY = "otsi-wallet-last-known-ledger";
+const REQUESTS_KEY = "otsi-wallet-last-known-requests";
+function readLastKnownRows<T>(key: string): T[] {
+  try {
+    const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(key);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as T[]) : [];
+  } catch { return []; }
+}
+function saveLastKnownRows(key: string, rows: unknown[]): void {
+  try { localStorage.setItem(key, JSON.stringify(rows)); } catch { /* storage unavailable */ }
+}
+
 export function WalletView() {
   const { t } = useLocale();
   const w = t.body.wallet;
@@ -41,29 +60,25 @@ export function WalletView() {
    *  localStorage, so when central cannot be reached the page shows that last known balance instead
    *  of "—". Only a value the server really returned is ever shown. */
   const sharedBalance = useWalletBalance();
-  const [entries, setEntries] = useState<WalletLedgerEntry[]>([]);
+  const [entries, setEntries] = useState<WalletLedgerEntry[]>(() => readLastKnownRows<WalletLedgerEntry>(LEDGER_KEY));
   const [catalogue, setCatalogue] = useState<TokenPackCatalogue | null>(null);
-  const [requests, setRequests] = useState<PackRequest[]>([]);
+  const [requests, setRequests] = useState<PackRequest[]>(() => readLastKnownRows<PackRequest>(REQUESTS_KEY));
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
+  /** Load errors only — they have no button, so they stay at the top of the page. Every action's
+   *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /** One result message per action, keyed by the action's slot, rendered next to its button. */
+  const { msgs: fieldMsg, set: setFieldMsg } = useFieldMessages();
   const [busy, setBusy] = useState<string | null>(null);
-  // the organization's plan (GET /v1/licence) by its catalogue name; null until read, and never guessed.
-  // The last plan the app actually saw is kept in localStorage, so when central cannot be reached the
-  // page shows that last known plan instead of nothing. Only a value the server really returned is shown.
-  const PLAN_KEY = "otsi-wallet-last-known-plan";
-  const [planName, setPlanName] = useState<string | null>(() => {
-    try { return localStorage.getItem(PLAN_KEY); } catch { return null; }
-  });
-  useEffect(() => {
-    void Promise.all([api<LicenceSnapshot>("/v1/licence"), api<PlanCatalogue>("/v1/billing/plans")])
-      .then(([l, c]) => {
-        const name = c.plans.find((p) => p.code === l.plan)?.label ?? l.plan;
-        setPlanName(name);
-        try { localStorage.setItem(PLAN_KEY, name); } catch { /* storage unavailable */ }
-      }, () => { /* offline: keep the last known plan, do not clear it */ });
-  }, []);
+  /** true when the last load failed (central cannot be reached): the ledger and pack requests below
+   *  are the last known rows, if any — and when there are none, the page says it cannot load them
+   *  offline instead of claiming there are none yet. */
+  const [offline, setOffline] = useState(false);
+  // the organization's plan (lib/wallet.ts): the shared hook fetches it once per session alongside
+  // the balance read, which runs on every page — so it is cached whatever page the person was on
+  // while online, and the Wallet page shows the last known plan even if it was never opened online.
+  const planName = usePlanName();
   const [payFor, setPayFor] = useState<string | null>(null);
   const [pay, setPay] = useState<PackRequestPayment | null>(null);
   const [payLoading, setPayLoading] = useState(false);
@@ -84,10 +99,14 @@ export function WalletView() {
       ]);
       setBalance(b);
       setEntries(ledger.entries);
+      saveLastKnownRows(LEDGER_KEY, ledger.entries);
       setCatalogue(cat);
       setRequests(reqs);
+      saveLastKnownRows(REQUESTS_KEY, reqs);
+      setOffline(false);
     } catch (e) {
       setError(e instanceof ApiProblem ? e.message : w.loadFailed);
+      setOffline(true);
     } finally {
       setLoading(false);
     }
@@ -105,10 +124,11 @@ export function WalletView() {
     setPayFor(id);
     setPay(null);
     setPayLoading(true);
+    setFieldMsg(`pay-${id}`, null);
     try {
       setPay(await api<PackRequestPayment>(`/v1/wallet/packs/requests/${id}`));
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setFieldMsg(`pay-${id}`, { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
       setPayFor(null);
     } finally {
       setPayLoading(false);
@@ -120,16 +140,15 @@ export function WalletView() {
    *  arrive when OTSI confirms the transfer. */
   async function topUp(blocks: number, label: string, price: string) {
     setBusy(`request-${blocks}`);
-    setNotice(null);
-    setError(null);
+    setFieldMsg(`request-${blocks}`, null);
     setOrdered(null);
     try {
       const r = await api<PackRequest>("/v1/wallet/packs/request", { method: "POST", json: { blocks, currency } });
       setOrdered(await api<PackRequestPayment>(`/v1/wallet/packs/requests/${r.id}`));
-      setNotice(w.requested.replace("{a}", label).replace("{b}", price));
+      setFieldMsg(`request-${blocks}`, { ok: true, text: w.requested.replace("{a}", label).replace("{b}", price) });
       await load();
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setFieldMsg(`request-${blocks}`, { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
     } finally {
       setBusy(null);
     }
@@ -172,17 +191,16 @@ export function WalletView() {
     );
   }
 
-  async function act(label: string, fn: () => Promise<unknown>, done: string) {
+  async function act(label: string, fn: () => Promise<unknown>, done: string, slot: string) {
     setBusy(label);
-    setNotice(null);
-    setError(null);
+    setFieldMsg(slot, null);
     try {
       await fn();
       walletChanged(); // the top token chip and the status bar read the shared balance — refresh them now
-      setNotice(done);
+      setFieldMsg(slot, { ok: true, text: done });
       await load();
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setFieldMsg(slot, { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
     } finally {
       setBusy(null);
     }
@@ -222,7 +240,6 @@ export function WalletView() {
       </div>
 
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
       <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         <section className="flex min-w-0 flex-col gap-2 border-t border-line pt-3" aria-labelledby="bl">
@@ -241,9 +258,10 @@ export function WalletView() {
             <p className="sm mu">{w.wlFreeValid}</p>
             <p className="sm mu">{w.wlFreeCovers}</p>
             <button className="btn pri self-start" type="button" disabled={busy !== null}
-              onClick={() => void act("grant", () => api("/v1/wallet/free-grant", { method: "POST" }), w.freeAdded)}>
+              onClick={() => void act("grant", () => api("/v1/wallet/free-grant", { method: "POST" }), w.freeAdded, "grant")}>
               {busy === "grant" ? w.claiming : w.wlClaimFree}
             </button>
+            <FieldMessage msg={fieldMsg["grant"]} />
           </section>
         )}
       </div>
@@ -281,15 +299,18 @@ export function WalletView() {
                 {catalogue.packs.map((pack) => {
                   const price = money(currency === "NGN" ? pack.price_ngn_minor : pack.price_usd_minor, currency);
                   return (
-                    <div key={pack.blocks} className="flex items-center gap-3 rounded-lg border border-line bg-canvas p-3.5" data-topup-blocks={pack.blocks}>
-                      <div className="flex-1">
-                        <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
-                        <div className="t-body">{price}</div>
+                    <div key={pack.blocks} className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3.5" data-topup-blocks={pack.blocks}>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className="t-body">{pack.tokens} {w.tokensUnit}</div>
+                          <div className="t-body">{price}</div>
+                        </div>
+                        <button type="button" disabled={busy !== null} className="btn pri sm"
+                          onClick={() => void topUp(pack.blocks, pack.label, price)}>
+                          {busy === `request-${pack.blocks}` ? w.requesting : w.wlRequest}
+                        </button>
                       </div>
-                      <button type="button" disabled={busy !== null} className="btn pri sm"
-                        onClick={() => void topUp(pack.blocks, pack.label, price)}>
-                        {busy === `request-${pack.blocks}` ? w.requesting : w.wlRequest}
-                      </button>
+                      <FieldMessage msg={fieldMsg[`request-${pack.blocks}`]} />
                     </div>
                   );
                 })}
@@ -310,12 +331,20 @@ export function WalletView() {
       <div className="grid flex-1 gap-3 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
         <section className="flex min-w-0 flex-col border-t border-line pt-3" aria-labelledby="pr">
           <div className="flex items-center justify-between gap-2 pb-1"><h2 id="pr" className="h3">{w.packRequests}</h2><Link href="/settings/admin/billing" className="sm text-primary hover:underline">{w.wlBillingInvoices}</Link></div>
+          {offline && requests.length > 0 && <p className="sm mu">{w.wlOfflineNote}</p>}
           {requests.length === 0 ? (
-            <div className="empty flex-1">
-              <span className="ei"><FileText className="i" aria-hidden /></span>
-              <h3>{w.wlNoRequests}</h3>
-              <p>{w.wlNoRequestsHint}</p>
-            </div>
+            offline ? (
+              <div className="empty flex-1">
+                <span className="ei"><FileText className="i" aria-hidden /></span>
+                <h3>{w.wlRequestsOffline}</h3>
+              </div>
+            ) : (
+              <div className="empty flex-1">
+                <span className="ei"><FileText className="i" aria-hidden /></span>
+                <h3>{w.wlNoRequests}</h3>
+                <p>{w.wlNoRequestsHint}</p>
+              </div>
+            )
           ) : (
             <ul className="mt-2 space-y-2 p-3.5">
               {requests.map((r) => (
@@ -331,11 +360,12 @@ export function WalletView() {
                       )}
                       {(r.status === "REQUESTED" || r.status === "INVOICED") && (
                         <button type="button" disabled={busy !== null}
-                          onClick={() => void act(`cancel-${r.id}`, () => api(`/v1/wallet/packs/requests/${r.id}/cancel`, { method: "POST" }), w.requestCancelled)}
+                          onClick={() => void act(`cancel-${r.id}`, () => api(`/v1/wallet/packs/requests/${r.id}/cancel`, { method: "POST" }), w.requestCancelled, `cancel-${r.id}`)}
                           className="btn sm">{w.cancel}</button>
                       )}
                     </span>
                   </div>
+                  <FieldMessage msg={fieldMsg[`cancel-${r.id}`] ?? fieldMsg[`pay-${r.id}`]} />
                   {payFor === r.id && (
                     payLoading || !pay ? (
                       <p className="sm mu">{t.common.loading}</p>
@@ -353,12 +383,20 @@ export function WalletView() {
           <div className="flex items-center justify-between gap-2 pb-1"><h2 id="lg" className="h3">{w.wlLedgerTitle}</h2>
             <button className="btn sm gh" type="button" disabled={entries.length === 0} onClick={exportCsv}>{w.wlExportCsv}</button>
           </div>
+          {offline && entries.length > 0 && <p className="sm mu">{w.wlOfflineNote}</p>}
           {entries.length === 0 ? (
-            <div className="empty flex-1">
-              <span className="ei"><List className="i" aria-hidden /></span>
-              <h3>{w.wlNoLedger}</h3>
-              <p>{w.wlNoLedgerHint}</p>
-            </div>
+            offline ? (
+              <div className="empty flex-1">
+                <span className="ei"><List className="i" aria-hidden /></span>
+                <h3>{w.wlLedgerOffline}</h3>
+              </div>
+            ) : (
+              <div className="empty flex-1">
+                <span className="ei"><List className="i" aria-hidden /></span>
+                <h3>{w.wlNoLedger}</h3>
+                <p>{w.wlNoLedgerHint}</p>
+              </div>
+            )
           ) : (
             <div className="p-3.5">
               <table className="w-full">

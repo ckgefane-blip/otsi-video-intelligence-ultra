@@ -359,3 +359,177 @@ describe("Admin billing console", () => {
     await waitFor(() => expect(api).toHaveBeenCalledWith(`/v1/admin/wallet/${CUSTOMER}/ledger`));
   });
 });
+
+describe("messages appear next to the button (owner rule, 2026-11-14)", () => {
+  // An action's success or error message must appear next to the button that caused it, never
+  // only at the top of the page. Each test asserts the message is inside the action's own
+  // container and that it appears exactly once in the document (not duplicated at the top).
+  function mockAdminFull(
+    orders: unknown[] = [order({ status: "AWAITING_CONFIRMATION" })],
+    requests: unknown[] = [],
+    wallets: unknown[] = [{ organization_id: ORG, organization_name: "Osio & Tee", balance: 10, spendable_balance: 10, low_balance: true, last_activity_at: null }],
+    extra: (url: string, init?: { method?: string; json?: unknown }) => unknown = () => Promise.reject(new Error("unexpected")),
+  ) {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
+    });
+    api.mockImplementation((url: string, init?: { method?: string; json?: unknown }) => {
+      if (url === "/v1/admin/wallet") return Promise.resolve(wallets);
+      if (url === "/v1/admin/wallet/pack-requests") return Promise.resolve(requests);
+      if (url === "/v1/admin/billing/orders") return Promise.resolve(orders);
+      if (url === "/v1/admin/billing/bank-accounts") return Promise.resolve([bankAccount]);
+      if (url === "/v1/admin/billing/revenue") return Promise.resolve(revenue);
+      if (url === "/v1/billing/subscription") return Promise.resolve(subscription);
+      if (url.startsWith("/v1/admin/wallet/") && url.endsWith("/ledger")) return Promise.resolve({ entries: [] });
+      return extra(url, init);
+    });
+  }
+
+  function mockWallet(extra: (url: string, init?: { method?: string; json?: unknown }) => unknown = () => Promise.reject(new Error("unexpected"))) {
+    api.mockImplementation((url: string, init?: { method?: string; json?: unknown }) => {
+      if (url === "/v1/wallet") return Promise.resolve({ organization_id: ORG, balance: 200, spendable_balance: 200, expired_unwritten_off: 0, low_balance: false });
+      if (url === "/v1/wallet/ledger?limit=200") return Promise.resolve({ balance: { organization_id: ORG, balance: 200, spendable_balance: 200, expired_unwritten_off: 0, low_balance: false }, entries: [] });
+      if (url === "/v1/wallet/packs") return Promise.resolve(tokenPackCatalogue());
+      if (url === "/v1/wallet/packs/requests") return Promise.resolve([]);
+      if (url === "/v1/licence") return Promise.resolve({ organization_id: ORG, plan: "FREE", features: [], tokens: 200, offline_allowance: 200, valid_until: null, grace_until: null });
+      if (url === "/v1/billing/plans") return Promise.resolve(planCatalogue());
+      return extra(url, init);
+    });
+  }
+
+  it("confirms a pack transfer and shows the result in the pack request row", async () => {
+    mockAdminFull([], [packRequest({ status: "INVOICED", invoice_ref: "OTSI-INV-2026-000001", tokens: 500 })], undefined, (url, init) => {
+      if (url === `/v1/admin/wallet/pack-requests/${packRequest().id}/confirm-receipt` && init?.method === "POST") return Promise.resolve(packRequest({ status: "PAID" }));
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Pack requests")).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText("Invoice reference"), { target: { value: "OTSI-INV-2026-000001" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm bank transfer received" }));
+    await waitFor(() => expect(screen.getByText("500 tokens added to the wallet.")).toBeInTheDocument());
+    expect(screen.getAllByText("500 tokens added to the wallet.")).toHaveLength(1);
+    const section = screen.getByText("Pack requests").closest("section")!;
+    expect(within(section).getByText("500 tokens added to the wallet.")).toBeInTheDocument();
+  });
+
+  it("shows the manual top-up, refund and adjust results inside their own forms", async () => {
+    mockAdminFull([], [], undefined, (url, init) => {
+      if (url === `/v1/admin/wallet/${ORG}/topup` && init?.method === "POST") return Promise.resolve({});
+      if (url === `/v1/admin/wallet/${ORG}/refund` && init?.method === "POST") return Promise.resolve({});
+      if (url === `/v1/admin/wallet/${ORG}/adjust` && init?.method === "POST") return Promise.resolve({});
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Top up (bank transfer)")).toBeInTheDocument());
+    // top up
+    const topUpForm = screen.getByText("Top up (bank transfer)").closest("form")!;
+    fireEvent.change(within(topUpForm).getByLabelText("Top-up tokens"), { target: { value: "100" } });
+    fireEvent.change(within(topUpForm).getByLabelText("Top-up reason"), { target: { value: "Test top-up" } });
+    fireEvent.click(within(topUpForm).getByRole("button", { name: "Top up" }));
+    await waitFor(() => expect(within(topUpForm).getByText("100 tokens added.")).toBeInTheDocument());
+    expect(screen.getAllByText("100 tokens added.")).toHaveLength(1);
+    // refund
+    const refundForm = screen.getByText("Refund to wallet").closest("form")!;
+    fireEvent.change(within(refundForm).getByLabelText("Refund tokens"), { target: { value: "50" } });
+    fireEvent.change(within(refundForm).getByLabelText("Refund reason"), { target: { value: "Test refund" } });
+    fireEvent.click(within(refundForm).getByRole("button", { name: "Refund" }));
+    await waitFor(() => expect(within(refundForm).getByText("50 tokens refunded to the wallet.")).toBeInTheDocument());
+    expect(screen.getAllByText("50 tokens refunded to the wallet.")).toHaveLength(1);
+    // adjust
+    const adjustForm = screen.getByRole("button", { name: "Adjust" }).closest("form")!;
+    fireEvent.change(within(adjustForm).getByLabelText("Adjustment tokens (negative to remove)"), { target: { value: "-10" } });
+    fireEvent.change(within(adjustForm).getByLabelText("Adjustment reason"), { target: { value: "Test adjust" } });
+    fireEvent.click(within(adjustForm).getByRole("button", { name: "Adjust" }));
+    await waitFor(() => expect(within(adjustForm).getByText("Adjustment recorded.")).toBeInTheDocument());
+    expect(screen.getAllByText("Adjustment recorded.")).toHaveLength(1);
+  });
+
+  it("shows the write-off and bank-save results under their own buttons", async () => {
+    mockAdminFull([], [], undefined, (url, init) => {
+      if (url === `/v1/admin/wallet/${ORG}/expire` && init?.method === "POST") return Promise.resolve({});
+      if (url === "/v1/admin/billing/bank-accounts" && init?.method === "POST") return Promise.resolve(bankAccount);
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Bank accounts")).toBeInTheDocument());
+    // write off
+    fireEvent.click(screen.getByRole("button", { name: "Write off expired tokens" }));
+    await waitFor(() => expect(screen.getByText("Expired tokens written off (if any).")).toBeInTheDocument());
+    expect(screen.getAllByText("Expired tokens written off (if any).")).toHaveLength(1);
+    // save bank details (NGN form, prefilled from the saved account)
+    const bankForm = screen.getAllByRole("button", { name: "Save bank details" })[0]!.closest("form")!;
+    fireEvent.click(within(bankForm).getByRole("button", { name: "Save bank details" }));
+    await waitFor(() => expect(within(bankForm).getByText("Bank details saved")).toBeInTheDocument());
+    expect(screen.getAllByText("Bank details saved")).toHaveLength(1);
+  });
+
+  it("shows the renewal run result under the renewals button", async () => {
+    mockAdminFull([], [], undefined, (url, init) => {
+      if (url === "/v1/admin/billing/renewals/run" && init?.method === "POST") return Promise.resolve({ renewals_created: 0, downgraded_to_free: 0, past_due: 0 });
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Renewals")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Run renewals now" }));
+    await waitFor(() => expect(screen.getByText("Renewal run finished.")).toBeInTheDocument());
+    expect(screen.getAllByText("Renewal run finished.")).toHaveLength(1);
+    const section = screen.getByText("Renewals").closest("section")!;
+    expect(within(section).getByText("Renewal run finished.")).toBeInTheDocument();
+  });
+
+  it("shows the free-grant claim result under the claim button in the Wallet", async () => {
+    mockWallet((url, init) => {
+      if (url === "/v1/wallet/free-grant" && init?.method === "POST") return Promise.resolve({});
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<WalletView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claim free grant" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Claim free grant" }));
+    await waitFor(() => expect(screen.getByText("100 free tokens added to the wallet.")).toBeInTheDocument());
+    expect(screen.getAllByText("100 free tokens added to the wallet.")).toHaveLength(1);
+  });
+
+  it("shows a top-up order result inside the pack card in the Wallet", async () => {
+    mockWallet((url, init) => {
+      if (url === "/v1/wallet/packs/request" && init?.method === "POST") return Promise.resolve(packRequest({ status: "INVOICED" }));
+      if (url === `/v1/wallet/packs/requests/${packRequest().id}`) return Promise.resolve({ request: packRequest({ status: "INVOICED" }), bank_account: bankAccount, pay_reference_note: PAY_REFERENCE_NOTE });
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<WalletView />);
+    await waitFor(() => expect(screen.getByText("Top up tokens")).toBeInTheDocument());
+    const card = document.querySelector("[data-topup-blocks='1']")!;
+    fireEvent.click(within(card as HTMLElement).getByRole("button", { name: "Top up" }));
+    await waitFor(() => expect(within(card as HTMLElement).getByText(/Top-up ordered: Player pack/)).toBeInTheDocument());
+    expect(screen.getAllByText(/Top-up ordered: Player pack/).length).toBe(1);
+  });
+
+  it("shows the free-grant claim result inside the Free plan card in Plans & billing", async () => {
+    api.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url === "/v1/billing/plans") return Promise.resolve(planCatalogue());
+      if (url === "/v1/billing/orders") return Promise.resolve([]);
+      if (url === "/v1/billing/subscription") return Promise.resolve(null);
+      if (url === "/v1/wallet/free-grant" && init?.method === "POST") return Promise.resolve({});
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<PlanOrdersView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claim 100 free tokens" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Claim 100 free tokens" }));
+    await waitFor(() => expect(screen.getByText("100 free tokens added to the wallet.")).toBeInTheDocument());
+    expect(screen.getAllByText("100 free tokens added to the wallet.")).toHaveLength(1);
+    const card = document.querySelector("[data-plan-card='FREE']")!;
+    expect(within(card as HTMLElement).getByText("100 free tokens added to the wallet.")).toBeInTheDocument();
+  });
+
+  it("shows the 'I have paid' result inside the proof section on the order page", async () => {
+    api.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url === `/v1/billing/orders/${ORDER_ID}`) return Promise.resolve({ order: order({ status: "AWAITING_CONFIRMATION" }), invoice });
+      if (url === `/v1/billing/orders/${ORDER_ID}/proof` && init?.method === "POST") return Promise.resolve({});
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    render(<OrderDetailView orderId={ORDER_ID} />);
+    await waitFor(() => expect(screen.getByText("I have paid")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Mark paid without a receipt" }));
+    await waitFor(() => expect(screen.getByText("Marked paid. The owner will confirm the transfer.")).toBeInTheDocument());
+    expect(screen.getAllByText("Marked paid. The owner will confirm the transfer.")).toHaveLength(1);
+  });
+});

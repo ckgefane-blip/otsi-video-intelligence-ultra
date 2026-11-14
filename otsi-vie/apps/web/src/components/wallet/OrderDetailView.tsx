@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiProblem, api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
 import { InvoiceCard, OrderStatusLabel, ReceiptCard, money, planMonths, usePrintTarget } from "./BillingShared";
+import { FieldMessage, useFieldMessages } from "./FieldMessage";
 
 const RECEIPT_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const RECEIPT_MAX = 10 * 1024 * 1024;
@@ -21,8 +22,11 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
   const w = t.body.wallet;
   const [data, setData] = useState<OrderWithInvoice | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Load errors only — they have no button, so they stay at the top of the page. Every action's
+   *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /** One result message per action, keyed by the action's slot, rendered next to its button. */
+  const { msgs: fieldMsg, set: setFieldMsg } = useFieldMessages();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -58,38 +62,36 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
   async function markPaid() {
     setBusy(true);
-    setNotice(null);
-    setError(null);
+    setFieldMsg("mark-paid", null);
     try {
       await api(`/v1/billing/orders/${order.id}/proof`, { method: "POST", json: note.trim() ? { note: note.trim() } : {} });
-      setNotice(w.blMarkedPaid);
+      setFieldMsg("mark-paid", { ok: true, text: w.blMarkedPaid });
       await load();
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+      setFieldMsg("mark-paid", { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
     } finally {
       setBusy(false);
     }
   }
 
   async function uploadReceipt(file: File) {
-    if (!RECEIPT_TYPES.includes(file.type)) { setError(w.blReceiptType); return; }
-    if (file.size > RECEIPT_MAX) { setError(w.blReceiptSize); return; }
+    if (!RECEIPT_TYPES.includes(file.type)) { setFieldMsg("upload", { ok: false, text: w.blReceiptType }); return; }
+    if (file.size > RECEIPT_MAX) { setFieldMsg("upload", { ok: false, text: w.blReceiptSize }); return; }
     setBusy(true);
-    setNotice(null);
-    setError(null);
+    setFieldMsg("upload", null);
     try {
       await api(`/v1/billing/orders/${order.id}/proof`, {
         method: "POST",
         body: file,
         headers: { "content-type": "application/octet-stream", "x-content-type": file.type, "x-file-name": file.name },
       });
-      setNotice(w.blProofUploaded);
+      setFieldMsg("upload", { ok: true, text: w.blProofUploaded });
       await load();
     } catch (e) {
       if (e instanceof ApiProblem && e.code === "PROOF_STORAGE_UNAVAILABLE") {
-        setError(w.blNoStorage);
+        setFieldMsg("upload", { ok: false, text: w.blNoStorage });
       } else {
-        setError(e instanceof ApiProblem ? e.message : w.actionFailed);
+        setFieldMsg("upload", { ok: false, text: e instanceof ApiProblem ? e.message : w.actionFailed });
       }
     } finally {
       setBusy(false);
@@ -108,7 +110,6 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
       <Link href="/settings/billing" className="sm text-primary hover:underline">{w.blBackToOrders}</Link>
 
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
       <section className="rounded-lg border border-line bg-canvas p-4">
         <InvoiceCard invoice={invoice} printActive={target === "invoice"} />
@@ -143,6 +144,9 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
               </button>
             </div>
             <p className="sm mu mt-2">{w.blUploadReceipt}</p>
+            <div className="mt-2">
+              <FieldMessage msg={fieldMsg["mark-paid"] ?? fieldMsg["upload"]} />
+            </div>
             {order.proof_filename && (
               <p className="sm mu mt-1">
                 {w.blProofFile}: {order.proof_filename}

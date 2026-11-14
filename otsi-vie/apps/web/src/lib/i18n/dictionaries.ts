@@ -6688,6 +6688,9 @@ export interface Dictionary {
       cpIdle: string;
       cpRenderBatchOne: string;
       cpRenderBatchMany: string;
+      wlOfflineNote: string;
+      wlLedgerOffline: string;
+      wlRequestsOffline: string;
     };
     shell: {
       brandAria: string;
@@ -13850,6 +13853,9 @@ export const en: Dictionary = {
       cpIdle: "Nothing running",
       cpRenderBatchOne: "Render 1 file",
       cpRenderBatchMany: "Render {a} files",
+      wlOfflineNote: "You're offline — showing the last data this app saw.",
+      wlLedgerOffline: "Can't load the ledger while offline.",
+      wlRequestsOffline: "Can't load pack requests while offline.",
     },
     shell: {
       brandAria: "OTSI VIE home",
@@ -21008,6 +21014,9 @@ export const ru: DeepPartial<Dictionary> = {
       cpIdle: "Ничего не выполняется",
       cpRenderBatchOne: "Отрендерить 1 файл",
       cpRenderBatchMany: "Отрендерить {a} файлов",
+      wlOfflineNote: "Вы офлайн — показаны последние данные, которые видело приложение.",
+      wlLedgerOffline: "Нельзя загрузить журнал без подключения.",
+      wlRequestsOffline: "Нельзя загрузить запросы пакетов без подключения.",
     },
     shell: {
       brandAria: "Главная OTSI VIE",
@@ -28166,6 +28175,9 @@ export const es: DeepPartial<Dictionary> = {
       cpIdle: "Nada en curso",
       cpRenderBatchOne: "Renderizar 1 archivo",
       cpRenderBatchMany: "Renderizar {a} archivos",
+      wlOfflineNote: "Sin conexión — se muestran los últimos datos que vio la app.",
+      wlLedgerOffline: "No se puede cargar el libro sin conexión.",
+      wlRequestsOffline: "No se pueden cargar las solicitudes de paquetes sin conexión.",
     },
     shell: {
       brandAria: "Inicio de OTSI VIE",
@@ -35324,6 +35336,9 @@ export const de: DeepPartial<Dictionary> = {
       cpIdle: "Nichts läuft",
       cpRenderBatchOne: "1 Datei rendern",
       cpRenderBatchMany: "{a} Dateien rendern",
+      wlOfflineNote: "Sie sind offline — die zuletzt gesehenen Daten werden angezeigt.",
+      wlLedgerOffline: "Das Hauptbuch kann offline nicht geladen werden.",
+      wlRequestsOffline: "Paketanfragen können offline nicht geladen werden.",
     },
     shell: {
       brandAria: "OTSI VIE Startseite",
@@ -42482,6 +42497,9 @@ export const fr: DeepPartial<Dictionary> = {
       cpIdle: "Rien en cours",
       cpRenderBatchOne: "Rendre 1 fichier",
       cpRenderBatchMany: "Rendre {a} fichiers",
+      wlOfflineNote: "Vous êtes hors ligne — affichage des dernières données vues par l'app.",
+      wlLedgerOffline: "Impossible de charger le livre hors ligne.",
+      wlRequestsOffline: "Impossible de charger les demandes de packs hors ligne.",
     },
     shell: {
       brandAria: "Accueil OTSI VIE",
@@ -49650,6 +49668,9 @@ export const pt: DeepPartial<Dictionary> = {
       "cpIdle": "Nada em curso",
       "cpRenderBatchOne": "Renderizar 1 arquivo",
       "cpRenderBatchMany": "Renderizar {a} arquivos",
+      "wlOfflineNote": "Você está offline — mostrando os últimos dados vistos pelo app.",
+      "wlLedgerOffline": "Não é possível carregar o livro offline.",
+      "wlRequestsOffline": "Não é possível carregar as solicitações de pacotes offline.",
     },
     "shell": {
       "brandAria": "Início do OTSI VIE",

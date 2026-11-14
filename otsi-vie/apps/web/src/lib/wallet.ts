@@ -4,9 +4,48 @@
  * (`walletChanged()`: a purchase, a run or render that spends tokens, a job that finishes). While a job is running it reads every 5 s, so
  * a spend shows within seconds of the server writing it. undefined = reading, null = could not read. `walletReadAt()` = the last good read.
  */
-import type { WalletBalance } from "@otsi-vie/contracts";
+import type { LicenceSnapshot, PlanCatalogue, WalletBalance } from "@otsi-vie/contracts";
 import { useEffect, useState } from "react";
 import { api } from "./api";
+
+/** The last plan the app actually saw, kept in localStorage so the Wallet page can show it when central
+ *  cannot be reached — even if the Wallet page was never opened while online. Only a value the server
+ *  really returned is ever shown. The plan is fetched once per session, alongside the balance read
+ *  (which runs on every page via the top-bar counter and the status bar), so it is cached whatever
+ *  page the person was on while online — the Wallet page alone cannot cache it, because it only
+ *  fetches when it mounts. */
+const PLAN_KEY = "otsi-wallet-last-known-plan";
+function readLastKnownPlan(): string | null {
+  try {
+    const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(PLAN_KEY);
+    return raw || null;
+  } catch { return null; }
+}
+let lastPlan: string | null = readLastKnownPlan();
+let planFetched = false;
+const planSubs = new Set<(p: string | null) => void>();
+async function readPlan() {
+  if (planFetched) return;
+  try {
+    const [l, c] = await Promise.all([api<LicenceSnapshot>("/v1/licence"), api<PlanCatalogue>("/v1/billing/plans")]);
+    const name = c.plans.find((p) => p.code === l.plan)?.label ?? l.plan;
+    lastPlan = name;
+    planFetched = true;
+    try { localStorage.setItem(PLAN_KEY, name); } catch { /* storage unavailable */ }
+    planSubs.forEach((f) => f(name));
+  } catch { /* offline or not ready: retry on the next balance read */ }
+}
+/** the last known plan name (null = never read); subscribes so the Wallet page updates when it arrives */
+export function usePlanName(): string | null {
+  const [p, setP] = useState<string | null>(lastPlan);
+  useEffect(() => {
+    planSubs.add(setP);
+    void readPlan();
+    return () => { planSubs.delete(setP); };
+  }, []);
+  return p;
+}
+
 
 const EVENT = "otsi-wallet-changed";
 const POLL_MS = 15_000;
@@ -36,7 +75,7 @@ let inflight = false;
 async function read() {
   if (inflight || (typeof document !== "undefined" && document.hidden)) return;
   inflight = true;
-  try { last = await api<WalletBalance>("/v1/wallet"); readAt = Date.now(); saveLastKnown(last); } catch { last = last ?? null; } finally { inflight = false; }
+  try { last = await api<WalletBalance>("/v1/wallet"); readAt = Date.now(); saveLastKnown(last); void readPlan(); } catch { last = last ?? null; } finally { inflight = false; }
   subs.forEach((f) => f(last ?? null));
 }
 const onWake = () => { if (!document.hidden) void read(); };

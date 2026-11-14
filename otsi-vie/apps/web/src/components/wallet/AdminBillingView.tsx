@@ -28,6 +28,7 @@ import { ApiProblem, api, apiBlob } from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useLocale } from "@/lib/i18n";
 import { InvoiceCard, OrderStatusLabel, ReceiptCard, money, planMonths, usePrintTarget } from "./BillingShared";
+import { FieldMessage, useFieldMessages } from "./FieldMessage";
 
 export function AdminBillingView() {
   const { t } = useLocale();
@@ -46,8 +47,11 @@ export function AdminBillingView() {
   // silently acting on the first one would top up the wrong club.)
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Load errors only — they have no button, so they stay at the top of the page. Every action's
+   *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /** One result message per action, keyed by the action's slot, rendered next to its button. */
+  const { msgs: fieldMsg, set: setFieldMsg } = useFieldMessages();
   const [busy, setBusy] = useState<string | null>(null);
   const [invoiceRef, setInvoiceRef] = useState("");
   const [topUp, setTopUp] = useState({ amount: "", reason: "", invoiceRef: "" });
@@ -58,10 +62,6 @@ export function AdminBillingView() {
   const [selectedOrder, setSelectedOrder] = useState<BankTransferOrder | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [bankDraft, setBankDraft] = useState<Record<string, { account_name: string; bank_name: string; account_number: string; swift_iban: string; is_active: boolean }>>({});
-  /** Which currency's bank details were just saved: the page-top notice sits far above the bank form,
-   *  so a save that only sets it looks like nothing happened where the person is looking. This shows
-   *  "Bank details saved" inside the form that was saved, until that form is edited again. */
-  const [bankSaved, setBankSaved] = useState<Record<string, boolean>>({});
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [renewal, setRenewal] = useState<RenewalRunResult | null>(null);
   const [confirmForm, setConfirmForm] = useState({ amount: "", bankReference: "", confirmedAt: "" });
@@ -84,6 +84,12 @@ export function AdminBillingView() {
       setWallets(w);
       setRequests(reqs);
       setOrders(ords);
+      // the open order detail keeps showing the same order, refreshed: without this the detail
+      // would keep the pre-action snapshot (and its forms) after a confirm / reject / refund.
+      setSelectedOrder((cur) => {
+        if (!cur) return cur;
+        return ords.find((o) => o.id === cur.id) ?? cur;
+      });
       setBankAccounts(accounts);
       setSubscription(sub);
       setBankDraft(Object.fromEntries(["NGN", "USD"].map((c) => {
@@ -144,6 +150,7 @@ export function AdminBillingView() {
   async function downloadProof(o: BankTransferOrder) {
     if (!o.proof_filename) return;
     setBusy(`proof-${o.id}`);
+    setFieldMsg(`proof-${o.id}`, null);
     try {
       const blob = await apiBlob(`/v1/admin/billing/orders/${o.id}/proof`);
       const url = URL.createObjectURL(blob);
@@ -153,7 +160,7 @@ export function AdminBillingView() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed);
+      setFieldMsg(`proof-${o.id}`, { ok: false, text: e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed });
     } finally {
       setBusy(null);
     }
@@ -162,40 +169,40 @@ export function AdminBillingView() {
   async function saveBank(currency: "NGN" | "USD") {
     const d = bankDraft[currency];
     if (!d) return;
-    const ok = await act(`bank-${currency}`, () => api("/v1/admin/billing/bank-accounts", {
+    await act(`bank-${currency}`, () => api("/v1/admin/billing/bank-accounts", {
       method: "POST",
       json: { currency, account_name: d.account_name.trim(), bank_name: d.bank_name.trim(), account_number: d.account_number.trim(), swift_iban: d.swift_iban.trim() || null, is_active: d.is_active },
-    }), t.body.wallet.blBankSaved);
-    if (ok) setBankSaved((cur) => ({ ...cur, [currency]: true }));
+    }), t.body.wallet.blBankSaved, `bank-${currency}`);
   }
 
   async function runRenewals() {
     setBusy("renewals");
-    setNotice(null);
-    setError(null);
+    setFieldMsg("renewals", null);
     try {
       const result = await api<RenewalRunResult>("/v1/admin/billing/renewals/run", { method: "POST" });
       setRenewal(result);
-      setNotice(t.body.wallet.blRenewalsDone);
+      setFieldMsg("renewals", { ok: true, text: t.body.wallet.blRenewalsDone });
       await load();
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed);
+      setFieldMsg("renewals", { ok: false, text: e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed });
     } finally {
       setBusy(null);
     }
   }
 
-  async function act(label: string, fn: () => Promise<unknown>, done: string): Promise<boolean> {
+  /** Run one action and put its result next to the button that caused it (owner rule, 2026-11-14):
+   *  `slot` is the message's key, rendered by a <FieldMessage> beside that button. The top of the
+   *  page carries load errors only — an action's result never lives only up there. */
+  async function act(label: string, fn: () => Promise<unknown>, done: string, slot: string): Promise<boolean> {
     setBusy(label);
-    setNotice(null);
-    setError(null);
+    setFieldMsg(slot, null);
     try {
       await fn();
-      setNotice(done);
+      setFieldMsg(slot, { ok: true, text: done });
       await load();
       return true;
     } catch (e) {
-      setError(e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed);
+      setFieldMsg(slot, { ok: false, text: e instanceof ApiProblem ? e.message : t.body.wallet.actionFailed });
       return false;
     } finally {
       setBusy(null);
@@ -232,7 +239,6 @@ export function AdminBillingView() {
       </header>
 
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
-      {notice && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{notice}</p>}
 
       {wallets.map((w) => (
         <section key={w.organization_id} aria-label={t.body.wallet.billingWalletSection} className="vie-panel">
@@ -241,10 +247,11 @@ export function AdminBillingView() {
           <p className="t-metric">{w.balance} <span className="t-small">{t.body.wallet.tokensUnit}</span></p>
           <p className="t-small mt-1">{t.body.wallet.billingSpendable.replace("{a}", String(w.spendable_balance))}{w.low_balance ? t.body.wallet.billingLowSuffix : ""}{w.last_activity_at ? t.body.wallet.billingLastMovement.replace("{a}", new Date(w.last_activity_at).toLocaleString()) : ""}</p>
           <button type="button" disabled={busy !== null || !orgId}
-            onClick={() => void act("expire", () => api(`/v1/admin/wallet/${orgId}/expire`, { method: "POST" }), t.body.wallet.billingExpiredDone)}
+            onClick={() => void act("expire", () => api(`/v1/admin/wallet/${orgId}/expire`, { method: "POST" }), t.body.wallet.billingExpiredDone, `expire-${w.organization_id}`)}
             className="vie-btn vie-btn-sm mt-3">
             {busy === "expire" ? t.body.wallet.billingWritingOff : t.body.wallet.billingWriteOff}
           </button>
+          <div className="mt-2"><FieldMessage msg={fieldMsg[`expire-${w.organization_id}`]} /></div>
           </div>
         </section>
       ))}
@@ -266,16 +273,17 @@ export function AdminBillingView() {
                       placeholder={t.body.wallet.billingInvoicePlaceholder} className="min-w-64 flex-1 rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                     {r.status === "REQUESTED" && (
                       <button type="button" disabled={busy !== null || !invoiceRef.trim()}
-                        onClick={() => void act(`invoice-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/invoice`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingInvoiceIssued)}
+                        onClick={() => void act(`invoice-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/invoice`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingInvoiceIssued, `invoice-${r.id}`)}
                         className="t-button rounded-ctl border border-primary px-3 py-1.5 text-primary disabled:opacity-50">{t.body.wallet.billingIssueInvoice}</button>
                     )}
                     {r.status === "INVOICED" && (
                       <button type="button" disabled={busy !== null || !invoiceRef.trim()}
-                        onClick={() => void act(`confirm-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/confirm-receipt`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingTokensAdded.replace("{a}", String(r.tokens)))}
+                        onClick={() => void act(`confirm-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/confirm-receipt`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingTokensAdded.replace("{a}", String(r.tokens)), `confirm-${r.id}`)}
                         className="vie-btn vie-btn-sm vie-btn-pri">{t.body.wallet.billingConfirmTransfer}</button>
                     )}
                   </div>
                 )}
+                <FieldMessage msg={fieldMsg[`invoice-${r.id}`] ?? fieldMsg[`confirm-${r.id}`]} />
               </li>
             ))}
           </ul>
@@ -310,6 +318,7 @@ export function AdminBillingView() {
                 <h3 className="t-panel">{selectedOrder.reference}</h3>
                 <button type="button" className="t-button text-muted" onClick={() => setSelectedOrder(null)}>{t.common.close}</button>
               </div>
+              <FieldMessage msg={fieldMsg[`order-confirm-${selectedOrder.id}`] ?? fieldMsg[`order-partial-${selectedOrder.id}`] ?? fieldMsg[`order-reject-${selectedOrder.id}`] ?? fieldMsg[`order-refund-${selectedOrder.id}`]} />
               <p className="t-body">
                 {selectedOrder.organization_name ? `${selectedOrder.organization_name} · ` : ""}{selectedOrder.plan_code} · {planMonths(selectedOrder.period_months, t.body.wallet)} · {money(selectedOrder.amount_minor, selectedOrder.currency)} · <OrderStatusLabel order={selectedOrder} />
               </p>
@@ -336,9 +345,12 @@ export function AdminBillingView() {
                 )}
               </dl>
               {selectedOrder.proof_filename ? (
-                <button type="button" className="btn sm" disabled={busy !== null} onClick={() => void downloadProof(selectedOrder)}>
-                  {busy === `proof-${selectedOrder.id}` ? t.common.loading : t.body.wallet.blProofDownload}
-                </button>
+                <>
+                  <button type="button" className="btn sm" disabled={busy !== null} onClick={() => void downloadProof(selectedOrder)}>
+                    {busy === `proof-${selectedOrder.id}` ? t.common.loading : t.body.wallet.blProofDownload}
+                  </button>
+                  <FieldMessage msg={fieldMsg[`proof-${selectedOrder.id}`]} />
+                </>
               ) : (
                 <p className="sm mu">{t.body.wallet.blNoProof}</p>
               )}
@@ -362,8 +374,7 @@ export function AdminBillingView() {
                     await act(`confirm-${selectedOrder.id}`, () => api(`/v1/admin/billing/orders/${selectedOrder.id}/confirm`, {
                       method: "POST",
                       json: { amount_received_minor: Number(confirmForm.amount), bank_reference: confirmForm.bankReference.trim(), confirmed_at: confirmForm.confirmedAt || undefined },
-                    }), t.body.wallet.blOrderConfirmed);
-                    setSelectedOrder(null);
+                    }), t.body.wallet.blOrderConfirmed, `order-confirm-${selectedOrder.id}`);
                   }}>
                     <h4 className="t-panel">{t.body.wallet.blConfirmPay}</h4>
                     <p className="sm mu">{t.body.wallet.blAmountMustMatch}</p>
@@ -377,8 +388,7 @@ export function AdminBillingView() {
                     await act(`partial-${selectedOrder.id}`, () => api(`/v1/admin/billing/orders/${selectedOrder.id}/record-partial`, {
                       method: "POST",
                       json: { amount_received_minor: Number(partialForm.amount), bank_reference: partialForm.bankReference.trim() || undefined },
-                    }), t.body.wallet.blPartialRecorded);
-                    setSelectedOrder(null);
+                    }), t.body.wallet.blPartialRecorded, `order-partial-${selectedOrder.id}`);
                   }}>
                     <h4 className="t-panel">{t.body.wallet.blRecordPartial}</h4>
                     <input aria-label={t.body.wallet.blAmountReceived} type="number" min="1" step="1" required value={partialForm.amount} onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })} placeholder={t.body.wallet.blAmountReceived} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
@@ -393,8 +403,7 @@ export function AdminBillingView() {
                   await act(`reject-${selectedOrder.id}`, () => api(`/v1/admin/billing/orders/${selectedOrder.id}/reject`, {
                     method: "POST",
                     json: { reason: rejectReason.trim() },
-                  }), t.body.wallet.blOrderRejected);
-                  setSelectedOrder(null);
+                  }), t.body.wallet.blOrderRejected, `order-reject-${selectedOrder.id}`);
                 }}>
                   <h4 className="t-panel">{t.body.wallet.blRejectOrder}</h4>
                   <input aria-label={t.body.wallet.blRejectReason} required value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t.body.wallet.blRejectReason} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
@@ -407,8 +416,7 @@ export function AdminBillingView() {
                   await act(`refund-${selectedOrder.id}`, () => api(`/v1/admin/billing/orders/${selectedOrder.id}/refund`, {
                     method: "POST",
                     json: { reason: refundForm.reason.trim(), amount_refunded_minor: refundForm.amountRefunded ? Number(refundForm.amountRefunded) : undefined },
-                  }), t.body.wallet.blRefundDone);
-                  setSelectedOrder(null);
+                  }), t.body.wallet.blRefundDone, `order-refund-${selectedOrder.id}`);
                 }}>
                   <h4 className="t-panel">{t.body.wallet.blRefund}</h4>
                   <p className="sm mu">{t.body.wallet.blRefundNote}</p>
@@ -434,7 +442,7 @@ export function AdminBillingView() {
               const d = bankDraft[c] ?? { account_name: "", bank_name: "", account_number: "", swift_iban: "", is_active: true };
               const saved = bankAccounts.find((a) => a.currency === c);
               return (
-                <form key={c} className="space-y-2 rounded-ctl border border-line bg-canvas p-3" onSubmit={(e) => { e.preventDefault(); void saveBank(c); }} onChange={() => setBankSaved((cur) => ({ ...cur, [c]: false }))}>
+                <form key={c} className="space-y-2 rounded-ctl border border-line bg-canvas p-3" onSubmit={(e) => { e.preventDefault(); void saveBank(c); }} onChange={() => setFieldMsg(`bank-${c}`, null)}>
                   <h3 className="t-panel">{c}{saved ? ` · ${saved.is_active ? t.body.wallet.blBankActive : t.body.wallet.blBankInactive}` : ""}</h3>
                   <input aria-label={t.body.wallet.blAccountName} required value={d.account_name} onChange={(e) => setBankDraft({ ...bankDraft, [c]: { ...d, account_name: e.target.value } })} placeholder={t.body.wallet.blAccountName} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                   <input aria-label={t.body.wallet.blBank} required value={d.bank_name} onChange={(e) => setBankDraft({ ...bankDraft, [c]: { ...d, bank_name: e.target.value } })} placeholder={t.body.wallet.blBank} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
@@ -445,7 +453,7 @@ export function AdminBillingView() {
                     {t.body.wallet.blBankActive}
                   </label>
                   <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri w-full">{busy === `bank-${c}` ? t.common.loading : t.body.wallet.blSaveBank}</button>
-                  {bankSaved[c] && <p role="status" className="rounded-ctl border border-ok/50 bg-ok/10 px-3 py-2 t-body text-ok">{t.body.wallet.blBankSaved}</p>}
+                  <FieldMessage msg={fieldMsg[`bank-${c}`]} />
                 </form>
               );
             })}
@@ -467,6 +475,7 @@ export function AdminBillingView() {
           <button type="button" className="vie-btn vie-btn-pri mt-3" disabled={busy !== null} onClick={() => void runRenewals()}>
             {busy === "renewals" ? t.common.loading : t.body.wallet.blRunRenewals}
           </button>
+          <div className="mt-2"><FieldMessage msg={fieldMsg["renewals"]} /></div>
           {renewal && (
             <p className="t-body mt-3">
               {t.body.wallet.blRenewalsCreated.replace("{a}", String(renewal.renewals_created))} ·{" "}
@@ -492,27 +501,30 @@ export function AdminBillingView() {
           </label>
           <p className="t-body text-muted">{t.body.wallet.billingManualDesc}</p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <form onSubmit={(e) => { e.preventDefault(); void act("topup", () => api(`/v1/admin/wallet/${orgId}/topup`, { method: "POST", json: { amount: Number(topUp.amount), reason: topUp.reason.trim(), invoice_ref: topUp.invoiceRef.trim() || null } }), t.body.wallet.billingTopUpDone.replace("{a}", topUp.amount)); }}
+            <form onSubmit={(e) => { e.preventDefault(); void act("topup", () => api(`/v1/admin/wallet/${orgId}/topup`, { method: "POST", json: { amount: Number(topUp.amount), reason: topUp.reason.trim(), invoice_ref: topUp.invoiceRef.trim() || null } }), t.body.wallet.billingTopUpDone.replace("{a}", topUp.amount), "topup"); }}
               className="space-y-2 rounded-ctl border border-line bg-canvas p-3">
               <h3 className="t-panel">{t.body.wallet.billingTopUpTitle}</h3>
               <input aria-label={t.body.wallet.billingTopUpTokens} type="number" min="1" step="1" required value={topUp.amount} onChange={(e) => setTopUp({ ...topUp, amount: e.target.value })} placeholder={t.body.wallet.billingTopUpTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingTopUpInvoiceAria} value={topUp.invoiceRef} onChange={(e) => setTopUp({ ...topUp, invoiceRef: e.target.value })} placeholder={t.body.wallet.billingTopUpInvoicePh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingTopUpReasonAria} required value={topUp.reason} onChange={(e) => setTopUp({ ...topUp, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri w-full">{t.body.wallet.billingTopUpBtn}</button>
+              <FieldMessage msg={fieldMsg["topup"]} />
             </form>
-            <form onSubmit={(e) => { e.preventDefault(); void act("refund", () => api(`/v1/admin/wallet/${orgId}/refund`, { method: "POST", json: { amount: Number(refund.amount), reason: refund.reason.trim() } }), t.body.wallet.billingRefundDone.replace("{a}", refund.amount)); }}
+            <form onSubmit={(e) => { e.preventDefault(); void act("refund", () => api(`/v1/admin/wallet/${orgId}/refund`, { method: "POST", json: { amount: Number(refund.amount), reason: refund.reason.trim() } }), t.body.wallet.billingRefundDone.replace("{a}", refund.amount), "manual-refund"); }}
               className="space-y-2 rounded-ctl border border-line bg-canvas p-3">
               <h3 className="t-panel">{t.body.wallet.billingRefundTitle}</h3>
               <input aria-label={t.body.wallet.billingRefundTokens} type="number" min="1" step="1" required value={refund.amount} onChange={(e) => setRefund({ ...refund, amount: e.target.value })} placeholder={t.body.wallet.billingTopUpTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingRefundReasonAria} required value={refund.reason} onChange={(e) => setRefund({ ...refund, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <button type="submit" disabled={busy !== null} className="vie-btn w-full">{t.body.wallet.billingRefundBtn}</button>
+              <FieldMessage msg={fieldMsg["manual-refund"]} />
             </form>
-            <form onSubmit={(e) => { e.preventDefault(); void act("adjust", () => api(`/v1/admin/wallet/${orgId}/adjust`, { method: "POST", json: { amount: Number(adjust.amount), reason: adjust.reason.trim() } }), t.body.wallet.billingAdjustDone); }}
+            <form onSubmit={(e) => { e.preventDefault(); void act("adjust", () => api(`/v1/admin/wallet/${orgId}/adjust`, { method: "POST", json: { amount: Number(adjust.amount), reason: adjust.reason.trim() } }), t.body.wallet.billingAdjustDone, "adjust"); }}
               className="space-y-2 rounded-ctl border border-line bg-canvas p-3">
               <h3 className="t-panel">{t.body.wallet.billingAdjustTitle}</h3>
               <input aria-label={t.body.wallet.billingAdjustTokens} type="number" step="1" required value={adjust.amount} onChange={(e) => setAdjust({ ...adjust, amount: e.target.value })} placeholder={t.body.wallet.billingAdjustTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingAdjustReasonAria} required value={adjust.reason} onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <button type="submit" disabled={busy !== null} className="vie-btn w-full">{t.body.wallet.billingAdjustBtn}</button>
+              <FieldMessage msg={fieldMsg["adjust"]} />
             </form>
           </div>
           </div>
