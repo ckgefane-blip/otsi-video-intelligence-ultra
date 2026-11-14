@@ -28,15 +28,16 @@ vi.mock("@/components/auth/AuthProvider", () => ({
   }),
 }));
 
-const { browserSupportsWebAuthn, startRegistration, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } = vi.hoisted(() => ({
+const { browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startRegistration, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } = vi.hoisted(() => ({
   browserSupportsWebAuthn: vi.fn(() => true),
+  platformAuthenticatorIsAvailable: vi.fn(() => Promise.resolve(true)),
   startRegistration: vi.fn(),
   webauthnCredentials: vi.fn(),
   webauthnDeleteCredential: vi.fn(),
   webauthnRegisterOptions: vi.fn(),
   webauthnRegisterVerify: vi.fn(),
 }));
-vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn, startRegistration, startAuthentication: vi.fn() }));
+vi.mock("@simplewebauthn/browser", () => ({ browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startRegistration, startAuthentication: vi.fn() }));
 vi.mock("@/lib/api", () => ({
   authMode: async () => ({ mode: "local", central_url: null }),
   ApiProblem: class ApiProblem extends Error {
@@ -54,6 +55,7 @@ import { PasskeySettings } from "@/components/account/PasskeySettings";
 beforeEach(() => {
   vi.clearAllMocks();
   browserSupportsWebAuthn.mockReturnValue(true);
+  platformAuthenticatorIsAvailable.mockResolvedValue(true);
 });
 
 describe("sign-in page passkey button", () => {
@@ -78,6 +80,18 @@ describe("sign-in page passkey button", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /Sign in with a passkey/ }));
     await waitFor(() => expect(screen.getByText(/Enter your email first/)).toBeInTheDocument());
+    expect(signInWithPasskey).not.toHaveBeenCalled();
+  });
+
+  // The Electron app window has no platform authenticator (Windows Hello): the button says so instead of
+  // starting a ceremony that cannot offer "This device".
+  it("says passkeys are unavailable when there is no platform authenticator, and does not sign in", async () => {
+    platformAuthenticatorIsAvailable.mockResolvedValue(false);
+    render(<LoginPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Sign in with a passkey/ })).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText("you@club.com"), { target: { value: "karo@gefane.invalid" } });
+    fireEvent.click(screen.getByRole("button", { name: /Sign in with a passkey/ }));
+    await waitFor(() => expect(screen.getByText(/does not support passkeys here/)).toBeInTheDocument());
     expect(signInWithPasskey).not.toHaveBeenCalled();
   });
 });
@@ -107,6 +121,29 @@ describe("Settings passkeys", () => {
     render(<PasskeySettings />);
     await waitFor(() => expect(screen.getByRole("switch", { name: "Biometric sign-in" })).toHaveAttribute("aria-checked", "false"));
     expect(screen.getByText(/Off — sign in with your password/)).toBeInTheDocument();
+  });
+
+  it("turning the switch on names the new passkey from the authenticator", async () => {
+    webauthnCredentials.mockResolvedValue({ credentials: [] });
+    webauthnRegisterOptions.mockResolvedValue({ challenge: "c", rp: { name: "OTSI VIE", id: "localhost" }, user: { id: "u", name: "karo@gefane.invalid", displayName: "Karo" }, pubKeyCredParams: [] });
+    startRegistration.mockResolvedValue({ id: "abc", rawId: "abc", response: {}, type: "public-key", authenticatorAttachment: "platform" });
+    webauthnRegisterVerify.mockResolvedValue({ id: "33333333-3333-3333-3333-333333333333", device_name: "Windows Hello", created_at: "2026-11-14T10:00:00.000Z", last_used_at: null });
+    render(<PasskeySettings />);
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Biometric sign-in" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("switch", { name: "Biometric sign-in" }));
+    await waitFor(() => expect(webauthnRegisterVerify).toHaveBeenCalledWith(expect.anything(), "Windows Hello"));
+    await waitFor(() => expect(screen.getByText("Passkey added.")).toBeInTheDocument());
+  });
+
+  it("says passkeys are unavailable when there is no platform authenticator, and does not start a ceremony", async () => {
+    platformAuthenticatorIsAvailable.mockResolvedValue(false);
+    webauthnCredentials.mockResolvedValue({ credentials: [] });
+    render(<PasskeySettings />);
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Biometric sign-in" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("switch", { name: "Biometric sign-in" }));
+    await waitFor(() => expect(screen.getByText(/does not support passkeys here/)).toBeInTheDocument());
+    expect(startRegistration).not.toHaveBeenCalled();
+    expect(webauthnRegisterVerify).not.toHaveBeenCalled();
   });
 
   it("turning the switch off removes every passkey and says so", async () => {

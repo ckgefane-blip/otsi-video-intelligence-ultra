@@ -6,7 +6,7 @@
 import type { Me, MfaChallenge, SessionResponse } from "@otsi-vie/contracts";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { login as apiLogin, loginTwoStep, logout as apiLogout, refresh, session, webauthnLoginOptions, webauthnLoginVerify } from "@/lib/api";
-import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
+import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startAuthentication } from "@simplewebauthn/browser";
 
 type Status = "loading" | "signed-out" | "signed-in";
 interface AuthState {
@@ -63,6 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async signInWithCode(mfaToken, code) { accept((await loginTwoStep(mfaToken, code)).me); },
     async signInWithPasskey(email) {
       if (!browserSupportsWebAuthn()) throw new Error("passkeys are not supported by this browser");
+      // The Electron app window has no platform authenticator (Windows Hello), so a ceremony there cannot
+      // offer "This device". Refuse plainly instead of opening a prompt without it.
+      if (!(await platformAuthenticatorIsAvailable())) throw new Error("passkeys are not supported by this browser");
       const options = await webauthnLoginOptions(email);
       const assertion = await startAuthentication({ optionsJSON: options });
       accept((await webauthnLoginVerify(assertion)).me);

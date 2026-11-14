@@ -195,6 +195,20 @@ describe("passkey sign-in (ADR-143)", () => {
     expect(rows[0]!.last_used_at).not.toBeNull();
   });
 
+  it("login/verify rejects a passkey that is not in this app's table (another localhost app's credential)", async () => {
+    // Every local app shares the RP ID "localhost", so Windows Hello can offer a passkey from another app
+    // on the same PC (e.g. the old "Karo" passkey) in the picker. The server must refuse it: its credential
+    // id is not in this app's webauthn_credentials table, so no session is issued however well-formed the
+    // assertion is.
+    const options = await post("/v1/auth/webauthn/login/options", { email: owner.email });
+    expect(options.status).toBe(200);
+    const foreignId = randomBytes(32).toString("base64url");
+    const assertion = buildAssertion(foreignId, options.body.challenge as string, 1, privateKey);
+    const r = await post("/v1/auth/webauthn/login/verify", { response: assertion });
+    expect(r.status).toBe(401);
+    expect(r.body.code).toBe("WEBAUTHN_VERIFICATION_FAILED");
+  });
+
   it("a used challenge cannot be replayed", async () => {
     const options = await post("/v1/auth/webauthn/login/options", { email: owner.email });
     expect(options.status).toBe(200);

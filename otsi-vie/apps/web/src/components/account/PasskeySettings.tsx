@@ -7,7 +7,7 @@
  * passkey is an extra way in, not a replacement. The state shown is GET /v1/auth/webauthn/credentials.
  */
 import type { WebAuthnCredential } from "@otsi-vie/contracts";
-import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
+import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startRegistration } from "@simplewebauthn/browser";
 import { Fingerprint, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiProblem, webauthnCredentials, webauthnDeleteCredential, webauthnRegisterOptions, webauthnRegisterVerify } from "@/lib/api";
@@ -42,11 +42,18 @@ export function PasskeySettings() {
     // the SOT shows the button unconditionally: on a machine where passkeys do not work (Windows Hello
     // unavailable) the press itself says so, instead of the button hiding
     if (supported === false) { setError(w.passkeyUnavailable); return; }
+    // The Electron app window has no platform authenticator: Windows Hello is not wired up there, so the
+    // toggle would open a prompt without "This device" (or hang). Check first and say so plainly instead of
+    // starting a ceremony that cannot offer it — the fingerprint is enrolled and used in the browser.
+    if (!(await platformAuthenticatorIsAvailable())) { setError(w.passkeyUnavailable); return; }
     setBusy(true); setError(null); setNotice(null);
     try {
       const options = await webauthnRegisterOptions();
       const attestation = await startRegistration({ optionsJSON: options });
-      await webauthnRegisterVerify(attestation);
+      // Name the passkey from the authenticator that made it, so the list never shows a row of "Unnamed
+      // passkey": a platform authenticator is Windows Hello, a roaming one is a security key.
+      const name = attestation.authenticatorAttachment === "cross-platform" ? "Security key" : w.windowsHello;
+      await webauthnRegisterVerify(attestation, name);
       setNotice(w.passkeyAdded);
       load();
     } catch (err) {

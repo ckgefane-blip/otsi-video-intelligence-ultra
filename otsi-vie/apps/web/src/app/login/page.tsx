@@ -17,7 +17,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { PitchDiagram } from "@/components/auth/PitchDiagram";
 import { ApiProblem, authMode } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable } from "@simplewebauthn/browser";
 import { safeNext } from "@/lib/safe-next";
 
 const field = "mt-1 w-full rounded-ctl border border-line bg-canvas px-3 py-2 t-body outline-none focus:border-primary";
@@ -130,6 +130,10 @@ function LoginForm() {
     // unavailable) the button is still there and says so when pressed, instead of hiding
     if (passkeySupported === false) { setError(t.webauthn.passkeyUnavailable); return; }
     if (!email.trim()) { setError(t.webauthn.passkeyNeedEmail); return; }
+    // The Electron app window has no platform authenticator: Windows Hello is not wired up there, so a
+    // sign-in would open a prompt without "This device" (or hang). Say so plainly instead of starting a
+    // ceremony that cannot offer it — the fingerprint is used in the browser.
+    if (!(await platformAuthenticatorIsAvailable())) { setError(t.webauthn.passkeyUnavailable); return; }
     setPasskeyBusy(true);
     setError(null);
     try {

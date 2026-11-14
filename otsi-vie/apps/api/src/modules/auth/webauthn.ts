@@ -155,7 +155,10 @@ export class WebAuthnService {
       userID: new TextEncoder().encode(userId),
       userDisplayName: (user.display_name as string | null) || (user.email as string),
       attestationType: "none",
-      authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
+      // Windows Hello only: the product signs in with the platform authenticator (fingerprint, face or PIN),
+      // so registration asks for it explicitly. In a browser Windows Hello then offers "This device" directly,
+      // instead of a picker that also lists phones and security keys.
+      authenticatorSelection: { residentKey: "preferred", userVerification: "required", authenticatorAttachment: "platform" },
       excludeCredentials: existing.map((c) => credentialRef(c.credential_id as string, c.transports as string | null)),
     });
     await this.storeChallenge("register", userId, null, options.challenge);
@@ -164,6 +167,10 @@ export class WebAuthnService {
 
   async registerVerify(userId: string, body: unknown, reqOrigin?: string): Promise<WebAuthnCredential> {
     const { response, device_name } = WebAuthnRegisterVerifyRequest.parse(body);
+    // Name the passkey from the authenticator that made it, so the list never shows a row of "Unnamed passkey":
+    // a platform authenticator is Windows Hello, a roaming one is a security key. The client sends the name
+    // when it can; the server defaults it so an older client still gets a useful name.
+    const name = device_name ?? (response.authenticatorAttachment === "platform" ? "Windows Hello" : response.authenticatorAttachment === "cross-platform" ? "Security key" : null);
     const challenge = this.challengeOf(response);
     const stored = await this.consumeChallenge("register", challenge);
     if (stored.user_id !== userId) throw CHALLENGE_INVALID();
@@ -188,7 +195,7 @@ export class WebAuthnService {
         `INSERT INTO webauthn_credentials (id, user_id, credential_id, public_key, counter, transports, device_name)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, userId, credential.id, isoBase64URL.fromBuffer(credential.publicKey), credential.counter,
-          transports ? JSON.stringify(transports) : null, device_name ?? null]);
+          transports ? JSON.stringify(transports) : null, name]);
     } catch (err) {
       if (err instanceof Error && /Duplicate entry/i.test(err.message)) {
         throw new ApiError(409, "WEBAUTHN_CREDENTIAL_EXISTS", "That passkey is already registered on this account.");
