@@ -11,6 +11,9 @@
  * MariaDB mode (`OTSI_VIE_TEST_DB_BACKEND=mariadb`, ADR-146 §6): the same, on the disposable MariaDB 11.4 server that stands in
  * for the central server's host (container otsi-vie-central-mariadb, 127.0.0.1:3511; root password in
  * .local/mariadb-central-test.env). The migrator applies its MariaDB rewrite (tools/db/mariadb_compat.py) on its own.
+ * The MariaDB server MUST run with --default-time-zone=+00:00 (UTC): the API stores expiry/validity times with the
+ * DB's CURRENT_TIMESTAMP and compares them against Node's UTC clock, so a server in any other timezone makes
+ * time checks misbehave (wallet tests fail with 409 RIGHTS_NOT_VALID_NOW; webauthn challenge expiry checks break).
  */
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";

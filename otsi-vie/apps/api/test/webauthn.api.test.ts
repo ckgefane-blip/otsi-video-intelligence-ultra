@@ -55,21 +55,6 @@ function cosePublicKey(x: Buffer, y: Buffer): Buffer {
   ]);
 }
 
-/** ECDSA DER (SEQUENCE of two INTEGERs) -> the 64-byte R||S a WebAuthn assertion carries. */
-function derToRaw(der: Buffer): Buffer {
-  let o = 2; // SEQUENCE tag + length (short form: a P-256 signature is always under 128 bytes)
-  const readInt = () => {
-    if (der[o] !== 0x02) throw new Error("bad DER integer");
-    const len = der[o + 1] ?? 0;
-    let v = der.subarray(o + 2, o + 2 + len);
-    o += 2 + len;
-    if (v.length === 33 && v[0] === 0) v = v.subarray(1); // strip the sign padding
-    return v;
-  };
-  const pad = (b: Buffer) => (b.length < 32 ? Buffer.concat([Buffer.alloc(32 - b.length), b]) : b);
-  return Buffer.concat([pad(readInt()), pad(readInt())]);
-}
-
 /** A valid assertion for `credentialId`, signed with `privateKey`, carrying `counter`. */
 function buildAssertion(credentialId: string, challenge: string, counter: number, privateKey: KeyObject) {
   const clientDataJSON = Buffer.from(JSON.stringify({ type: "webauthn.get", challenge, origin: ORIGIN }), "utf8").toString("base64url");
@@ -79,7 +64,12 @@ function buildAssertion(credentialId: string, challenge: string, counter: number
   counterBuf.writeUInt32BE(counter);
   const authenticatorData = Buffer.concat([rpIdHash, flags, counterBuf]);
   const signed = Buffer.concat([authenticatorData, createHash("sha256").update(Buffer.from(clientDataJSON, "base64url")).digest()]);
-  const signature = derToRaw(sign("SHA256", signed, privateKey));
+  // The assertion signature is sent as the DER (ASN.1) ECDSA signature Node's sign() returns.
+  // @simplewebauthn/server expects DER and unwraps it to raw R||S itself (unwrapEC2Signature);
+  // converting it to raw R||S here made the library's ASN.1 parser throw "Too big integer" and
+  // every forward-counter login fail with WEBAUTHN_VERIFICATION_FAILED. (The backwards-counter
+  // test masked this: the library's counter check throws before signature verification.)
+  const signature = sign("SHA256", signed, privateKey);
   return {
     id: credentialId,
     rawId: credentialId,
