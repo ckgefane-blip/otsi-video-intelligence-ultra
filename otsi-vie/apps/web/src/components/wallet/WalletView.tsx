@@ -28,6 +28,8 @@ const kindLabel = (t: Dictionary): Record<WalletLedgerEntry["kind"], string> => 
   REFUND: t.body.wallet.kindRefund,
   ADJUSTMENT: t.body.wallet.kindAdjustment,
   EXPIRY: t.body.wallet.kindExpiry,
+  INVITE_BONUS: t.body.wallet.kindInviteBonus,
+  INVITE_REWARD: t.body.wallet.kindInviteReward,
 });
 
 const csvOf = (entries: WalletLedgerEntry[]) =>

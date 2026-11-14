@@ -15,6 +15,7 @@
  * (ALREADY_SET_UP) and a link to sign in instead. A person who is already
  * signed in is sent to the dashboard.
  */
+import { INVITE_BONUS_TOKENS } from "@otsi-vie/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -55,6 +56,15 @@ export default function SetupPage() {
   const [linked, setLinked] = useState(false);
   const [club, setClub] = useState("");
   useEffect(() => { void authMode().then((m) => setLinked(m.mode === "linked")); }, []);
+  /** a referral invite code from a shared link (?invite=CODE): it travels with the sign-up, and the invitee
+   *  gets +25 tokens on top of the free grant (the inviter is paid only when the invitee does something real) */
+  const [inviteCode, setInviteCode] = useState("");
+  useEffect(() => {
+    try {
+      const code = new URLSearchParams(window.location.search).get("invite") ?? "";
+      if (/^[A-Za-z0-9]{10}$/.test(code)) setInviteCode(code);
+    } catch { /* no invite code */ }
+  }, []);
 
   useEffect(() => { if (status === "signed-in") router.replace("/dashboard"); }, [status, router]);
 
@@ -64,7 +74,7 @@ export default function SetupPage() {
     if (password.length < 12) { setError(t.body.auth.setupPasswordHint); return; }
     setBusy(true); setError(null); setAlready(false);
     try {
-      const s = await setupOwner({ email: email.trim(), display_name: name.trim(), password, ...(linked && club.trim() ? { organization_name: club.trim() } : {}) });
+      const s = await setupOwner({ email: email.trim(), display_name: name.trim(), password, ...(linked && club.trim() ? { organization_name: club.trim() } : {}), ...(inviteCode ? { invite_code: inviteCode } : {}) });
       adoptSession(s);
       router.replace("/dashboard");
     } catch (x) {
@@ -142,6 +152,11 @@ export default function SetupPage() {
             <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">
               {error}{" "}
               {already && <Link href="/login" className="underline">{t.body.auth.signIn}</Link>}
+            </p>
+          )}
+          {inviteCode && (
+            <p role="status" className="rounded-ctl border border-primary/50 bg-primary/10 px-3 py-2 t-body">
+              {t.body.invite.signupBonus.replace("{bonus}", String(INVITE_BONUS_TOKENS))}
             </p>
           )}
           <button type="submit" disabled={busy} className="h-11 w-full rounded-ctl bg-primary t-body font-normal text-primary-ink hover:brightness-110 disabled:opacity-70">

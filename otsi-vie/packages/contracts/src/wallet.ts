@@ -9,8 +9,8 @@ import { PLAN_CATALOGUE, TOPUP_BLOCK_TOKENS, planEntryOrNull } from "./bank-tran
  * by the API and by the unit tests that run without MySQL.
  */
 
-/** A ledger row's kind. SPEND and EXPIRY are always negative, PURCHASE / FREE_GRANT / REFUND always positive. */
-export const WalletLedgerKind = z.enum(["PURCHASE", "FREE_GRANT", "SPEND", "REFUND", "ADJUSTMENT", "EXPIRY"]);
+/** A ledger row's kind. SPEND and EXPIRY are always negative, PURCHASE / FREE_GRANT / REFUND / INVITE_BONUS / INVITE_REWARD always positive. */
+export const WalletLedgerKind = z.enum(["PURCHASE", "FREE_GRANT", "SPEND", "REFUND", "ADJUSTMENT", "EXPIRY", "INVITE_BONUS", "INVITE_REWARD"]);
 export type WalletLedgerKind = z.infer<typeof WalletLedgerKind>;
 
 /** What a SPEND paid for. The job_id is the run / render / report / bundle / assessment id the spend references. */
@@ -75,6 +75,14 @@ export const TOPUP_MAX_BLOCKS = 100;
  *  cannot drift apart (a literal 25 in the schema broke the packs endpoint when the grant went to 100). */
 export const FREE_GRANT_TOKENS = 100;
 export const FREE_GRANT_EXPIRY_DAYS = 30;
+
+/** User-to-user Invite (owner decision 2026-11-14): one user invites another user; the invitee gets a bonus
+ *  on signup, on top of the free grant, and the inviter is rewarded only when the invitee does something
+ *  real — their first match analysis or their first pack purchase. Never on signup alone (anti-farming:
+ *  a reward on signup alone would pay for empty accounts). Each invitee pays out once, and a user cannot
+ *  use their own code. */
+export const INVITE_BONUS_TOKENS = 25;
+export const INVITE_REWARD_TOKENS = 100;
 
 export const TokenPack = z.object({
   blocks: z.number().int().positive(),

@@ -21,6 +21,7 @@ import {
   ConfirmReceiptRequest,
   FREE_GRANT_EXPIRY_DAYS,
   FREE_GRANT_TOKENS,
+  INVITE_REWARD_TOKENS,
   IssueInvoiceRequest,
   PACK_EXPIRY_MONTHS,
   PackRequest,
@@ -195,7 +196,34 @@ export class WalletService {
       kind: "SPEND", amount: -job.amount, jobType: job.type, jobId: job.id, idempotencyKey: key,
       reason: job.reason ?? `Charge for ${job.type} ${job.id}`,
     });
+    // a first match analysis earns the inviter's reward (the invite is user-to-user, so the reward lands on
+    // the inviter's organisation, not here); a repeat charge returns early above, so this fires once
+    if (job.type === "ANALYSIS") await this.maybePayInviteReward(ex, organizationId, "ANALYSIS");
     return entry;
+  }
+
+  /**
+   * User-to-user Invite reward (owner decision 2026-11-14): when an invited organisation does something real
+   * for the first time — its first match analysis, or its first pack purchase — the inviter's organisation gets
+   * INVITE_REWARD_TOKENS. Exactly once per invitee: the referral row is marked paid, and the ledger row carries
+   * the idempotency key `invite-reward:<inviteeOrgId>`, so a second trigger (or a retry) returns the first row
+   * instead of paying again. Called from charge() (ANALYSIS) and confirmReceipt() (PURCHASE), inside their
+   * transaction, on the server that holds the wallet — so on a linked desktop it runs on central, not locally.
+   * The inviter's wallet is a different organisation's row, locked after the invitee's (the only path that
+   * locks two organisations' rows, always in this order, so it cannot deadlock with itself).
+   */
+  private async maybePayInviteReward(ex: Executor, inviteeOrgId: string, trigger: "ANALYSIS" | "PACK"): Promise<void> {
+    const ref = await this.db.one<RowDataPacket>(
+      "SELECT inviter_org_id, invitee_user_id FROM invite_referrals WHERE invitee_org_id = ? AND reward_paid_at IS NULL",
+      [inviteeOrgId], ex);
+    if (!ref) return;
+    await this.credit(ex, String(ref.inviter_org_id), String(ref.invitee_user_id), {
+      kind: "INVITE_REWARD", amount: INVITE_REWARD_TOKENS, idempotencyKey: `invite-reward:${inviteeOrgId}`,
+      reason: trigger === "ANALYSIS"
+        ? `Invite reward: ${INVITE_REWARD_TOKENS} tokens — an invited user analysed their first match.`
+        : `Invite reward: ${INVITE_REWARD_TOKENS} tokens — an invited user bought their first pack.`,
+    });
+    await ex.query("UPDATE invite_referrals SET reward_paid_at = CURRENT_TIMESTAMP(6) WHERE invitee_org_id = ? AND reward_paid_at IS NULL", [inviteeOrgId]);
   }
 
   /**
@@ -228,13 +256,13 @@ export class WalletService {
     });
   }
 
-  /** A credit that is not a job refund: PURCHASE, FREE_GRANT or ADJUSTMENT. */
+  /** A credit that is not a job refund: PURCHASE, FREE_GRANT, INVITE_BONUS, INVITE_REWARD or ADJUSTMENT. */
   async credit(
     ex: Executor,
     organizationId: string,
     actorId: string,
     row: {
-      kind: "PURCHASE" | "FREE_GRANT" | "REFUND" | "ADJUSTMENT";
+      kind: "PURCHASE" | "FREE_GRANT" | "INVITE_BONUS" | "INVITE_REWARD" | "REFUND" | "ADJUSTMENT";
       amount: number;
       idempotencyKey: string;
       invoiceRef?: string | null;
@@ -380,6 +408,8 @@ export class WalletService {
         invoiceRef: body.invoice_ref, reason: `Bank transfer confirmed for ${req.pack_code} pack (${req.tokens} tokens).`,
         expiresAt: addMonths(now, PACK_EXPIRY_MONTHS),
       });
+      // a first pack purchase earns the inviter's reward (user-to-user invite)
+      await this.maybePayInviteReward(c, orgId, "PACK");
       await recordChange(c, userActor(p), { action: "wallet.purchase_confirmed", entityType: "organization", entityId: orgId, after: { pack_request_id: requestId, invoice_ref: body.invoice_ref, tokens: Number(req.tokens) } });
     });
     return this.packRequest(requestId, orgId);

@@ -32,12 +32,25 @@ _AUTO_CHECK_COLUMNS = {
     "tracks_chk_1": "MODIFY `class_name` VARCHAR(255) NOT NULL",
 }
 # a named CHECK: MySQL `DROP CHECK name` -> MariaDB `DROP CONSTRAINT name`
+# An unnamed TABLE CHECK: MySQL names it `<table>_chk_<n>` (sequential in definition order); MariaDB names it
+# `CONSTRAINT_<n>` (same order, different prefix). The one the migrations drop:
+_TABLE_CHECK_NAMES = {
+    # 0078: the wallet_ledger sign rule (credits positive, debits negative). In 0071's definition order the
+    # CHECKs are the balance_after column check, `amount <> 0`, then the sign rule — so MySQL calls it
+    # wallet_ledger_chk_3 and MariaDB calls it CONSTRAINT_2. The replacement (0078) is named, so a later
+    # migration drops it by the same name on both engines and needs no entry here.
+    "wallet_ledger_chk_3": "CONSTRAINT_2",
+}
 _DROP_CHECK = re.compile(r"\bDROP\s+CHECK\s+`(?P<name>[A-Za-z0-9_]+)`", re.I)
 
 
 def _drop_check(m: re.Match[str]) -> str:
     name = m.group("name")
-    return _AUTO_CHECK_COLUMNS.get(name) or f"DROP CONSTRAINT `{name}`"
+    if name in _AUTO_CHECK_COLUMNS:
+        return _AUTO_CHECK_COLUMNS[name]
+    if name in _TABLE_CHECK_NAMES:
+        return f"DROP CONSTRAINT `{_TABLE_CHECK_NAMES[name]}`"
+    return f"DROP CONSTRAINT `{name}`"
 
 
 RULES: list[tuple[str, re.Pattern[str], Callable[[re.Match[str]], str]]] = [

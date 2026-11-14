@@ -8,7 +8,7 @@ PRAGMA legacy_alter_table=ON;
 CREATE TABLE `__otsi_new_players` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
   `canonical_otsi_id` TEXT COLLATE NOCASE UNIQUE CONSTRAINT `ck_len_canonical_otsi_id` CHECK (length(`canonical_otsi_id`) <= 32),
-  `canonical_state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'PENDING' CHECK (canonical_state IN('PENDING','VERIFIED','RETIRED')) CONSTRAINT `ck_len_canonical_state` CHECK (length(`canonical_state`) <= 255),
+  `canonical_state` TEXT COLLATE NOCASE NOT NULL DEFAULT 'PENDING' CONSTRAINT `ck_len_canonical_state` CHECK (length(`canonical_state`) <= 255),
   `display_name` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_display_name` CHECK (length(`display_name`) <= 255),
   `birth_date` INTEGER,
   `preferred_foot` TEXT COLLATE NOCASE CHECK (preferred_foot IN ('LEFT','RIGHT','BOTH','UNKNOWN')) CONSTRAINT `ck_len_preferred_foot` CHECK (length(`preferred_foot`) <= 255),

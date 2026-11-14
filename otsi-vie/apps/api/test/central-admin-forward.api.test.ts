@@ -77,6 +77,12 @@ describe("forwardedToCentral routing (the admin/wallet blocker)", () => {
     ] as const) expect(forwardedToCentral(method, path)).toBe(true);
   });
 
+  it("forwards the user-to-user invite code to central, and does not match a longer prefix", () => {
+    // the code lives on central: a linked desktop must read it there, not from the laptop's empty copy
+    expect(forwardedToCentral("GET", "/v1/invites/mine")).toBe(true);
+    expect(forwardedToCentral("GET", "/v1/invitesish")).toBe(false);
+  });
+
   it("does not forward other admin routes, and does not match a longer prefix", () => {
     for (const [method, path] of [
       ["GET", "/v1/admin/members"],

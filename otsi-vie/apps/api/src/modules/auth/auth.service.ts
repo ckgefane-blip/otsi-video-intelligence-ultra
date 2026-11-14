@@ -25,6 +25,7 @@ import { ApiError } from "../../core/problem";
 import { AccountService } from "../account/account";
 import { bootstrapOwner } from "./bootstrap";
 import { CentralLinkService, CentralUnreachable } from "../central/link";
+import { InviteService } from "../invite/invite";
 import { TeamService } from "../team/team";
 import { TwoStepService } from "./two-step";
 
@@ -68,7 +69,7 @@ export class AuthService {
 
   constructor(@Inject(CONFIG) private readonly cfg: Config, private readonly db: Db, private readonly account: AccountService,
               private readonly twoStep: TwoStepService, private readonly team: TeamService,
-              private readonly central: CentralLinkService) {
+              private readonly central: CentralLinkService, private readonly invite: InviteService) {
     if (!cfg.localAuth) throw new Error("local sign-in is not configured (OTSI_VIE_LOCAL_SIGNING_KEY_FILE)");
     this.local = cfg.localAuth;
   }
@@ -216,7 +217,8 @@ export class AuthService {
     if (this.central.linked) {
       try {
         const { userId } = await this.central.signUp({ email: body.email, display_name: body.display_name,
-          organization_name: body.organization_name?.trim() || body.display_name, password: body.password });
+          organization_name: body.organization_name?.trim() || body.display_name, password: body.password,
+          ...(body.invite_code ? { invite_code: body.invite_code } : {}) });
         return this.issueSession(userId, client);
       } catch (e) {
         if (e instanceof CentralUnreachable) throw new ApiError(503, "CENTRAL_UNREACHABLE", e.timedOut
@@ -250,15 +252,19 @@ export class AuthService {
     if (!signUpAllowed(`ip:${client.ip ?? "unknown"}`, SIGN_UP_LIMIT_PER_IP) || !signUpAllowed(`email:${email}`, SIGN_UP_LIMIT_PER_EMAIL)) {
       throw new ApiError(429, "TOO_MANY_SIGN_UPS", "Too many new accounts from here. Try again in an hour.");
     }
-    let userId: string;
+    // a referral invite code is resolved BEFORE the account is created, so a bad code refuses the
+    // sign-up instead of creating an account without the bonus (the bonus itself is credited after)
+    const inviter = body.invite_code ? await this.invite.resolveInvite(body.invite_code, email) : null;
+    let userId: string; let organizationId: string;
     try {
-      ({ userId } = await bootstrapOwner(this.db, { email, displayName: body.display_name,
+      ({ userId, organizationId } = await bootstrapOwner(this.db, { email, displayName: body.display_name,
         organizationName: body.organization_name, password: body.password, allowAdditional: true }));
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e);
       if (/already has an account/i.test(m)) throw new ApiError(409, "EMAIL_TAKEN", "That email already has an OTSI account. Sign in instead.");
       throw new ApiError(400, "SIGN_UP_FAILED", m);
     }
+    if (inviter) await this.invite.acceptInvite(inviter, { userId, organizationId }, body.invite_code!);
     return this.issueSession(userId, client);
   }
 

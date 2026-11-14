@@ -185,7 +185,7 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
 
   /** Create the OTSI account and organization at central (public sign-up), then mirror it here.
    *  A slow server gets one retry with a longer wait (20 s); a real network failure is not retried. */
-  async signUp(body: { email: string; display_name: string; organization_name: string; password: string }): Promise<{ userId: string }> {
+  async signUp(body: { email: string; display_name: string; organization_name: string; password: string; invite_code?: string }): Promise<{ userId: string }> {
     try {
       return await this.signUpOnce(body);
     } catch (e) {
@@ -194,7 +194,7 @@ export class CentralLinkService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async signUpOnce(body: { email: string; display_name: string; organization_name: string; password: string }, timeoutMs?: number): Promise<{ userId: string }> {
+  private async signUpOnce(body: { email: string; display_name: string; organization_name: string; password: string; invite_code?: string }, timeoutMs?: number): Promise<{ userId: string }> {
     const r = await this.http("POST", "/v1/auth/sign-up", { json: body, csrf: true, ...(timeoutMs ? { timeoutMs } : {}) });
     if (r.status !== 200) this.fail(r);
     return { userId: await this.adopt(r, body.password) };
