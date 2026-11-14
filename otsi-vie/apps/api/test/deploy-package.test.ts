@@ -78,6 +78,42 @@ describe("deploy package (staging plan B)", () => {
       expect(ci2.status).toBe(0);
       expect(existsSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
       expect(lstatSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
+
+      // the cPanel failure (b2f0fbf): npm runs the postinstall with cwd
+      // ~/nodevenv/<app>/<version>/lib, NOT the app folder, so `node
+      // scripts/install-contracts.mjs` cannot find the script and the copy
+      // never happens. Reproduce it: run the postinstall from a different
+      // directory than the app folder and it must fail with MODULE_NOT_FOUND.
+      const wrongCwd = path.join(out, "nodevenv", "otsi-vie", "22", "lib");
+      const post = spawnSync(process.execPath, ["scripts/install-contracts.mjs"],
+        { cwd: wrongCwd, encoding: "utf8", timeout: 60_000 });
+      expect(post.status).not.toBe(0);
+      expect(post.stderr).toMatch(/Cannot find module|MODULE_NOT_FOUND/);
+
+      // The fix: the server installs the contracts itself on start
+      // (apps/api/src/ensure-contracts.ts, imported first by dist/main.js),
+      // using paths from its own file location, never the working directory.
+      // So a missed postinstall must not stop the server. Prove it with an
+      // install where the postinstall never ran at all (--ignore-scripts):
+      // the contracts are absent, then the server's entry point puts them
+      // there and they resolve.
+      const missedDir = path.join(out, "missed-postinstall");
+      cpSync(pkgDir, missedDir, { recursive: true });
+      const ci3 = spawnSync("npm", ["ci", "--omit=dev", "--ignore-scripts"],
+        { cwd: missedDir, encoding: "utf8", timeout: 240_000, shell: process.platform === "win32" });
+      expect(ci3.status).toBe(0);
+      expect(existsSync(path.join(missedDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(false);
+      // main.js imports the ensure module first, before anything that
+      // imports @otsi-vie/contracts — that is what makes the start self-heal.
+      const mainJs = readFileSync(path.join(missedDir, "dist", "main.js"), "utf8");
+      expect(mainJs).toContain('require("./ensure-contracts")');
+      expect(mainJs.indexOf('require("./ensure-contracts")')).toBeLessThan(mainJs.indexOf('require("./app")'));
+      expect(existsSync(path.join(missedDir, "dist", "ensure-contracts.js"))).toBe(true);
+      execFileSync(process.execPath, ["-e",
+        "require('./dist/ensure-contracts.js'); require('@otsi-vie/contracts'); console.log('contracts ok')"],
+        { cwd: missedDir, stdio: "pipe", timeout: 60_000 });
+      expect(existsSync(path.join(missedDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
+      expect(lstatSync(path.join(missedDir, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

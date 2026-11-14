@@ -1,3 +1,4 @@
+import "./ensure-contracts"; // FIRST: install the vendored @otsi-vie/contracts into node_modules if the postinstall missed them (cPanel runs it with the wrong cwd). Must run before any import of the contracts.
 import { loadConfig } from "./core/config";
 import { createApp } from "./app";
 

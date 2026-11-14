@@ -72,7 +72,7 @@ class SqliteTestCase(unittest.TestCase):
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND sql LIKE '%STRICT'").fetchone()[0]
         self.assertEqual(strict, 163)
         self.assertEqual(conn.execute("SELECT COUNT(*) FROM countries").fetchone()[0], 253)
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 77)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 78)
         views = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='view'")]
         self.assertEqual(sorted(views), ["v_player_identity", "v_run_team_current",
                                          "v_track_current_identity", "v_track_jersey_current",
@@ -92,7 +92,7 @@ class SqliteTestCase(unittest.TestCase):
         schema the bootstrap file creates (tables, columns, indexes, views,
         triggers, and normalised DDL)."""
         ran = migrate.up_sqlite(self.dsn)  # empty file -> bootstrap
-        self.assertEqual(len(ran), 77)
+        self.assertEqual(len(ran), 78)
         boot = self._snapshot()
 
         db2 = self.dir / "incremental.sqlite"
@@ -100,7 +100,7 @@ class SqliteTestCase(unittest.TestCase):
         conn.execute(migrate.SQLITE_BOOTSTRAP_TABLE)
         conn.close()
         ran2 = migrate.up_sqlite(f"sqlite:///{db2}")
-        self.assertEqual(len(ran2), 77)
+        self.assertEqual(len(ran2), 78)
         inc = self._snapshot(db2)
         self.assertEqual(boot, inc)
 
@@ -124,7 +124,85 @@ class SqliteTestCase(unittest.TestCase):
         self.assertEqual(migrate.up_sqlite(self.dsn), [])
         rows = [r for r in migrate.status_sqlite(self.dsn)]
         self.assertTrue(all(s == "applied" for _, _, s in rows))
-        self.assertEqual(len(rows), 77)
+        self.assertEqual(len(rows), 78)
+
+    def test_upgrade_from_previous_tip_drops_stale_checks(self) -> None:
+        """A database built at the previous tip (old 0007/0013) upgrades to
+        the new tip: no checksum mismatch, and the stale CHECKs are gone.
+        Regression test for the db27ed3 blocker, where the translator fix
+        changed the already-applied 0007/0013 SQLite files, so migrate.py
+        refused to start on any existing database ("checksum mismatch").
+        The old files live in tools/db/fixtures/ as byte copies of the
+        pre-Invite files, pinned by hash below, so this test does not depend
+        on the current repo files: run it with the db27ed3 0007/0013 in place
+        and it fails with the checksum mismatch, proving it catches the bug.
+        """
+        fixtures = ROOT / "tools" / "db" / "fixtures"
+        old_0007 = fixtures / "0007_canonical_player_registry.pre-invite.sqlite.sql"
+        old_0013 = fixtures / "0013_detection_tracking_playback.pre-invite.sqlite.sql"
+        # The fixtures are the applied files, byte for byte (pre-Invite).
+        self.assertEqual(sha256(old_0007),
+                         "5ba99059573c72f1a9a2ceedb087ab54971270f6ebd23f589a97ac6fc93f8a17")
+        self.assertEqual(sha256(old_0013),
+                         "8b8923a67ddc757bc61f367c34588823274e8f55cd21ecf632eeb152a926f89b")
+        # The "previous tip" migration set: every current SQLite migration up
+        # to 0078, but with the OLD 0007/0013 in place of the current ones.
+        prev = [m for m in migrate.discover_sqlite()
+                if m.version not in ("0007", "0013", "0079")]
+        prev.append(migrate.Migration("0007", "0007_canonical_player_registry.sqlite.sql", old_0007))
+        prev.append(migrate.Migration("0013", "0013_detection_tracking_playback.sqlite.sql", old_0013))
+        prev.sort(key=lambda m: m.version)
+        # Build a database at the previous tip.
+        db_prev = self.dir / "prev.sqlite"
+        conn = migrate.sqlite_connect(db_prev)
+        conn.execute(migrate.SQLITE_BOOTSTRAP_TABLE)
+        conn.close()
+        ran_prev = migrate.up_sqlite(f"sqlite:///{db_prev}", migrations=prev)
+        self.assertEqual(len(ran_prev), 77)
+        # The old database has the stale CHECK on tracks — and it is enforced:
+        # a PERSON track (0013's whole point: a track IS a person until
+        # classified) is refused by the stale CHECK that forbids PERSON.
+        conn = sqlite3.connect(str(db_prev))
+        conn.execute("PRAGMA foreign_keys=ON")
+        tracks_sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='tracks'").fetchone()[0]
+        self.assertIn("CHECK (class_name IN ('PLAYER','GOALKEEPER','REFEREE','BALL','OTHER'))", tracks_sql)
+        self._seed_org_user(conn)
+        conn.execute("INSERT INTO video_sources (id, organization_id, project_id, ingest_mode, created_by) "
+                     "VALUES ('v1', 'o1', 'p1', 'UPLOAD', 'u1')")
+        conn.execute("INSERT INTO pipeline_runs (id, video_id, organization_id, pipeline_version) "
+                     "VALUES ('run1', 'v1', 'o1', '1')")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO tracks (id, run_id, video_id, internal_track_number, class_name, "
+                         "first_pts_us, last_pts_us) VALUES ('t1', 'run1', 'v1', 1, 'PERSON', 0, 1000)")
+        conn.rollback()
+        conn.close()
+        # Upgrade to the new tip with the CURRENT repo files: this must not
+        # raise a checksum mismatch, and it must apply exactly 0079.
+        ran = migrate.up_sqlite(f"sqlite:///{db_prev}")
+        self.assertEqual(ran, ["0079_drop_stale_checks.sqlite.sql"])
+        # The stale CHECK is gone; ck_tracks_class (with PERSON) stays; a
+        # PERSON track now inserts fine.
+        conn = sqlite3.connect(str(db_prev))
+        conn.execute("PRAGMA foreign_keys=ON")
+        tracks_sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='tracks'").fetchone()[0]
+        self.assertNotIn("CHECK (class_name IN ('PLAYER','GOALKEEPER','REFEREE','BALL','OTHER'))", tracks_sql)
+        self.assertIn("ck_tracks_class", tracks_sql)
+        self.assertIn("'PERSON'", tracks_sql)
+        conn.execute("INSERT INTO tracks (id, run_id, video_id, internal_track_number, class_name, "
+                     "first_pts_us, last_pts_us) VALUES ('t1', 'run1', 'v1', 1, 'PERSON', 0, 1000)")
+        conn.commit()
+        self.assertEqual(conn.execute(
+            "SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 78)
+        kept = {r[0]: r[1] for r in conn.execute(
+            "SELECT version, sha256 FROM schema_migrations WHERE version IN ('0007', '0013')")}
+        self.assertEqual(kept["0007"],
+                         "5ba99059573c72f1a9a2ceedb087ab54971270f6ebd23f589a97ac6fc93f8a17")
+        self.assertEqual(kept["0013"],
+                         "8b8923a67ddc757bc61f367c34588823274e8f55cd21ecf632eeb152a926f89b")
+        conn.close()
 
     def test_bootstrap_refuses_an_applied_database(self) -> None:
         self.bootstrap()
@@ -178,7 +256,7 @@ class SqliteTestCase(unittest.TestCase):
         self.assertNotIn("broken_table", self._snapshot()["tables"])
         conn = self.connect()
         self.assertEqual(conn.execute("SELECT name FROM organizations WHERE id='o1'").fetchone()[0], "Org")
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 77)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 78)
         conn.close()
 
     # -- translated behaviour -------------------------------------- #
@@ -379,12 +457,12 @@ class TranslatorTestCase(unittest.TestCase):
     def test_translator_covers_all_migrations(self) -> None:
         report = json.loads((ROOT / "database" / "sqlite-translation-report.json").read_text(encoding="utf-8"))
         self.assertEqual(report["tables"], 162)
-        self.assertEqual(len(report["migrations"]), 77)
+        self.assertEqual(len(report["migrations"]), 78)
         self.assertEqual(sorted(report["procedures"]), ["sp_issue_canonical_player_id", "sp_merge_players"])
         self.assertEqual(report["triggers"], 34)  # one per MySQL trigger
         self.assertEqual(report["views"], 5)
         files = sorted((ROOT / "database" / "migrations-sqlite").glob("*.sqlite.sql"))
-        self.assertEqual(len(files), 77)
+        self.assertEqual(len(files), 78)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,32 @@
+-- 0079 drop the stale CHECKs the old SQLite translator kept (OTSI VIE v2, MySQL 8.4)
+-- (also run on MariaDB 11.4 through tools/db/mariadb_compat.py).
+--
+-- On MySQL and MariaDB this migration does NOTHING, on purpose: the CHECKs
+-- were already dropped there by the migrations that replaced them — 0007
+-- dropped `players_chk_1` / `ck_players_verified_id` from `players`, and 0013
+-- dropped `tracks_chk_1` from `tracks` and added the `ck_tracks_class` CHECK
+-- (which admits PERSON). There is no stale CHECK left to drop on those
+-- engines, so a DROP CHECK here would only fail (MySQL: "check constraint
+-- does not exist").
+--
+-- The stale CHECKs survived only in SQLite. The SQLite translator, before the
+-- Invite fix to `_drop_check`, silently kept a CHECK it could not resolve by
+-- auto-name — so the generated 0007/0013 SQLite files kept the old
+-- `canonical_state IN ('PENDING','VERIFIED','RETIRED')` CHECK on `players`
+-- and the old `class_name IN ('PLAYER','GOALKEEPER','REFEREE','BALL','OTHER')`
+-- CHECK on `tracks`. The translator fix then changed those two already-applied
+-- files, which stops every existing install at startup (checksum mismatch).
+-- 0007/0013 were restored byte-for-byte to their pre-Invite state, and this
+-- migration carries the repair: the SQLite 0079 file rebuilds `tracks`
+-- without the stale unnamed `class_name` CHECK (keeping `ck_tracks_class`
+-- with PERSON and everything else). `players` needs no rebuild — its old
+-- CHECK does not survive 0007's own second rebuild (MODIFY canonical_state),
+-- so the final `players` table is already identical. The SQLite file is
+-- hand-written: the translator cannot generate it, because its model already
+-- reflects the drop (from 0013), so a DROP CHECK there would raise
+-- "names no CHECK". sqlite_translate.py never overwrites an existing SQLite
+-- file, so this hand-written file is safe from a re-run.
+--
+-- Safe to run on a database built from the fixed (db27ed3) files too: the
+-- rebuild is idempotent — it rebuilds `tracks` to the definition the
+-- bootstrap already has.

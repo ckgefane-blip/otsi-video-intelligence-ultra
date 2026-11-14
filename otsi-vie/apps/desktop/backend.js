@@ -46,7 +46,20 @@ const centralConfig = require('./central-config');
 const WEB_PORT = 4311;
 const API_PORT = 4521;
 const MYSQL_PORT = 3510;
-const API_URL = `http://localhost:${API_PORT}`;
+// The API binds 127.0.0.1 only (apps/api/src/main.ts), and the web reaches it
+// through this URL as the proxy target (OTSI_VIE_API_INTERNAL_URL). It must be
+// the literal 127.0.0.1, not `localhost`: under Electron 43's newer Node,
+// `localhost` can resolve to IPv6 ::1 first, and nothing listens there, so the
+// web logged "Failed to proxy http://localhost:4521 ... ECONNREFUSED" and the
+// app closed itself. A literal address is never resolved, so it cannot fail
+// this way. (The web's own default fallback already uses 127.0.0.1.)
+const API_URL = `http://127.0.0.1:${API_PORT}`;
+// WEB_URL stays `localhost` on purpose: the window loads this origin, and the
+// passkey (WebAuthn) relying-party ID and expected origin are `localhost`
+// (apps/api/src/core/config.ts, webauthn.ts). Chromium rejects 127.0.0.1 as a
+// WebAuthn RP ID, so loading the window at 127.0.0.1 would break fingerprint
+// sign-in in the app window. The window is a browser, not the proxy: it
+// resolves `localhost` the way Chromium always has.
 const WEB_URL = `http://localhost:${WEB_PORT}`;
 const DB_NAME = 'otsi_owner_vie';
 
@@ -757,8 +770,13 @@ function startBackend(root, data, env, logStream, log, mysqlSupervisor, devMode)
       if (critical) firstCriticalExit({ name, code: 'spawn-error' });
     });
     child.on('exit', (code) => {
-      if (critical) firstCriticalExit({ name, code });
-      else if (log) log(`The ${name} worker stopped (exit ${code}); video jobs will wait until it is back.\n`);
+      if (critical) {
+        // Log it: without this line a critical child dying (for example the
+        // API) closes the app with nothing in backend.log to say which child
+        // died or why — that is how the Electron 43 shutdown went undiagnosed.
+        if (log) log(`The ${name} process stopped (exit ${code}); the engine is stopping.\n`);
+        firstCriticalExit({ name, code });
+      } else if (log) log(`The ${name} worker stopped (exit ${code}); video jobs will wait until it is back.\n`);
     });
     return child;
   };

@@ -24,6 +24,16 @@
  * version does), then `postinstall` copies the contracts into whichever `node_modules` the app
  * actually uses. Run `npm ci --omit=dev` WITHOUT `--ignore-scripts`, so the copy runs.
  *
+ * The postinstall is best-effort, not the only copy: on cPanel npm runs it with the wrong
+ * working directory (~/nodevenv/<app>/<version>/lib, not the app folder), so `node
+ * scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and the copy never happens.
+ * The server therefore installs the contracts itself on start as well:
+ * apps/api/src/ensure-contracts.ts (imported first by main.ts) copies
+ * vendor/contracts/ into node_modules when the contracts do not resolve, using
+ * paths from its own file location, never from the working directory. So a plain
+ * `npm ci --omit=dev` works on cPanel with no manual symlink and no manual step,
+ * even when the postinstall misses.
+ *
  * Usage:
  *   node otsi-vie/tools/deploy/make-deploy-package.mjs [--out <dir>] [--skip-build] [--skip-lockfile]
  *
@@ -220,6 +230,13 @@ function main() {
     "needed on cPanel — the contracts are not a `file:` dependency, so there is nothing for",
     "`npm ci` to resolve against the nodevenv's `node_modules` symlink, and the copy lands in",
     "whichever `node_modules` the app actually uses.",
+    "",
+    "If the `postinstall` misses — on cPanel npm runs it with the wrong working",
+    "directory (`~/nodevenv/<app>/<version>/lib`, not this folder), so `node",
+    "scripts/install-contracts.mjs` fails — nothing needs doing by hand: the",
+    "server installs the contracts itself the first time it starts",
+    "(`apps/api/src/ensure-contracts.ts`, imported first by `dist/main.js`).",
+    "A plain `npm ci --omit=dev` is the whole install; there is no manual step.",
     "",
     "## Run",
     "",

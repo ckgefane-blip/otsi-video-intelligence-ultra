@@ -384,6 +384,11 @@
       "file": "0078_user_invites.sql",
       "statements": 36,
       "seed_dml": 0
+    },
+    "0079": {
+      "file": "0079_drop_stale_checks.sql",
+      "statements": 0,
+      "seed_dml": 0
     }
   },
   "procedures": {

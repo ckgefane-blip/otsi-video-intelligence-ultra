@@ -1353,11 +1353,29 @@ def run(check_only: bool = False) -> dict:
     if check_only:
         return report
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Applied migration files are immutable. An applied migration's SQLite file
+    # must never be rewritten: migrate.py records each file's SHA-256 when it
+    # runs, and a changed file stops every existing install at startup with a
+    # checksum mismatch ("write a new migration instead"). That is what
+    # happened to 0007/0013: a translator fix changed their content after they
+    # had shipped, so every existing database refused to start (fixed by
+    # restoring them and putting the CHECK-drop in new migration 0079). So a
+    # file that already exists is left exactly as it is — including a
+    # hand-written one such as 0079, which the translator cannot generate
+    # (its MySQL side is a no-op; the CHECKs were already dropped there in
+    # 0007/0013). Only a migration with no SQLite file yet gets one written.
+    # To regenerate a not-yet-shipped migration's file, delete the file first
+    # and re-run the translator. A SQLite file with no matching MySQL
+    # migration is stale and is removed.
+    wanted = {mig.name.replace(".sql", ".sqlite.sql") for mig in migrate.discover()}
     for old in OUT_DIR.glob("*.sqlite.sql"):
-        old.unlink()
+        if old.name not in wanted:
+            old.unlink()
     for mig in migrate.discover():
-        out = per_migration[mig.name]
         dest = OUT_DIR / mig.name.replace(".sql", ".sqlite.sql")
+        if dest.exists():
+            continue
+        out = per_migration[mig.name]
         dest.write_text(HEADER + "\n".join(out) + "\n", encoding="utf-8")
     BOOTSTRAP_FILE.write_text(emit_bootstrap(model, all_dml), encoding="utf-8")
     write_collations(model)
