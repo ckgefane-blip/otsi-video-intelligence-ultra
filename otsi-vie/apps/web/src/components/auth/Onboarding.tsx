@@ -7,9 +7,10 @@
  * the close button end the tour without a name; "Get started" on the last step saves the name when one was given. The tour
  * describes what the engine does; it shows no player data and no numbers that were not measured. Replaying the tour (the
  * profile menu's "Welcome tour") reopens the modal from any app page: it listens for the `otsi-replay-tour` event.
+ * The tour does NOT block navigation (owner decision 2026-11-14): it opens over whatever page the person is on, and
+ * finishing or skipping it leaves them on that page — it never sends them back to Home.
  */
 import type { Me } from "@otsi-vie/contracts";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiProblem } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
@@ -22,7 +23,6 @@ const STEPS = ["name", "context", "upload", "identity", "reels", "evidence"] as 
 export function WelcomeTour() {
   const { t } = useLocale();
   const { status, me, updateMe } = useAuth();
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,7 +63,7 @@ export function WelcomeTour() {
     const json: Record<string, unknown> = { onboarding_done: true };
     if (n) json.display_name = n;
     void api<Me>("/v1/me", { method: "PATCH", json, organization: false })
-      .then((m) => { updateMe(m); setOpen(false); router.replace("/dashboard"); },
+      .then((m) => { updateMe(m); setOpen(false); },
         (x) => { setErr(x instanceof ApiProblem ? x.message : t.body.auth.nameSaveFailed); setBusy(false); });
   };
   const skip = () => {
@@ -72,8 +72,8 @@ export function WelcomeTour() {
     const json: Record<string, unknown> = { onboarding_done: true };
     if (saveName(n)) json.display_name = n;
     void api<Me>("/v1/me", { method: "PATCH", json, organization: false })
-      .then((m) => { updateMe(m); setOpen(false); router.replace("/dashboard"); },
-        () => { setOpen(false); router.replace("/dashboard"); });
+      .then((m) => { updateMe(m); setOpen(false); },
+        () => { setOpen(false); });
   };
 
   const stepName = [t.body.auth.yourName, t.body.auth.tourStepContext, t.body.auth.tourStepUpload, t.body.auth.tourStepIdentity, t.body.auth.tourStepReels, t.body.auth.tourStepEvidence][step]!;

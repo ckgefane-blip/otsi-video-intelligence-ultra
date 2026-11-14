@@ -5,7 +5,7 @@ import { useAuth } from "./AuthProvider";
 
 /** App pages need a signed-in user who belongs to an organization; otherwise they say so or send the visitor to sign in. */
 export function RequireSession({ children }: { children: ReactNode }) {
-  const { status, me, organization } = useAuth();
+  const { status, organization } = useAuth();
   const router = useRouter();
 
   // the current address is read in the effect (not with useSearchParams), so the layout needs no Suspense boundary and a page can still
@@ -15,10 +15,8 @@ export function RequireSession({ children }: { children: ReactNode }) {
       router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
     }
   }, [status, router]);
-  // a person who has not finished the first-run welcome (their name and the tour) lands on Home, where the welcome
-  // tour modal opens over it (SOT, page 31) — the tour itself, not a separate page, is the welcome
-  const firstRun = status === "signed-in" && !!me && !me.user.onboarded_at;
-  useEffect(() => { if (firstRun && window.location.pathname !== "/dashboard") router.replace("/dashboard"); }, [firstRun, router]);
+  // a person who has not finished the first-run welcome is NOT sent back to Home any more (owner decision 2026-11-14):
+  // the welcome tour modal opens over whatever page they are on, and they can navigate freely before finishing it
 
   if (status !== "signed-in") {
     return <p className="mt-16 text-center text-sm text-muted" role="status" aria-live="polite">{status === "loading" ? "Loading your workspace..." : "Redirecting to sign in..."}</p>;
