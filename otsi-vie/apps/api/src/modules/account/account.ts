@@ -17,8 +17,11 @@ export class AccountService {
 
   /** The company organisation id central reported, cached per person for a few minutes. Without it,
    *  every Me read asks central; on a linked laptop whose connection hangs instead of failing, each
-   *  page load waits up to the 10 s request timeout. Only a successful answer is cached — a failed ask
-   *  is retried on the next read, never cached. */
+   *  page load waits up to the 10 s request timeout. Only a successful answer refreshes the cache.
+   *  When central cannot be reached, the last known answer is kept and served instead (even past the
+   *  five minutes) — the company organisation keeps its Admin / Billing screens offline, and a
+   *  customer keeps seeing only its own. The cache never invents a value: with nothing cached yet,
+   *  an unreachable central still means nobody is the company organisation (fail closed). */
   private readonly centralCompanyOrg = new Map<string, { value: string | undefined; until: number }>();
   private static readonly COMPANY_ORG_CACHE_MS = 5 * 60_000;
 
@@ -55,13 +58,13 @@ export class AccountService {
     if (hit && hit.until > Date.now()) return hit.value;
     try {
       const r = await this.central.call(String(ms[0]!.organization_id), userId, "GET", "/v1/me");
-      if (r.status !== 200) return undefined;
+      if (r.status !== 200) return hit?.value;
       const parsed = Me.safeParse(r.body);
-      if (!parsed.success) return undefined;
+      if (!parsed.success) return hit?.value;
       const value = parsed.data.memberships.find((m) => m.is_company_org)?.organization_id;
       this.centralCompanyOrg.set(userId, { value, until: Date.now() + AccountService.COMPANY_ORG_CACHE_MS });
       return value;
-    } catch { return undefined; }
+    } catch { return hit?.value; }
   }
 
   /** a person's own name and the end of their welcome tour (never anyone else's account) */
