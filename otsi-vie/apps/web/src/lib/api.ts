@@ -94,6 +94,9 @@ export const acceptInvitation = (body: AcceptInvitationRequest) => sessionCall("
 /** first-run owner setup (SOT page 10): create the owner account and sign them in */
 export const setupOwner = (body: SetupRequest) => sessionCall("setup", body);
 
+/** the caller's own user-to-user invite code (created on first read); the share link is built from it as <origin>/setup?invite=<code> */
+export const myInvite = () => api<{ code: string }>("/v1/invites/mine");
+
 /** How this engine signs people in (ADR-146): "linked" = with the OTSI account on the central server. No sign-in needed. */
 export interface AuthMode { mode: "local" | "linked" | "central"; central_url: string | null }
 export async function authMode(): Promise<AuthMode> {

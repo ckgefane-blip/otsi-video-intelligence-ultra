@@ -7,7 +7,7 @@
  * Wallet, Jobs Center to the jobs page, "?" to /shortcuts. The search keeps opening the CommandPalette modal (the task's call:
  * only its label and kbd change); the KeyboardMap modal stays mounted for the "?" key and the palette's shortcuts command.
  */
-import { Search } from "lucide-react";
+import { Gift, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useLocale } from "@/lib/i18n";
@@ -36,6 +36,9 @@ export function AppTopBar() {
         <span className="vie-kbd">Ctrl K</span>
       </button>
       <TokenCounter />
+      <Link href="/invite-share" className={styles.gift} aria-label={t.body.shell.invite} title={t.body.shell.invite}>
+        <Gift className={styles.giftIcon} aria-hidden />
+      </Link>
       <Link href="/settings/billing" className="btn sm" data-upgrade title={t.body.plans.title}>{t.body.plans.upgrade}</Link>
       <ThemeSwitch />
       <JobTray styles={styles} />

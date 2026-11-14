@@ -8,7 +8,8 @@
  * /v1/admin/wallet/... (the company organisation's pages — bank details, every customer's orders,
  * confirmations and refunds, and every customer's wallet, pack requests, ledger, top-ups, refunds,
  * adjustments and expiry; central enforces the company rule, so a customer asking here gets central's
- * 403) and GET /v1/licence. A receipt upload (application/octet-stream) is passed on as bytes with its
+ * 403), /v1/invites/... (a user's own invite code — it lives on central, so a linked desktop must not
+ * answer from its empty local copy) and GET /v1/licence. A receipt upload (application/octet-stream) is passed on as bytes with its
  * (GET /v1/admin/billing/orders/:id/proof) comes back as bytes with central's file headers. While central cannot be
  * reached, GET /v1/licence answers from the signed licence kept on this computer (the person still has a licence
  * offline, in its grace); the wallet and billing say plainly that the account cannot be reached. Nothing is forwarded
@@ -25,8 +26,9 @@ import { CentralLinkService } from "./link";
 
 /** The Admin wallet pages (/v1/admin/wallet/...) belong here too: the company org's pack requests, wallets and
  * ledger live on central, and without them OTSI cannot confirm a top-up from the desktop — the Admin screen
- * would read the laptop's empty local copy and show "No pack requests". */
-const FORWARDED = /^\/v1\/(wallet|billing|admin\/billing|admin\/wallet)(\/|$)/;
+ * would read the laptop's empty local copy and show "No pack requests". The same holds for /v1/invites/...:
+ * a user's invite code lives on central, so a linked desktop must not answer from its empty local copy. */
+const FORWARDED = /^\/v1\/(wallet|billing|admin\/billing|admin\/wallet|invites)(\/|$)/;
 /** A receipt download: a file, not JSON — its bytes and file headers pass through. */
 const PROOF_DOWNLOAD = /^\/v1\/admin\/billing\/orders\/[^/]+\/proof$/;
 

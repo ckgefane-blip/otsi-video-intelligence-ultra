@@ -20,6 +20,11 @@ export const SetupRequest = z.object({
   password: z.string().min(1).max(256),
   /** a linked desktop's "Create account" (ADR-146 §2) names the club; a local first run leaves it out (owner's name) */
   organization_name: z.string().trim().min(2, "Enter at least 2 characters.").max(120, "Use at most 120 characters.").optional(),
+  /** a referral invite code from another user (10 characters); the invitee gets +25 tokens on signup and the
+   *  inviter +100 when the invitee analyses their first match or buys their first pack. On a linked desktop
+   *  this travels to the central server with the sign-up; a local first run has no central server to check
+   *  it against, so it is ignored there. */
+  invite_code: z.string().trim().min(1).max(64).optional(),
 });
 export type SetupRequest = z.infer<typeof SetupRequest>;
 
@@ -32,6 +37,9 @@ export const SignUpRequest = z.object({
   display_name: z.string().trim().min(2, "Enter at least 2 characters.").max(80, "Use at most 80 characters."),
   organization_name: z.string().trim().min(2, "Enter at least 2 characters.").max(120, "Use at most 120 characters."),
   password: z.string().min(1).max(256),
+  /** a referral invite code from another user (10 characters); resolved before the account is created, so a
+   *  bad code refuses the sign-up instead of creating an account without the bonus */
+  invite_code: z.string().trim().min(1).max(64).optional(),
 });
 export type SignUpRequest = z.infer<typeof SignUpRequest>;
 

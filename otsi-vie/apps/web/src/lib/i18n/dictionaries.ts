@@ -6688,6 +6688,8 @@ export interface Dictionary {
       cpIdle: string;
       cpRenderBatchOne: string;
       cpRenderBatchMany: string;
+      kindInviteBonus: string;
+      kindInviteReward: string;
     };
     shell: {
       brandAria: string;
@@ -6982,6 +6984,7 @@ export interface Dictionary {
       ksOpenLocal: string;
       ksBladeTool: string;
       ksSelectTool: string;
+      invite: string;
     };
     auth: {
       signIn: string;
@@ -7168,6 +7171,19 @@ export interface Dictionary {
     signInWithPasskeyShort: string;
     windowsHello: string;
   };
+    invite: {
+      title: string;
+      sub: string;
+      linkLabel: string;
+      codeLabel: string;
+      copy: string;
+      copied: string;
+      inviteeGets: string;
+      inviterGets: string;
+      loading: string;
+      loadFailed: string;
+      signupBonus: string;
+    };
 }
 
 /** A dictionary that may leave any leaf untranslated (it then falls back to English). */
@@ -13850,6 +13866,8 @@ export const en: Dictionary = {
       cpIdle: "Nothing running",
       cpRenderBatchOne: "Render 1 file",
       cpRenderBatchMany: "Render {a} files",
+      kindInviteBonus: "Invite bonus",
+      kindInviteReward: "Invite reward",
     },
     shell: {
       brandAria: "OTSI VIE home",
@@ -14144,6 +14162,7 @@ export const en: Dictionary = {
       ksOpenLocal: "Open local footage",
       ksBladeTool: "Blade tool",
       ksSelectTool: "Select tool",
+      invite: "Invite friends",
     },
     auth: {
       signIn: "Sign in",
@@ -14297,6 +14316,19 @@ export const en: Dictionary = {
       hideShort: "Hide",
       showPasswordShort: "Show",
       hidePasswordShort: "Hide",
+    },
+    invite: {
+      title: "Invite friends, earn tokens",
+      sub: "Share your invite link with a friend. When they join and do something real, you both get free tokens.",
+      linkLabel: "Your invite link",
+      codeLabel: "Invite code",
+      copy: "Copy link",
+      copied: "Link copied",
+      inviteeGets: "Your friend gets +{bonus} tokens on signup — on top of the 100-token free grant.",
+      inviterGets: "You get +{reward} tokens when they analyse their first match or buy their first pack.",
+      loading: "Loading your invite link…",
+      loadFailed: "Could not load your invite link.",
+      signupBonus: "You were invited — you get +{bonus} tokens on signup, on top of the 100-token free grant.",
     },
   },
   webauthn: {
@@ -21008,6 +21040,8 @@ export const ru: DeepPartial<Dictionary> = {
       cpIdle: "Ничего не выполняется",
       cpRenderBatchOne: "Отрендерить 1 файл",
       cpRenderBatchMany: "Отрендерить {a} файлов",
+      kindInviteBonus: "Бонус за приглашение",
+      kindInviteReward: "Награда за приглашение",
     },
     shell: {
       brandAria: "Главная OTSI VIE",
@@ -21302,6 +21336,7 @@ export const ru: DeepPartial<Dictionary> = {
       ksOpenLocal: "Открыть локальное видео",
       ksBladeTool: "Инструмент «Лезвие»",
       ksSelectTool: "Инструмент «Выбор»",
+      invite: "Пригласить друзей",
     },
     auth: {
       signIn: "Войти",
@@ -21455,6 +21490,19 @@ export const ru: DeepPartial<Dictionary> = {
       hideShort: "Скрыть",
       showPasswordShort: "Показать",
       hidePasswordShort: "Скрыть",
+    },
+    invite: {
+      title: "Приглашайте друзей и получайте токены",
+      sub: "Поделитесь ссылкой-приглашением с другом. Когда он присоединится и сделает что-то настоящее, бесплатные токены получите вы оба.",
+      linkLabel: "Ваша ссылка-приглашение",
+      codeLabel: "Код приглашения",
+      copy: "Скопировать ссылку",
+      copied: "Ссылка скопирована",
+      inviteeGets: "Ваш друг получит +{bonus} токенов при регистрации — вдобавок к бесплатным 100 токенам.",
+      inviterGets: "Вы получите +{reward} токенов, когда он проанализирует свой первый матч или купит первый пакет.",
+      loading: "Загрузка ссылки-приглашения…",
+      loadFailed: "Не удалось загрузить ссылку-приглашение.",
+      signupBonus: "Вас пригласили — вы получите +{bonus} токенов при регистрации, вдобавок к бесплатным 100 токенам.",
     },
   },
   webauthn: {
@@ -28166,6 +28214,8 @@ export const es: DeepPartial<Dictionary> = {
       cpIdle: "Nada en curso",
       cpRenderBatchOne: "Renderizar 1 archivo",
       cpRenderBatchMany: "Renderizar {a} archivos",
+      kindInviteBonus: "Bono por invitación",
+      kindInviteReward: "Recompensa por invitación",
     },
     shell: {
       brandAria: "Inicio de OTSI VIE",
@@ -28460,6 +28510,7 @@ export const es: DeepPartial<Dictionary> = {
       ksOpenLocal: "Abrir vídeo local",
       ksBladeTool: "Herramienta de cuchilla",
       ksSelectTool: "Herramienta de selección",
+      invite: "Invitar amigos",
     },
     auth: {
       signIn: "Iniciar sesión",
@@ -28613,6 +28664,19 @@ export const es: DeepPartial<Dictionary> = {
       hideShort: "Ocultar",
       showPasswordShort: "Mostrar",
       hidePasswordShort: "Ocultar",
+    },
+    invite: {
+      title: "Invita a amigos y gana tokens",
+      sub: "Comparte tu enlace de invitación con un amigo. Cuando se una y haga algo real, ambos recibirán tokens gratis.",
+      linkLabel: "Tu enlace de invitación",
+      codeLabel: "Código de invitación",
+      copy: "Copiar enlace",
+      copied: "Enlace copiado",
+      inviteeGets: "Tu amigo recibe +{bonus} tokens al registrarse, además de los 100 tokens gratis.",
+      inviterGets: "Tú recibes +{reward} tokens cuando analice su primer partido o compre su primer paquete.",
+      loading: "Cargando tu enlace de invitación…",
+      loadFailed: "No se pudo cargar tu enlace de invitación.",
+      signupBonus: "Te invitaron: recibirás +{bonus} tokens al registrarte, además de los 100 tokens gratis.",
     },
   },
   webauthn: {
@@ -35324,6 +35388,8 @@ export const de: DeepPartial<Dictionary> = {
       cpIdle: "Nichts läuft",
       cpRenderBatchOne: "1 Datei rendern",
       cpRenderBatchMany: "{a} Dateien rendern",
+      kindInviteBonus: "Einladungsbonus",
+      kindInviteReward: "Einladungsbelohnung",
     },
     shell: {
       brandAria: "OTSI VIE Startseite",
@@ -35618,6 +35684,7 @@ export const de: DeepPartial<Dictionary> = {
       ksOpenLocal: "Lokales Video öffnen",
       ksBladeTool: "Klingen-Werkzeug",
       ksSelectTool: "Auswahl-Werkzeug",
+      invite: "Freunde einladen",
     },
     auth: {
       signIn: "Anmelden",
@@ -35771,6 +35838,19 @@ export const de: DeepPartial<Dictionary> = {
       hideShort: "Ausblenden",
       showPasswordShort: "Anzeigen",
       hidePasswordShort: "Ausblenden",
+    },
+    invite: {
+      title: "Freunde einladen, Tokens verdienen",
+      sub: "Teile deinen Einladungslink mit einem Freund. Wenn er beitritt und etwas Echtes tut, bekommt ihr beide kostenlose Tokens.",
+      linkLabel: "Dein Einladungslink",
+      codeLabel: "Einladungscode",
+      copy: "Link kopieren",
+      copied: "Link kopiert",
+      inviteeGets: "Dein Freund erhält +{bonus} Tokens bei der Anmeldung — zusätzlich zu den 100 kostenlosen Tokens.",
+      inviterGets: "Du erhältst +{reward} Tokens, wenn er sein erstes Spiel analysiert oder sein erstes Paket kauft.",
+      loading: "Einladungslink wird geladen…",
+      loadFailed: "Dein Einladungslink konnte nicht geladen werden.",
+      signupBonus: "Du wurdest eingeladen — du erhältst +{bonus} Tokens bei der Anmeldung, zusätzlich zu den 100 kostenlosen Tokens.",
     },
   },
   webauthn: {
@@ -42482,6 +42562,8 @@ export const fr: DeepPartial<Dictionary> = {
       cpIdle: "Rien en cours",
       cpRenderBatchOne: "Rendre 1 fichier",
       cpRenderBatchMany: "Rendre {a} fichiers",
+      kindInviteBonus: "Bonus d'invitation",
+      kindInviteReward: "Récompense d'invitation",
     },
     shell: {
       brandAria: "Accueil OTSI VIE",
@@ -42776,6 +42858,7 @@ export const fr: DeepPartial<Dictionary> = {
       ksOpenLocal: "Ouvrir une vidéo locale",
       ksBladeTool: "Outil lame",
       ksSelectTool: "Outil de sélection",
+      invite: "Inviter des amis",
     },
     auth: {
       signIn: "Se connecter",
@@ -42929,6 +43012,19 @@ export const fr: DeepPartial<Dictionary> = {
       hideShort: "Masquer",
       showPasswordShort: "Afficher",
       hidePasswordShort: "Masquer",
+    },
+    invite: {
+      title: "Invitez vos amis, gagnez des jetons",
+      sub: "Partagez votre lien d'invitation avec un ami. Quand il s'inscrit et fait quelque chose de concret, vous recevez tous les deux des jetons gratuits.",
+      linkLabel: "Votre lien d'invitation",
+      codeLabel: "Code d'invitation",
+      copy: "Copier le lien",
+      copied: "Lien copié",
+      inviteeGets: "Votre ami reçoit +{bonus} jetons à l'inscription, en plus des 100 jetons gratuits.",
+      inviterGets: "Vous recevez +{reward} jetons quand il analyse son premier match ou achète son premier pack.",
+      loading: "Chargement de votre lien d'invitation…",
+      loadFailed: "Impossible de charger votre lien d'invitation.",
+      signupBonus: "Vous avez été invité — vous recevez +{bonus} jetons à l'inscription, en plus des 100 jetons gratuits.",
     },
   },
   webauthn: {
@@ -49650,6 +49746,8 @@ export const pt: DeepPartial<Dictionary> = {
       "cpIdle": "Nada em curso",
       "cpRenderBatchOne": "Renderizar 1 arquivo",
       "cpRenderBatchMany": "Renderizar {a} arquivos",
+      "kindInviteBonus": "Bónus de convite",
+      "kindInviteReward": "Recompensa de convite",
     },
     "shell": {
       "brandAria": "Início do OTSI VIE",
@@ -49944,6 +50042,7 @@ export const pt: DeepPartial<Dictionary> = {
       "ksOpenLocal": "Abrir vídeo local",
       "ksBladeTool": "Ferramenta de lâmina",
       "ksSelectTool": "Ferramenta de seleção",
+      "invite": "Convidar amigos",
     },
     "auth": {
       "signIn": "Entrar",
@@ -50097,6 +50196,19 @@ export const pt: DeepPartial<Dictionary> = {
       "hideShort": "Ocultar",
       "showPasswordShort": "Mostrar",
       "hidePasswordShort": "Ocultar",
+    },
+    "invite": {
+      "title": "Convide amigos e ganhe tokens",
+      "sub": "Partilhe o seu link de convite com um amigo. Quando ele aderir e fizer algo real, ambos recebem tokens grátis.",
+      "linkLabel": "O seu link de convite",
+      "codeLabel": "Código de convite",
+      "copy": "Copiar link",
+      "copied": "Link copiado",
+      "inviteeGets": "O seu amigo recebe +{bonus} tokens ao registar-se, além dos 100 tokens grátis.",
+      "inviterGets": "Você recebe +{reward} tokens quando ele analisar o primeiro jogo ou comprar o primeiro pacote.",
+      "loading": "A carregar o seu link de convite…",
+      "loadFailed": "Não foi possível carregar o seu link de convite.",
+      "signupBonus": "Você foi convidado — recebe +{bonus} tokens ao registar-se, além dos 100 tokens grátis."
     }
   },
   "webauthn": {
@@ -50179,6 +50291,7 @@ export function mergeDictionary(base: Dictionary, override: DeepPartial<Dictiona
       wallet: { ...base.body.wallet, ...override.body?.wallet },
       shell: { ...base.body.shell, ...override.body?.shell },
       auth: { ...base.body.auth, ...override.body?.auth },
+      invite: { ...base.body.invite, ...override.body?.invite },
     },
     webauthn: { ...base.webauthn, ...override.webauthn },
   };

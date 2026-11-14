@@ -14,10 +14,11 @@
 .searchIcon { width: 14px; height: 14px; }
 .searchText { flex: 1; text-align: left; }
 
-.bell, .jobs, .keys { width: 36px; height: 36px; display: inline-grid; place-items: center; padding: 9px; border-radius: 6px; border: 1px solid transparent;
+.bell, .jobs, .keys, .gift { width: 36px; height: 36px; display: inline-grid; place-items: center; padding: 9px; border-radius: 6px; border: 1px solid transparent;
   background: transparent; color: rgb(var(--ink2)); cursor: pointer; }
-.bell:hover, .jobs:hover, .keys:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
-.bell svg, .jobs svg { width: 18px; height: 18px; }
+.bell:hover, .jobs:hover, .keys:hover, .gift:hover { background: rgb(var(--raised)); border-color: rgb(var(--line)); color: rgb(var(--ink)); }
+.bell svg, .jobs svg, .gift svg { width: 18px; height: 18px; }
+.giftIcon { width: 18px; height: 18px; }
 .keys { font-weight: 400; font-size: 14px; line-height: 1; padding: 0; }
 .jobsCount { position: absolute; right: -2px; top: 0; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
   background: rgb(var(--primary)); color: rgb(var(--primary-ink)); font-size: 11px; font-weight: 400; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }

@@ -379,6 +379,11 @@
       "file": "0077_licensing_circle.sql",
       "statements": 9,
       "seed_dml": 0
+    },
+    "0078": {
+      "file": "0078_user_invites.sql",
+      "statements": 36,
+      "seed_dml": 0
     }
   },
   "procedures": {
@@ -456,8 +461,8 @@
     "reel_projects.best_moments_rule_version: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)",
     "reel_moment_rejections.video_id: MySQL AFTER/FIRST column position is dropped (column order is not preserved; application code uses named columns)"
   ],
-  "tables": 160,
-  "indexes": 129,
+  "tables": 162,
+  "indexes": 130,
   "views": 5,
   "triggers": 34,
   "touch_triggers": 18

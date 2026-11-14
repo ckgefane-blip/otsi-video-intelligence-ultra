@@ -891,6 +891,51 @@ def _parse_add_index(action: str, table: Table, model: Model) -> Index:
     return Index(name, table.name, _parse_index_cols(m.group(3)), unique)
 
 
+def _drop_check(table: Table, name: str, migration_name: str) -> None:
+    """Remove one CHECK from the model, by name.
+
+    Named CHECKs match by name. MySQL names an unnamed CHECK `<table>_chk_<n>` (sequential in definition
+    order, counting only unnamed CHECKs — a named CHECK takes no number); the translator stores unnamed
+    CHECKs with name None, so an auto-name is resolved to the n-th unnamed CHECK in definition order
+    (column inline CHECKs in column order first — columns are defined before table constraints — then
+    table CHECKs). The translator's own synthetic checks (ck_len_/ck_enum_/ck_json_) are named, so they
+    are never counted. An auto-name out of range means the migration is wrong, so this raises instead of
+    silently keeping a CHECK the MySQL schema dropped (that silent no-op is how the tracks class_name
+    CHECK and the wallet_ledger sign rule survived in the SQLite schema after 0013 and 0078 dropped them).
+    A name that matches neither a CHECK nor an auto-name is left alone, as before.
+    """
+    for i, (n, _e) in enumerate(table.checks):
+        if n == name:
+            del table.checks[i]
+            return
+    for col in table.cols.values():
+        for i, (n, _e) in enumerate(col.checks):
+            if n == name:
+                del col.checks[i]
+                return
+    m = re.match(rf"^{re.escape(table.name)}_chk_(\d+)$", name, re.I)
+    if not m:
+        return
+    n = int(m.group(1))
+    anonymous: list[tuple[str, int]] = []  # (column name, index) — "" means a table-level CHECK
+    for col in table.cols.values():
+        for i, (cname, _e) in enumerate(col.checks):
+            if cname is None:
+                anonymous.append((col.name, i))
+    for i, (cname, _e) in enumerate(table.checks):
+        if cname is None:
+            anonymous.append(("", i))
+    if n < 1 or n > len(anonymous):
+        raise TranslateError(
+            f"{migration_name}: DROP CHECK `{name}` names no CHECK on `{table.name}` "
+            f"({len(anonymous)} unnamed CHECKs in the model)")
+    loc, idx = anonymous[n - 1]
+    if loc:
+        del table.cols[loc].checks[idx]
+    else:
+        del table.checks[idx]
+
+
 def apply_alter(stmt: str, model: Model, out: list[str], migration_name: str) -> None:
     m = re.match(r"ALTER\s+TABLE\s+`([^`]+)`\s+(.*)$", stmt, re.I | re.S)
     if not m:
@@ -931,9 +976,7 @@ def apply_alter(stmt: str, model: Model, out: list[str], migration_name: str) ->
                 direct.append(idx.ddl())
         elif re.match(r"DROP\s+CHECK\s+", a, re.I):
             name = re.match(r"DROP\s+CHECK\s+`([^`]+)`", a, re.I).group(1)
-            table.checks = [(n, e) for n, e in table.checks if n != name]
-            for c in table.cols.values():
-                c.checks = [(n, e) for n, e in c.checks if n != name]
+            _drop_check(table, name, migration_name)
             needs_rebuild = True
             rebuild_reason = f"DROP CHECK `{name}`"
         elif re.match(r"DROP\s+FOREIGN\s+KEY\s+", a, re.I):
@@ -943,7 +986,7 @@ def apply_alter(stmt: str, model: Model, out: list[str], migration_name: str) ->
             rebuild_reason = f"DROP FOREIGN KEY `{name}`"
         elif re.match(r"DROP\s+CONSTRAINT\s+", a, re.I):
             name = re.match(r"DROP\s+CONSTRAINT\s+`([^`]+)`", a, re.I).group(1)
-            table.checks = [(n, e) for n, e in table.checks if n != name]
+            _drop_check(table, name, migration_name)
             table.fks = [f for f in table.fks if f.name != name]
             table.uniques = [u for u in table.uniques if u.name != name]
             needs_rebuild = True

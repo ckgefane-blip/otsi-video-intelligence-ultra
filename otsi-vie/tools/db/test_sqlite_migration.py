@@ -64,15 +64,15 @@ class SqliteTestCase(unittest.TestCase):
         conn = self.connect()
         tables = [r[0] for r in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
-        self.assertEqual(len(tables), 158)  # 157 schema tables + schema_migrations
+        self.assertEqual(len(tables), 163)  # 162 schema tables + schema_migrations
         for expected in ("players", "tracks", "wallet_ledger", "countries",
                          "canonical_id_issuances", "audit_events", "bank_transfer_orders"):
             self.assertIn(expected, tables)
         strict = conn.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND sql LIKE '%STRICT'").fetchone()[0]
-        self.assertEqual(strict, 158)
+        self.assertEqual(strict, 163)
         self.assertEqual(conn.execute("SELECT COUNT(*) FROM countries").fetchone()[0], 253)
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 74)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 77)
         views = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='view'")]
         self.assertEqual(sorted(views), ["v_player_identity", "v_run_team_current",
                                          "v_track_current_identity", "v_track_jersey_current",
@@ -92,7 +92,7 @@ class SqliteTestCase(unittest.TestCase):
         schema the bootstrap file creates (tables, columns, indexes, views,
         triggers, and normalised DDL)."""
         ran = migrate.up_sqlite(self.dsn)  # empty file -> bootstrap
-        self.assertEqual(len(ran), 74)
+        self.assertEqual(len(ran), 77)
         boot = self._snapshot()
 
         db2 = self.dir / "incremental.sqlite"
@@ -100,7 +100,7 @@ class SqliteTestCase(unittest.TestCase):
         conn.execute(migrate.SQLITE_BOOTSTRAP_TABLE)
         conn.close()
         ran2 = migrate.up_sqlite(f"sqlite:///{db2}")
-        self.assertEqual(len(ran2), 74)
+        self.assertEqual(len(ran2), 77)
         inc = self._snapshot(db2)
         self.assertEqual(boot, inc)
 
@@ -124,7 +124,7 @@ class SqliteTestCase(unittest.TestCase):
         self.assertEqual(migrate.up_sqlite(self.dsn), [])
         rows = [r for r in migrate.status_sqlite(self.dsn)]
         self.assertTrue(all(s == "applied" for _, _, s in rows))
-        self.assertEqual(len(rows), 74)
+        self.assertEqual(len(rows), 77)
 
     def test_bootstrap_refuses_an_applied_database(self) -> None:
         self.bootstrap()
@@ -162,14 +162,14 @@ class SqliteTestCase(unittest.TestCase):
         conn.execute("INSERT INTO organizations (id, name, slug) VALUES ('o1', 'Org', 'org')")
         conn.commit()
         conn.close()
-        bad = self.dir / "0076_broken.sqlite.sql"
+        bad = self.dir / "9999_broken.sqlite.sql"
         bad.write_text("CREATE TABLE `broken_table` (id INTEGER PRIMARY KEY);\n"
                        "THIS IS NOT SQL;\n", encoding="utf-8")
-        broken = migrate.Migration("0076", "0076_broken.sqlite.sql", bad)
+        broken = migrate.Migration("9999", "9999_broken.sqlite.sql", bad)
         with self.assertRaises(migrate.MigrationError) as ctx:
             migrate.up_sqlite(self.dsn, migrations=migrate.discover_sqlite() + [broken])
         self.assertIn("restored from the backup", str(ctx.exception))
-        self.assertIn("0076_broken", str(ctx.exception))
+        self.assertIn("9999_broken", str(ctx.exception))
         # The backup the run took is there, and the database matches it byte for byte.
         backups = sorted((self.db.parent / ".backups").iterdir())
         self.assertEqual(len(backups), 1)
@@ -178,7 +178,7 @@ class SqliteTestCase(unittest.TestCase):
         self.assertNotIn("broken_table", self._snapshot()["tables"])
         conn = self.connect()
         self.assertEqual(conn.execute("SELECT name FROM organizations WHERE id='o1'").fetchone()[0], "Org")
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 74)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 77)
         conn.close()
 
     # -- translated behaviour -------------------------------------- #
@@ -378,13 +378,13 @@ def csv_rows():
 class TranslatorTestCase(unittest.TestCase):
     def test_translator_covers_all_migrations(self) -> None:
         report = json.loads((ROOT / "database" / "sqlite-translation-report.json").read_text(encoding="utf-8"))
-        self.assertEqual(report["tables"], 157)
-        self.assertEqual(len(report["migrations"]), 74)
+        self.assertEqual(report["tables"], 162)
+        self.assertEqual(len(report["migrations"]), 77)
         self.assertEqual(sorted(report["procedures"]), ["sp_issue_canonical_player_id", "sp_merge_players"])
         self.assertEqual(report["triggers"], 34)  # one per MySQL trigger
         self.assertEqual(report["views"], 5)
         files = sorted((ROOT / "database" / "migrations-sqlite").glob("*.sqlite.sql"))
-        self.assertEqual(len(files), 74)
+        self.assertEqual(len(files), 77)
 
 
 if __name__ == "__main__":

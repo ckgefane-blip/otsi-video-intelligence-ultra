@@ -384,7 +384,7 @@ CREATE TABLE `tracks` (
   `run_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_run_id` CHECK (length(`run_id`) <= 36),
   `video_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_video_id` CHECK (length(`video_id`) <= 36),
   `internal_track_number` INTEGER NOT NULL,
-  `class_name` TEXT COLLATE NOCASE NOT NULL CHECK (class_name IN ('PLAYER','GOALKEEPER','REFEREE','BALL','OTHER')) CONSTRAINT `ck_len_class_name` CHECK (length(`class_name`) <= 255),
+  `class_name` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_class_name` CHECK (length(`class_name`) <= 255),
   `first_pts_us` INTEGER NOT NULL,
   `last_pts_us` INTEGER NOT NULL,
   `status` TEXT COLLATE NOCASE NOT NULL DEFAULT 'ACTIVE' CHECK (status IN('ACTIVE','OCCLUDED','LEFT_FRAME','ENDED','REVIEW_REQUIRED')) CONSTRAINT `ck_len_status` CHECK (length(`status`) <= 255),
@@ -2366,7 +2366,7 @@ CREATE TABLE `player_profile_details` (
 CREATE TABLE `wallet_ledger` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
   `organization_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_organization_id` CHECK (length(`organization_id`) <= 36),
-  `kind` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_kind` CHECK (`kind` IN ('PURCHASE', 'FREE_GRANT', 'SPEND', 'REFUND', 'ADJUSTMENT', 'EXPIRY')),
+  `kind` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_enum_kind` CHECK (`kind` IN ('PURCHASE', 'FREE_GRANT', 'SPEND', 'REFUND', 'ADJUSTMENT', 'EXPIRY', 'INVITE_BONUS', 'INVITE_REWARD')),
   `amount` INTEGER NOT NULL,
   `balance_after` INTEGER NOT NULL CHECK (`balance_after` >= 0),
   `job_type` TEXT COLLATE NOCASE CONSTRAINT `ck_len_job_type` CHECK (length(`job_type`) <= 64),
@@ -2380,12 +2380,12 @@ CREATE TABLE `wallet_ledger` (
   UNIQUE (`organization_id`, `idempotency_key`),
   CONSTRAINT `fk_wallet_ledger_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`),
   CHECK (`amount` <> 0),
-  CHECK ((`kind` IN ('SPEND','EXPIRY') AND `amount` < 0)
-      OR (`kind` IN ('PURCHASE','FREE_GRANT','REFUND') AND `amount` > 0)
-      OR `kind` = 'ADJUSTMENT'),
   CHECK ((`kind` = 'SPEND' AND `job_type` IS NOT NULL AND `job_id` IS NOT NULL)
       OR (`kind` <> 'SPEND')),
-  CHECK ((`kind` = 'PURCHASE' AND `invoice_ref` IS NOT NULL) OR (`kind` <> 'PURCHASE'))
+  CHECK ((`kind` = 'PURCHASE' AND `invoice_ref` IS NOT NULL) OR (`kind` <> 'PURCHASE')),
+  CONSTRAINT `ck_wallet_ledger_sign` CHECK ((`kind` IN ('SPEND','EXPIRY') AND `amount` < 0)
+    OR (`kind` IN ('PURCHASE','FREE_GRANT','REFUND','INVITE_BONUS','INVITE_REWARD') AND `amount` > 0)
+    OR `kind` = 'ADJUSTMENT')
 ) STRICT;
 CREATE TABLE `wallet_pack_requests` (
   `id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_id` CHECK (length(`id`) <= 36),
@@ -2581,6 +2581,26 @@ CREATE TABLE `central_links` (
   CONSTRAINT `fk_central_links_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_central_links_org` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`)
 ) STRICT;
+CREATE TABLE `user_invites` (
+  `user_id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_user_id` CHECK (length(`user_id`) <= 36),
+  `code` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_code` CHECK (length(`code`) <= 10),
+  `created_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  UNIQUE (`code`),
+  CONSTRAINT `fk_user_invites_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) STRICT;
+CREATE TABLE `invite_referrals` (
+  `invitee_org_id` TEXT COLLATE NOCASE PRIMARY KEY CONSTRAINT `ck_len_invitee_org_id` CHECK (length(`invitee_org_id`) <= 36),
+  `invitee_user_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_invitee_user_id` CHECK (length(`invitee_user_id`) <= 36),
+  `inviter_user_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_inviter_user_id` CHECK (length(`inviter_user_id`) <= 36),
+  `inviter_org_id` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_inviter_org_id` CHECK (length(`inviter_org_id`) <= 36),
+  `invite_code` TEXT COLLATE NOCASE NOT NULL CONSTRAINT `ck_len_invite_code` CHECK (length(`invite_code`) <= 10),
+  `reward_paid_at` INTEGER,
+  `created_at` INTEGER NOT NULL DEFAULT (CAST(unixepoch('subsec')*1000 AS INTEGER)),
+  CONSTRAINT `fk_invite_referrals_invitee_org` FOREIGN KEY (`invitee_org_id`) REFERENCES `organizations` (`id`),
+  CONSTRAINT `fk_invite_referrals_invitee_user` FOREIGN KEY (`invitee_user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_invite_referrals_inviter_user` FOREIGN KEY (`inviter_user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_invite_referrals_inviter_org` FOREIGN KEY (`inviter_org_id`) REFERENCES `organizations` (`id`)
+) STRICT;
 CREATE INDEX `idx_assets_org_project` ON `assets` (`organization_id`, `project_id`, `created_at` DESC);
 CREATE INDEX `idx_videos_org_project` ON `video_sources` (`organization_id`, `project_id`, `created_at` DESC);
 CREATE INDEX `idx_pipeline_video_created` ON `pipeline_runs` (`video_id`, `created_at` DESC);
@@ -2710,6 +2730,7 @@ CREATE INDEX `idx_bank_transfer_orders_renewal` ON `bank_transfer_orders` (`rene
 CREATE INDEX `idx_job_tickets_org_state` ON `job_tickets` (`organization_id`, `state`, `created_at`);
 CREATE INDEX `idx_linked_job_tickets_org_state` ON `linked_job_tickets` (`organization_id`, `state`);
 CREATE INDEX `idx_central_links_org` ON `central_links` (`organization_id`);
+CREATE INDEX `idx_invite_referrals_inviter` ON `invite_referrals` (`inviter_user_id`, `created_at`);
 CREATE VIEW `v_player_identity` AS WITH RECURSIVE chain (player_id, current_id, next_id, hops) AS (
   SELECT id, id, merged_into_player_id, 0 FROM players
   UNION ALL
