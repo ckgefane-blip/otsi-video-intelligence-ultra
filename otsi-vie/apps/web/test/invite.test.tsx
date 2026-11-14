@@ -11,7 +11,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { myInvite, setupOwner } = vi.hoisted(() => ({ myInvite: vi.fn(), setupOwner: vi.fn() }));
+const { myInvite, setupOwner, authMode } = vi.hoisted(() => ({ myInvite: vi.fn(), setupOwner: vi.fn(), authMode: vi.fn() }));
 const replace = vi.fn();
 const adoptSession = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -33,7 +33,7 @@ vi.mock("@/lib/api", () => ({
   ApiProblem: class ApiProblem extends Error {
     constructor(readonly status: number, readonly code: string, message: string) { super(message); }
   },
-  authMode: async () => ({ mode: "local", central_url: null }),
+  authMode: (...a: unknown[]) => authMode(...a),
 }));
 // The top bar's neighbours are not what this tests: stub them so the gift button renders on its own.
 vi.mock("@/components/shell/ContextBar", () => ({ ContextBar: () => null }));
@@ -55,6 +55,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   myInvite.mockReset();
   setupOwner.mockReset();
+  // the mode is local unless a test says otherwise (it resolves at once, as before)
+  authMode.mockResolvedValue({ mode: "local", central_url: null });
   window.history.pushState({}, "", "/");
 });
 
@@ -121,5 +123,53 @@ describe("sign-up with an invite link", () => {
   it("does not mention the bonus without an invite link", () => {
     render(<SetupPage />);
     expect(screen.queryByText(/You were invited/)).not.toBeInTheDocument();
+  });
+
+  it("blocks submit until the mode is known, then sends the invite code and the club name", async () => {
+    // the "Jo" org (2026-11-14): the form rendered as a local first run and a submit made before
+    // authMode() resolved sent no invite_code and no organization_name.
+    let resolveMode!: (m: { mode: string; central_url: string | null }) => void;
+    authMode.mockImplementation(() => new Promise((r) => { resolveMode = r; }));
+    window.history.pushState({}, "", `/setup?invite=${CODE}`);
+    setupOwner.mockResolvedValue(session);
+    render(<SetupPage />);
+    // the invite code is already read from the URL, but the mode is still unknown: the submit is
+    // disabled, there is no club field, and no "First run" claim yet
+    await waitFor(() => expect(screen.getByText(/You were invited — you get \+25 tokens on signup/)).toBeInTheDocument());
+    const submit = screen.getByRole("button", { name: "Loading…" });
+    expect(submit).toBeDisabled();
+    expect(screen.queryByLabelText("Club or organisation name")).not.toBeInTheDocument();
+    expect(screen.queryByText("First run")).not.toBeInTheDocument();
+    fireEvent.click(submit);
+    expect(setupOwner).not.toHaveBeenCalled();
+    // the mode resolves as linked: the club field appears and the submit enables
+    resolveMode({ mode: "linked", central_url: "https://accounts.otsi.cc" });
+    const club = await screen.findByLabelText("Club or organisation name");
+    fill();
+    fireEvent.change(club, { target: { value: "Invite Test FC" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await waitFor(() => expect(setupOwner).toHaveBeenCalledWith(expect.objectContaining({
+      invite_code: CODE, organization_name: "Invite Test FC",
+    })));
+  });
+
+  it("the link code prefills the invite-code field", async () => {
+    window.history.pushState({}, "", `/setup?invite=${CODE}`);
+    render(<SetupPage />);
+    const field = await screen.findByLabelText("Invite code (optional)") as HTMLInputElement;
+    expect(field.value).toBe(CODE);
+  });
+
+  it("a code typed by hand is sent like a link code", async () => {
+    // a localhost link can never open on a friend's own computer: the friend types the code here.
+    setupOwner.mockResolvedValue(session);
+    render(<SetupPage />);
+    const field = await screen.findByLabelText("Invite code (optional)");
+    fireEvent.change(field, { target: { value: CODE } });
+    await waitFor(() => expect(screen.getByText(/You were invited — you get \+25 tokens on signup/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create owner account" })).not.toBeDisabled());
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    await waitFor(() => expect(setupOwner).toHaveBeenCalledWith(expect.objectContaining({ invite_code: CODE })));
   });
 });

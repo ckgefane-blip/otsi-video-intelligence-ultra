@@ -23,6 +23,24 @@ import { FieldMessage, useFieldMessages } from "./FieldMessage";
 
 const BILLABLE = ["STARTER", "CLUB", "ACADEMY", "SEASON"] as const;
 
+/** The last Plans & billing data the app actually saw, kept in localStorage so the page can show it
+ *  when the server cannot be reached. Only data the server really returned is ever shown; when
+ *  nothing was ever read, the sections say plainly they cannot load offline, instead of the wrong
+ *  "No active subscription / No orders yet" (the Wallet page's pattern, 2026-11-14). */
+const CATALOGUE_KEY = "otsi-plans-last-known-catalogue";
+const ORDERS_KEY = "otsi-plans-last-known-orders";
+const SUB_KEY = "otsi-plans-last-known-subscription";
+function readLastKnown<T>(key: string): T | null {
+  try {
+    const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch { return null; }
+}
+function saveLastKnown(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
 export function PlanOrdersView() {
   const { t } = useLocale();
   const w = t.body.wallet;
@@ -33,6 +51,11 @@ export function PlanOrdersView() {
   const [period, setPeriod] = useState<1 | 12>(1);
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
+  /** true when the last load failed (the server cannot be reached): the sections below show the last
+   *  known data, if any — and when there is none, they say they cannot load offline instead of
+   *  claiming there is no subscription and no orders. Ordering needs the server, so its buttons stay
+   *  disabled while offline. */
+  const [offline, setOffline] = useState(false);
   /** Load errors only — they have no button, so they stay at the top of the page. Every action's
    *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +74,18 @@ export function PlanOrdersView() {
         api<SubscriptionStatus | null>("/v1/billing/subscription"),
       ]);
       setCatalogue(cat);
+      saveLastKnown(CATALOGUE_KEY, cat);
       setOrders(ords);
+      saveLastKnown(ORDERS_KEY, ords);
       setSubscription(sub);
+      saveLastKnown(SUB_KEY, sub);
+      setOffline(false);
     } catch (e) {
+      // offline: show the last known data, if any — never the empty state as if it were real.
+      setCatalogue(readLastKnown<PlanCatalogue>(CATALOGUE_KEY));
+      setOrders(readLastKnown<BankTransferOrder[]>(ORDERS_KEY) ?? []);
+      setSubscription(readLastKnown<SubscriptionStatus | null>(SUB_KEY));
+      setOffline(true);
       setError(e instanceof ApiProblem ? e.message : w.loadFailed);
     } finally {
       setLoading(false);
@@ -136,8 +168,9 @@ export function PlanOrdersView() {
               : w.blPlanActiveUntil.replace("{a}", subscription.period_end ? new Date(subscription.period_end).toLocaleDateString() : "—")}
           </span>
         ) : (
-          <span className="t-small text-muted">{w.blNoSubscription}</span>
+          <span className="t-small text-muted">{offline ? w.blCantLoadOffline : w.blNoSubscription}</span>
         )}
+        {offline && subscription && <span className="t-small text-muted">{w.wlOfflineNote}</span>}
       </section>
 
       <section className="min-w-0 border-t border-line pt-3" aria-labelledby="plans">
@@ -148,6 +181,11 @@ export function PlanOrdersView() {
             <button type="button" className={period === 12 ? "on" : ""} aria-pressed={period === 12} onClick={() => setPeriod(12)}>{w.blTwelve}</button>
           </div>
         </div>
+        {offline && catalogue && <p className="sm mu">{w.wlOfflineNote}</p>}
+        {!catalogue ? (
+          <p className="t-body text-muted py-2">{w.blCantLoadOffline}</p>
+        ) : (
+          <>
         <div className="grid gap-2.5 py-2 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
           {plans.map((plan) => (
             <div key={plan.code} className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3.5" data-plan-card={plan.code}>
@@ -187,14 +225,14 @@ export function PlanOrdersView() {
               <div className="mt-auto flex flex-wrap gap-2">
                 {billable(plan) && (
                   <>
-                    <button type="button" disabled={busy !== null} className="btn pri sm" onClick={() => void order(plan.code)}>
+                    <button type="button" disabled={busy !== null || offline} className="btn pri sm" onClick={() => void order(plan.code)}>
                       {busy === `order-${plan.code}` ? w.requesting : `${w.blOrderBtn} · ${planMonths(period, w)}`}
                     </button>
                     <button type="button" disabled className="btn sm" title={w.blPayOnlineNote}>{w.blPayOnline}</button>
                   </>
                 )}
                 {plan.code === "FREE" && (
-                  <button type="button" disabled={busy !== null} className="btn pri sm" onClick={() => void claimFree()}>
+                  <button type="button" disabled={busy !== null || offline} className="btn pri sm" onClick={() => void claimFree()}>
                     {busy === "free" ? w.claiming : w.blFreeClaim.replace("{a}", String(FREE_GRANT_TOKENS))}
                   </button>
                 )}
@@ -209,14 +247,17 @@ export function PlanOrdersView() {
           ))}
         </div>
         <p className="sm mu">{w.blPayOnlineNote}</p>
+          </>
+        )}
       </section>
 
       <section className="min-w-0 flex-1 border-t border-line pt-3" aria-labelledby="ords">
         <div className="flex items-center justify-between gap-2 pb-1"><h2 id="ords" className="h3">{w.blYourOrders}</h2></div>
+        {offline && orders.length > 0 && <p className="sm mu">{w.wlOfflineNote}</p>}
         {orders.length === 0 ? (
           <div className="empty">
-            <h3>{w.blNoOrders}</h3>
-            <p>{w.blNoOrdersHint}</p>
+            <h3>{offline ? w.blCantLoadOffline : w.blNoOrders}</h3>
+            {!offline && <p>{w.blNoOrdersHint}</p>}
           </div>
         ) : (
           <ul className="mt-2 space-y-2">

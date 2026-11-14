@@ -30,6 +30,31 @@ import { useLocale } from "@/lib/i18n";
 import { InvoiceCard, OrderStatusLabel, ReceiptCard, money, planMonths, usePrintTarget } from "./BillingShared";
 import { FieldMessage, useFieldMessages } from "./FieldMessage";
 
+/** The last admin billing data the app actually saw, kept in localStorage so the console can show it
+ *  when the server cannot be reached. Only rows the server really returned are ever shown; when
+ *  nothing was ever read, the sections say plainly they cannot load offline, instead of the wrong
+ *  "no wallets / no orders / no bank details" (the Wallet page's pattern, 2026-11-14). */
+const WALLETS_KEY = "otsi-admin-billing-last-known-wallets";
+const REQUESTS_KEY = "otsi-admin-billing-last-known-requests";
+const ORDERS_KEY = "otsi-admin-billing-last-known-orders";
+const BANK_KEY = "otsi-admin-billing-last-known-bank-accounts";
+const SUB_KEY = "otsi-admin-billing-last-known-subscription";
+const ledgerKey = (orgId: string) => `otsi-admin-billing-last-known-ledger:${orgId}`;
+function readLastKnown<T>(key: string): T | null {
+  try {
+    const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch { return null; }
+}
+function readLastKnownRows<T>(key: string): T[] {
+  const v = readLastKnown<T[]>(key);
+  return Array.isArray(v) ? v : [];
+}
+function saveLastKnown(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
 export function AdminBillingView() {
   const { t } = useLocale();
   const { organization } = useAuth();
@@ -47,6 +72,10 @@ export function AdminBillingView() {
   // silently acting on the first one would top up the wrong club.)
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /** true when the last load failed (the server cannot be reached): the sections below show the last
+   *  known data, if any — and when there is none, they say they cannot load offline instead of
+   *  claiming there is nothing there. Actions stay disabled while offline: none of them can work. */
+  const [offline, setOffline] = useState(false);
   /** Load errors only — they have no button, so they stay at the top of the page. Every action's
    *  own result goes next to the button that caused it (owner rule, 2026-11-14), in `fieldMsg`. */
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +99,13 @@ export function AdminBillingView() {
   const [refundForm, setRefundForm] = useState({ reason: "", amountRefunded: "" });
   const { target: printTarget, print } = usePrintTarget();
 
+  const applyBankDraft = (accounts: BankAccount[]) => {
+    setBankDraft(Object.fromEntries(["NGN", "USD"].map((c) => {
+      const a = accounts.find((x) => x.currency === c);
+      return [c, { account_name: a?.account_name ?? "", bank_name: a?.bank_name ?? "", account_number: a?.account_number ?? "", swift_iban: a?.swift_iban ?? "", is_active: a?.is_active ?? true }];
+    })));
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -82,8 +118,11 @@ export function AdminBillingView() {
         api<SubscriptionStatus | null>("/v1/billing/subscription"),
       ]);
       setWallets(w);
+      saveLastKnown(WALLETS_KEY, w);
       setRequests(reqs);
+      saveLastKnown(REQUESTS_KEY, reqs);
       setOrders(ords);
+      saveLastKnown(ORDERS_KEY, ords);
       // the open order detail keeps showing the same order, refreshed: without this the detail
       // would keep the pre-action snapshot (and its forms) after a confirm / reject / refund.
       setSelectedOrder((cur) => {
@@ -91,13 +130,22 @@ export function AdminBillingView() {
         return ords.find((o) => o.id === cur.id) ?? cur;
       });
       setBankAccounts(accounts);
+      saveLastKnown(BANK_KEY, accounts);
       setSubscription(sub);
-      setBankDraft(Object.fromEntries(["NGN", "USD"].map((c) => {
-        const a = accounts.find((x) => x.currency === c);
-        return [c, { account_name: a?.account_name ?? "", bank_name: a?.bank_name ?? "", account_number: a?.account_number ?? "", swift_iban: a?.swift_iban ?? "", is_active: a?.is_active ?? true }];
-      })));
+      saveLastKnown(SUB_KEY, sub);
+      applyBankDraft(accounts);
       if (w[0]) setSelectedWalletId((cur) => cur ?? w[0]!.organization_id);
+      setOffline(false);
     } catch (e) {
+      // offline: show the last known data, if any — never the empty state as if it were real.
+      setWallets(readLastKnownRows<AdminWalletRow>(WALLETS_KEY));
+      setRequests(readLastKnownRows<PackRequest>(REQUESTS_KEY));
+      setOrders(readLastKnownRows<BankTransferOrder>(ORDERS_KEY));
+      const accounts = readLastKnownRows<BankAccount>(BANK_KEY);
+      setBankAccounts(accounts);
+      applyBankDraft(accounts);
+      setSubscription(readLastKnown<SubscriptionStatus | null>(SUB_KEY));
+      setOffline(true);
       setError(e instanceof ApiProblem ? e.message : t.body.wallet.billingLoadFailed);
     } finally {
       setLoading(false);
@@ -113,9 +161,14 @@ export function AdminBillingView() {
     if (!isCompanyOrg || !orgId) return;
     let cancelled = false;
     void api<WalletLedgerPage>(`/v1/admin/wallet/${orgId}/ledger`).then((page) => {
-      if (!cancelled) setLedger(page.entries);
+      if (!cancelled) { setLedger(page.entries); saveLastKnown(ledgerKey(orgId), page.entries); }
     }).catch((e) => {
-      if (!cancelled) setError(e instanceof ApiProblem ? e.message : t.body.wallet.billingLoadFailed);
+      // offline: the last known ledger for this wallet, if any — never an empty table as if it were real.
+      if (!cancelled) {
+        setLedger(readLastKnownRows<WalletLedgerEntry>(ledgerKey(orgId)));
+        setOffline(true);
+        setError(e instanceof ApiProblem ? e.message : t.body.wallet.billingLoadFailed);
+      }
     });
     return () => { cancelled = true; };
   }, [orgId, isCompanyOrg, t]);
@@ -193,6 +246,8 @@ export function AdminBillingView() {
   /** Run one action and put its result next to the button that caused it (owner rule, 2026-11-14):
    *  `slot` is the message's key, rendered by a <FieldMessage> beside that button. The top of the
    *  page carries load errors only — an action's result never lives only up there. */
+  /** No action can run while the server cannot be reached (or while another is busy). */
+  const noActions = busy !== null || offline;
   async function act(label: string, fn: () => Promise<unknown>, done: string, slot: string): Promise<boolean> {
     setBusy(label);
     setFieldMsg(slot, null);
@@ -240,13 +295,18 @@ export function AdminBillingView() {
 
       {error && <p role="alert" className="rounded-ctl border border-danger/50 bg-danger/10 px-3 py-2 t-body text-danger">{error}</p>}
 
+      {/* offline: the wallet cards below are the last known ones, or nothing can be shown at all — never
+          an empty page that looks like there are no wallets. */}
+      {offline && wallets.length === 0 && <p className="t-body text-muted">{t.body.wallet.blCantLoadOffline}</p>}
+      {offline && wallets.length > 0 && <p className="t-body text-muted">{t.body.wallet.wlOfflineNote}</p>}
+
       {wallets.map((w) => (
         <section key={w.organization_id} aria-label={t.body.wallet.billingWalletSection} className="vie-panel">
           <div className="vie-ph"><h2 className="t-section">{w.organization_name}</h2></div>
           <div className="p-4">
           <p className="t-metric">{w.balance} <span className="t-small">{t.body.wallet.tokensUnit}</span></p>
           <p className="t-small mt-1">{t.body.wallet.billingSpendable.replace("{a}", String(w.spendable_balance))}{w.low_balance ? t.body.wallet.billingLowSuffix : ""}{w.last_activity_at ? t.body.wallet.billingLastMovement.replace("{a}", new Date(w.last_activity_at).toLocaleString()) : ""}</p>
-          <button type="button" disabled={busy !== null || !orgId}
+          <button type="button" disabled={noActions || !orgId}
             onClick={() => void act("expire", () => api(`/v1/admin/wallet/${orgId}/expire`, { method: "POST" }), t.body.wallet.billingExpiredDone, `expire-${w.organization_id}`)}
             className="vie-btn vie-btn-sm mt-3">
             {busy === "expire" ? t.body.wallet.billingWritingOff : t.body.wallet.billingWriteOff}
@@ -259,8 +319,9 @@ export function AdminBillingView() {
       <section aria-label={t.body.wallet.billingPackRequestsAria} className="vie-panel">
         <div className="vie-ph"><h2 className="t-section">{t.body.wallet.packRequests}</h2></div>
         <div className="p-4">
+        {offline && requests.length > 0 && <p className="sm mu">{t.body.wallet.wlOfflineNote}</p>}
         {requests.length === 0 ? (
-          <p className="t-body text-muted">{t.body.wallet.billingNoRequests}</p>
+          <p className="t-body text-muted">{offline ? t.body.wallet.blCantLoadOffline : t.body.wallet.billingNoRequests}</p>
         ) : (
           <ul className="space-y-3">
             {requests.map((r) => (
@@ -272,12 +333,12 @@ export function AdminBillingView() {
                     <input aria-label={t.body.wallet.billingInvoiceAria} value={invoiceRef} onChange={(e) => setInvoiceRef(e.target.value)}
                       placeholder={t.body.wallet.billingInvoicePlaceholder} className="min-w-64 flex-1 rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                     {r.status === "REQUESTED" && (
-                      <button type="button" disabled={busy !== null || !invoiceRef.trim()}
+                      <button type="button" disabled={noActions || !invoiceRef.trim()}
                         onClick={() => void act(`invoice-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/invoice`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingInvoiceIssued, `invoice-${r.id}`)}
                         className="t-button rounded-ctl border border-primary px-3 py-1.5 text-primary disabled:opacity-50">{t.body.wallet.billingIssueInvoice}</button>
                     )}
                     {r.status === "INVOICED" && (
-                      <button type="button" disabled={busy !== null || !invoiceRef.trim()}
+                      <button type="button" disabled={noActions || !invoiceRef.trim()}
                         onClick={() => void act(`confirm-${r.id}`, () => api(`/v1/admin/wallet/pack-requests/${r.id}/confirm-receipt`, { method: "POST", json: { invoice_ref: invoiceRef.trim() } }), t.body.wallet.billingTokensAdded.replace("{a}", String(r.tokens)), `confirm-${r.id}`)}
                         className="vie-btn vie-btn-sm vie-btn-pri">{t.body.wallet.billingConfirmTransfer}</button>
                     )}
@@ -297,8 +358,9 @@ export function AdminBillingView() {
       <section aria-label={t.body.wallet.blAdminOrders} className="vie-panel">
         <div className="vie-ph"><h2 className="t-section">{t.body.wallet.blAdminOrders}</h2></div>
         <div className="p-4">
+          {offline && orders.length > 0 && <p className="sm mu">{t.body.wallet.wlOfflineNote}</p>}
           {orders.length === 0 ? (
-            <p className="t-body text-muted">{t.body.wallet.blNoOrders}</p>
+            <p className="t-body text-muted">{offline ? t.body.wallet.blCantLoadOffline : t.body.wallet.blNoOrders}</p>
           ) : (
             <ul className="space-y-2">
               {orders.map((o) => (
@@ -346,7 +408,7 @@ export function AdminBillingView() {
               </dl>
               {selectedOrder.proof_filename ? (
                 <>
-                  <button type="button" className="btn sm" disabled={busy !== null} onClick={() => void downloadProof(selectedOrder)}>
+                  <button type="button" className="btn sm" disabled={noActions} onClick={() => void downloadProof(selectedOrder)}>
                     {busy === `proof-${selectedOrder.id}` ? t.common.loading : t.body.wallet.blProofDownload}
                   </button>
                   <FieldMessage msg={fieldMsg[`proof-${selectedOrder.id}`]} />
@@ -381,7 +443,7 @@ export function AdminBillingView() {
                     <input aria-label={t.body.wallet.blAmountReceived} type="number" min="1" step="1" required value={confirmForm.amount} onChange={(e) => setConfirmForm({ ...confirmForm, amount: e.target.value })} placeholder={t.body.wallet.blAmountReceived} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                     <input aria-label={t.body.wallet.blBankRef} required value={confirmForm.bankReference} onChange={(e) => setConfirmForm({ ...confirmForm, bankReference: e.target.value })} placeholder={t.body.wallet.blBankRef} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                     <input aria-label={t.body.wallet.blDateArrived} type="date" value={confirmForm.confirmedAt} onChange={(e) => setConfirmForm({ ...confirmForm, confirmedAt: e.target.value })} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-                    <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri">{t.body.wallet.blConfirmPay}</button>
+                    <button type="submit" disabled={noActions} className="vie-btn vie-btn-pri">{t.body.wallet.blConfirmPay}</button>
                   </form>
                   <form className="space-y-2" onSubmit={async (e) => {
                     e.preventDefault();
@@ -393,7 +455,7 @@ export function AdminBillingView() {
                     <h4 className="t-panel">{t.body.wallet.blRecordPartial}</h4>
                     <input aria-label={t.body.wallet.blAmountReceived} type="number" min="1" step="1" required value={partialForm.amount} onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })} placeholder={t.body.wallet.blAmountReceived} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                     <input aria-label={t.body.wallet.blBankRef} value={partialForm.bankReference} onChange={(e) => setPartialForm({ ...partialForm, bankReference: e.target.value })} placeholder={t.body.wallet.blBankRef} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-                    <button type="submit" disabled={busy !== null} className="vie-btn">{t.body.wallet.blRecordPartial}</button>
+                    <button type="submit" disabled={noActions} className="vie-btn">{t.body.wallet.blRecordPartial}</button>
                   </form>
                 </div>
               )}
@@ -407,7 +469,7 @@ export function AdminBillingView() {
                 }}>
                   <h4 className="t-panel">{t.body.wallet.blRejectOrder}</h4>
                   <input aria-label={t.body.wallet.blRejectReason} required value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t.body.wallet.blRejectReason} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-                  <button type="submit" disabled={busy !== null} className="vie-btn">{t.body.wallet.blRejectOrder}</button>
+                  <button type="submit" disabled={noActions} className="vie-btn">{t.body.wallet.blRejectOrder}</button>
                 </form>
               )}
               {selectedOrder.status === "CONFIRMED" && (
@@ -422,7 +484,7 @@ export function AdminBillingView() {
                   <p className="sm mu">{t.body.wallet.blRefundNote}</p>
                   <input aria-label={t.body.wallet.blMoneyRefunded} type="number" min="1" step="1" value={refundForm.amountRefunded} onChange={(e) => setRefundForm({ ...refundForm, amountRefunded: e.target.value })} placeholder={t.body.wallet.blMoneyRefunded} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
                   <input aria-label={t.body.wallet.blRefundReason} required value={refundForm.reason} onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value })} placeholder={t.body.wallet.blRefundReason} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-                  <button type="submit" disabled={busy !== null} className="vie-btn">{t.body.wallet.blRefund}</button>
+                  <button type="submit" disabled={noActions} className="vie-btn">{t.body.wallet.blRefund}</button>
                 </form>
               )}
               {selectedOrder.status === "ORDERED" && (
@@ -437,6 +499,12 @@ export function AdminBillingView() {
         <div className="vie-ph"><h2 className="t-section">{t.body.wallet.blBankAccounts}</h2></div>
         <div className="p-4">
           <p className="t-body text-muted">{t.body.wallet.blBankNote}</p>
+          {/* offline: the forms below are the last known bank details, or nothing can be shown — never
+              empty fields that look like no bank details were ever saved. */}
+          {offline && bankAccounts.length > 0 && <p className="sm mu mt-2">{t.body.wallet.wlOfflineNote}</p>}
+          {offline && bankAccounts.length === 0 ? (
+            <p className="t-body text-muted mt-4">{t.body.wallet.blCantLoadOffline}</p>
+          ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {(["NGN", "USD"] as const).map((c) => {
               const d = bankDraft[c] ?? { account_name: "", bank_name: "", account_number: "", swift_iban: "", is_active: true };
@@ -452,12 +520,13 @@ export function AdminBillingView() {
                     <input type="checkbox" checked={d.is_active} onChange={(e) => setBankDraft({ ...bankDraft, [c]: { ...d, is_active: e.target.checked } })} />
                     {t.body.wallet.blBankActive}
                   </label>
-                  <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri w-full">{busy === `bank-${c}` ? t.common.loading : t.body.wallet.blSaveBank}</button>
+                  <button type="submit" disabled={noActions} className="vie-btn vie-btn-pri w-full">{busy === `bank-${c}` ? t.common.loading : t.body.wallet.blSaveBank}</button>
                   <FieldMessage msg={fieldMsg[`bank-${c}`]} />
                 </form>
               );
             })}
           </div>
+          )}
         </div>
       </section>
 
@@ -467,12 +536,13 @@ export function AdminBillingView() {
           <p className="t-body">
             {subscription
               ? `${subscription.plan_code} · ${subscription.state === "PAST_DUE" ? t.body.wallet.blSubPastDue : t.body.wallet.blPlanActiveUntil.replace("{a}", subscription.period_end ? new Date(subscription.period_end).toLocaleDateString() : "—")}`
-              : t.body.wallet.blNoSubscription}
+              : offline ? t.body.wallet.blCantLoadOffline : t.body.wallet.blNoSubscription}
           </p>
+          {offline && subscription && <p className="sm mu mt-2">{t.body.wallet.wlOfflineNote}</p>}
           <p className="sm mu mt-2">{t.body.wallet.blRenewalNote}</p>
           <p className="sm mu mt-1">{t.body.wallet.blGraceNote}</p>
           <p className="sm mu mt-1">{t.body.wallet.blRenewalDailyNote}</p>
-          <button type="button" className="vie-btn vie-btn-pri mt-3" disabled={busy !== null} onClick={() => void runRenewals()}>
+          <button type="button" className="vie-btn vie-btn-pri mt-3" disabled={noActions} onClick={() => void runRenewals()}>
             {busy === "renewals" ? t.common.loading : t.body.wallet.blRunRenewals}
           </button>
           <div className="mt-2"><FieldMessage msg={fieldMsg["renewals"]} /></div>
@@ -507,7 +577,7 @@ export function AdminBillingView() {
               <input aria-label={t.body.wallet.billingTopUpTokens} type="number" min="1" step="1" required value={topUp.amount} onChange={(e) => setTopUp({ ...topUp, amount: e.target.value })} placeholder={t.body.wallet.billingTopUpTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingTopUpInvoiceAria} value={topUp.invoiceRef} onChange={(e) => setTopUp({ ...topUp, invoiceRef: e.target.value })} placeholder={t.body.wallet.billingTopUpInvoicePh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingTopUpReasonAria} required value={topUp.reason} onChange={(e) => setTopUp({ ...topUp, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-              <button type="submit" disabled={busy !== null} className="vie-btn vie-btn-pri w-full">{t.body.wallet.billingTopUpBtn}</button>
+              <button type="submit" disabled={noActions} className="vie-btn vie-btn-pri w-full">{t.body.wallet.billingTopUpBtn}</button>
               <FieldMessage msg={fieldMsg["topup"]} />
             </form>
             <form onSubmit={(e) => { e.preventDefault(); void act("refund", () => api(`/v1/admin/wallet/${orgId}/refund`, { method: "POST", json: { amount: Number(refund.amount), reason: refund.reason.trim() } }), t.body.wallet.billingRefundDone.replace("{a}", refund.amount), "manual-refund"); }}
@@ -515,7 +585,7 @@ export function AdminBillingView() {
               <h3 className="t-panel">{t.body.wallet.billingRefundTitle}</h3>
               <input aria-label={t.body.wallet.billingRefundTokens} type="number" min="1" step="1" required value={refund.amount} onChange={(e) => setRefund({ ...refund, amount: e.target.value })} placeholder={t.body.wallet.billingTopUpTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingRefundReasonAria} required value={refund.reason} onChange={(e) => setRefund({ ...refund, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-              <button type="submit" disabled={busy !== null} className="vie-btn w-full">{t.body.wallet.billingRefundBtn}</button>
+              <button type="submit" disabled={noActions} className="vie-btn w-full">{t.body.wallet.billingRefundBtn}</button>
               <FieldMessage msg={fieldMsg["manual-refund"]} />
             </form>
             <form onSubmit={(e) => { e.preventDefault(); void act("adjust", () => api(`/v1/admin/wallet/${orgId}/adjust`, { method: "POST", json: { amount: Number(adjust.amount), reason: adjust.reason.trim() } }), t.body.wallet.billingAdjustDone, "adjust"); }}
@@ -523,7 +593,7 @@ export function AdminBillingView() {
               <h3 className="t-panel">{t.body.wallet.billingAdjustTitle}</h3>
               <input aria-label={t.body.wallet.billingAdjustTokens} type="number" step="1" required value={adjust.amount} onChange={(e) => setAdjust({ ...adjust, amount: e.target.value })} placeholder={t.body.wallet.billingAdjustTokensPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
               <input aria-label={t.body.wallet.billingAdjustReasonAria} required value={adjust.reason} onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })} placeholder={t.body.wallet.billingTopUpReasonPh} className="w-full rounded-ctl border border-line bg-canvas px-2 py-1.5" />
-              <button type="submit" disabled={busy !== null} className="vie-btn w-full">{t.body.wallet.billingAdjustBtn}</button>
+              <button type="submit" disabled={noActions} className="vie-btn w-full">{t.body.wallet.billingAdjustBtn}</button>
               <FieldMessage msg={fieldMsg["adjust"]} />
             </form>
           </div>
@@ -534,8 +604,9 @@ export function AdminBillingView() {
       <section aria-label={t.body.wallet.billingLedgerAria} className="vie-panel">
         <div className="vie-ph"><h2 className="t-section">{t.body.wallet.ledger}</h2></div>
         <div className="p-4">
+        {offline && ledger.length > 0 && <p className="sm mu">{t.body.wallet.wlOfflineNote}</p>}
         {ledger.length === 0 ? (
-          <p className="t-body text-muted">{t.body.wallet.billingLedgerEmpty}</p>
+          <p className="t-body text-muted">{offline ? t.body.wallet.blCantLoadOffline : t.body.wallet.billingLedgerEmpty}</p>
         ) : (
           <table className="w-full">
             <thead>

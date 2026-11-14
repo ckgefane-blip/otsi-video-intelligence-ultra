@@ -6693,6 +6693,7 @@ export interface Dictionary {
       wlRequestsOffline: string;
       kindInviteBonus: string;
       kindInviteReward: string;
+      blCantLoadOffline: string;
     };
     shell: {
       brandAria: string;
@@ -7154,6 +7155,8 @@ export interface Dictionary {
       loading: string;
       loadFailed: string;
       signupBonus: string;
+      setupCodeLabel: string;
+      setupCodePlaceholder: string;
     };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
@@ -13874,6 +13877,7 @@ export const en: Dictionary = {
       wlRequestsOffline: "Can't load pack requests while offline.",
       kindInviteBonus: "Invite bonus",
       kindInviteReward: "Invite reward",
+      blCantLoadOffline: "Can’t load this while offline.",
     },
     shell: {
       brandAria: "OTSI VIE home",
@@ -14335,13 +14339,15 @@ export const en: Dictionary = {
       loading: "Loading your invite link…",
       loadFailed: "Could not load your invite link.",
       signupBonus: "You were invited — you get +{bonus} tokens on signup, on top of the 100-token free grant.",
+      setupCodeLabel: "Invite code (optional)",
+      setupCodePlaceholder: "Paste the code from your invite link",
     },
   },
   webauthn: {
     signInWithPasskey: "Sign in with Windows Hello",
     passkeyOr: "or",
     passkeyNeedEmail: "Enter your email first, then use your passkey.",
-    passkeyUnavailable: "This browser does not support passkeys here. Use your password.",
+    passkeyUnavailable: "This browser does not support passkeys here. On Windows, turn on “Save passkeys to this Windows device” in your browser settings and try again. Or use your password.",
     passkeyWaiting: "Waiting for Windows Hello…",
     passkeyFailed: "Could not sign in with your passkey. Try your password.",
     passkeysTitle: "Passkeys",
@@ -21051,6 +21057,7 @@ export const ru: DeepPartial<Dictionary> = {
       wlRequestsOffline: "Нельзя загрузить запросы пакетов без подключения.",
       kindInviteBonus: "Бонус за приглашение",
       kindInviteReward: "Награда за приглашение",
+      blCantLoadOffline: "Нельзя загрузить без подключения.",
     },
     shell: {
       brandAria: "Главная OTSI VIE",
@@ -21512,13 +21519,15 @@ export const ru: DeepPartial<Dictionary> = {
       loading: "Загрузка ссылки-приглашения…",
       loadFailed: "Не удалось загрузить ссылку-приглашение.",
       signupBonus: "Вас пригласили — вы получите +{bonus} токенов при регистрации, вдобавок к бесплатным 100 токенам.",
+      setupCodeLabel: "Код приглашения (необязательно)",
+      setupCodePlaceholder: "Вставьте код из ссылки-приглашения",
     },
   },
   webauthn: {
     signInWithPasskey: "Войти с Windows Hello",
     passkeyOr: "или",
     passkeyNeedEmail: "Сначала введите адрес электронной почты, затем используйте ключ доступа.",
-    passkeyUnavailable: "Этот браузер не поддерживает ключи доступа здесь. Используйте пароль.",
+    passkeyUnavailable: "Этот браузер не поддерживает ключи доступа здесь. В Windows включите «Save passkeys to this Windows device» в настройках браузера и попробуйте ещё раз. Или используйте пароль.",
     passkeyWaiting: "Ожидание Windows Hello…",
     passkeyFailed: "Не удалось войти с ключом доступа. Попробуйте пароль.",
     passkeysTitle: "Ключи доступа",
@@ -28228,6 +28237,7 @@ export const es: DeepPartial<Dictionary> = {
       wlRequestsOffline: "No se pueden cargar las solicitudes de paquetes sin conexión.",
       kindInviteBonus: "Bono por invitación",
       kindInviteReward: "Recompensa por invitación",
+      blCantLoadOffline: "No se puede cargar sin conexión.",
     },
     shell: {
       brandAria: "Inicio de OTSI VIE",
@@ -28689,13 +28699,15 @@ export const es: DeepPartial<Dictionary> = {
       loading: "Cargando tu enlace de invitación…",
       loadFailed: "No se pudo cargar tu enlace de invitación.",
       signupBonus: "Te invitaron: recibirás +{bonus} tokens al registrarte, además de los 100 tokens gratis.",
+      setupCodeLabel: "Código de invitación (opcional)",
+      setupCodePlaceholder: "Pega el código de tu enlace de invitación",
     },
   },
   webauthn: {
     signInWithPasskey: "Iniciar sesión con Windows Hello",
     passkeyOr: "o",
     passkeyNeedEmail: "Escribe tu correo electrónico primero y luego usa tu clave de acceso.",
-    passkeyUnavailable: "Este navegador no admite claves de acceso aquí. Usa tu contraseña.",
+    passkeyUnavailable: "Este navegador no admite claves de acceso aquí. En Windows, activa «Save passkeys to this Windows device» en los ajustes del navegador e inténtalo de nuevo. O usa tu contraseña.",
     passkeyWaiting: "Esperando a Windows Hello…",
     passkeyFailed: "No se pudo iniciar sesión con tu clave de acceso. Prueba con tu contraseña.",
     passkeysTitle: "Claves de acceso",
@@ -35405,6 +35417,7 @@ export const de: DeepPartial<Dictionary> = {
       wlRequestsOffline: "Paketanfragen können offline nicht geladen werden.",
       kindInviteBonus: "Einladungsbonus",
       kindInviteReward: "Einladungsbelohnung",
+      blCantLoadOffline: "Kann offline nicht geladen werden.",
     },
     shell: {
       brandAria: "OTSI VIE Startseite",
@@ -35866,13 +35879,15 @@ export const de: DeepPartial<Dictionary> = {
       loading: "Einladungslink wird geladen…",
       loadFailed: "Dein Einladungslink konnte nicht geladen werden.",
       signupBonus: "Du wurdest eingeladen — du erhältst +{bonus} Tokens bei der Anmeldung, zusätzlich zu den 100 kostenlosen Tokens.",
+      setupCodeLabel: "Einladungscode (optional)",
+      setupCodePlaceholder: "Code aus deinem Einladungslink einfügen",
     },
   },
   webauthn: {
     signInWithPasskey: "Mit Windows Hello anmelden",
     passkeyOr: "oder",
     passkeyNeedEmail: "Gib zuerst deine E-Mail-Adresse ein und verwende dann deinen Passkey.",
-    passkeyUnavailable: "Dieser Browser unterstützt hier keine Passkeys. Verwende dein Passwort.",
+    passkeyUnavailable: "Dieser Browser unterstützt hier keine Passkeys. Aktiviere unter Windows in den Browsereinstellungen «Save passkeys to this Windows device» und versuche es erneut. Oder verwende dein Passwort.",
     passkeyWaiting: "Warten auf Windows Hello…",
     passkeyFailed: "Anmeldung mit deinem Passkey fehlgeschlagen. Versuche es mit deinem Passwort.",
     passkeysTitle: "Passkeys",
@@ -42582,6 +42597,7 @@ export const fr: DeepPartial<Dictionary> = {
       wlRequestsOffline: "Impossible de charger les demandes de packs hors ligne.",
       kindInviteBonus: "Bonus d'invitation",
       kindInviteReward: "Récompense d'invitation",
+      blCantLoadOffline: "Impossible de charger hors ligne.",
     },
     shell: {
       brandAria: "Accueil OTSI VIE",
@@ -43043,13 +43059,15 @@ export const fr: DeepPartial<Dictionary> = {
       loading: "Chargement de votre lien d'invitation…",
       loadFailed: "Impossible de charger votre lien d'invitation.",
       signupBonus: "Vous avez été invité — vous recevez +{bonus} jetons à l'inscription, en plus des 100 jetons gratuits.",
+      setupCodeLabel: "Code d’invitation (facultatif)",
+      setupCodePlaceholder: "Collez le code de votre lien d’invitation",
     },
   },
   webauthn: {
     signInWithPasskey: "Se connecter avec Windows Hello",
     passkeyOr: "ou",
     passkeyNeedEmail: "Saisissez d’abord votre adresse e-mail, puis utilisez votre clé d’accès.",
-    passkeyUnavailable: "Ce navigateur ne prend pas en charge les clés d’accès ici. Utilisez votre mot de passe.",
+    passkeyUnavailable: "Ce navigateur ne prend pas en charge les clés d’accès ici. Sous Windows, activez « Save passkeys to this Windows device » dans les paramètres du navigateur, puis réessayez. Ou utilisez votre mot de passe.",
     passkeyWaiting: "En attente de Windows Hello…",
     passkeyFailed: "Impossible de vous connecter avec votre clé d’accès. Essayez votre mot de passe.",
     passkeysTitle: "Clés d’accès",
@@ -49769,6 +49787,7 @@ export const pt: DeepPartial<Dictionary> = {
       "wlRequestsOffline": "Não é possível carregar as solicitações de pacotes offline.",
       "kindInviteBonus": "Bónus de convite",
       "kindInviteReward": "Recompensa de convite",
+      "blCantLoadOffline": "Não é possível carregar offline.",
     },
     "shell": {
       "brandAria": "Início do OTSI VIE",
@@ -50229,14 +50248,16 @@ export const pt: DeepPartial<Dictionary> = {
       "inviterGets": "Você recebe +{reward} tokens quando ele analisar o primeiro jogo ou comprar o primeiro pacote.",
       "loading": "A carregar o seu link de convite…",
       "loadFailed": "Não foi possível carregar o seu link de convite.",
-      "signupBonus": "Você foi convidado — recebe +{bonus} tokens ao registar-se, além dos 100 tokens grátis."
+      "signupBonus": "Você foi convidado — recebe +{bonus} tokens ao registar-se, além dos 100 tokens grátis.",
+      "setupCodeLabel": "Código de convite (opcional)",
+      "setupCodePlaceholder": "Cole o código do seu link de convite"
     }
   },
   "webauthn": {
     "signInWithPasskey": "Entrar com o Windows Hello",
     "passkeyOr": "ou",
     "passkeyNeedEmail": "Digite seu e-mail primeiro e depois use sua chave de acesso.",
-    "passkeyUnavailable": "Este navegador não suporta chaves de acesso aqui. Use sua senha.",
+    "passkeyUnavailable": "Este navegador não suporta chaves de acesso aqui. No Windows, ative «Save passkeys to this Windows device» nas definições do navegador e tente novamente. Ou use sua senha.",
     "passkeyWaiting": "Aguardando o Windows Hello…",
     "passkeyFailed": "Não foi possível entrar com sua chave de acesso. Tente sua senha.",
     "passkeysTitle": "Chaves de acesso",

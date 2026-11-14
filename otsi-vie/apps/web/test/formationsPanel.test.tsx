@@ -62,12 +62,20 @@ describe("ShapePanels Formation display & confirmation (ADR-123)", () => {
         runId="run-1"
         videoId="0193132e-5034-7bc3-9565-df048bb01001"
         kits={{
+          run_id: "run-1",
+          match_id: "m-1",
+          teams: [
+            { id: "club-1", name: "Home FC", short_name: "HOM", shared: false },
+            { id: "club-2", name: "Away FC", short_name: "AWY", shared: false },
+          ],
+          roster_verified: false,
           groups: [
             {
               kit_group: 0,
               tracks: 11,
               kit_rgb: "#1580ff",
-              assignment: { club_id: "club-1", assigned_by: "user-1", assigned_at: "2026-11-09T00:00:00Z" },
+              assignment: { club_id: "club-1", club_name: "Home FC", assignment_id: "0193132e-5034-7bc3-9565-df048bb01002" },
+              sample_track_ids: [],
             },
           ],
         }}

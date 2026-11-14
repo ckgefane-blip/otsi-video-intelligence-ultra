@@ -681,7 +681,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // pay on the spot (2026-11-13): +1 "Pay now to finish your top-up"
     // offline wallet (2026-11-14): +3 wallet keys (offline note, ledger offline, requests offline)
     // user-to-user Invite (2026-11-14): +2 wallet keys (invite bonus / reward ledger labels)
-    expect(bodyKeys("wallet").length).toBe(302);
+    // Invite signup fix (2026-11-14): +1 wallet key (can't load this while offline)
+    expect(bodyKeys("wallet").length).toBe(303);
     // user-to-user Invite (2026-11-14): +1 shell key (the gift button in the top bar)
     expect(bodyKeys("shell").length).toBe(293);
     // SOT UI rebuild Pages 29-31 (2026-11-12): +16 auth keys (welcome tour).
@@ -689,7 +690,8 @@ describe("page bodies (ADR-139 follow-up)", () => {
     // wording, Show/Hide short labels, password Show/Hide).
     expect(bodyKeys("auth").length).toBe(151);
     // user-to-user Invite (2026-11-14): the invite share page + sign-up bonus line
-    expect(bodyKeys("invite").length).toBe(11);
+    // Invite signup fix (2026-11-14): +2 invite keys (the typed invite-code field on setup)
+    expect(bodyKeys("invite").length).toBe(13);
   });
 
   it("the body strings are actually translated in each locale (spot checks)", () => {

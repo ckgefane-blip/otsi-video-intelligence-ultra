@@ -27,13 +27,19 @@ function fill() {
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "a-strong-passphrase-12" } });
 }
 
+/** the submit stays disabled until authMode() answers (the mode gate, 2026-11-14): wait for it. */
+async function readySubmit() {
+  await waitFor(() => expect(screen.getByRole("button", { name: "Create owner account" })).not.toBeDisabled());
+}
+
 beforeEach(() => { setupOwner.mockReset(); replace.mockReset(); adoptSession.mockReset(); });
 
 describe("First run — owner setup (SOT)", () => {
-  it("shows the brand panel and the owner form", () => {
+  it("shows the brand panel and the owner form", async () => {
     render(<SetupPage />);
     expect(screen.getByRole("heading", { name: "Prove what a player did on the pitch." })).toBeInTheDocument();
-    expect(screen.getByText("First run")).toBeInTheDocument();
+    // "First run" shows only once the mode is known to be local (the mode gate)
+    expect(await screen.findByText("First run")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Create the owner account" })).toBeInTheDocument();
     expect(screen.getByLabelText("Full name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
@@ -42,9 +48,9 @@ describe("First run — owner setup (SOT)", () => {
     expect(screen.getByText("At least 12 characters. A passphrase works well.")).toBeInTheDocument();
   });
 
-  it("'First run' is plain text, not a chip, and the password toggle reads 'Show'", () => {
+  it("'First run' is plain text, not a chip, and the password toggle reads 'Show'", async () => {
     render(<SetupPage />);
-    const firstRun = screen.getByText("First run");
+    const firstRun = await screen.findByText("First run");
     expect(firstRun.className).not.toContain("chip");
     expect(firstRun.className).toContain("text-muted");
     const show = screen.getByRole("button", { name: "Show password" });
@@ -71,6 +77,7 @@ describe("First run — owner setup (SOT)", () => {
   it("creates the owner, signs them in and takes them to Home, where the welcome tour opens", async () => {
     setupOwner.mockResolvedValue(session);
     render(<SetupPage />);
+    await readySubmit();
     fill();
     fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
     await waitFor(() => expect(setupOwner).toHaveBeenCalledWith({ email: "owner@club.com", display_name: "Edmond Osio", password: "a-strong-passphrase-12" }));
@@ -80,6 +87,7 @@ describe("First run — owner setup (SOT)", () => {
 
   it("refuses a short password without calling the API", async () => {
     render(<SetupPage />);
+    await readySubmit();
     fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Edmond Osio" } });
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "owner@club.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "short" } });
@@ -91,6 +99,7 @@ describe("First run — owner setup (SOT)", () => {
   it("names an installation that already has an owner and points to sign-in", async () => {
     setupOwner.mockRejectedValue(new ApiProblem(409, "ALREADY_SET_UP", "this installation already has an organization"));
     render(<SetupPage />);
+    await readySubmit();
     fill();
     fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
     await waitFor(() => expect(screen.getByText("This installation already has an owner. Sign in instead.")).toBeInTheDocument());

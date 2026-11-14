@@ -225,7 +225,7 @@ describe("sign-in page (Page 27)", () => {
     const passkey = screen.getByRole("button", { name: /Sign in with a passkey/ });
     expect(passkey).toBeInTheDocument();
     fireEvent.click(passkey);
-    expect(await screen.findByText("This browser does not support passkeys here. Use your password.")).toBeInTheDocument();
+    expect(await screen.findByText("This browser does not support passkeys here. On Windows, turn on “Save passkeys to this Windows device” in your browser settings and try again. Or use your password.")).toBeInTheDocument();
     expect(signInWithPasskey).not.toHaveBeenCalled();
   });
 

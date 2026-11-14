@@ -533,3 +533,69 @@ describe("messages appear next to the button (owner rule, 2026-11-14)", () => {
     expect(screen.getAllByText("Marked paid. The owner will confirm the transfer.")).toHaveLength(1);
   });
 });
+
+describe("offline billing shows last-known data, never empty states (2026-11-14)", () => {
+  it("Plans & billing offline with nothing cached says it cannot load, not 'no subscription / no orders'", async () => {
+    api.mockRejectedValue(new Error("offline"));
+    render(<PlanOrdersView />);
+    await waitFor(() => expect(screen.getByText("Plans & billing")).toBeInTheDocument());
+    expect(screen.getAllByText("Can’t load this while offline.").length).toBeGreaterThan(0);
+    expect(screen.queryByText("No active subscription")).not.toBeInTheDocument();
+    expect(screen.queryByText("No orders yet")).not.toBeInTheDocument();
+  });
+
+  it("Plans & billing offline with cached data shows the last known plans, subscription and orders", async () => {
+    localStorage.setItem("otsi-plans-last-known-catalogue", JSON.stringify(planCatalogue()));
+    localStorage.setItem("otsi-plans-last-known-orders", JSON.stringify([order({ status: "AWAITING_CONFIRMATION" })]));
+    localStorage.setItem("otsi-plans-last-known-subscription", JSON.stringify(subscription));
+    api.mockRejectedValue(new Error("offline"));
+    render(<PlanOrdersView />);
+    await waitFor(() => expect(screen.getByText("Club")).toBeInTheDocument());
+    expect(screen.getByText(/OTSI-INV-2026-000001/)).toBeInTheDocument();
+    expect(screen.getByText(/Plan active until 12\/13\/2026/)).toBeInTheDocument();
+    expect(screen.getAllByText("You're offline — showing the last data this app saw.").length).toBeGreaterThan(0);
+    expect(screen.queryByText("No active subscription")).not.toBeInTheDocument();
+    expect(screen.queryByText("No orders yet")).not.toBeInTheDocument();
+    // ordering needs the server: the buttons stay disabled
+    screen.getAllByRole("button", { name: /Order by bank transfer/ }).forEach((b) => expect(b).toBeDisabled());
+    expect(screen.getByRole("button", { name: "Claim 100 free tokens" })).toBeDisabled();
+  });
+
+  it("Admin billing offline with nothing cached says it cannot load, with no wallet cards or empty bank fields", async () => {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
+    });
+    api.mockRejectedValue(new Error("offline"));
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getByText("Billing orders")).toBeInTheDocument());
+    expect(screen.getAllByText("Can’t load this while offline.").length).toBeGreaterThan(0);
+    expect(screen.queryByText("No pack requests yet. An organization requests a pack from its Wallet page.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No orders yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("No token movements yet.")).not.toBeInTheDocument();
+    // no wallet cards and no bank forms: nothing that looks like "no bank details saved"
+    expect(screen.queryByLabelText("Account name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Osio & Tee")).not.toBeInTheDocument();
+  });
+
+  it("Admin billing offline with cached data shows the last known wallets, bank details and orders", async () => {
+    mockAuth.useAuth.mockReturnValue({
+      organization: { organization_id: ORG, organization_name: "OTSI", role: "OWNER", is_company_org: true },
+    });
+    localStorage.setItem("otsi-admin-billing-last-known-wallets", JSON.stringify([
+      { organization_id: ORG, organization_name: "Osio & Tee", balance: 200, spendable_balance: 200, low_balance: false, last_activity_at: "2026-11-14T05:19:15.000Z" },
+    ]));
+    localStorage.setItem("otsi-admin-billing-last-known-requests", JSON.stringify([]));
+    localStorage.setItem("otsi-admin-billing-last-known-orders", JSON.stringify([order({ status: "AWAITING_CONFIRMATION" })]));
+    localStorage.setItem("otsi-admin-billing-last-known-bank-accounts", JSON.stringify([bankAccount]));
+    localStorage.setItem("otsi-admin-billing-last-known-subscription", JSON.stringify(subscription));
+    api.mockRejectedValue(new Error("offline"));
+    render(<AdminBillingView />);
+    await waitFor(() => expect(screen.getAllByText("Osio & Tee").length).toBeGreaterThan(0));
+    expect(screen.getByText(/OTSI-INV-2026-000001/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Zenith Bank")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("1012345678")).toBeInTheDocument();
+    expect(screen.getAllByText("You're offline — showing the last data this app saw.").length).toBeGreaterThan(0);
+    // saving needs the server: the bank save stays disabled while offline
+    expect(screen.getAllByRole("button", { name: "Save bank details" })[0]).toBeDisabled();
+  });
+});
