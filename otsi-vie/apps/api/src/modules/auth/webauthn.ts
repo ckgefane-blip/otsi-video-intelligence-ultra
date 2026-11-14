@@ -60,6 +60,12 @@ const COUNTER_REJECTED = () => new ApiError(401, "WEBAUTHN_COUNTER_REJECTED", "T
 const CREDENTIAL_NOT_FOUND = () => new ApiError(404, "WEBAUTHN_CREDENTIAL_NOT_FOUND", "That passkey was not found.");
 
 interface ChallengeRow { id: string; user_id: string | null; email: string | null; expires_at: Date }
+
+/** A datetime from the DB as a UTC instant. The MySQL pool returns DATETIME as a string (dateStrings: true) in the DB's timezone (UTC, MariaDB runs --default-time-zone=+00:00); parsing it with `new Date(string)` would read it as the server's local time and shift it by the timezone offset, so a fresh 5-minute challenge would look expired on a machine in MSK and every passkey login would fail with CHALLENGE_EXPIRED. Appending "Z" pins it to UTC. A Date object (SQLite) passes through unchanged. */
+function asUtcInstant(value: Date | string): Date {
+  if (value instanceof Date) return value;
+  return new Date(String(value).trim().replace(" ", "T") + "Z");
+}
 interface CredentialRow extends RowDataPacket { id: string; user_id: string; credential_id: string; public_key: string; counter: number; transports: string | null; device_name: string | null; created_at: Date; last_used_at: Date | null }
 
 /** An allow/exclude credential for the browser: the transports key is omitted (not set to undefined) when unknown. */
@@ -107,7 +113,7 @@ export class WebAuthnService {
       return r as unknown as ChallengeRow;
     });
     if (!row) throw CHALLENGE_INVALID();
-    if (new Date(row.expires_at).getTime() <= Date.now()) throw CHALLENGE_EXPIRED();
+    if (asUtcInstant(row.expires_at).getTime() <= Date.now()) throw CHALLENGE_EXPIRED();
     return row;
   }
 
