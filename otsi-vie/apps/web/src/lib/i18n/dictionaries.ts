@@ -270,8 +270,6 @@ export interface Dictionary {
       inboxRunning: string;
       inboxReading: string;
       inboxManageJobs: string;
-      inboxLastDayJobs: string;
-      inboxNoJobs: string;
       inboxJobFailed: string;
       kpiStripAria: string;
       kpiPlayersWhy: string;
@@ -301,7 +299,6 @@ export interface Dictionary {
       hmThumbNote: string;
       hmUploadNotePlan: string;
       hmUploadNoteServer: string;
-      hmPlayersConfirmed: string;
       hmThisWeek: string;
       hmKpiOpen: string;
       hmFeaturedNoneCleared: string;
@@ -333,6 +330,29 @@ export interface Dictionary {
       hmXa: string;
       recentMatchesSot: string;
       viewAllSot: string;
+      hmOpenInbox: string;
+      hmTrustTitle: string;
+      hmTrustUnknown: string;
+      hmTrustConfirmed: string;
+      hmTrustDetected: string;
+      hmTrustInferred: string;
+      hmTrustNotMeasured: string;
+      hmContinueWork: string;
+      hmRecentSessions: string;
+      hmNoSessions: string;
+      hmNoSessionsBody: string;
+      hmNoActiveJobs: string;
+      hmNoActiveJobsBody: string;
+      hmApprove: string;
+      hmRecentActivity: string;
+      hmViewAllActivity: string;
+      hmNoActivity: string;
+      hmNoActivityBody: string;
+      hmSampleNote: string;
+      hmSampleTrack: string;
+      hmSampleTactical: string;
+      hmSampleReels: string;
+      hmRenderedState: string;
     };
     analysis: {
       match: string;
@@ -7455,8 +7475,6 @@ export const en: Dictionary = {
       inboxRunning: "{a} running · {b} waiting or paused",
       inboxReading: "Reading…",
       inboxManageJobs: "Manage them from the jobs icon in the top bar.",
-      inboxLastDayJobs: "Nothing runs now; the last day's jobs:",
-      inboxNoJobs: "No engine job in the last day.",
       inboxJobFailed: "Failed",
       kpiStripAria: "Headline KPI strip",
       kpiPlayersWhy: "a person confirmed each of them on a track",
@@ -7486,7 +7504,6 @@ export const en: Dictionary = {
       hmThumbNote: "Thumbnails are the real frames stored with each video; the app shows them.",
       hmUploadNotePlan: "MP4 or MOV · up to {b} per video on the {a} plan · or paste a link",
       hmUploadNoteServer: "MP4 or MOV · up to {b} per video · or paste a link",
-      hmPlayersConfirmed: "Players confirmed",
       hmThisWeek: "+{n} this week",
       hmKpiOpen: "{a}: open the list",
       hmFeaturedNoneCleared: "No reel is cleared for sharing yet",
@@ -7518,6 +7535,29 @@ export const en: Dictionary = {
       hmXa: "xA",
       recentMatchesSot: "Recent matches",
       viewAllSot: "View all",
+      hmOpenInbox: "Open review inbox",
+      hmTrustTitle: "Evidence Integrity",
+      hmTrustUnknown: "Unknown beats wrong.",
+      hmTrustConfirmed: "Verified by strong evidence, or by a human",
+      hmTrustDetected: "Automatically detected from the available footage",
+      hmTrustInferred: "Provisional interpretation requiring verification",
+      hmTrustNotMeasured: "Insufficient data for a defensible result",
+      hmContinueWork: "Continue work",
+      hmRecentSessions: "Recent sessions",
+      hmNoSessions: "No sessions yet.",
+      hmNoSessionsBody: "Your recent work sessions will appear here.",
+      hmNoActiveJobs: "No active jobs",
+      hmNoActiveJobsBody: "Upload footage to start an analysis.",
+      hmApprove: "Approve",
+      hmRecentActivity: "Recent activity",
+      hmViewAllActivity: "View all activity",
+      hmNoActivity: "No recent activity yet.",
+      hmNoActivityBody: "Finished jobs and renders will appear here.",
+      hmSampleNote: "Sample content — examples, not your data.",
+      hmSampleTrack: "Track every player",
+      hmSampleTactical: "Tactical intelligence",
+      hmSampleReels: "Reels and reports",
+      hmRenderedState: "Rendered",
     },
     analysis: {
       match: "Match",
@@ -14635,8 +14675,6 @@ export const ru: DeepPartial<Dictionary> = {
       inboxRunning: "{a} выполняется · {b} ждёт или на паузе",
       inboxReading: "Чтение…",
       inboxManageJobs: "Управляйте ими через значок заданий в верхней панели.",
-      inboxLastDayJobs: "Сейчас ничего не выполняется; задания за последний день:",
-      inboxNoJobs: "За последний день заданий движка не было.",
       inboxJobFailed: "Не удалось",
       kpiStripAria: "Полоса ключевых показателей",
       kpiPlayersWhy: "каждый из них подтверждён человеком на треке",
@@ -14666,7 +14704,6 @@ export const ru: DeepPartial<Dictionary> = {
       hmThumbNote: "Миниатюры — это настоящие кадры, сохранённые с каждым видео; приложение показывает их.",
       hmUploadNotePlan: "MP4 или MOV · до {b} на видео на тарифе {a} · или вставьте ссылку",
       hmUploadNoteServer: "MP4 или MOV · до {b} на видео · или вставьте ссылку",
-      hmPlayersConfirmed: "Подтверждённые игроки",
       hmThisWeek: "+{n} за неделю",
       hmKpiOpen: "{a}: открыть список",
       hmFeaturedNoneCleared: "Пока нет ролика, разрешённого к показу",
@@ -14698,6 +14735,29 @@ export const ru: DeepPartial<Dictionary> = {
       hmXa: "xA",
       recentMatchesSot: "Недавние матчи",
       viewAllSot: "Показать все",
+      hmOpenInbox: "Открыть входящие проверки",
+      hmTrustTitle: "Целостность доказательств",
+      hmTrustUnknown: "Неизвестное лучше неверного.",
+      hmTrustConfirmed: "Подтверждено надёжными доказательствами или человеком",
+      hmTrustDetected: "Автоматически обнаружено на доступном видео",
+      hmTrustInferred: "Предварительная интерпретация, требующая проверки",
+      hmTrustNotMeasured: "Недостаточно данных для обоснованного результата",
+      hmContinueWork: "Продолжить работу",
+      hmRecentSessions: "Недавние сеансы",
+      hmNoSessions: "Сеансов пока нет.",
+      hmNoSessionsBody: "Ваши недавние рабочие сеансы появятся здесь.",
+      hmNoActiveJobs: "Нет активных задач",
+      hmNoActiveJobsBody: "Загрузите видео, чтобы начать анализ.",
+      hmApprove: "Утвердить",
+      hmRecentActivity: "Недавняя активность",
+      hmViewAllActivity: "Вся активность",
+      hmNoActivity: "Недавней активности пока нет.",
+      hmNoActivityBody: "Завершённые задачи и ролики появятся здесь.",
+      hmSampleNote: "Примеры — не ваши данные.",
+      hmSampleTrack: "Отслеживание каждого игрока",
+      hmSampleTactical: "Тактический интеллект",
+      hmSampleReels: "Ролики и отчёты",
+      hmRenderedState: "Отрендерено",
     },
     analysis: {
       match: "Матч",
@@ -21815,8 +21875,6 @@ export const es: DeepPartial<Dictionary> = {
       inboxRunning: "{a} en curso · {b} en espera o en pausa",
       inboxReading: "Leyendo…",
       inboxManageJobs: "Gestiónalos desde el icono de trabajos en la barra superior.",
-      inboxLastDayJobs: "Nada en curso; trabajos del último día:",
-      inboxNoJobs: "Ningún trabajo del motor en el último día.",
       inboxJobFailed: "Fallido",
       kpiStripAria: "Tira de indicadores clave",
       kpiPlayersWhy: "cada uno de ellos fue confirmado por una persona en un seguimiento",
@@ -21846,7 +21904,6 @@ export const es: DeepPartial<Dictionary> = {
       hmThumbNote: "Las miniaturas son los fotogramas reales guardados con cada vídeo; la app las muestra.",
       hmUploadNotePlan: "MP4 o MOV · hasta {b} por vídeo en el plan {a} · o pega un enlace",
       hmUploadNoteServer: "MP4 o MOV · hasta {b} por vídeo · o pega un enlace",
-      hmPlayersConfirmed: "Jugadores confirmados",
       hmThisWeek: "+{n} esta semana",
       hmKpiOpen: "{a}: abrir la lista",
       hmFeaturedNoneCleared: "Aún no hay ningún reel autorizado para compartir",
@@ -21878,6 +21935,29 @@ export const es: DeepPartial<Dictionary> = {
       hmXa: "xA",
       recentMatchesSot: "Partidos recientes",
       viewAllSot: "Ver todo",
+      hmOpenInbox: "Abrir la bandeja de revisión",
+      hmTrustTitle: "Integridad de la evidencia",
+      hmTrustUnknown: "Lo desconocido es mejor que lo incorrecto.",
+      hmTrustConfirmed: "Verificado por evidencia sólida o por una persona",
+      hmTrustDetected: "Detectado automáticamente a partir del metraje disponible",
+      hmTrustInferred: "Interpretación provisional que requiere verificación",
+      hmTrustNotMeasured: "Datos insuficientes para un resultado defendible",
+      hmContinueWork: "Continuar el trabajo",
+      hmRecentSessions: "Sesiones recientes",
+      hmNoSessions: "Aún no hay sesiones.",
+      hmNoSessionsBody: "Tus sesiones de trabajo recientes aparecerán aquí.",
+      hmNoActiveJobs: "No hay trabajos activos",
+      hmNoActiveJobsBody: "Sube metraje para iniciar un análisis.",
+      hmApprove: "Aprobar",
+      hmRecentActivity: "Actividad reciente",
+      hmViewAllActivity: "Ver toda la actividad",
+      hmNoActivity: "Aún no hay actividad reciente.",
+      hmNoActivityBody: "Los trabajos terminados y los reels aparecerán aquí.",
+      hmSampleNote: "Contenido de ejemplo: no son tus datos.",
+      hmSampleTrack: "Seguir a cada jugador",
+      hmSampleTactical: "Inteligencia táctica",
+      hmSampleReels: "Reels e informes",
+      hmRenderedState: "Renderizado",
     },
     analysis: {
       match: "Partido",
@@ -28995,8 +29075,6 @@ export const de: DeepPartial<Dictionary> = {
       inboxRunning: "{a} laufen · {b} warten oder pausiert",
       inboxReading: "Lesen…",
       inboxManageJobs: "Über das Auftragssymbol in der oberen Leiste verwalten.",
-      inboxLastDayJobs: "Läuft gerade nichts; Aufträge der letzten 24 Stunden:",
-      inboxNoJobs: "Kein Engine-Auftrag in den letzten 24 Stunden.",
       inboxJobFailed: "Fehlgeschlagen",
       kpiStripAria: "Leiste mit den wichtigsten Kennzahlen",
       kpiPlayersWhy: "jede dieser Personen wurde von einem Menschen auf einer Spur bestätigt",
@@ -29026,7 +29104,6 @@ export const de: DeepPartial<Dictionary> = {
       hmThumbNote: "Die Vorschaubilder sind die echten Frames, die mit jedem Video gespeichert werden; die App zeigt sie an.",
       hmUploadNotePlan: "MP4 oder MOV · bis {b} pro Video im Tarif {a} · oder einen Link einfügen",
       hmUploadNoteServer: "MP4 oder MOV · bis {b} pro Video · oder einen Link einfügen",
-      hmPlayersConfirmed: "Bestätigte Spieler",
       hmThisWeek: "+{n} diese Woche",
       hmKpiOpen: "{a}: Liste öffnen",
       hmFeaturedNoneCleared: "Noch kein Reel zum Teilen freigegeben",
@@ -29058,6 +29135,29 @@ export const de: DeepPartial<Dictionary> = {
       hmXa: "xA",
       recentMatchesSot: "Letzte Spiele",
       viewAllSot: "Alle ansehen",
+      hmOpenInbox: "Prüfeingang öffnen",
+      hmTrustTitle: "Integrität der Nachweise",
+      hmTrustUnknown: "Unbekannt ist besser als falsch.",
+      hmTrustConfirmed: "Durch belastbare Nachweise oder eine Person verifiziert",
+      hmTrustDetected: "Automatisch aus dem verfügbaren Videomaterial erkannt",
+      hmTrustInferred: "Vorläufige Interpretation, die eine Prüfung erfordert",
+      hmTrustNotMeasured: "Unzureichende Daten für ein belastbares Ergebnis",
+      hmContinueWork: "Arbeit fortsetzen",
+      hmRecentSessions: "Letzte Sitzungen",
+      hmNoSessions: "Noch keine Sitzungen.",
+      hmNoSessionsBody: "Ihre letzten Arbeitssitzungen erscheinen hier.",
+      hmNoActiveJobs: "Keine aktiven Aufträge",
+      hmNoActiveJobsBody: "Laden Sie Videomaterial hoch, um eine Analyse zu starten.",
+      hmApprove: "Genehmigen",
+      hmRecentActivity: "Letzte Aktivität",
+      hmViewAllActivity: "Alle Aktivitäten ansehen",
+      hmNoActivity: "Noch keine aktuelle Aktivität.",
+      hmNoActivityBody: "Abgeschlossene Aufträge und Reels erscheinen hier.",
+      hmSampleNote: "Beispielinhalte — keine eigenen Daten.",
+      hmSampleTrack: "Jeden Spieler verfolgen",
+      hmSampleTactical: "Taktische Intelligenz",
+      hmSampleReels: "Reels und Berichte",
+      hmRenderedState: "Gerendert",
     },
     analysis: {
       match: "Spiel",
@@ -36175,8 +36275,6 @@ export const fr: DeepPartial<Dictionary> = {
       inboxRunning: "{a} en cours · {b} en attente ou en pause",
       inboxReading: "Lecture…",
       inboxManageJobs: "Gérez-les depuis l’icône des tâches dans la barre supérieure.",
-      inboxLastDayJobs: "Rien en cours ; tâches des dernières 24 heures :",
-      inboxNoJobs: "Aucune tâche du moteur au cours des dernières 24 heures.",
       inboxJobFailed: "Échec",
       kpiStripAria: "Bandeau des indicateurs clés",
       kpiPlayersWhy: "chacun d’eux a été confirmé par une personne sur un suivi",
@@ -36206,7 +36304,6 @@ export const fr: DeepPartial<Dictionary> = {
       hmThumbNote: "Les miniatures sont les vraies images enregistrées avec chaque vidéo ; l’application les affiche.",
       hmUploadNotePlan: "MP4 ou MOV · jusqu'à {b} par vidéo avec le forfait {a} · ou collez un lien",
       hmUploadNoteServer: "MP4 ou MOV · jusqu'à {b} par vidéo · ou collez un lien",
-      hmPlayersConfirmed: "Joueurs confirmés",
       hmThisWeek: "+{n} cette semaine",
       hmKpiOpen: "{a} : ouvrir la liste",
       hmFeaturedNoneCleared: "Aucun reel n'est encore autorisé au partage",
@@ -36238,6 +36335,29 @@ export const fr: DeepPartial<Dictionary> = {
       hmXa: "xA",
       recentMatchesSot: "Matchs récents",
       viewAllSot: "Tout voir",
+      hmOpenInbox: "Ouvrir la boîte de révision",
+      hmTrustTitle: "Intégrité des preuves",
+      hmTrustUnknown: "L'inconnu vaut mieux que le faux.",
+      hmTrustConfirmed: "Vérifié par des preuves solides ou par une personne",
+      hmTrustDetected: "Détecté automatiquement à partir des images disponibles",
+      hmTrustInferred: "Interprétation provisoire nécessitant une vérification",
+      hmTrustNotMeasured: "Données insuffisantes pour un résultat défendable",
+      hmContinueWork: "Poursuivre le travail",
+      hmRecentSessions: "Sessions récentes",
+      hmNoSessions: "Aucune session pour l'instant.",
+      hmNoSessionsBody: "Vos sessions de travail récentes apparaîtront ici.",
+      hmNoActiveJobs: "Aucune tâche active",
+      hmNoActiveJobsBody: "Importez des images pour lancer une analyse.",
+      hmApprove: "Approuver",
+      hmRecentActivity: "Activité récente",
+      hmViewAllActivity: "Voir toute l'activité",
+      hmNoActivity: "Aucune activité récente pour l'instant.",
+      hmNoActivityBody: "Les tâches terminées et les reels apparaîtront ici.",
+      hmSampleNote: "Contenu d'exemple — pas vos données.",
+      hmSampleTrack: "Suivre chaque joueur",
+      hmSampleTactical: "Intelligence tactique",
+      hmSampleReels: "Reels et rapports",
+      hmRenderedState: "Rendu",
     },
     analysis: {
       match: "Match",
@@ -43365,8 +43485,6 @@ export const pt: DeepPartial<Dictionary> = {
       "inboxRunning": "{a} em execução · {b} aguardando ou pausadas",
       "inboxReading": "Lendo…",
       "inboxManageJobs": "Gerencie-as pelo ícone de tarefas na barra superior.",
-      "inboxLastDayJobs": "Nada em execução agora; as tarefas do último dia:",
-      "inboxNoJobs": "Nenhuma tarefa do motor no último dia.",
       "inboxJobFailed": "Falhou",
       "kpiStripAria": "Faixa de KPIs principais",
       "kpiPlayersWhy": "uma pessoa confirmou cada um deles em uma trilha",
@@ -43396,7 +43514,6 @@ export const pt: DeepPartial<Dictionary> = {
       "hmThumbNote": "As miniaturas são os fotogramas reais guardados com cada vídeo; a app mostra-os.",
       "hmUploadNotePlan": "MP4 ou MOV · até {b} por vídeo no plano {a} · ou cole um link",
       "hmUploadNoteServer": "MP4 ou MOV · até {b} por vídeo · ou cole um link",
-      "hmPlayersConfirmed": "Jogadores confirmados",
       "hmThisWeek": "+{n} esta semana",
       "hmKpiOpen": "{a}: abrir a lista",
       "hmFeaturedNoneCleared": "Ainda não há nenhum reel autorizado para partilha",
@@ -43428,6 +43545,29 @@ export const pt: DeepPartial<Dictionary> = {
       "hmXa": "xA",
       "recentMatchesSot": "Partidas recentes",
       "viewAllSot": "Ver tudo",
+      "hmOpenInbox": "Abrir a caixa de revisão",
+      "hmTrustTitle": "Integridade das evidências",
+      "hmTrustUnknown": "O desconhecido é melhor do que o errado.",
+      "hmTrustConfirmed": "Verificado por evidências fortes ou por uma pessoa",
+      "hmTrustDetected": "Detetado automaticamente a partir das imagens disponíveis",
+      "hmTrustInferred": "Interpretação provisória que requer verificação",
+      "hmTrustNotMeasured": "Dados insuficientes para um resultado defensável",
+      "hmContinueWork": "Continuar o trabalho",
+      "hmRecentSessions": "Sessões recentes",
+      "hmNoSessions": "Ainda não há sessões.",
+      "hmNoSessionsBody": "As suas sessões de trabalho recentes aparecerão aqui.",
+      "hmNoActiveJobs": "Não há trabalhos ativos",
+      "hmNoActiveJobsBody": "Carregue imagens para iniciar uma análise.",
+      "hmApprove": "Aprovar",
+      "hmRecentActivity": "Atividade recente",
+      "hmViewAllActivity": "Ver toda a atividade",
+      "hmNoActivity": "Ainda não há atividade recente.",
+      "hmNoActivityBody": "Os trabalhos concluídos e os reels aparecerão aqui.",
+      "hmSampleNote": "Conteúdo de exemplo — não são os seus dados.",
+      "hmSampleTrack": "Seguir cada jogador",
+      "hmSampleTactical": "Inteligência tática",
+      "hmSampleReels": "Reels e relatórios",
+      "hmRenderedState": "Renderizado",
     },
     "analysis": {
       "match": "Partida",

@@ -1,4 +1,5 @@
-/** Home (SOT, Page 11): the three-column row, the KPI row and the three panels, from real endpoints (Home audit fixes, owner 2026-11-13) */
+/** Home — Page 1 of 31 (ui-ux-spec §6.1): hero → NextActionBar → Featured reel → KPI row → trust strip →
+ * Continue Work + Jobs Center → Review inbox + Recent Activity → sample reels (collapsed), from real endpoints */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -40,16 +41,25 @@ const inbox = {
 };
 const RUNNING = { id: "j1", kind: "ANALYSIS", kind_label: "Analysis", state: "RUNNING", progress: 40, subject_title: "Nart v Ercakhu", stage: null, error: null, href: null };
 const DONE = { ...RUNNING, id: "j0", state: "SUCCEEDED", subject_title: "Old match" };
+const FINISHED = {
+  ...RUNNING, id: "j2", state: "SUCCEEDED", progress: 100, subject_title: "Nart v Ercakhu",
+  created_at: "2026-11-10T11:00:00Z", started_at: "2026-11-10T11:05:00Z", finished_at: "2026-11-10T19:08:00Z",
+};
+const DECIDED = {
+  item_id: "TEAM_SHEET:1", kind: "TEAM_SHEET", decision: "APPROVE", applied: 1, failures: [],
+  inbox: { next: null, items: [], completed_match: true },
+};
 
 function mockApi(o: Record<string, unknown> = {}) {
-  const v: Record<string, unknown> = { stats, inbox, jobs: { jobs: [], active: 0, running: 0, failed_recent: 0 }, reels: [REEL], pick: PICK, ...o };
-  api.mockImplementation((url: string, init?: { method?: string }) => {
+  const v: Record<string, unknown> = { stats, inbox, jobs: { jobs: [], active: 0, running: 0, failed_recent: 0 }, reels: [REEL], pick: PICK, decision: DECIDED, ...o };
+  api.mockImplementation((url: string, init?: { method?: string; json?: unknown }) => {
     const r = (x: unknown) => (x instanceof Error ? Promise.reject(x) : Promise.resolve(typeof x === "function" ? (x as () => unknown)() : x));
     if (url === "/v1/overview/stats") return r(v.stats);
     if (url === "/v1/overview/inbox") return r(v.inbox);
     if (url === "/v1/jobs") return r(v.jobs);
     if (url === "/v1/reels") return r(v.reels);
     if (url === "/v1/overview/featured-reel") return r(v.pick);
+    if (url === "/v1/overview/inbox/decisions" && init?.method === "POST") return r(v.decision);
     if (url === `/v1/renders/${PICK.render_id}/share-links` && init?.method === "POST") return r(v.share);
     if (url.startsWith("/v1/renders/")) return Promise.resolve({ url: "https://example.com/reel.mp4", download_url: "https://example.com/reel.mp4" });
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -58,30 +68,109 @@ function mockApi(o: Record<string, unknown> = {}) {
 
 beforeEach(() => { api.mockReset(); reloadRenderedReels(); tier.value = undefined; });
 
-describe("Home (SOT)", () => {
-  it("shows the start, the live picture, the featured reel playing here, the KPIs and the three panels", async () => {
+describe("Home (Page 1 of 31)", () => {
+  it("shows the hero, the next-action bar, the featured reel, the KPIs, the trust strip, Continue Work + Jobs Center, the review inbox + recent activity, and the collapsed sample reels", async () => {
     mockApi();
     render(<HomeStage />);
+    // hero: start + live picture
     expect(screen.getByRole("heading", { name: "Football video intelligence" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Upload video/ })).toHaveAttribute("href", "/upload?mode=file");
     expect(screen.getByRole("link", { name: /Paste link/ })).toHaveAttribute("href", "/upload?mode=url");
     expect(screen.getByTestId("hero-live")).toBeInTheDocument();
+    // next-action bar: the single next action + the button that opens the inbox
+    await waitFor(() => expect(document.querySelector("[data-next-action-bar]")).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Open review inbox" })).toHaveAttribute("href", "#review-inbox");
+    // featured reel, full width, playing here, with its rendered state
     await waitFor(() => expect(screen.getByTestId("player")).toHaveAttribute("data-src", "https://example.com/reel.mp4"));
     expect(screen.getAllByText("Chinazom Godwin — highlights").length).toBeGreaterThan(0);
-    expect(screen.getByText("58 clips · 16:9 · H.264 · SD · 09:19")).toBeInTheDocument();
+    expect(screen.getByText("58 clips · 16:9 · H.264 · SD · 09:19 · Rendered")).toBeInTheDocument();
     expect(screen.queryByLabelText("Video quality")).toBeNull();                       // the dead quality select is gone
     expect(screen.getByRole("link", { name: "Open in Reel Builder" })).toHaveAttribute("href", `/reels/${REEL.id}`);
+    // KPI row: the spec's four labels, each opening its list
     await waitFor(() => expect(screen.getByText("Matches analysed")).toBeInTheDocument());
-    expect(screen.getByText("Players confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Players tracked")).toBeInTheDocument();
     expect(screen.getByText(/\+1 this week/)).toBeInTheDocument();
     expect(screen.queryByText(/\+0/)).toBeNull();                                      // no "+0" noise
     expect(screen.getByRole("link", { name: "Matches analysed: open the list" })).toHaveAttribute("href", "/matches");
-    expect(screen.getByRole("link", { name: "Players confirmed: open the list" })).toHaveAttribute("href", "/players");
+    expect(screen.getByRole("link", { name: "Players tracked: open the list" })).toHaveAttribute("href", "/players");
     expect(screen.getByRole("link", { name: "Reels generated: open the list" })).toHaveAttribute("href", "/reels");
     expect(screen.getByRole("link", { name: "Reports created: open the list" })).toHaveAttribute("href", "/reports");
-    await waitFor(() => expect(screen.getAllByText("Is this Ada? Moments to check: 3").length).toBe(2));   // the Start next action and the inbox row
-    expect(screen.getByText("0 running · 0 waiting or paused")).toBeInTheDocument();
-    expect(screen.getByText("No engine job in the last day.")).toBeInTheDocument();
+    // trust strip: the Evidence Integrity legend, no counts
+    expect(screen.getByRole("region", { name: "Evidence Integrity" })).toBeInTheDocument();
+    expect(screen.getByText("Unknown beats wrong.")).toBeInTheDocument();
+    expect(screen.getByText("Verified by strong evidence, or by a human")).toBeInTheDocument();
+    expect(screen.getByText("Automatically detected from the available footage")).toBeInTheDocument();
+    expect(screen.getByText("Provisional interpretation requiring verification")).toBeInTheDocument();
+    expect(screen.getByText("Insufficient data for a defensible result")).toBeInTheDocument();
+    // Continue Work + Jobs Center
+    expect(screen.getByRole("heading", { name: "Continue work" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View all matches" })).toHaveAttribute("href", "/matches");
+    expect(screen.getByRole("heading", { name: "Jobs Center" })).toBeInTheDocument();
+    expect(screen.getByText("No active jobs")).toBeInTheDocument();
+    expect(screen.getByText("Upload footage to start an analysis.")).toBeInTheDocument();
+    // review inbox + recent activity
+    await waitFor(() => expect(screen.getAllByText("Is this Ada? Moments to check: 3").length).toBe(2));   // the next-action bar and the inbox row
+    expect(screen.getByRole("heading", { name: "Review inbox (1)" })).toBeInTheDocument();
+    expect(screen.getByText("No recent activity yet.")).toBeInTheDocument();
+    expect(screen.getByText("Finished jobs and renders will appear here.")).toBeInTheDocument();
+    // sample reels: collapsed, labelled sample
+    const samples = screen.getByRole("button", { name: /Sample reels/ });
+    expect(samples).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Sample content — examples, not your data.")).toBeNull();
+    fireEvent.click(samples);
+    expect(samples).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Sample content — examples, not your data.")).toBeInTheDocument();
+    expect(screen.getByText("Track every player")).toBeInTheDocument();
+    expect(screen.getByText("Tactical intelligence")).toBeInTheDocument();
+    expect(screen.getByText("Reels and reports")).toBeInTheDocument();
+  });
+
+  it("Continue Work's Recent Sessions tab shows the empty state, not invented rows", async () => {
+    mockApi();
+    render(<HomeStage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Recent sessions" }));
+    expect(screen.getByText("No sessions yet.")).toBeInTheDocument();
+    expect(screen.getByText("Your recent work sessions will appear here.")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Recent sessions" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "Recent matches" }));
+    expect(screen.queryByText("No sessions yet.")).toBeNull();
+  });
+
+  it("Recent Activity shows the finished jobs, newest first, with absolute dates", async () => {
+    const older = { ...FINISHED, id: "j3", kind_label: "Lineups", subject_title: "Nart v Ercakhu", finished_at: "2026-11-10T11:25:00Z" };
+    mockApi({ jobs: { jobs: [older, FINISHED], active: 0, running: 0, failed_recent: 0 } });
+    render(<HomeStage />);
+    await waitFor(() => expect(screen.getByText("Analysis · Nart v Ercakhu")).toBeInTheDocument());
+    expect(screen.getByText("Lineups · Nart v Ercakhu")).toBeInTheDocument();
+    const rows = document.querySelectorAll("[data-recent-activity] li");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("2026");                                        // absolute date, not a relative time
+    expect(rows[1]).toHaveTextContent("2026");
+    expect(screen.queryByText(/ago|just now/)).toBeNull();
+    expect(screen.getByRole("link", { name: "View all activity" })).toHaveAttribute("href", "/processing");
+  });
+
+  it("a team sheet is approved from the inbox, and the row leaves at once", async () => {
+    mockApi({ inbox: { next: null, items: [row(1)], completed_match: true } });
+    render(<HomeStage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/v1/overview/inbox/decisions",
+      { method: "POST", json: { item_id: "TEAM_SHEET:1", decision: "APPROVE", reason: null } }));
+    await waitFor(() => expect(screen.queryByText("Team sheets to approve: 1")).toBeNull());
+    expect(screen.getByText("All clear")).toBeInTheDocument();
+  });
+
+  it("a failed approval says why, next to its button, and the row stays", async () => {
+    mockApi({
+      inbox: { next: null, items: [row(1)], completed_match: true },
+      decision: new ApiProblem(422, "DECISION_FAILED", "The team sheet could not be approved."),
+    });
+    render(<HomeStage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The team sheet could not be approved."));
+    expect(screen.getByText("Team sheets to approve: 1")).toBeInTheDocument();
   });
 
   it("Share makes a real view-only share link once and copies it", async () => {
@@ -121,7 +210,7 @@ describe("Home (SOT)", () => {
     render(<HomeStage />);
     await waitFor(() => expect(screen.getByText("Headline KPI strip: totals could not be read")).toBeInTheDocument());
     expect(await screen.findByText("The review inbox could not be read")).toBeInTheDocument();
-    expect(await screen.findByText("The jobs could not be read")).toBeInTheDocument();
+    expect(screen.getAllByText("The jobs could not be read")).toHaveLength(2);        // Jobs Center and Recent Activity
   });
 
   it("names the job that is actually running, not a finished one", async () => {
@@ -137,6 +226,7 @@ describe("Home (SOT)", () => {
     fireEvent.click(screen.getByRole("button", { name: "See all (7)" }));
     expect(document.querySelectorAll("[data-inbox]")).toHaveLength(7);
     expect(screen.getAllByText("Team sheets to approve: 1")).toHaveLength(7);
+    expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(7);        // team sheets approve here
   });
 
   it("the upload note names the real plan and the per-video limit, never an invented tier or link sources", async () => {

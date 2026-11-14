@@ -4,12 +4,12 @@ import { HomeStage } from "@/components/home/HomeStage";
 export const metadata: Metadata = { title: "Home" };
 
 /**
- * Home — SOT rebuild (page 11, alphabetical). The SOT's Home (Main.dc.html):
- * a three-column row (Start | live picture | Featured reel), a four-number
- * KPI row, and a three-panel row (Recent matches | Review inbox | Active
- * jobs). The accuracy banner is in the (app) layout. The old page's Sample
- * Reels, Capabilities, How It Works and TrustStrip are not in the SOT; they
- * were removed from the code (Home audit, owner 2026-11-13).
+ * Home — Page 1 of 31 (ui-ux-spec §6.1, SOT home-first-run): hero (Start + the live picture with tracking boxes) →
+ * NextActionBar → Featured reel (full width) → KPI row → trust strip (Evidence Integrity) → Continue Work + Jobs
+ * Center → Review inbox + Recent Activity → sample reels (collapsed, labelled sample). The accuracy line is rendered
+ * by HomeStage, on Home only. The old page's Capabilities and How It Works are not in the SOT or the spec; they stay
+ * removed (Home audit, owner 2026-11-13). The trust strip and sample reels are back in the spec's §6.1 form (an
+ * Evidence Integrity legend, and the app's own onboarding clips — not the old partner strip or real reels).
  */
 export default function Page() {
   return <HomeStage />;

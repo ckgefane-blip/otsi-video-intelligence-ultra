@@ -50,7 +50,7 @@ function Thumb({ m }: { m: RecentMatch }) {
   );
 }
 
-export function RecentMatches() {
+export function RecentMatches({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useLocale();
   const [list, setList] = useState<RecentMatch[] | null | undefined>(undefined);   // undefined = loading, null = could not read
   const [reload, setReload] = useState(0);
@@ -60,12 +60,14 @@ export function RecentMatches() {
 
   return (
     <section aria-label="Recent matches" className="min-w-0 border-t border-line pt-3" data-section="p01-s06" data-count={list ? String(list.length) : list === null ? "error" : "loading"}>
-      <div className="flex items-center justify-between gap-2 pb-1">
-        <h2 className="t-panel">{t.body.home.recentMatchesSot}</h2>
-        <Link href="/matches" className="t-small text-primary hover:underline" aria-label={t.body.home.hmViewAllMatches}>
-          {t.body.home.viewAllSot}
-        </Link>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between gap-2 pb-1">
+          <h2 className="t-panel">{t.body.home.recentMatchesSot}</h2>
+          <Link href="/matches" className="t-small text-primary hover:underline" aria-label={t.body.home.hmViewAllMatches}>
+            {t.body.home.viewAllSot}
+          </Link>
+        </div>
+      )}
       <ul className="flex flex-col">
         {list === undefined && <li className="t-small px-2 py-3 text-muted">{t.common.loading}</li>}
         {failed && (

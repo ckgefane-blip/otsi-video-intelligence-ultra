@@ -653,7 +653,7 @@ describe("page bodies (ADR-139 follow-up)", () => {
     expect(leaves(en as unknown as Record<string, unknown>).length).toBeGreaterThan(200);
     // SOT rebuild reconciliation (2026-11-13): +2 home, +5 studio, +2 library,
     // +1 players, +5 upload, +1 tactics, +8 admin, +2 settings, +9 shell.
-    expect(bodyKeys("home").length).toBe(154);   // +27: Home audit fixes (owner 2026-11-13)
+    expect(bodyKeys("home").length).toBe(174);   // +27: Home audit fixes (owner 2026-11-13)
     expect(bodyKeys("analysis").length).toBe(243);
     expect(bodyKeys("reels").length).toBe(276);
     expect(bodyKeys("studio").length).toBe(781);

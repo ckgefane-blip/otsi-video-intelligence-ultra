@@ -12,7 +12,7 @@ import { LOCALE_STORAGE_KEY, LocaleProvider, useLocale } from "@/lib/i18n";
 
 function HomeProbe() {
   const { t } = useLocale();
-  return <section><h2>{t.body.home.hmTitle}</h2><p>{t.body.home.hmPlayersConfirmed}</p></section>;
+  return <section><h2>{t.body.home.hmTitle}</h2><p>{t.body.home.hmPlayersTracked}</p></section>;
 }
 
 function Probe() {
@@ -90,7 +90,7 @@ describe("page bodies through the provider (ADR-139 follow-up)", () => {
       </LocaleProvider>,
     );
     expect(screen.getByText("Футбольная видеоаналитика")).toBeDefined();
-    expect(screen.getByText("Подтверждённые игроки")).toBeDefined();
+    expect(screen.getByText("Игроков отслежено")).toBeDefined();
   });
 
   it("Group B strings read from the stored locale (Russian)", () => {
