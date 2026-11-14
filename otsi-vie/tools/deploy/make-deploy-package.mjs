@@ -9,14 +9,20 @@
  *     package.json          @otsi-vie/api, exact (pinned) dependency versions, `npm start` runs the API
  *     package-lock.json     generated here, so the host installs exactly these versions with `npm ci --omit=dev`
  *     dist/                 the built API (node dist/main.js)
- *     vendor/otsi-vie-contracts-<version>.tgz   the built @otsi-vie/contracts, as a tarball dependency
+ *     vendor/contracts/       the built @otsi-vie/contracts, as an extracted folder (dist + package.json)
+ *     scripts/install-contracts.mjs   postinstall: copies vendor/contracts into node_modules/@otsi-vie/contracts
  *     README.md             how to install and run it on the host
  *
- * The contracts are a tarball, not a `file:` folder: on the host (cPanel shared hosting) node_modules
- * is itself a symlink into ~/nodevenv/..., so a `file:` folder dependency installs as a relative
- * symlink (node_modules/@otsi-vie/contracts -> ../../vendor/contracts) that resolves against the
- * symlink target and breaks with MODULE_NOT_FOUND. A tarball is extracted by `npm ci` as a real
- * directory, so there is no symlink to break — a plain `npm ci` installs it.
+ * The contracts are NOT a dependency in package.json at all. They ship as an extracted folder,
+ * `vendor/contracts/` (dist + package.json), and a `postinstall` script copies them into
+ * `node_modules/@otsi-vie/contracts/` after `npm ci` installs the rest. That is deliberate:
+ * on the host (cPanel shared hosting) `node_modules` is itself a symlink into ~/nodevenv/...,
+ * so a `file:./vendor/...` dependency — folder or tarball — is resolved against the symlink
+ * target instead of this folder, and `npm ci` fails unless the vendor folder is also symlinked
+ * into the nodevenv by hand. With no `file:` dependency there is nothing for npm to resolve
+ * wrongly: `npm ci` installs the registry packages (removing or following the symlink as its
+ * version does), then `postinstall` copies the contracts into whichever `node_modules` the app
+ * actually uses. Run `npm ci --omit=dev` WITHOUT `--ignore-scripts`, so the copy runs.
  *
  * Usage:
  *   node otsi-vie/tools/deploy/make-deploy-package.mjs [--out <dir>] [--skip-build] [--skip-lockfile]
@@ -25,7 +31,7 @@
  * build can never ship. Nothing in the repo is pushed or deployed by this script — it only writes the folder.
  */
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -119,9 +125,10 @@ function main() {
   const apiPkg = readJson(path.join(API_DIR, "package.json"));
   const contractsPkg = readJson(path.join(CONTRACTS_DIR, "package.json"));
 
-  // Exact versions for every runtime dependency. The workspace package becomes a tarball
-  // (see below), not a file: folder — a folder installs as a relative symlink that breaks
-  // on the host, where node_modules is itself a symlink.
+  // Exact versions for every runtime dependency. The workspace package (@otsi-vie/contracts)
+  // is NOT listed here at all (see below): it ships in vendor/contracts/ and is installed by
+  // postinstall, because a `file:` dependency is resolved against the node_modules symlink
+  // target on the host and breaks there.
   const dependencies = {};
   for (const [name] of Object.entries(apiPkg.dependencies ?? {})) {
     if (name === "@otsi-vie/contracts") continue;
@@ -148,19 +155,42 @@ function main() {
     dependencies: contractsDeps,
   }, null, 2) + "\n", "utf8");
 
-  // Pack the contracts into a tarball and use that as the dependency. `npm pack` runs here
-  // (local, no registry); the staging folder is removed afterwards, so the package holds
-  // only the tarball. A plain `npm ci` extracts a tarball dependency as a real directory —
-  // no symlink — so it installs on the host where node_modules is a symlink.
-  log("packing @otsi-vie/contracts into a tarball (npm pack)");
-  run("npm", ["pack", "--ignore-scripts"], path.join(out, "vendor", "contracts"));
-  const packed = readdirSync(path.join(out, "vendor", "contracts")).filter((f) => f.endsWith(".tgz"));
-  if (packed.length !== 1) fail(`expected exactly one packed tarball in vendor/contracts, found ${packed.length}`);
-  const tarball = packed[0];
-  const tarballPath = path.join(out, "vendor", tarball);
-  renameSync(path.join(out, "vendor", "contracts", tarball), tarballPath);
-  rmSync(path.join(out, "vendor", "contracts"), { recursive: true, force: true });
-  dependencies["@otsi-vie/contracts"] = `file:./vendor/${tarball}`;
+  // No `file:` dependency and no tarball: `vendor/contracts/` stays an extracted folder, and the
+  // postinstall script (below) copies it into node_modules after `npm ci`. A `file:` dependency —
+  // folder or tarball — is resolved by npm against the node_modules symlink target on cPanel, so
+  // it fails without a hand-made vendor symlink in the nodevenv. With no `file:` dependency
+  // there is nothing to resolve wrongly; the copy lands in whichever node_modules the app uses.
+  const contractsDir = path.join(out, "vendor", "contracts");
+  if (!existsSync(path.join(contractsDir, "dist", "index.js"))) fail("verification failed: vendor/contracts/dist/index.js is missing");
+
+  // postinstall: copy vendor/contracts into node_modules/@otsi-vie/contracts. Plain Node, no
+  // shell, no tar — it runs after `npm ci` installs the rest, so `npm ci` must be run WITHOUT
+  // --ignore-scripts (the README says so). Idempotent: it removes any stale copy first.
+  mkdirSync(path.join(out, "scripts"), { recursive: true });
+  writeFileSync(path.join(out, "scripts", "install-contracts.mjs"), [
+    "#!/usr/bin/env node",
+    "// postinstall for the deploy package: copy the vendored @otsi-vie/contracts into",
+    "// node_modules. The contracts are NOT a dependency in package.json (see",
+    "// make-deploy-package.mjs): on cPanel node_modules is a symlink into the nodevenv,",
+    "// and a `file:` dependency is resolved against the symlink target, so `npm ci` fails",
+    "// without a hand-made vendor symlink. This copy lands in whichever node_modules the",
+    "// app actually uses, symlink or real directory.",
+    "import { cpSync, existsSync, rmSync } from \"node:fs\";",
+    "import path from \"node:path\";",
+    "import { fileURLToPath } from \"node:url\";",
+    "",
+    "const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"..\");",
+    "const src = path.join(root, \"vendor\", \"contracts\");",
+    "const dest = path.join(root, \"node_modules\", \"@otsi-vie\", \"contracts\");",
+    "if (!existsSync(path.join(src, \"dist\", \"index.js\"))) {",
+    "  console.error(\"[install-contracts] ERROR: vendor/contracts/dist/index.js is missing\");",
+    "  process.exit(1);",
+    "}",
+    "rmSync(dest, { recursive: true, force: true });",
+    "cpSync(src, dest, { recursive: true });",
+    "console.log(\"[install-contracts] @otsi-vie/contracts installed into node_modules\");",
+    "",
+  ].join("\n"), "utf8");
 
   writeFileSync(path.join(out, "package.json"), JSON.stringify({
     name: "@otsi-vie/api",
@@ -169,7 +199,9 @@ function main() {
     description: apiPkg.description ?? "",
     main: "dist/main.js",
     engines: { node: ">=22.11 <23" },
-    scripts: { start: "node dist/main.js" },
+    // postinstall copies vendor/contracts into node_modules (see the header comment): the
+    // contracts are NOT a dependency, so `npm ci` must run WITHOUT --ignore-scripts.
+    scripts: { start: "node dist/main.js", postinstall: "node scripts/install-contracts.mjs" },
     dependencies,
   }, null, 2) + "\n", "utf8");
 
@@ -183,28 +215,17 @@ function main() {
     "",
     "    npm ci --omit=dev",
     "",
+    "Run it WITHOUT `--ignore-scripts`: the `postinstall` step copies the vendored",
+    "`@otsi-vie/contracts` (in `vendor/contracts/`) into `node_modules`. No manual symlink is",
+    "needed on cPanel — the contracts are not a `file:` dependency, so there is nothing for",
+    "`npm ci` to resolve against the nodevenv's `node_modules` symlink, and the copy lands in",
+    "whichever `node_modules` the app actually uses.",
+    "",
     "## Run",
     "",
     "    npm start",
     "",
     "That runs `node dist/main.js`. Node 22.11–22.x is required.",
-    "",
-    "## cPanel (nodevenv): the vendor symlink, needed before `npm ci`",
-    "",
-    "On cPanel the app's `node_modules` is a symlink into the nodevenv",
-    "(`~/nodevenv/<app>/<node-version>/lib/node_modules`), and `npm ci` resolves the",
-    "`file:./vendor/...` contracts tarball from that nodevenv lib folder, not from this",
-    "folder — so it fails unless the vendor folder is visible there too. Create the",
-    "symlink once per nodevenv (before the first `npm ci`, and again if the nodevenv is",
-    "recreated), replacing <app> and <node-version> with the host's values. Find the",
-    "nodevenv path from where this folder's `node_modules` symlink points",
-    "(`readlink node_modules`):",
-    "",
-    "    ln -s \"$PWD/vendor\" ~/nodevenv/<app>/<node-version>/lib/vendor",
-    "",
-    "Then run `npm ci --omit=dev` in this folder as usual. If `npm ci` still cannot find",
-    "the tarball, check the symlink target exists (`ls ~/nodevenv/<app>/<node-version>/lib/vendor/`",
-    "must list the `otsi-vie-contracts-<version>.tgz` file).",
     "",
     "## Settings",
     "",
@@ -214,10 +235,11 @@ function main() {
     "## What is in here",
     "",
     "- `dist/` — the built API.",
-    "- `vendor/otsi-vie-contracts-<version>.tgz` — the built `@otsi-vie/contracts`, as a tarball",
-    "  dependency. It is a tarball (not a folder) on purpose: a folder installs as a relative",
-    "  symlink, which breaks on this host, where node_modules is itself a symlink. A plain",
-    "  `npm ci` extracts the tarball as a real directory.",
+    "- `vendor/contracts/` — the built `@otsi-vie/contracts`, as an extracted folder",
+    "  (dist + package.json). It is NOT a dependency in package.json: the `postinstall`",
+    "  script (`scripts/install-contracts.mjs`) copies it into `node_modules/@otsi-vie/contracts/`",
+    "  after `npm ci`, so no `file:` dependency is ever resolved against the nodevenv symlink.",
+    "- `scripts/install-contracts.mjs` — the postinstall step that installs the contracts.",
     "- `package-lock.json` — the exact versions `npm ci` installs. Do not edit it by hand;",
     "  rebuild the package instead.",
     "",
@@ -228,23 +250,22 @@ function main() {
     run("npm", ["install", "--package-lock-only", "--omit=dev", "--ignore-scripts"], out);
   }
 
-  // Verify: the entry points exist, the tarball is there, and the lockfile (when generated) pins
-  // exactly what package.json says.
+  // Verify: the entry points exist, the vendored contracts folder and the postinstall script
+  // are there, and the lockfile (when generated) pins exactly what package.json says.
   if (!existsSync(path.join(out, "dist", "main.js"))) fail("verification failed: dist/main.js is missing");
-  if (!existsSync(tarballPath)) fail(`verification failed: ${path.relative(ROOT, tarballPath)} is missing`);
+  if (!existsSync(path.join(out, "vendor", "contracts", "dist", "index.js"))) fail("verification failed: vendor/contracts/dist/index.js is missing");
+  if (!existsSync(path.join(out, "scripts", "install-contracts.mjs"))) fail("verification failed: scripts/install-contracts.mjs is missing");
   if (!skipLockfile) {
     const lock = readJson(path.join(out, "package-lock.json"));
     const locked = lock.packages?.[""]?.dependencies ?? {};
     for (const [name, version] of Object.entries(dependencies)) {
       if (locked[name] !== version) fail(`verification failed: package-lock.json pins ${name}@${locked[name] ?? "?"}, package.json says ${version}`);
     }
-    if (!lock.packages?.["node_modules/@otsi-vie/contracts"]) fail("verification failed: package-lock.json has no node_modules/@otsi-vie/contracts entry");
+    if (lock.packages?.["node_modules/@otsi-vie/contracts"]) fail("verification failed: package-lock.json still lists @otsi-vie/contracts (it is installed by postinstall, not by npm)");
   }
   log(`package ready: ${out}`);
   log(`  API ${apiPkg.version}, contracts ${contractsPkg.version}, ${Object.keys(dependencies).length} dependencies pinned${skipLockfile ? " (no lockfile — pass no --skip-lockfile for the host)" : ""}`);
-  log("cPanel: before the first `npm ci` on the host, create the vendor symlink (see README.md):");
-  log("  ln -s \"$PWD/vendor\" ~/nodevenv/<app>/<node-version>/lib/vendor");
-  log("  (find the nodevenv path from `readlink node_modules` in the app folder)");
+  log("no vendor symlink is needed on cPanel: the contracts are installed by postinstall, not by a `file:` dependency (see README.md).");
 }
 
 main();
