@@ -136,10 +136,17 @@ describe("deploy package (staging plan B)", () => {
       // contracts on real Windows (install exits 0, contracts missing, failure
       // silent). There is no one-liner any more — the postinstall is a plain command
       // with no inner quotes, so there is nothing for cmd.exe to mangle — and this
-      // step proves it runs and copies in a Windows-style layout: a directory
-      // literally named `D:` holds the app tree, run from the app folder.
+      // step proves it runs and copies in a Windows-style layout, run from the app
+      // folder. The folder is named `D_`, not `D:`: a directory literally named
+      // `D:` cannot be created on Windows at all (`:` is illegal in a folder name),
+      // so the step failed before it started there (ENOPROTOOPT) while passing on
+      // Linux. The colon is not missed: the postinstall is a plain relative
+      // command, so the path never enters it, and the installer resolves its root
+      // with fileURLToPath(import.meta.url), which handles a drive letter; on real
+      // Windows the temp dir is already on a drive, so the path genuinely contains
+      // a colon anyway.
       const winRoot = path.join(out, "win");
-      const winApp = path.join(winRoot, "D:", "otsi", "app");
+      const winApp = path.join(winRoot, "D_", "otsi", "app");
       cpSync(pkgDir, winApp, { recursive: true });
       const winPost = spawnSync(pkg.scripts.postinstall as string, [], {
         cwd: winApp, encoding: "utf8", timeout: 60_000, shell: true,
