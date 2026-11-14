@@ -24,19 +24,26 @@
  * version does), then `postinstall` copies the contracts into whichever `node_modules` the app
  * actually uses. Run `npm ci --omit=dev` WITHOUT `--ignore-scripts`, so the copy runs.
  *
- * The postinstall is best-effort, not the only copy. On cPanel npm runs it with the wrong
- * working directory (~/nodevenv/<app>/<version>/lib, not the app folder), so a plain
- * `node scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and the copy never
- * happens — and `npm ci` exits 1, so the install looks broken. The postinstall therefore
- * locates the package through npm's own `npm_package_json` environment variable (the
- * absolute path of the package.json being installed), never through the working
- * directory, and it never fails the install: if the script or the vendored contracts
- * cannot be found, it says so and exits 0. The server also installs the contracts
- * itself on start as a backstop: apps/api/src/ensure-contracts.ts (imported first by
- * main.ts) copies vendor/contracts/ into node_modules when the contracts do not
- * resolve, using paths from its own file location, never from the working directory.
- * So a plain `npm ci --omit=dev` works on cPanel with no manual symlink and no manual
- * step, and it exits 0.
+ * The postinstall is best-effort, not the only copy — and it is deliberately a plain
+ * command, not a `node -e` one-liner: `node scripts/install-contracts.mjs || exit 0`.
+ * A one-liner has to survive the shell that runs it, and on Windows that shell is
+ * cmd.exe, which mangles quoted `-e` code: the 6e262c4 pathToFileURL one-liner still
+ * never copied the contracts on real Windows — `npm ci` exited 0 and the contracts
+ * were missing, so the failure was silent. The plain command has no inner quotes, no
+ * `-e`, no path to resolve, so there is nothing for cmd (or sh) to mangle; the
+ * installer script itself resolves the package root from its own file location
+ * (`import.meta.url`), never from the working directory. On cPanel npm runs the
+ * postinstall with the wrong working directory (~/nodevenv/<app>/<version>/lib, not
+ * the app folder), so the plain `node scripts/...` cannot find the script there —
+ * the `|| exit 0` makes that a no-op instead of a failed install (`npm ci` still
+ * exits 0), and the server installs the contracts itself on start as a backstop:
+ * apps/api/src/ensure-contracts.ts (imported first by main.ts) copies
+ * vendor/contracts/ into node_modules when the contracts do not resolve, using paths
+ * from its own file location, never from the working directory. So a plain
+ * `npm ci --omit=dev` works on cPanel with no manual symlink and no manual step,
+ * and it exits 0. The test also runs `npm ci` with `--ignore-scripts=false`, so a
+ * machine whose npm config skips lifecycle scripts cannot silently skip the copy —
+ * that reproduces the Windows failure exactly (install exits 0, contracts missing).
  *
  * Usage:
  *   node otsi-vie/tools/deploy/make-deploy-package.mjs [--out <dir>] [--skip-build] [--skip-lockfile]
@@ -218,20 +225,17 @@ function main() {
     engines: { node: ">=22.11 <23" },
     // postinstall copies vendor/contracts into node_modules (see the header comment): the
     // contracts are NOT a dependency, so `npm ci` must run WITHOUT --ignore-scripts.
-    // The command locates the installer through npm's `npm_package_json` (the absolute
-    // path of the package.json being installed), never through the working directory:
-    // on cPanel npm runs postinstall with cwd ~/nodevenv/<app>/<version>/lib, so a plain
-    // `node scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and `npm ci`
-    // exits 1. It never fails the install: any error is logged LOUDLY (the script path
-    // tried, the npm_package_json value, and the full error) and the command exits 0
-    // — the server installs the contracts itself on start (ensure-contracts.ts).
-    // Two Windows details: `import()` rejects a plain `D:\...` path
-    // (ERR_UNSUPPORTED_ESM_URL_SCHEME — Node reads `D:` as a URL scheme), so the path
-    // is loaded through `pathToFileURL`; and the backslashes are normalised first
-    // (String.fromCharCode(92) is the backslash — a literal `\\` in this command would
-    // be mangled by the shell's double quotes on POSIX). Single quotes only inside
-    // the -e code, so the command runs under both sh and cmd.
-    scripts: { start: "node dist/main.js", postinstall: "node --input-type=module -e \"import path from 'node:path'; import { pathToFileURL } from 'node:url'; const raw = process.env.npm_package_json || 'package.json'; const root = path.dirname(raw.split(String.fromCharCode(92)).join('/')); const script = path.join(root, 'scripts', 'install-contracts.mjs'); try { await import(pathToFileURL(script)); } catch (e) { console.error('[install-contracts] ERROR: postinstall could not run ' + script + ' (npm_package_json=' + raw + '): ' + (e && e.stack || e)); console.error('[install-contracts] The contracts were NOT copied by postinstall. The server installs them itself on start (ensure-contracts.ts).'); }\"" },
+    // Deliberately a plain command — no `node -e` one-liner. A one-liner has to survive
+    // the shell that runs it, and on Windows that shell is cmd.exe, which mangles quoted
+    // `-e` code: the 6e262c4 pathToFileURL one-liner still never copied the contracts on
+    // real Windows (install exits 0, contracts missing, failure silent). This command
+    // has no inner quotes, no `-e`, no path to resolve, so there is nothing for cmd (or
+    // sh) to mangle; the installer script resolves the package root from its own file
+    // location. The `|| exit 0` is for cPanel, where npm runs postinstall with the wrong
+    // working directory (~/nodevenv/<app>/<version>/lib): the script cannot be found
+    // there, so without it `npm ci` would exit 1; with it the install exits 0 and the
+    // server installs the contracts itself on start (ensure-contracts.ts).
+    scripts: { start: "node dist/main.js", postinstall: "node scripts/install-contracts.mjs || exit 0" },
     dependencies,
   }, null, 2) + "\n", "utf8");
 
@@ -251,13 +255,13 @@ function main() {
     "`npm ci` to resolve against the nodevenv's `node_modules` symlink, and the copy lands in",
     "whichever `node_modules` the app actually uses.",
     "",
-    "The `postinstall` step locates the package through npm's own `npm_package_json`",
-    "environment variable (the absolute path of this package.json), never through the",
-    "working directory — on cPanel npm runs it with cwd `~/nodevenv/<app>/<version>/lib`,",
-    "not this folder, and a plain `node scripts/install-contracts.mjs` would fail there",
-    "with MODULE_NOT_FOUND and make `npm ci` exit 1. The postinstall is best-effort: if",
-    "the script or the vendored contracts cannot be found it says so and exits 0, and",
-    "the server installs the contracts itself the first time it starts",
+    "The `postinstall` step is a plain command (`node scripts/install-contracts.mjs",
+    "|| exit 0`) — deliberately not a `node -e` one-liner, so there is nothing for the",
+    "Windows command shell to mangle. The installer script finds the package from its",
+    "own file location, never from the working directory. On cPanel npm runs it with",
+    "cwd `~/nodevenv/<app>/<version>/lib`, not this folder, so the script cannot be",
+    "found there — the `|| exit 0` makes that a no-op instead of a failed install,",
+    "and the server installs the contracts itself the first time it starts",
     "(`apps/api/src/ensure-contracts.ts`, imported first by `dist/main.js`).",
     "A plain `npm ci --omit=dev` is the whole install; there is no manual step.",
     "",
