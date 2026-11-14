@@ -7142,6 +7142,19 @@ export interface Dictionary {
       showPasswordShort: string;
       hidePasswordShort: string;
     };
+    invite: {
+      title: string;
+      sub: string;
+      linkLabel: string;
+      codeLabel: string;
+      copy: string;
+      copied: string;
+      inviteeGets: string;
+      inviterGets: string;
+      loading: string;
+      loadFailed: string;
+      signupBonus: string;
+    };
   };
   /** Passkeys (ADR-143): sign in with Windows Hello instead of typing email + password. */
   webauthn: {
@@ -7174,19 +7187,6 @@ export interface Dictionary {
     signInWithPasskeyShort: string;
     windowsHello: string;
   };
-    invite: {
-      title: string;
-      sub: string;
-      linkLabel: string;
-      codeLabel: string;
-      copy: string;
-      copied: string;
-      inviteeGets: string;
-      inviterGets: string;
-      loading: string;
-      loadFailed: string;
-      signupBonus: string;
-    };
 }
 
 /** A dictionary that may leave any leaf untranslated (it then falls back to English). */

@@ -24,15 +24,19 @@
  * version does), then `postinstall` copies the contracts into whichever `node_modules` the app
  * actually uses. Run `npm ci --omit=dev` WITHOUT `--ignore-scripts`, so the copy runs.
  *
- * The postinstall is best-effort, not the only copy: on cPanel npm runs it with the wrong
- * working directory (~/nodevenv/<app>/<version>/lib, not the app folder), so `node
- * scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and the copy never happens.
- * The server therefore installs the contracts itself on start as well:
- * apps/api/src/ensure-contracts.ts (imported first by main.ts) copies
- * vendor/contracts/ into node_modules when the contracts do not resolve, using
- * paths from its own file location, never from the working directory. So a plain
- * `npm ci --omit=dev` works on cPanel with no manual symlink and no manual step,
- * even when the postinstall misses.
+ * The postinstall is best-effort, not the only copy. On cPanel npm runs it with the wrong
+ * working directory (~/nodevenv/<app>/<version>/lib, not the app folder), so a plain
+ * `node scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and the copy never
+ * happens — and `npm ci` exits 1, so the install looks broken. The postinstall therefore
+ * locates the package through npm's own `npm_package_json` environment variable (the
+ * absolute path of the package.json being installed), never through the working
+ * directory, and it never fails the install: if the script or the vendored contracts
+ * cannot be found, it says so and exits 0. The server also installs the contracts
+ * itself on start as a backstop: apps/api/src/ensure-contracts.ts (imported first by
+ * main.ts) copies vendor/contracts/ into node_modules when the contracts do not
+ * resolve, using paths from its own file location, never from the working directory.
+ * So a plain `npm ci --omit=dev` works on cPanel with no manual symlink and no manual
+ * step, and it exits 0.
  *
  * Usage:
  *   node otsi-vie/tools/deploy/make-deploy-package.mjs [--out <dir>] [--skip-build] [--skip-lockfile]
@@ -193,8 +197,11 @@ function main() {
     "const src = path.join(root, \"vendor\", \"contracts\");",
     "const dest = path.join(root, \"node_modules\", \"@otsi-vie\", \"contracts\");",
     "if (!existsSync(path.join(src, \"dist\", \"index.js\"))) {",
-    "  console.error(\"[install-contracts] ERROR: vendor/contracts/dist/index.js is missing\");",
-    "  process.exit(1);",
+    "  // Best-effort: never fail the install. The server installs the contracts itself",
+    "  // on start (ensure-contracts.ts) when they are missing, so a missing vendor folder",
+    "  // here is a warning, not an error — `npm ci` must still exit 0.",
+    "  console.error(\"[install-contracts] WARNING: vendor/contracts/dist/index.js is missing; the server will install the contracts itself on start\");",
+    "  process.exit(0);",
     "}",
     "rmSync(dest, { recursive: true, force: true });",
     "cpSync(src, dest, { recursive: true });",
@@ -211,7 +218,14 @@ function main() {
     engines: { node: ">=22.11 <23" },
     // postinstall copies vendor/contracts into node_modules (see the header comment): the
     // contracts are NOT a dependency, so `npm ci` must run WITHOUT --ignore-scripts.
-    scripts: { start: "node dist/main.js", postinstall: "node scripts/install-contracts.mjs" },
+    // The command locates the installer through npm's `npm_package_json` (the absolute
+    // path of the package.json being installed), never through the working directory:
+    // on cPanel npm runs postinstall with cwd ~/nodevenv/<app>/<version>/lib, so a plain
+    // `node scripts/install-contracts.mjs` fails with MODULE_NOT_FOUND and `npm ci`
+    // exits 1. It never fails the install: any error is logged and the command exits 0
+    // — the server installs the contracts itself on start (ensure-contracts.ts).
+    // Single quotes only inside the -e code, so the command runs under both sh and cmd.
+    scripts: { start: "node dist/main.js", postinstall: "node --input-type=module -e \"import path from 'node:path'; const root = path.dirname(process.env.npm_package_json || 'package.json'); try { await import(path.join(root, 'scripts', 'install-contracts.mjs')); } catch (e) { console.error('[install-contracts] skipped: ' + e.message); }\"" },
     dependencies,
   }, null, 2) + "\n", "utf8");
 
@@ -231,10 +245,13 @@ function main() {
     "`npm ci` to resolve against the nodevenv's `node_modules` symlink, and the copy lands in",
     "whichever `node_modules` the app actually uses.",
     "",
-    "If the `postinstall` misses — on cPanel npm runs it with the wrong working",
-    "directory (`~/nodevenv/<app>/<version>/lib`, not this folder), so `node",
-    "scripts/install-contracts.mjs` fails — nothing needs doing by hand: the",
-    "server installs the contracts itself the first time it starts",
+    "The `postinstall` step locates the package through npm's own `npm_package_json`",
+    "environment variable (the absolute path of this package.json), never through the",
+    "working directory — on cPanel npm runs it with cwd `~/nodevenv/<app>/<version>/lib`,",
+    "not this folder, and a plain `node scripts/install-contracts.mjs` would fail there",
+    "with MODULE_NOT_FOUND and make `npm ci` exit 1. The postinstall is best-effort: if",
+    "the script or the vendored contracts cannot be found it says so and exits 0, and",
+    "the server installs the contracts itself the first time it starts",
     "(`apps/api/src/ensure-contracts.ts`, imported first by `dist/main.js`).",
     "A plain `npm ci --omit=dev` is the whole install; there is no manual step.",
     "",

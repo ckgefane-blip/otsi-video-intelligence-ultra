@@ -29,6 +29,18 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def sha256_lf(path: Path) -> str:
+    """SHA-256 of a file with line endings normalised to LF.
+
+    The fixture files are checked out CRLF on Windows (core.autocrlf=true)
+    but LF on Linux, so a raw-byte hash differs by platform. Normalising
+    CRLF -> LF first gives the same hash everywhere. Only the TEST hashes
+    this way — migrate.py itself still records the raw-byte hash, which is
+    what existing installs have in their schema_migrations rows.
+    """
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def norm_ddl(sql: str | None) -> str:
     if not sql:
         return ""
@@ -140,10 +152,12 @@ class SqliteTestCase(unittest.TestCase):
         fixtures = ROOT / "tools" / "db" / "fixtures"
         old_0007 = fixtures / "0007_canonical_player_registry.pre-invite.sqlite.sql"
         old_0013 = fixtures / "0013_detection_tracking_playback.pre-invite.sqlite.sql"
-        # The fixtures are the applied files, byte for byte (pre-Invite).
-        self.assertEqual(sha256(old_0007),
+        # The fixtures are the applied files, byte for byte (pre-Invite),
+        # hashed with LF-normalised bytes so the pin holds on Windows too
+        # (where the fixtures check out CRLF) and on Linux (LF).
+        self.assertEqual(sha256_lf(old_0007),
                          "5ba99059573c72f1a9a2ceedb087ab54971270f6ebd23f589a97ac6fc93f8a17")
-        self.assertEqual(sha256(old_0013),
+        self.assertEqual(sha256_lf(old_0013),
                          "8b8923a67ddc757bc61f367c34588823274e8f55cd21ecf632eeb152a926f89b")
         # The "previous tip" migration set: every current SQLite migration up
         # to 0078, but with the OLD 0007/0013 in place of the current ones.
@@ -198,10 +212,13 @@ class SqliteTestCase(unittest.TestCase):
             "SELECT COUNT(*) FROM schema_migrations").fetchone()[0], 78)
         kept = {r[0]: r[1] for r in conn.execute(
             "SELECT version, sha256 FROM schema_migrations WHERE version IN ('0007', '0013')")}
-        self.assertEqual(kept["0007"],
-                         "5ba99059573c72f1a9a2ceedb087ab54971270f6ebd23f589a97ac6fc93f8a17")
-        self.assertEqual(kept["0013"],
-                         "8b8923a67ddc757bc61f367c34588823274e8f55cd21ecf632eeb152a926f89b")
+        # The upgrade must not have re-recorded 0007/0013: the rows still
+        # carry the hash of the file that was applied. migrate.py records the
+        # RAW-byte hash, so on Windows (CRLF fixtures) that is the CRLF hash,
+        # not the LF hash — compare against the fixture's own raw hash, which
+        # is the CRLF hash there and the LF hash on Linux.
+        self.assertEqual(kept["0007"], sha256(old_0007))
+        self.assertEqual(kept["0013"], sha256(old_0013))
         conn.close()
 
     def test_bootstrap_refuses_an_applied_database(self) -> None:

@@ -35,7 +35,15 @@ describe("deploy package (staging plan B)", () => {
       // the contracts are NOT a dependency (no `file:` dep to resolve wrongly on cPanel):
       // they ship as an extracted folder and postinstall copies them into node_modules.
       expect(pkg.dependencies["@otsi-vie/contracts"]).toBeUndefined();
-      expect(pkg.scripts?.postinstall).toBe("node scripts/install-contracts.mjs");
+      // the postinstall locates the installer through npm's `npm_package_json` (the
+      // absolute path of the package.json being installed), never through the working
+      // directory — on cPanel npm runs it with cwd ~/nodevenv/<app>/<version>/lib, so
+      // a plain `node scripts/install-contracts.mjs` fails there with MODULE_NOT_FOUND
+      // and `npm ci` exits 1. It never fails the install (any error is caught and
+      // logged); the server self-installs the contracts on start as a backstop.
+      expect(pkg.scripts?.postinstall).toContain("npm_package_json");
+      expect(pkg.scripts?.postinstall).toContain("install-contracts.mjs");
+      expect(pkg.scripts?.postinstall).toContain("catch");
       expect(existsSync(path.join(pkgDir, "dist", "main.js"))).toBe(true);
       expect(existsSync(path.join(pkgDir, "vendor", "contracts", "dist", "index.js"))).toBe(true);
       expect(existsSync(path.join(pkgDir, "vendor", "contracts", "package.json"))).toBe(true);
@@ -89,6 +97,24 @@ describe("deploy package (staging plan B)", () => {
         { cwd: wrongCwd, encoding: "utf8", timeout: 60_000 });
       expect(post.status).not.toBe(0);
       expect(post.stderr).toMatch(/Cannot find module|MODULE_NOT_FOUND/);
+
+      // the cPanel failure (f55834f): the same wrong cwd makes `npm ci` exit 1
+      // ("command failed: node scripts/install-contracts.mjs"), so the install
+      // looks broken even though the server self-installs on start. The
+      // postinstall now locates the installer through npm's `npm_package_json`
+      // (the absolute path of the package.json being installed), never through
+      // the working directory — so run the postinstall COMMAND itself from the
+      // lib folder, with npm_package_json pointing at the app folder (what npm
+      // sets), and it must exit 0 and install the contracts. Remove the copy
+      // the cPanel `npm ci` above installed first, so this step proves the copy.
+      rmSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts"), { recursive: true, force: true });
+      const postFromLib = spawnSync(pkg.scripts.postinstall as string, [], {
+        cwd: wrongCwd, encoding: "utf8", timeout: 60_000, shell: true,
+        env: { ...process.env, npm_package_json: path.join(cpanelDir, "package.json") },
+      });
+      expect(postFromLib.status).toBe(0);
+      expect(existsSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts", "dist", "index.js"))).toBe(true);
+      expect(lstatSync(path.join(cpanelDir, "node_modules", "@otsi-vie", "contracts")).isSymbolicLink()).toBe(false);
 
       // The fix: the server installs the contracts itself on start
       // (apps/api/src/ensure-contracts.ts, imported first by dist/main.js),
